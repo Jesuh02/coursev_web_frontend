@@ -9,16 +9,26 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref('')
 
   const isAuthenticated = computed(() => tokenStorage.isAuthenticated)
-  const isAdmin = computed(() => user.value?.roles?.some(r => r.nombre === 'admin') ?? false)
-  const isCreator = computed(() =>
-    user.value?.roles?.some(r => r.nombre === 'docente' || r.nombre === 'admin') ?? false,
-  )
 
-  async function login(username: string, password: string) {
+  function hasRole(roleId: number): boolean {
+    return user.value?.roles?.some(r => r.id === roleId) ?? false
+  }
+
+  const isAdmin = computed(() => hasRole(3) || user.value?.roles?.some(r => r.nombre === 'admin') === true)
+  const isDocente = computed(() => hasRole(2) || user.value?.roles?.some(r => r.nombre === 'docente') === true)
+  const isAdminOrDocente = computed(() => isAdmin.value || isDocente.value)
+  const isCreator = computed(() => isAdminOrDocente.value)
+
+  function canModifyCourse(creatorUserId: number): boolean {
+    if (isAdminOrDocente.value) return true
+    return user.value?.id === creatorUserId
+  }
+
+  async function login(usernameOrEmail: string, password: string) {
     loading.value = true
     error.value = ''
     try {
-      const res = await authAdapter.login(username, password)
+      const res = await authAdapter.login(usernameOrEmail, password)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
@@ -48,11 +58,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginWithGoogle(email: string, displayName?: string, avatarUrl?: string) {
+  async function loginWithGoogle(email: string, displayName?: string, avatarUrl?: string, usernameHint?: string) {
     loading.value = true
     error.value = ''
     try {
-      const res = await authAdapter.loginWithGoogle(email, displayName, avatarUrl)
+      const res = await authAdapter.loginWithGoogle(email, displayName, avatarUrl, usernameHint)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
@@ -84,7 +94,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user, loading, error,
-    isAuthenticated, isAdmin, isCreator,
+    isAuthenticated, isAdmin, isDocente, isAdminOrDocente, isCreator,
+    hasRole, canModifyCourse,
     login, register, loginWithGoogle, fetchProfile, logout,
     setUser, setToken,
   }

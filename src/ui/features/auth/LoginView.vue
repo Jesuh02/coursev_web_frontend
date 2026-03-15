@@ -37,17 +37,80 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize(config: Record<string, unknown>): void
+          prompt(callback?: (notification: { isNotDisplayed(): boolean; isSkippedMoment(): boolean }) => void): void
+          renderButton(element: HTMLElement, config: Record<string, unknown>): void
+        }
+      }
+    }
+  }
+}
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 const showForgotPassword = ref(false)
+
+function loadGoogleScript(): Promise<void> {
+  return new Promise((resolve) => {
+    if (window.google?.accounts) { resolve(); return }
+    const existing = document.getElementById('google-gis-script')
+    if (existing) { existing.addEventListener('load', () => resolve()); return }
+    const script = document.createElement('script')
+    script.id = 'google-gis-script'
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    document.head.appendChild(script)
+  })
+}
+
+function decodeJwtPayload(token: string): Record<string, string> {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+  return JSON.parse(atob(base64))
+}
+
+onMounted(async () => {
+  if (!GOOGLE_CLIENT_ID) return
+  await loadGoogleScript()
+  window.google?.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: false,
+  })
+})
+
+async function handleGoogleCredential(response: { credential: string }) {
+  loading.value = true
+  error.value = ''
+  try {
+    const payload = decodeJwtPayload(response.credential)
+    const email = payload.email
+    const displayName = payload.name || email.split('@')[0]
+    const avatarUrl = payload.picture || undefined
+    await authStore.loginWithGoogle(email, displayName, avatarUrl)
+    router.push('/video')
+  } catch {
+    error.value = authStore.error || 'Error con Google'
+  } finally {
+    loading.value = false
+  }
+}
 
 async function handleLogin(username: string, password: string) {
   loading.value = true
@@ -63,16 +126,16 @@ async function handleLogin(username: string, password: string) {
 }
 
 async function handleGoogle() {
-  loading.value = true
-  error.value = ''
-  try {
-    await authStore.loginWithGoogle('user@gmail.com')
-    router.push('/video')
-  } catch {
-    error.value = authStore.error || 'Error con Google'
-  } finally {
-    loading.value = false
+  if (!GOOGLE_CLIENT_ID) {
+    error.value = 'Google Sign-In no configurado. Configura VITE_GOOGLE_CLIENT_ID.'
+    return
   }
+  await loadGoogleScript()
+  window.google?.accounts.id.prompt((notification) => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      error.value = 'No se pudo mostrar el diálogo de Google. Intenta de nuevo.'
+    }
+  })
 }
 
 function particleStyle(i: number) {

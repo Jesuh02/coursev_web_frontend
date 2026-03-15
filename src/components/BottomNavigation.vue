@@ -1,17 +1,24 @@
 <template>
   <nav class="bottom-nav">
-    <button
-      v-for="item in navItems"
-      :key="item.route"
-      :class="['nav-item', { active: isActive(item.route) }]"
-      @click="navigate(item.route)"
-    >
-      <span class="nav-icon-wrapper">
-        <component :is="item.icon" :size="24" />
-        <span v-if="item.badge && item.badge > 0" class="badge">{{ item.badge }}</span>
-      </span>
-      <span class="nav-label">{{ item.label }}</span>
-    </button>
+    <template v-for="(item, i) in navItems" :key="item.route">
+      <button
+        :class="['nav-item', { active: isActive(item.route) }]"
+        @click="navigate(item.route)"
+      >
+        <span class="nav-icon-wrapper">
+          <component :is="item.icon" :size="24" />
+          <span v-if="item.badge && item.badge > 0" class="badge">{{ item.badge }}</span>
+        </span>
+        <span class="nav-label">{{ item.label }}</span>
+      </button>
+      <button
+        v-if="i === 1 && authStore.isCreator"
+        class="nav-item create-btn"
+        @click="navigate('/upload')"
+      >
+        <span class="create-icon">+</span>
+      </button>
+    </template>
   </nav>
 </template>
 
@@ -19,6 +26,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useAuthStore } from '@/stores/authStore'
 import IconHome from '@/ui/shared/icons/IconHome.vue'
 import IconExplore from '@/ui/shared/icons/IconExplore.vue'
 import IconActivity from '@/ui/shared/icons/IconActivity.vue'
@@ -27,6 +35,7 @@ import IconProfile from '@/ui/shared/icons/IconProfile.vue'
 const router = useRouter()
 const route = useRoute()
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const navItems = computed(() => [
   { route: '/video', label: 'Inicio', icon: IconHome, badge: 0 },
@@ -46,11 +55,14 @@ function navigate(path: string) {
 
 <style scoped>
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   background: #000;
   border-top: 1px solid var(--border-color);
   padding: 6px 0 env(safe-area-inset-bottom, 8px);
-  flex-shrink: 0;
   z-index: 100;
 }
 
@@ -116,5 +128,23 @@ function navigate(path: string) {
 :deep(svg) {
   color: var(--text-muted);
   transition: color 0.2s;
+}
+
+.create-btn {
+  flex: 0.7;
+}
+
+.create-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple-primary), #00D4FF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
 }
 </style>

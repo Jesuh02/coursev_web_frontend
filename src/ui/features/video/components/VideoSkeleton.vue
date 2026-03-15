@@ -1,30 +1,22 @@
 <template>
-  <div class="skeleton-feed">
-    <div v-for="i in 3" :key="i" class="skeleton-card">
-      <div class="skeleton-bg skeleton-shimmer" />
-      <div class="skeleton-actions">
-        <div v-for="j in 4" :key="j" class="skeleton-circle skeleton-shimmer" />
-      </div>
-      <div class="skeleton-info">
-        <div class="skeleton-line skeleton-shimmer" style="width: 40%" />
-        <div class="skeleton-line skeleton-shimmer" style="width: 70%" />
-        <div class="skeleton-line skeleton-shimmer" style="width: 50%" />
-      </div>
+  <div class="skeleton-card">
+    <div class="skeleton-bg skeleton-shimmer" />
+    <div class="skeleton-actions">
+      <div v-for="j in 4" :key="j" class="skeleton-circle skeleton-shimmer" />
+    </div>
+    <div class="skeleton-info">
+      <div class="skeleton-line skeleton-shimmer" style="width: 40%" />
+      <div class="skeleton-line skeleton-shimmer" style="width: 70%" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.skeleton-feed {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .skeleton-card {
   position: relative;
-  height: 100vh;
-  background: var(--bg-secondary);
+  height: calc(100dvh - 56px);
+  background: #0a0a1a;
+  scroll-snap-align: start;
 }
 
 .skeleton-bg {

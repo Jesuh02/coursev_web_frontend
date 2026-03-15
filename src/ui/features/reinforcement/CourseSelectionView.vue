@@ -12,7 +12,7 @@
         @click="select(course)"
       >
         <div class="course-thumb">
-          <img v-if="course.thumbnailUri ?? course.thumbnail_uri" :src="(course.thumbnailUri ?? course.thumbnail_uri)!" alt="" />
+          <img v-if="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)" :src="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)!" alt="" />
           <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /></svg>
         </div>
         <div class="course-info">
@@ -31,6 +31,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Course } from '@/domain/models'
+import { resolveImageUrl } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'

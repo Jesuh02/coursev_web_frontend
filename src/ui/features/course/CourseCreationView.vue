@@ -1,8 +1,8 @@
 <template>
   <div class="course-creation">
-    <TopBar title="Crear Curso" @back="$router.back()" />
+    <TopBar :title="isEdit ? 'Editar Curso' : 'Crear Curso'" @back="$router.back()" />
 
-    <form class="creation-form" @submit.prevent="createCourse">
+    <form class="creation-form" @submit.prevent="submitCourse">
       <div class="thumb-upload" @click="openFilePicker">
         <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" />
         <div v-else class="upload-placeholder">
@@ -28,19 +28,24 @@
         />
       </div>
 
-      <AppButton type="submit" :loading="saving" full>Crear Curso</AppButton>
+      <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar Cambios' : 'Crear Curso' }}</AppButton>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
+const route = useRoute()
+const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
 const saving = ref(false)
+
+const isEdit = computed(() => !!route.params.id)
 
 const form = reactive({
   title: '',
@@ -50,6 +55,17 @@ const form = reactive({
   thumbnailPreview: ''
 })
 
+onMounted(async () => {
+  if (!isEdit.value) return
+  const { courseAdapter } = await import('@/infrastructure/api')
+  const course = await courseAdapter.getCourseById(Number(route.params.id))
+  form.title = course.title
+  form.description = course.description ?? ''
+  form.isPremium = course.is_premium ?? course.isPremium
+  form.price = course.price ? String(course.price) : ''
+  form.thumbnailPreview = course.thumbnail_uri ?? course.thumbnailUri ?? ''
+})
+
 function openFilePicker() { fileInput.value?.click() }
 
 function onFileSelect(e: Event) {
@@ -57,17 +73,24 @@ function onFileSelect(e: Event) {
   if (file) form.thumbnailPreview = URL.createObjectURL(file)
 }
 
-async function createCourse() {
+async function submitCourse() {
   saving.value = true
   try {
     const { courseAdapter } = await import('@/infrastructure/api')
-    await courseAdapter.createCourse({
+    const payload = {
       title: form.title,
       description: form.description,
       is_premium: form.isPremium,
       price: form.isPremium ? Number(form.price) : 0,
       category: 'general',
-    })
+    }
+    if (isEdit.value) {
+      await courseAdapter.updateCourse(Number(route.params.id), payload)
+      router.back()
+    } else {
+      await courseAdapter.createCourse(payload)
+      router.back()
+    }
   } catch { /* empty */ }
   saving.value = false
 }

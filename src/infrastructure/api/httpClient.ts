@@ -85,8 +85,9 @@ function authHeaders(): Record<string, string> {
   return h
 }
 
-async function request<T>(path: string, options?: RequestInit, isPublic = false): Promise<T> {
+async function request<T>(path: string, options?: RequestInit, isPublic = false, raw = false): Promise<T> {
   const url = `${API_V1}${path}`
+  const handler = raw ? handleRawResponse<T> : handleResponse<T>
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -102,13 +103,13 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false)
         const refreshed = await tryRefresh()
         if (refreshed) {
           const retryRes = await fetch(url, { ...options, headers: authHeaders() })
-          return handleResponse<T>(retryRes)
+          return handler(retryRes)
         }
         tokenStorage.clear()
         throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
       }
 
-      return handleResponse<T>(res)
+      return handler(res)
     } catch (e) {
       lastError = e as Error
       if (e instanceof HttpError) throw e
@@ -139,8 +140,28 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return json.data !== undefined ? json.data : json
 }
 
+async function handleRawResponse<T>(res: Response): Promise<T> {
+  const text = await res.text()
+  if (!text) {
+    if (res.ok) return undefined as T
+    throw new HttpError(res.status, 'EMPTY_RESPONSE', 'Respuesta vacía del servidor')
+  }
+  const json = JSON.parse(text)
+  if (!res.ok || json.success === false) {
+    const err = json.error || {}
+    throw new HttpError(
+      err.statusCode || res.status,
+      err.code || 'API_ERROR',
+      err.message || `Error ${res.status}`,
+    )
+  }
+  const { success: _, ...rest } = json
+  return rest as T
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  getRaw: <T>(path: string) => request<T>(path, undefined, false, true),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
@@ -159,4 +180,22 @@ export const api = {
 
 export function buildProxyFileUrl(key: string): string {
   return `${API_V1}/public/files/${key}`
+}
+
+export function extractR2Key(url: string): string | null {
+  if (!url.includes('r2.cloudflarestorage.com') && !url.includes('r2.dev')) return null
+  try {
+    const { pathname } = new URL(url)
+    return pathname.startsWith('/') ? pathname.slice(1) : pathname
+  } catch { return null }
+}
+
+export function resolveImageUrl(uri: string | null | undefined): string | null {
+  if (!uri) return null
+  if (uri.startsWith('file:///')) return null
+  const r2Key = extractR2Key(uri)
+  if (r2Key) return buildProxyFileUrl(r2Key)
+  if (uri.startsWith('http://') || uri.startsWith('https://')) return uri
+  if (/\.\w{2,4}$/.test(uri)) return buildProxyFileUrl(uri)
+  return null
 }

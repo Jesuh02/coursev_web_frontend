@@ -1,7 +1,7 @@
 <template>
   <div class="course-card" @click="$emit('click')">
     <div class="card-thumb">
-      <img v-if="course.thumbnailUri ?? course.thumbnail_uri" :src="(course.thumbnailUri ?? course.thumbnail_uri)!" :alt="course.title" />
+      <img v-if="thumb" :src="thumb" :alt="course.title" />
       <div v-else class="thumb-placeholder">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /></svg>
       </div>
@@ -20,9 +20,12 @@
 
 <script setup lang="ts">
 import type { Course } from '@/domain/models'
+import { resolveImageUrl } from '@/infrastructure/api'
+import { computed } from 'vue'
 
-defineProps<{ course: Course }>()
+const props = defineProps<{ course: Course }>()
 defineEmits<{ click: [] }>()
+const thumb = computed(() => resolveImageUrl(props.course.thumbnailUri ?? props.course.thumbnail_uri))
 </script>
 
 <style scoped>

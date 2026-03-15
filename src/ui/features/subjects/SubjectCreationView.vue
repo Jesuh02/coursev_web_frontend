@@ -1,8 +1,8 @@
 <template>
   <div class="subject-creation">
-    <TopBar title="Crear Materia" @back="$router.back()" />
+    <TopBar :title="isEdit ? 'Editar Materia' : 'Crear Materia'" @back="$router.back()" />
 
-    <form class="creation-form" @submit.prevent="create">
+    <form class="creation-form" @submit.prevent="save">
       <div class="thumb-upload" @click="(($refs.fileInput as HTMLInputElement)?.click())">
         <img v-if="thumbPreview" :src="thumbPreview" alt="" />
         <div v-else class="upload-placeholder">
@@ -13,32 +13,86 @@
       </div>
 
       <AppInput v-model="name" label="Nombre de la materia" />
+      <AppInput v-model="description" label="Descripción" />
+      <AppInput v-model="code" label="Código (opcional)" />
 
-      <AppButton type="submit" :loading="saving" full>Crear</AppButton>
+      <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar' : 'Crear' }}</AppButton>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+
 const name = ref('')
+const description = ref('')
+const code = ref('')
 const thumbPreview = ref('')
 const saving = ref(false)
+const isEdit = ref(false)
+const subjectId = ref(0)
+const courseId = ref(0)
+
+onMounted(async () => {
+  courseId.value = Number(route.query.courseId) || 0
+
+  if (!authStore.isAdminOrDocente) {
+    if (courseId.value) {
+      try {
+        const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
+        const course = await courseAdapter.getCourseById(courseId.value)
+        const isCreator = authStore.user?.id === course.creatorUserId
+        if (!isCreator) {
+          const res = await collaboratorAdapter.checkAccess(courseId.value)
+          if (!res.hasAccess) { router.back(); return }
+        }
+      } catch { router.back(); return }
+    } else { router.back(); return }
+  }
+
+  subjectId.value = Number(route.query.subjectId) || 0
+  if (subjectId.value) {
+    isEdit.value = true
+    name.value = (route.query.subjectName as string) || ''
+    description.value = (route.query.subjectDescription as string) || ''
+    code.value = (route.query.subjectCode as string) || ''
+    thumbPreview.value = (route.query.subjectThumbnailUrl as string) || ''
+  }
+})
 
 function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) thumbPreview.value = URL.createObjectURL(file)
 }
 
-async function create() {
+async function save() {
   saving.value = true
   try {
     const { subjectAdapter } = await import('@/infrastructure/api')
-    await subjectAdapter.createSubject({ name: name.value, courseId: 0, description: '' })
+    if (isEdit.value && subjectId.value) {
+      await subjectAdapter.updateSubject(subjectId.value, {
+        name: name.value,
+        description: description.value,
+        code: code.value || undefined,
+      })
+    } else {
+      await subjectAdapter.createSubject({
+        name: name.value,
+        description: description.value,
+        code: code.value || undefined,
+        courseId: courseId.value,
+      })
+    }
+    router.back()
   } catch { /* empty */ }
   saving.value = false
 }

@@ -1,7 +1,7 @@
 import type {
   User, AuthResponse, Course, Topic, Task, Video, Notification,
   ChatMessage, Subject, TaskSubmission, Subscription, Progress,
-  ContentItem, VideoComment, LikeResult, PaginatedResponse,
+  ContentItem, VideoComment, LikeResult, PaginatedResponse, Institucion,
 } from './models'
 
 export interface AuthPort {
@@ -29,7 +29,7 @@ export interface CoursePort {
   getFreeCourses(): Promise<Course[]>
   getPremiumCourses(page?: number, limit?: number): Promise<Course[]>
   getPopularCourses(page?: number, limit?: number): Promise<Course[]>
-  searchCourses(query: string): Promise<Course[]>
+  searchCourses(query: string, page?: number, limit?: number): Promise<PaginatedResponse<Course>>
   getCourseById(id: number): Promise<Course>
   getCoursesByCreatorId(userId: number): Promise<Course[]>
   getEnrolledCoursesPaginated(userId?: number, page?: number, limit?: number): Promise<PaginatedResponse<Course>>
@@ -56,6 +56,7 @@ export interface VideoPort {
 
 export interface TopicPort {
   getTopicsByCourse(courseId: number): Promise<Topic[]>
+  getTopicsBySubject(subjectId: number): Promise<Topic[]>
   getTopicById(id: number): Promise<Topic>
   createTopic(data: Partial<Topic>): Promise<Topic>
   updateTopic(id: number, data: Partial<Topic>): Promise<Topic>
@@ -174,4 +175,9 @@ export interface ReinforcementPort {
   getMyResults(): Promise<Record<string, unknown>[]>
   getResultsByCourse(courseId: number): Promise<Record<string, unknown>[]>
   getLearningContext(data: Record<string, unknown>): Promise<Record<string, unknown>>
+}
+
+export interface InstitucionPort {
+  getAll(): Promise<Institucion[]>
+  search(query: string): Promise<Institucion[]>
 }

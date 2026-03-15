@@ -7,9 +7,9 @@ export const courseAdapter: CoursePort = {
   getCourses: (page = 1, limit = 50) =>
     api.get<Course[]>(`/courses?page=${page}&pageSize=${limit}`),
 
-  getCoursesPaginated: (page = 1, limit = 50, excludeUserId) => {
+  getCoursesPaginated: (page = 1, limit = 20, excludeUserId) => {
     const exclude = excludeUserId ? `&excludeUserId=${excludeUserId}` : ''
-    return api.get<PaginatedResponse<Course>>(`/courses?page=${page}&pageSize=${limit}${exclude}`)
+    return api.getRaw<PaginatedResponse<Course>>(`/courses?page=${page}&pageSize=${limit}${exclude}`)
   },
 
   getFreeCourses: () => api.get<Course[]>('/courses/free'),
@@ -20,8 +20,8 @@ export const courseAdapter: CoursePort = {
   getPopularCourses: (page = 1, limit = 5) =>
     api.get<Course[]>(`/courses/popular?page=${page}&pageSize=${limit}`),
 
-  searchCourses: (query) =>
-    api.get<Course[]>(`/courses/search?q=${encodeURIComponent(query)}`),
+  searchCourses: (query, page = 1, limit = 20) =>
+    api.getRaw<PaginatedResponse<Course>>(`/courses/search?q=${encodeURIComponent(query)}&page=${page}&pageSize=${limit}`),
 
   getCourseById: (id) => api.get<Course>(`/courses/${id}`),
 

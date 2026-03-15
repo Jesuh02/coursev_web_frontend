@@ -1,0 +1,1 @@
+##prohibido manipular el backend, este ya funciona bien, el frontend con vue es el que debe acomodarse al backend, esta regla no se rompe a no ser que no exista otra forma de resolver un error, si este no se puede resolver por frontend, hay que manipular el backend en node 

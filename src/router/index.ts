@@ -23,6 +23,7 @@ const routes: RouteRecordRaw[] = [
 
   // Course
   { path: '/course/create', name: 'courseCreation', component: () => import('@/ui/features/course/CourseCreationView.vue'), meta: { hideNav: true } },
+  { path: '/course/:id/edit', name: 'courseEdit', component: () => import('@/ui/features/course/CourseCreationView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:id', name: 'courseDetail', component: () => import('@/ui/features/course/CourseDetailView.vue'), props: true },
   { path: '/course/:courseId/topic/:topicId?', name: 'courseTopic', component: () => import('@/ui/features/course/CourseTopicView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:courseId/task/:taskId?', name: 'courseTask', component: () => import('@/ui/features/course/CourseTaskView.vue'), props: true, meta: { hideNav: true } },
@@ -53,7 +54,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/payment/:courseId', name: 'paymentForm', component: () => import('@/ui/features/payment/PaymentFormView.vue'), props: true, meta: { hideNav: true } },
 
   // Subjects
-  { path: '/subjects', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue') },
+  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true },
   { path: '/subjects/create', name: 'subjectCreation', component: () => import('@/ui/features/subjects/SubjectCreationView.vue'), meta: { hideNav: true } },
 
   // Misc

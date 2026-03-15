@@ -37,7 +37,15 @@
       <section class="form-section">
         <h3 class="section-title">Información de Contacto</h3>
         <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" />
-        <AppInput v-model="form.institucion" label="Institución" placeholder="Tu institución educativa" />
+        <div class="autocomplete-wrapper">
+          <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." @update:modelValue="onInstitucionInput" />
+          <ul v-if="showInstitucionList && filteredInstituciones.length" class="autocomplete-list">
+            <li v-for="inst in filteredInstituciones" :key="inst.id" @mousedown.prevent="selectInstitucion(inst)">
+              <span class="inst-name">{{ inst.nombre }}</span>
+              <span v-if="inst.ciudad" class="inst-city">{{ inst.ciudad }}</span>
+            </li>
+          </ul>
+        </div>
         <div class="row">
           <AppInput v-model="form.telefono" type="tel" label="Teléfono" placeholder="+57" />
           <AppInput v-model="form.fecha_nacimiento" type="date" label="Fecha de nacimiento" />
@@ -64,9 +72,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { institucionAdapter } from '@/infrastructure/api'
+import type { Institucion } from '@/domain/models'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
@@ -75,6 +85,34 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const avatarPreview = ref<string | null>(null)
 const confirmPassword = ref('')
+
+const instituciones = ref<Institucion[]>([])
+const institucionQuery = ref('')
+const showInstitucionList = ref(false)
+const selectedInstitucionId = ref<number | null>(null)
+
+const filteredInstituciones = computed(() => {
+  const q = institucionQuery.value.toLowerCase()
+  if (!q) return instituciones.value
+  return instituciones.value.filter(i => i.nombre.toLowerCase().includes(q))
+})
+
+function onInstitucionInput() {
+  selectedInstitucionId.value = null
+  showInstitucionList.value = true
+}
+
+function selectInstitucion(inst: Institucion) {
+  institucionQuery.value = inst.nombre
+  selectedInstitucionId.value = inst.id
+  showInstitucionList.value = false
+}
+
+onMounted(async () => {
+  try {
+    instituciones.value = await institucionAdapter.getAll()
+  } catch { /* silent */ }
+})
 
 const form = ref({
   nombres: '',
@@ -273,5 +311,48 @@ async function handleRegister() {
 .login-link a {
   color: var(--purple-light);
   font-weight: 600;
+}
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  z-index: 10;
+}
+
+.autocomplete-list li {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.autocomplete-list li:hover {
+  background: var(--bg-surface);
+}
+
+.inst-name {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.inst-city {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>
