@@ -1,0 +1,156 @@
+<template>
+  <div class="course-creation">
+    <TopBar title="Crear Curso" @back="$router.back()" />
+
+    <form class="creation-form" @submit.prevent="createCourse">
+      <div class="thumb-upload" @click="openFilePicker">
+        <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" />
+        <div v-else class="upload-placeholder">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+          <p>Subir miniatura</p>
+        </div>
+        <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileSelect" />
+      </div>
+
+      <AppInput v-model="form.title" label="Título del curso" />
+      <AppInput v-model="form.description" label="Descripción" />
+
+      <div class="price-section">
+        <label class="toggle-row">
+          <span class="toggle-label">Curso Premium</span>
+          <input v-model="form.isPremium" type="checkbox" class="toggle" />
+        </label>
+        <AppInput
+          v-if="form.isPremium"
+          v-model="form.price"
+          label="Precio"
+          type="number"
+        />
+      </div>
+
+      <AppButton type="submit" :loading="saving" full>Crear Curso</AppButton>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import TopBar from '@/ui/shared/components/TopBar.vue'
+import AppInput from '@/ui/shared/components/AppInput.vue'
+import AppButton from '@/ui/shared/components/AppButton.vue'
+
+const fileInput = ref<HTMLInputElement>()
+const saving = ref(false)
+
+const form = reactive({
+  title: '',
+  description: '',
+  isPremium: false,
+  price: '',
+  thumbnailPreview: ''
+})
+
+function openFilePicker() { fileInput.value?.click() }
+
+function onFileSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) form.thumbnailPreview = URL.createObjectURL(file)
+}
+
+async function createCourse() {
+  saving.value = true
+  try {
+    const { courseAdapter } = await import('@/infrastructure/api')
+    await courseAdapter.createCourse({
+      title: form.title,
+      description: form.description,
+      is_premium: form.isPremium,
+      price: form.isPremium ? Number(form.price) : 0,
+      category: 'general',
+    })
+  } catch { /* empty */ }
+  saving.value = false
+}
+</script>
+
+<style scoped>
+.course-creation {
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.creation-form {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.thumb-upload {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  background: #1C1C1E;
+  border: 2px dashed rgba(255,255,255,0.1);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb-upload img { width: 100%; height: 100%; object-fit: cover; }
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #8E8E93;
+  font-size: 14px;
+}
+
+.price-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1C1C1E;
+  border-radius: 12px;
+}
+
+.toggle-label { font-size: 15px; color: #fff; }
+
+.toggle {
+  width: 44px;
+  height: 24px;
+  appearance: none;
+  border-radius: 12px;
+  background: #333;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle:checked { background: var(--purple-primary); }
+
+.toggle::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.toggle:checked::before { transform: translateX(20px); }
+</style>
