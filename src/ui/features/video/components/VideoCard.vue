@@ -50,10 +50,6 @@
     <div class="overlay-gradient-top" />
     <div class="overlay-gradient-bottom" />
 
-    <div class="overlay-top">
-      <h2 class="video-title">{{ video.title }}</h2>
-    </div>
-
     <div class="right-actions">
       <button class="action-btn profile-btn" @click.stop="$emit('profile')">
         <AppAvatar :size="46" :alt="video.username" :src="null" />

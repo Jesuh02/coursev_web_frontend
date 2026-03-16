@@ -45,14 +45,22 @@ const showSearch = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
 
+function stripFeedThumbnail(video: Video): Video {
+  return {
+    ...video,
+    thumbnail_uri: null,
+    thumbnailUri: null,
+  }
+}
+
 const filteredVideos = computed(() => {
-  if (!searchQuery.value) return videoStore.videos
+  if (!searchQuery.value) return videoStore.videos.map(stripFeedThumbnail)
   const q = searchQuery.value.toLowerCase()
   return videoStore.videos.filter(v =>
     v.title.toLowerCase().includes(q) ||
     v.username?.toLowerCase().includes(q) ||
     v.description?.toLowerCase().includes(q)
-  )
+  ).map(stripFeedThumbnail)
 })
 
 onMounted(() => {

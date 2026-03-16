@@ -1,110 +1,149 @@
 <template>
-  <div class="content-upload">
-    <TopBar title="Subir Contenido" @back="$router.back()" />
+  <div class="create-screen">
+    <button class="close-btn" @click="$router.back()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
 
-    <form class="upload-form" @submit.prevent="submit">
-      <div class="upload-area" @click="openFilePicker" @dragover.prevent @drop.prevent="onDrop">
-        <div v-if="!file" class="upload-prompt">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-          <p class="upload-text">Arrastra o selecciona un archivo</p>
-          <p class="upload-hint">Documentos, videos, imágenes</p>
+    <div class="header">
+      <h1 class="title">Crear</h1>
+      <p class="subtitle">Selecciona el tipo de contenido</p>
+    </div>
+
+    <div class="options">
+      <button class="option-row" @click="router.push('/video/upload')">
+        <div class="option-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="15" height="16" rx="2" />
+            <path d="M17 8l5 4-5 4V8z" />
+          </svg>
         </div>
-        <div v-else class="file-preview">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>
-          <p class="file-name">{{ file.name }}</p>
-          <p class="file-size">{{ formatSize(file.size) }}</p>
+        <div class="option-text">
+          <span class="option-title">Video</span>
+          <span class="option-subtitle">Sube un video desde tu galería</span>
         </div>
-        <input ref="fileInput" type="file" hidden @change="onFileSelect" />
-      </div>
+        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
 
-      <AppInput v-model="title" label="Título" />
-      <AppInput v-model="description" label="Descripción" />
-
-      <div v-if="uploading" class="progress-bar">
-        <div class="progress-fill" :style="{ width: `${progress}%` }" />
-      </div>
-
-      <AppButton type="submit" :loading="uploading" full>Subir</AppButton>
-    </form>
+      <button class="option-row" @click="router.push('/course/create')">
+        <div class="option-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+        <div class="option-text">
+          <span class="option-title">Material educativo</span>
+          <span class="option-subtitle">Crear cursos y materias</span>
+        </div>
+        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import TopBar from '@/ui/shared/components/TopBar.vue'
-import AppInput from '@/ui/shared/components/AppInput.vue'
-import AppButton from '@/ui/shared/components/AppButton.vue'
-
-const fileInput = ref<HTMLInputElement>()
-const file = ref<File | null>(null)
-const title = ref('')
-const description = ref('')
-const uploading = ref(false)
-const progress = ref(0)
-
-function openFilePicker() { fileInput.value?.click() }
-
-function onFileSelect(e: Event) {
-  file.value = (e.target as HTMLInputElement).files?.[0] ?? null
-}
-
-function onDrop(e: DragEvent) {
-  file.value = e.dataTransfer?.files?.[0] ?? null
-}
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1048576).toFixed(1)} MB`
-}
-
-async function submit() {
-  if (!file.value) return
-  uploading.value = true
-  for (let i = 0; i <= 100; i += 10) {
-    progress.value = i
-    await new Promise(r => setTimeout(r, 200))
-  }
-  uploading.value = false
-}
+import { useRouter } from 'vue-router'
+const router = useRouter()
 </script>
 
 <style scoped>
-.content-upload { min-height: 100vh; background: var(--bg-primary); }
-.upload-form { padding: 24px 16px; display: flex; flex-direction: column; gap: 16px; }
+.create-screen {
+  min-height: 100vh;
+  background: #000;
+  padding: 16px 16px 32px;
+  display: flex;
+  flex-direction: column;
+}
 
-.upload-area {
-  width: 100%;
-  padding: 40px 20px;
-  border-radius: 16px;
+.close-btn {
+  align-self: flex-start;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: #1C1C1E;
-  border: 2px dashed rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  text-align: center;
-  transition: border-color 0.2s;
+  margin-bottom: 24px;
 }
 
-.upload-area:hover { border-color: var(--purple-primary); }
-
-.upload-prompt { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.upload-text { font-size: 15px; color: #fff; font-weight: 500; }
-.upload-hint { font-size: 13px; color: #8E8E93; }
-
-.file-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.file-name { font-size: 14px; color: #fff; font-weight: 500; }
-.file-size { font-size: 12px; color: #8E8E93; }
-
-.progress-bar {
-  height: 4px;
-  border-radius: 2px;
-  background: #333;
-  overflow: hidden;
+.header {
+  margin-bottom: 28px;
 }
 
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--purple-primary), #00D4FF);
-  border-radius: 2px;
-  transition: width 0.2s;
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #8E8E93;
+  margin: 0;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1C1C1E;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 14px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.option-row:active {
+  background: #2C2C2E;
+}
+
+.option-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--purple-primary, #7C3AED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.option-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.option-subtitle {
+  font-size: 13px;
+  color: #8E8E93;
+}
+
+.chevron {
+  flex-shrink: 0;
 }
 </style>

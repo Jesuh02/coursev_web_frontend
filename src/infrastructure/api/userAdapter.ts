@@ -16,4 +16,12 @@ export const userAdapter: UserPort = {
     const res = await api.upload<{ url: string }>('/users/me/avatar', formData)
     return res.url
   },
+
+  // Admin: user activation management
+  listAllUsers: (limit = 100, offset = 0) =>
+    api.get<User[]>(`/users/admin/list?limit=${limit}&offset=${offset}`),
+  deactivateUser: (userId: number) => api.post(`/users/${userId}/deactivate`, {}),
+  activateUser: (userId: number) => api.post(`/users/${userId}/activate`, {}),
+  processExpiredCourseUsers: (expiredCourseIds: number[]) =>
+    api.post('/users/admin/process-expired-courses', { expiredCourseIds }),
 }

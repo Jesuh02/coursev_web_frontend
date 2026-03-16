@@ -18,15 +18,45 @@
 
     <div class="course-body">
       <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">★ Destacado</span>
-      <h1 class="course-title">{{ course?.title ?? 'Cargando…' }}</h1>
-      <p class="course-desc">{{ course?.description }}</p>
+      <h1 class="course-title">{{ displayTitle }}</h1>
+      <p class="course-desc">{{ displayDescription }}</p>
 
       <div class="tags-row">
         <span class="tag purple">Temática: {{ course?.category ?? 'General' }}</span>
         <span class="tag">{{ course?.isFree ? 'Curso Gratuito' : 'Curso Premium' }}</span>
+        <span v-if="subjectName" class="tag subject-tag">📚 {{ subjectName }}</span>
         <span v-if="isOwner" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
       </div>
 
+      <!-- Enrollment Banner (solo para estudiantes sin acceso) -->
+      <div v-if="showEnrollmentBanner" class="enrollment-banner">
+        <div v-if="enrollmentStatus === 'pendiente_aprobacion'" class="enrollment-pending">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF9500" /></svg>
+          <div>
+            <p class="enroll-title">Solicitud pendiente</p>
+            <p class="enroll-desc">Tu solicitud de acceso está esperando aprobación del administrador.</p>
+          </div>
+        </div>
+        <div v-else-if="enrollmentStatus === 'rechazado'" class="enrollment-rejected">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <div>
+            <p class="enroll-title">Acceso rechazado</p>
+            <p class="enroll-desc">Tu solicitud fue rechazada. Contacta al administrador para más información.</p>
+          </div>
+        </div>
+        <div v-else class="enrollment-request">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6C63FF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+          <div>
+            <p class="enroll-title">Acceso restringido</p>
+            <p class="enroll-desc">Necesitas solicitar acceso a este curso para ver su contenido.</p>
+          </div>
+          <button class="enroll-btn" :disabled="requestingEnrollment" @click="requestEnrollment">
+            {{ requestingEnrollment ? 'Enviando...' : 'Solicitar Acceso' }}
+          </button>
+        </div>
+      </div>
+
+      <template v-if="!showEnrollmentBanner || isOwner">
       <div class="tabs">
         <button class="tab-btn" :class="{ active: activeTab === 'docs' }" @click="activeTab = 'docs'">
           Temas <span class="tab-count">{{ topics.length }}</span>
@@ -146,6 +176,7 @@
           Nueva Tarea
         </button>
       </div>
+      </template>
     </div>
   </div>
 </template>
@@ -160,6 +191,7 @@ import {
   submissionAdapter, resolveImageUrl, buildProxyFileUrl,
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
+import { progressAdapter } from '@/infrastructure/api/progressAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -168,17 +200,60 @@ const courseStore = useCourseStore()
 
 const courseId = computed(() => route.params.id as string)
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
+const subjectName = computed(() => route.query.subjectName as string | undefined)
+const subjectDescription = computed(() => route.query.subjectDescription as string | undefined)
+const subjectThumbnailUrl = computed(() => route.query.subjectThumbnailUrl as string | undefined)
 const course = ref<Course | null>(null)
 const topics = ref<Topic[]>([])
 const activeTab = ref<'docs' | 'tasks'>('docs')
 const loading = ref(true)
-const heroImage = computed(() => resolveImageUrl(course.value?.thumbnailUri ?? course.value?.thumbnail_uri))
 
-const isOwner = computed(() => {
-  if (authStore.isAdminOrDocente) return true
-  const creatorId = course.value?.creatorUserId || course.value?.creator_user_id
-  return !!creatorId && authStore.user?.id === creatorId
+const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
+const displayDescription = computed(() => subjectDescription.value || course.value?.description)
+const heroImage = computed(() => {
+  const subjectThumb = subjectThumbnailUrl.value ? resolveImageUrl(subjectThumbnailUrl.value) : null
+  return subjectThumb || resolveImageUrl(course.value?.thumbnailUri ?? course.value?.thumbnail_uri)
 })
+
+const isOwner = computed(() => authStore.isAdmin)
+
+// ── Enrollment flow ────────────────────────────────────────────────
+const enrollmentStatus = ref<string | null>(null) // 'activo' | 'pendiente_aprobacion' | 'rechazado' | null
+const requestingEnrollment = ref(false)
+
+const isStudent = computed(() => {
+  const roles = authStore.user?.roles
+  if (!roles?.length) return true
+  return !roles.some((r: any) => r.id === 2 || r.id === 3)
+})
+
+// Show the banner when the user is a student and not yet approved
+const showEnrollmentBanner = computed(() => {
+  if (!isStudent.value) return false
+  return enrollmentStatus.value !== 'activo'
+})
+
+const requestEnrollment = async () => {
+  requestingEnrollment.value = true
+  try {
+    await progressAdapter.requestEnrollment(Number(courseId.value))
+    enrollmentStatus.value = 'pendiente_aprobacion'
+  } catch (e) {
+    console.error('Error requesting enrollment:', e)
+  } finally {
+    requestingEnrollment.value = false
+  }
+}
+
+const checkEnrollmentStatus = async (cid: number) => {
+  if (!isStudent.value) return
+  try {
+    const data: any = await progressAdapter.getEnrollmentStatus(cid)
+    enrollmentStatus.value = data?.enrollmentStatus ?? data?.enrollment_status ?? null
+  } catch {
+    enrollmentStatus.value = null
+  }
+}
 
 const expandedTopics = reactive(new Set<number>())
 const expandedTaskTopics = reactive(new Set<number>())
@@ -260,6 +335,7 @@ onMounted(async () => {
   const id = Number(courseId.value)
   await courseStore.fetchCourseById(id)
   course.value = courseStore.current
+  await checkEnrollmentStatus(id)
   if (course.value) {
     try {
       topics.value = subjectId.value
@@ -301,6 +377,7 @@ onMounted(async () => {
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: #ccc; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
 .tag.purple { color: #BF5AF2; border-color: rgba(191,90,242,0.3); background: rgba(191,90,242,0.1); }
+.tag.subject-tag { color: #00D4FF; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
 .tag.config { cursor: pointer; border-color: rgba(255,255,255,0.15); }
 .tag.config:hover { background: rgba(255,255,255,0.1); }
 
@@ -390,4 +467,45 @@ onMounted(async () => {
 .action-btn:hover { transform: scale(1.02); }
 .action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .action-btn.task { background: transparent; border: 2px solid #00D4FF; color: #00D4FF; }
+
+/* Enrollment banner */
+.enrollment-banner {
+  margin: 0 0 20px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.enrollment-request,
+.enrollment-pending,
+.enrollment-rejected {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.enrollment-request  { background: rgba(108, 99, 255, 0.1); border: 1px solid rgba(108,99,255,0.3); }
+.enrollment-pending  { background: rgba(255,149,0,0.1); border: 1px solid rgba(255,149,0,0.3); }
+.enrollment-rejected { background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.3); }
+
+.enrollment-request  svg { flex-shrink: 0; }
+.enrollment-pending  svg { flex-shrink: 0; }
+.enrollment-rejected svg { flex-shrink: 0; }
+
+.enroll-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.enroll-desc  { font-size: 13px; color: #8E8E93; line-height: 1.4; }
+
+.enroll-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6C63FF, #8B7FFF);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.enroll-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

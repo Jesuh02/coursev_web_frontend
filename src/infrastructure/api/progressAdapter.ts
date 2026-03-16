@@ -15,5 +15,20 @@ export const progressAdapter: ProgressPort = {
     return api.post<Progress>(`/progress/course/${courseId}/certificate`, body)
   },
   getMyCertificates: () => api.get('/progress/my/certificates'),
+  bulkIssueCertificatesForCreator: () => api.post<{ issued: number }>('/progress/creator/certificates/bulk-issue', {}),
   recalculateProgress: (courseId) => api.post(`/progress/course/${courseId}/recalculate`, null),
+
+  // Enrollment request flow
+  requestEnrollment: (courseId: number) => api.post<Progress>(`/progress/course/${courseId}/request-enrollment`, {}),
+  getEnrollmentStatus: (courseId: number) => api.get<{ enrolled: boolean; status: string | null }>(`/progress/course/${courseId}/enrollment-status`),
+
+  // Admin: Matrícula management
+  getPendingEnrollments: (courseId?: number) => {
+    const q = courseId ? `?courseId=${courseId}` : ''
+    return api.get<Progress[]>(`/progress/admin/pending-enrollments${q}`)
+  },
+  approveEnrollment: (userId: number, courseId: number) =>
+    api.post<Progress>(`/progress/admin/enrollments/${userId}/${courseId}/approve`, {}),
+  rejectEnrollment: (userId: number, courseId: number) =>
+    api.post<Progress>(`/progress/admin/enrollments/${userId}/${courseId}/reject`, {}),
 }

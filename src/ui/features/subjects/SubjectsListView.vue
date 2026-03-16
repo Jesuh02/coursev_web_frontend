@@ -6,10 +6,10 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <h1 class="header-title">Mis Materias</h1>
-        <button v-if="hasAccess" class="add-btn" @click="navigateToCreate">
+        <button v-if="canCreate" class="add-btn" @click="navigateToCreate">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         </button>
-        <div v-else class="add-btn-placeholder" />
+        <div v-if="!canCreate" class="add-btn-placeholder" />
       </div>
       <p v-if="allSubjects.length" class="header-subtitle">• {{ allSubjects.length }} materia{{ allSubjects.length !== 1 ? 's' : '' }}</p>
     </div>
@@ -19,6 +19,11 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
         <input v-model="search" type="text" placeholder="Buscar materia..." />
       </div>
+    </div>
+
+    <div v-if="courseExpired && !authStore.isAdmin" class="expired-banner">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF453A" /></svg>
+      <p>{{ errorMessage }}</p>
     </div>
 
     <div v-if="loadingSubjects" class="loading-center">
@@ -31,10 +36,10 @@
         :key="subject.id"
         class="subject-card"
         @click="navigateToDetail(subject)"
-        @contextmenu.prevent="hasAccess ? openOptions(subject) : undefined"
+        @contextmenu.prevent="canModifySubject(subject) ? openOptions(subject) : undefined"
       >
         <div class="subject-thumb">
-          <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl)!" alt="" />
+          <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl) || ''" alt="" />
           <div v-else class="thumb-placeholder">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
           </div>
@@ -42,7 +47,7 @@
         <div class="subject-body">
           <div class="subject-title-row">
             <h3 class="subject-name">{{ subject.name }}</h3>
-            <button v-if="hasAccess" class="options-btn" @click.stop="openOptions(subject)">
+            <button v-if="canModifySubject(subject)" class="options-btn" @click.stop="openOptions(subject)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></svg>
             </button>
           </div>
@@ -66,10 +71,10 @@
     <div v-else class="empty-state">
       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
       <p class="empty-text">{{ errorMessage || 'Sin materias creadas' }}</p>
-      <button v-if="hasAccess" class="empty-add-btn" @click="navigateToCreate">Crear materia</button>
+      <button v-if="canCreate" class="empty-add-btn" @click="navigateToCreate">Crear materia</button>
     </div>
 
-    <button v-if="hasAccess && filtered.length" class="fab" @click="navigateToCreate">
+    <button v-if="canCreate && filtered.length" class="fab" @click="navigateToCreate">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
     </button>
 
@@ -104,7 +109,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import type { Subject } from '@/domain/models'
-import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, collaboratorAdapter, resolveImageUrl } from '@/infrastructure/api'
+import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
+import { progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -116,8 +123,10 @@ const search = ref('')
 const loadingSubjects = ref(true)
 const errorMessage = ref('')
 const hasAccess = ref(false)
+const canCreate = ref(false)
 const optionsSubject = ref<Subject | null>(null)
 const showDeleteConfirm = ref(false)
+const courseExpired = ref(false)
 
 interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
@@ -134,24 +143,63 @@ function getStats(subjectId: number): SubjectStats {
   return statsMap.value[subjectId] || { taskCount: 0, progress: 0 }
 }
 
+function canModifySubject(subject: Subject): boolean {
+  if (authStore.isAdmin) return true
+  if (authStore.isDocente && subject.createdBy && authStore.user) {
+    return Number(subject.createdBy) === Number(authStore.user.id)
+  }
+  return false
+}
+
+const isRole1Only = computed(() =>
+  authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
+)
+
 onMounted(async () => {
+  // Guard: users with only role 1 need approved enrollment
+  if (isRole1Only.value) {
+    try {
+      const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
+      const status = data?.enrollmentStatus ?? data?.enrollment_status ?? null
+      if (status !== 'activo') {
+        router.replace('/explore')
+        return
+      }
+    } catch {
+      router.replace('/explore')
+      return
+    }
+  }
   await Promise.all([loadSubjects(), checkAccess()])
+  await checkCourseDeadline()
 })
 
-async function checkAccess() {
-  if (authStore.isAdminOrDocente) { hasAccess.value = true; return }
+async function checkCourseDeadline() {
+  if (authStore.isAdmin) return // rol 3 siempre puede entrar
   if (!courseId.value) return
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
-    if (authStore.user?.id && authStore.user.id === course.creatorUserId) {
-      hasAccess.value = true
-      return
+    if (course?.deadline) {
+      const isExpired = new Date(course.deadline) < new Date()
+      if (isExpired) {
+        courseExpired.value = true
+        errorMessage.value = 'Este curso ha finalizado. Ya no puedes acceder a su contenido.'
+      }
     }
   } catch { /* silent */ }
-  try {
-    const res = await collaboratorAdapter.checkAccess(courseId.value)
-    if (res.hasAccess) hasAccess.value = true
-  } catch { /* silent */ }
+}
+
+async function checkAccess() {
+  hasAccess.value = authStore.isAdmin
+  if (authStore.isDocente && !authStore.isAdmin) {
+    try {
+      const res = await collaboratorAdapter.checkAccess(courseId.value)
+      if (res?.hasAccess) {
+        canCreate.value = true
+      }
+    } catch { /* silent */ }
+  }
+  if (authStore.isAdmin) canCreate.value = true
 }
 
 async function loadSubjects() {
@@ -199,6 +247,8 @@ function navigateToDetail(subject: Subject) {
     query: {
       subjectId: String(subject.id),
       subjectName: subject.name,
+      subjectDescription: subject.description || '',
+      subjectThumbnailUrl: subject.thumbnailUrl || '',
     }
   })
 }
@@ -241,6 +291,21 @@ async function deleteSubj() {
 
 <style scoped>
 .subjects-list { height: 100%; overflow-y: auto; background: var(--bg-primary); padding-bottom: 80px; }
+
+.expired-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 16px;
+  padding: 14px 16px;
+  background: rgba(255,69,58,0.1);
+  border: 1px solid rgba(255,69,58,0.3);
+  border-radius: 12px;
+  color: #FF453A;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.expired-banner svg { flex-shrink: 0; }
 
 .header-section { padding: 16px; }
 .header-top-row { display: flex; align-items: center; gap: 12px; }

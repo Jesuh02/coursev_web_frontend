@@ -38,6 +38,7 @@ export interface Course {
   creatorUserId: number
   isFree: boolean
   last_modified_by: number | null
+  deadline: string | null
 }
 
 export interface Topic {
@@ -115,6 +116,7 @@ export interface Subject {
   orderIndex: number
   isActive: boolean
   createdAt: string | null
+  createdBy: number | null
 }
 
 export interface TaskSubmission {
@@ -149,6 +151,11 @@ export interface Progress {
   lastActivityAt: string | null
   certificateIssuedAt: string | null
   certificateUrl: string | null
+  enrollmentStatus: 'activo' | 'pendiente_aprobacion' | 'rechazado' | null
+  // Enriched fields for Matrícula tab
+  courseName?: string
+  username?: string
+  avatar?: string | null
 }
 
 export interface ContentItem {

@@ -14,14 +14,22 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.roles?.some(r => r.id === roleId) ?? false
   }
 
-  const isAdmin = computed(() => hasRole(3) || user.value?.roles?.some(r => r.nombre === 'admin') === true)
-  const isDocente = computed(() => hasRole(2) || user.value?.roles?.some(r => r.nombre === 'docente') === true)
+  async function hydrateAuthoritativeUser(fallbackUser: User) {
+    try {
+      user.value = await userAdapter.getMyProfile()
+    } catch {
+      user.value = fallbackUser
+    }
+  }
+
+  const isAdmin = computed(() => hasRole(3))
+  const isDocente = computed(() => hasRole(2))
   const isAdminOrDocente = computed(() => isAdmin.value || isDocente.value)
-  const isCreator = computed(() => isAdminOrDocente.value)
+  const isCreator = computed(() => isAdmin.value || isDocente.value)
 
   function canModifyCourse(creatorUserId: number): boolean {
-    if (isAdminOrDocente.value) return true
-    return user.value?.id === creatorUserId
+    void creatorUserId
+    return isAdmin.value
   }
 
   async function login(usernameOrEmail: string, password: string) {
@@ -32,7 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
-      user.value = res.user
+      await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error de conexión'
       throw e
@@ -49,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
-      user.value = res.user
+      await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error de registro'
       throw e
@@ -66,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
-      user.value = res.user
+      await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error con Google'
       throw e

@@ -120,6 +120,7 @@ export interface ProgressPort {
   getLeaderboard(courseId: number, limit?: number): Promise<Progress[]>
   issueCertificate(courseId: number, userId?: number): Promise<Progress>
   getMyCertificates(): Promise<unknown[]>
+  bulkIssueCertificatesForCreator(): Promise<{ issued: number }>
   recalculateProgress(courseId: number): Promise<void>
 }
 

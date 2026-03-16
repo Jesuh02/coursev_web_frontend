@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/login' },
@@ -11,6 +12,7 @@ const routes: RouteRecordRaw[] = [
 
   // Main tabs
   { path: '/video', name: 'videoHome', component: () => import('@/ui/features/video/VideoHomeView.vue') },
+  { path: '/video/upload', name: 'videoUpload', component: () => import('@/ui/features/video/VideoUploadView.vue'), meta: { hideNav: true } },
   { path: '/explore', name: 'explore', component: () => import('@/ui/features/explore/ExploreView.vue') },
   { path: '/home', name: 'home', component: () => import('@/ui/features/home/HomeView.vue') },
   { path: '/notifications', name: 'notifications', component: () => import('@/ui/features/notifications/NotificationsView.vue') },
@@ -54,8 +56,8 @@ const routes: RouteRecordRaw[] = [
   { path: '/payment/:courseId', name: 'paymentForm', component: () => import('@/ui/features/payment/PaymentFormView.vue'), props: true, meta: { hideNav: true } },
 
   // Subjects
-  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true },
-  { path: '/subjects/create', name: 'subjectCreation', component: () => import('@/ui/features/subjects/SubjectCreationView.vue'), meta: { hideNav: true } },
+  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true, meta: { requiresHigherRole: true } },
+  { path: '/subjects/create', name: 'subjectCreation', component: () => import('@/ui/features/subjects/SubjectCreationView.vue'), meta: { hideNav: true, requiresHigherRole: true } },
 
   // Misc
   { path: '/subscriptions', name: 'subscriptions', component: () => import('@/ui/features/profile/SubscriptionsView.vue') },
@@ -65,6 +67,19 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// Guard: block role-1-only users from accessing subjects
+router.beforeEach((to, _from, next) => {
+  if (to.meta.requiresHigherRole) {
+    const authStore = useAuthStore()
+    const isRole1Only = authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
+    if (isRole1Only) {
+      next({ name: 'explore' })
+      return
+    }
+  }
+  next()
 })
 
 export default router

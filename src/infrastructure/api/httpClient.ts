@@ -1,4 +1,12 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const DEFAULT_API_BASE = 'https://mcp-backenddeploy-production-4ed0.up.railway.app'
+
+function normalizeApiBase(value: string | undefined): string {
+  const raw = value?.trim() || DEFAULT_API_BASE
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+  return withProtocol.replace(/\/+$/, '')
+}
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
 const API_V1 = `${API_BASE}/api/v1`
 
 const TOKEN_KEY = 'auth_token'
