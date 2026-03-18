@@ -1,6 +1,6 @@
 <template>
   <div class="video-home" ref="feedRef" @scroll="onScroll">
-    <VideoTopNav @toggle-search="showSearch = !showSearch" />
+    <VideoTopNav @toggle-search="showSearch = !showSearch" @go-login="logoutAndGoToLogin" />
 
     <div v-if="showSearch" class="search-overlay">
       <SearchBar v-model="searchQuery" placeholder="Buscar videos..." />
@@ -30,6 +30,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
+import { useAuthStore } from '@/stores/authStore'
 import { likeAdapter } from '@/infrastructure/api'
 import type { Video } from '@/domain/models'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
@@ -39,6 +40,7 @@ import VideoCard from './components/VideoCard.vue'
 import VideoSkeleton from './components/VideoSkeleton.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const videoStore = useVideoStore()
 const feedRef = ref<HTMLElement | null>(null)
 const showSearch = ref(false)
@@ -109,6 +111,11 @@ function onShare(video: Video) {
 
 function goToProfile(userId: number | null) {
   if (userId) router.push(`/user/${userId}`)
+}
+
+function logoutAndGoToLogin() {
+  authStore.logout()
+  router.replace('/login')
 }
 </script>
 

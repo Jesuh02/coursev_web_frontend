@@ -3,7 +3,7 @@
     <TopBar :title="isEdit ? 'Editar Materia' : 'Crear Materia'" @back="$router.back()" />
 
     <form class="creation-form" @submit.prevent="save">
-      <div class="thumb-upload" @click="(($refs.fileInput as HTMLInputElement)?.click())">
+      <div class="thumb-upload" @click="openFilePicker">
         <img v-if="thumbPreview" :src="thumbPreview" alt="" />
         <div v-else class="upload-placeholder">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
@@ -41,37 +41,63 @@ const saving = ref(false)
 const isEdit = ref(false)
 const subjectId = ref(0)
 const courseId = ref(0)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
   courseId.value = Number(route.query.courseId) || 0
+  if (!courseId.value) { router.back(); return }
+
+  const currentUserId = Number(authStore.user?.id ?? 0)
+  const { courseAdapter, collaboratorAdapter, subjectAdapter } = await import('@/infrastructure/api')
+
+  let isCourseCreator = false
 
   if (!authStore.isAdminOrDocente) {
-    if (courseId.value) {
-      try {
-        const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
-        const course = await courseAdapter.getCourseById(courseId.value)
-        const isCreator = authStore.user?.id === course.creatorUserId
-        if (!isCreator) {
-          const res = await collaboratorAdapter.checkAccess(courseId.value)
-          if (!res.hasAccess) { router.back(); return }
-        }
-      } catch { router.back(); return }
-    } else { router.back(); return }
+    router.back()
+    return
+  }
+
+  try {
+    const course = await courseAdapter.getCourseById(courseId.value)
+    isCourseCreator = currentUserId > 0 && currentUserId === Number(course.creatorUserId)
+
+    if (!isCourseCreator && !authStore.isAdmin) {
+      const res = await collaboratorAdapter.checkAccess(courseId.value)
+      if (!res.hasAccess) { router.back(); return }
+    }
+  } catch {
+    router.back()
+    return
   }
 
   subjectId.value = Number(route.query.subjectId) || 0
   if (subjectId.value) {
     isEdit.value = true
-    name.value = (route.query.subjectName as string) || ''
-    description.value = (route.query.subjectDescription as string) || ''
-    code.value = (route.query.subjectCode as string) || ''
-    thumbPreview.value = (route.query.subjectThumbnailUrl as string) || ''
+    try {
+      const subject = await subjectAdapter.getSubjectById(subjectId.value)
+      if (!authStore.isAdmin && !isCourseCreator && subject.createdBy != null && Number(subject.createdBy) !== currentUserId) {
+        router.back()
+        return
+      }
+
+      name.value = subject.name || ''
+      description.value = subject.description || ''
+      code.value = subject.code || ''
+      thumbPreview.value = subject.thumbnailUrl || ''
+    } catch {
+      router.back()
+      return
+    }
   }
 })
 
 function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) thumbPreview.value = URL.createObjectURL(file)
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
 }
 
 async function save() {

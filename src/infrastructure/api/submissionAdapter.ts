@@ -3,8 +3,8 @@ import type { TaskSubmission } from '@/domain/models'
 import { api } from './httpClient'
 
 export const submissionAdapter: SubmissionPort = {
-  getMySubmissions: (page = 1) =>
-    api.get<TaskSubmission[]>(`/submissions/my?page=${page}&pageSize=20`),
+  getMySubmissions: (page = 1, limit = 100) =>
+    api.get<TaskSubmission[]>(`/submissions/my?page=${page}&pageSize=${limit}`),
 
   getSubmissionsByTask: (taskId) =>
     api.get<TaskSubmission[]>(`/submissions/task/${taskId}`),

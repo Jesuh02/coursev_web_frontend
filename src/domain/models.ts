@@ -32,6 +32,8 @@ export interface Course {
   is_premium: boolean
   isPremium: boolean
   is_published: boolean
+  is_active: boolean
+  isActive: boolean
   creation_date: string | null
   created_at: string
   creator_user_id: number
@@ -150,12 +152,27 @@ export interface Progress {
   status: string
   lastActivityAt: string | null
   certificateIssuedAt: string | null
+  /** Path relativo en Supabase Storage. Construir URL pública con el base URL del bucket. */
   certificateUrl: string | null
   enrollmentStatus: 'activo' | 'pendiente_aprobacion' | 'rechazado' | null
   // Enriched fields for Matrícula tab
   courseName?: string
   username?: string
   avatar?: string | null
+}
+
+/** Certificado emitido a un estudiante al completar un curso. */
+export interface Certificate {
+  courseId: number
+  courseName: string | null
+  courseThumbnail: string | null
+  /** Path relativo en Supabase Storage. Construir URL pública concatenando el base URL del bucket. */
+  certificateUrl: string | null
+  certificateIssuedAt: string | null
+  /** Código único para verificar la autenticidad del certificado (verification_code). */
+  verificationCode: string | null
+  status: 'Ganado'
+  averageGrade: number | null
 }
 
 export interface ContentItem {

@@ -5,7 +5,7 @@
         <button class="toolbar-btn" @click="$router.back()">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
-        <button v-if="isOwner" class="toolbar-btn" @click="$router.push(`/course/${courseId}/edit`)">
+        <button v-if="canEditCourseSettings" class="toolbar-btn" @click="$router.push(`/course/${courseId}/edit`)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
         </button>
       </div>
@@ -25,19 +25,19 @@
         <span class="tag purple">Temática: {{ course?.category ?? 'General' }}</span>
         <span class="tag">{{ course?.isFree ? 'Curso Gratuito' : 'Curso Premium' }}</span>
         <span v-if="subjectName" class="tag subject-tag">📚 {{ subjectName }}</span>
-        <span v-if="isOwner" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
+        <span v-if="canEditCourseSettings" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
       </div>
 
-      <!-- Enrollment Banner (solo para estudiantes sin acceso) -->
+      <!-- Enrollment Banner (visible cuando la matricula aprobada es requerida) -->
       <div v-if="showEnrollmentBanner" class="enrollment-banner">
-        <div v-if="enrollmentStatus === 'pendiente_aprobacion'" class="enrollment-pending">
+        <div v-if="enrollmentStatus === 'pending'" class="enrollment-pending">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF9500" /></svg>
           <div>
             <p class="enroll-title">Solicitud pendiente</p>
             <p class="enroll-desc">Tu solicitud de acceso está esperando aprobación del administrador.</p>
           </div>
         </div>
-        <div v-else-if="enrollmentStatus === 'rechazado'" class="enrollment-rejected">
+        <div v-else-if="enrollmentStatus === 'rejected'" class="enrollment-rejected">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
           <div>
             <p class="enroll-title">Acceso rechazado</p>
@@ -48,7 +48,7 @@
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6C63FF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
           <div>
             <p class="enroll-title">Acceso restringido</p>
-            <p class="enroll-desc">Necesitas solicitar acceso a este curso para ver su contenido.</p>
+            <p class="enroll-desc">Necesitas una matricula aprobada para ver el contenido de este curso.</p>
           </div>
           <button class="enroll-btn" :disabled="requestingEnrollment" @click="requestEnrollment">
             {{ requestingEnrollment ? 'Enviando...' : 'Solicitar Acceso' }}
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <template v-if="!showEnrollmentBanner || isOwner">
+      <template v-if="!showEnrollmentBanner || hasSubjectContentAccess">
       <div class="tabs">
         <button class="tab-btn" :class="{ active: activeTab === 'docs' }" @click="activeTab = 'docs'">
           Temas <span class="tab-count">{{ topics.length }}</span>
@@ -76,10 +76,10 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
             <span class="topic-name">{{ topic.title }}</span>
-            <button v-if="isOwner" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
+            <button v-if="hasSubjectContentAccess" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             </button>
-            <button v-if="isOwner" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
+            <button v-if="hasSubjectContentAccess" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
             <svg class="chevron" :class="{ open: expandedTopics.has(topic.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
@@ -153,7 +153,7 @@
                 >📎 {{ ci.fileName || ci.content }}</a>
               </div>
               <button
-                v-if="!isOwner"
+                v-if="!hasSubjectContentAccess"
                 class="submissions-btn"
                 @click="$router.push(`/task-submission/${task.id}`)"
               >Ver Entregas</button>
@@ -166,12 +166,12 @@
         </div>
       </template>
 
-      <div v-if="isOwner && !loading" class="bottom-actions">
+      <div v-if="hasSubjectContentAccess && !loading" class="bottom-actions">
         <button class="action-btn theme" @click="$router.push({ path: `/course/${courseId}/topic`, query: { subjectId: String(subjectId ?? '') } })">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nuevo Tema
         </button>
-        <button class="action-btn task" @click="$router.push(`/course/${courseId}/select-topic`)">
+        <button class="action-btn task" @click="$router.push({ path: `/course/${courseId}/select-topic`, query: { subjectId: String(subjectId ?? '') } })">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nueva Tarea
         </button>
@@ -188,10 +188,10 @@ import type { Course, Topic, Task, ContentItem } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
 import {
   topicAdapter, taskAdapter, contentItemAdapter,
-  submissionAdapter, resolveImageUrl, buildProxyFileUrl,
+  submissionAdapter, resolveImageUrl, buildProxyFileUrl, collaboratorAdapter, subjectAdapter,
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
-import { progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -215,29 +215,40 @@ const heroImage = computed(() => {
   return subjectThumb || resolveImageUrl(course.value?.thumbnailUri ?? course.value?.thumbnail_uri)
 })
 
-const isOwner = computed(() => authStore.isAdmin)
+const collaboratorAccess = ref(false)
+const isSubjectCreator = ref(false)
+const isCourseCreator = computed(() => {
+  const currentUserId = Number(authStore.user?.id ?? 0)
+  const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
+  return currentUserId > 0 && creatorId === currentUserId
+})
+const canEditCourseSettings = computed(() => authStore.isAdmin || isCourseCreator.value)
+const hasSubjectContentAccess = computed(() =>
+  canEditCourseSettings.value || Boolean(subjectId.value && collaboratorAccess.value && isSubjectCreator.value)
+)
 
 // ── Enrollment flow ────────────────────────────────────────────────
-const enrollmentStatus = ref<string | null>(null) // 'activo' | 'pendiente_aprobacion' | 'rechazado' | null
+const enrollmentStatus = ref<string | null>(null) // 'approved' | 'pending' | 'rejected' | null
 const requestingEnrollment = ref(false)
 
-const isStudent = computed(() => {
-  const roles = authStore.user?.roles
-  if (!roles?.length) return true
-  return !roles.some((r: any) => r.id === 2 || r.id === 3)
+const requiresEnrollmentApproval = computed(() => {
+  if (authStore.isAdmin) return false
+  if (authStore.isDocente) return false
+  const roles = authStore.user?.roles ?? []
+  return roles.some((role: any) => role.id === 1)
 })
 
-// Show the banner when the user is a student and not yet approved
+// Muestra el banner cuando la persona no es admin y aun no tiene matricula aprobada.
 const showEnrollmentBanner = computed(() => {
-  if (!isStudent.value) return false
-  return enrollmentStatus.value !== 'activo'
+  if (!requiresEnrollmentApproval.value || hasSubjectContentAccess.value) return false
+  return enrollmentStatus.value !== 'approved'
 })
 
 const requestEnrollment = async () => {
   requestingEnrollment.value = true
   try {
     await progressAdapter.requestEnrollment(Number(courseId.value))
-    enrollmentStatus.value = 'pendiente_aprobacion'
+    enrollmentStatus.value = 'pending'
   } catch (e) {
     console.error('Error requesting enrollment:', e)
   } finally {
@@ -246,10 +257,10 @@ const requestEnrollment = async () => {
 }
 
 const checkEnrollmentStatus = async (cid: number) => {
-  if (!isStudent.value) return
+  if (!requiresEnrollmentApproval.value || hasSubjectContentAccess.value) return
   try {
     const data: any = await progressAdapter.getEnrollmentStatus(cid)
-    enrollmentStatus.value = data?.enrollmentStatus ?? data?.enrollment_status ?? null
+    enrollmentStatus.value = extractEnrollmentStatus(data)
   } catch {
     enrollmentStatus.value = null
   }
@@ -319,7 +330,7 @@ async function deleteTopic(topicId: number) {
 }
 
 async function loadSubmissionStatuses(tasks: Task[]) {
-  if (isOwner.value) return
+  if (hasSubjectContentAccess.value) return
   const userId = authStore.user?.id
   if (!userId) return
   for (const task of tasks) {
@@ -335,6 +346,29 @@ onMounted(async () => {
   const id = Number(courseId.value)
   await courseStore.fetchCourseById(id)
   course.value = courseStore.current
+
+  if (authStore.hasRole(2) && !authStore.hasRole(3)) {
+    try {
+      const access = await collaboratorAdapter.checkAccess(id)
+      collaboratorAccess.value = Boolean(access?.hasAccess)
+
+      if (subjectId.value && collaboratorAccess.value && !isCourseCreator.value) {
+        const subject = await subjectAdapter.getSubjectById(subjectId.value)
+        const currentUserId = Number(authStore.user?.id ?? 0)
+        const createdBy = Number(subject?.createdBy ?? 0)
+        isSubjectCreator.value = createdBy > 0 && createdBy === currentUserId
+
+        if (subject?.createdBy != null && !isSubjectCreator.value) {
+          router.back()
+          return
+        }
+      }
+    } catch {
+      collaboratorAccess.value = false
+      isSubjectCreator.value = false
+    }
+  }
+
   await checkEnrollmentStatus(id)
   if (course.value) {
     try {
@@ -434,6 +468,7 @@ onMounted(async () => {
 
 .tasks-label { font-size: 11px; font-weight: 700; color: #FF375F; letter-spacing: 0.5px; margin-bottom: 10px; }
 
+/* ── Task card v2 (matches Android item_course_task_detail) ── */
 .task-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; margin-bottom: 8px; }
 .task-row { display: flex; align-items: center; gap: 10px; }
 .task-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(0,212,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

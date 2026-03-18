@@ -44,9 +44,9 @@
         </div>
       </div>
 
-      <div v-if="status === 'not-submitted'" class="submit-section">
+      <div v-if="canSubmit" class="submit-section">
         <h3 class="section-title">Enviar Tarea</h3>
-        <div class="file-upload" @click="($refs.fileInput as HTMLInputElement)?.click()">
+        <div class="file-upload" @click="openFilePicker">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
           <span>{{ selectedFile?.name ?? 'Adjuntar archivo' }}</span>
           <input ref="fileInput" type="file" hidden @change="onFileSelect" />
@@ -64,7 +64,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, buildProxyFileUrl } from '@/infrastructure/api'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, buildProxyFileUrl } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 
@@ -77,6 +77,8 @@ const loading = ref(true)
 const submitting = ref(false)
 const textAnswer = ref('')
 const selectedFile = ref<File | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const isSubjectCreator = ref(false)
 
 const status = computed<'not-submitted' | 'pending' | 'graded'>(() => {
   if (!submission.value) return 'not-submitted'
@@ -85,10 +87,13 @@ const status = computed<'not-submitted' | 'pending' | 'graded'>(() => {
 })
 
 const statusLabel = computed(() => {
+  if (isSubjectCreator.value) return 'Vista del creador de la materia'
   if (status.value === 'graded') return 'Calificada'
   if (status.value === 'pending') return 'Pendiente de revisión'
   return 'No entregada'
 })
+
+const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value)
 
 function getFileUrl(sub: TaskSubmission): string {
   if (!sub.file_uri || sub.file_uri.startsWith('file:///')) return '#'
@@ -98,6 +103,10 @@ function getFileUrl(sub: TaskSubmission): string {
 
 function onFileSelect(e: Event) {
   selectedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
 }
 
 async function submitWork() {
@@ -129,6 +138,22 @@ onMounted(async () => {
     ])
     task.value = t
     submission.value = sub
+
+    const currentUserId = Number(authStore.user?.id ?? 0)
+    const topicId = Number(t.topicId ?? t.topic_id ?? 0)
+    if (currentUserId > 0 && topicId > 0) {
+      try {
+        const topic = await topicAdapter.getTopicById(topicId)
+        const subjectId = Number(topic.courseId ?? 0)
+        if (subjectId > 0) {
+          const subject = await subjectAdapter.getSubjectById(subjectId)
+          const createdBy = Number(subject?.createdBy ?? 0)
+          isSubjectCreator.value = createdBy > 0 && createdBy === currentUserId
+        }
+      } catch {
+        isSubjectCreator.value = false
+      }
+    }
   } catch { /* empty */ }
   loading.value = false
 })

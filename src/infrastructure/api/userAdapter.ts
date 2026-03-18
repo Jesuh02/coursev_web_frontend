@@ -24,4 +24,6 @@ export const userAdapter: UserPort = {
   activateUser: (userId: number) => api.post(`/users/${userId}/activate`, {}),
   processExpiredCourseUsers: (expiredCourseIds: number[]) =>
     api.post('/users/admin/process-expired-courses', { expiredCourseIds }),
+  assignRole: (userId: number, roleId: number) =>
+    api.post(`/users/${userId}/role`, { roleId }),
 }

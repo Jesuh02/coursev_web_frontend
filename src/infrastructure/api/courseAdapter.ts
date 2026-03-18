@@ -28,6 +28,9 @@ export const courseAdapter: CoursePort = {
   getCoursesByCreatorId: (userId) =>
     api.get<Course[]>(`/courses/creator-id/${userId}`),
 
+  getManageableCourses: (userId) =>
+    api.get<Course[]>(`/courses/manageable/${userId}`),
+
   getEnrolledCoursesPaginated: (userId, page = 1, limit = 50) => {
     const uid = userId || tokenStorage.userId
     return api.get<PaginatedResponse<Course>>(`/courses/enrolled?userId=${uid}&page=${page}&pageSize=${limit}`)

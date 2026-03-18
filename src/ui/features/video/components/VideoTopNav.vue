@@ -8,7 +8,7 @@
       <button class="pill cam-pill" @click="$router.push('/upload')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
       </button>
-      <button class="pill person-pill" @click="$router.push('/login')">
+      <button class="pill person-pill" @click="$emit('goLogin')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </button>
     </div>
@@ -28,7 +28,7 @@
 import { ref } from 'vue'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 
-defineEmits<{ toggleSearch: [] }>()
+defineEmits<{ toggleSearch: []; goLogin: [] }>()
 const showMenu = ref(false)
 </script>
 

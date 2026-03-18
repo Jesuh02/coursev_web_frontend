@@ -27,26 +27,12 @@
 
     <div ref="sentinel" class="sentinel" />
 
-    <!-- Mensaje de acceso denegado para rol 1 -->
+    <!-- Mensaje de acceso denegado para usuarios que requieren aprobacion -->
     <Transition name="fade">
       <div v-if="accessDeniedMessage" class="access-denied-toast">
         {{ accessDeniedText }}
       </div>
     </Transition>
-
-    <!-- Bottom sheet de solicitar acceso -->
-    <Teleport to="body">
-      <div v-if="enrollmentCourse" class="bottom-sheet-overlay" @click="enrollmentCourse = null">
-        <div class="bottom-sheet" @click.stop>
-          <h3 class="sheet-title">{{ enrollmentCourse.title }}</h3>
-          <p style="padding: 0 24px 16px; color: #8E8E93; font-size: 14px;">Para acceder a este curso necesitas la aprobación de un administrador.</p>
-          <button class="sheet-option edit" :disabled="requestingEnrollment" @click="requestCourseEnrollment">
-            {{ requestingEnrollment ? 'Enviando...' : 'Solicitar Acceso' }}
-          </button>
-          <button class="sheet-option cancel" @click="enrollmentCourse = null">Cancelar</button>
-        </div>
-      </div>
-    </Teleport>
 
     <FilterBottomSheet
       v-model="showFilter"
@@ -86,8 +72,8 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCourseStore } from '@/stores/courseStore'
-import { courseAdapter } from '@/infrastructure/api'
-import { progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { collaboratorAdapter, courseAdapter } from '@/infrastructure/api'
+import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import type { Course } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
 import ExploreHeader from './components/ExploreHeader.vue'
@@ -111,61 +97,71 @@ const showDeleteConfirm = ref(false)
 
 const canManageCourses = computed(() => authStore.isAdmin)
 
-const isRole1Only = computed(() =>
-  authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
-)
+const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3))
 
 const accessDeniedMessage = ref(false)
 const accessDeniedText = ref('No tienes acceso a este curso.')
-const enrollmentCourse = ref<Course | null>(null)
 const requestingEnrollment = ref(false)
 
+function showAccessMessage(message: string) {
+  accessDeniedText.value = message
+  accessDeniedMessage.value = true
+  setTimeout(() => { accessDeniedMessage.value = false }, 3000)
+}
+
+async function requestEnrollmentOnAccessAttempt(course: Course, isRetry = false) {
+  if (requestingEnrollment.value) return
+
+  requestingEnrollment.value = true
+  try {
+    await progressAdapter.requestEnrollment(course.id)
+    showAccessMessage(
+      isRetry
+        ? 'Se envio una nueva solicitud. Un administrador debe aprobar tu acceso al curso.'
+        : 'Solicitud enviada. Un administrador debe aprobar tu acceso al curso.',
+    )
+  } catch {
+    showAccessMessage('Error al solicitar acceso. Intenta de nuevo.')
+  } finally {
+    requestingEnrollment.value = false
+  }
+}
+
+async function hasCollaboratorAccess(courseId: number) {
+  try {
+    const access = await collaboratorAdapter.checkAccess(courseId)
+    return Boolean(access?.hasAccess)
+  } catch {
+    return false
+  }
+}
+
 async function navigateToCourse(course: Course) {
-  // Role 2/3 can always access
-  if (!isRole1Only.value) {
+  // Solo administracion puede omitir la validacion de matricula.
+  if (!requiresEnrollmentApproval.value) {
     router.push(`/subjects/${course.id}`)
     return
   }
 
-  // Role 1: check enrollment status
+  if (await hasCollaboratorAccess(course.id)) {
+    router.push(`/subjects/${course.id}`)
+    return
+  }
+
+  // Usuarios no admin deben validar su estado de matricula antes de entrar.
   try {
     const data: any = await progressAdapter.getEnrollmentStatus(course.id)
-    const status = data?.enrollmentStatus ?? data?.enrollment_status ?? null
+    const status = extractEnrollmentStatus(data)
 
-    if (status === 'activo') {
+    if (status === 'approved') {
       router.push(`/subjects/${course.id}`)
-    } else if (status === 'pendiente_aprobacion') {
-      accessDeniedText.value = 'Tu solicitud de acceso está pendiente de aprobación.'
-      accessDeniedMessage.value = true
-      setTimeout(() => { accessDeniedMessage.value = false }, 3000)
-    } else if (status === 'rechazado') {
-      accessDeniedText.value = 'Tu solicitud fue rechazada. Contacta al administrador.'
-      accessDeniedMessage.value = true
-      setTimeout(() => { accessDeniedMessage.value = false }, 3000)
+    } else if (status === 'pending') {
+      showAccessMessage('Tu solicitud de acceso está pendiente de aprobación.')
     } else {
-      // No enrollment yet — show dialog to request
-      enrollmentCourse.value = course
+      await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
     }
   } catch {
-    enrollmentCourse.value = course
-  }
-}
-
-async function requestCourseEnrollment() {
-  if (!enrollmentCourse.value) return
-  requestingEnrollment.value = true
-  try {
-    await progressAdapter.requestEnrollment(enrollmentCourse.value.id)
-    enrollmentCourse.value = null
-    accessDeniedText.value = 'Solicitud enviada. Un administrador debe aprobar tu acceso.'
-    accessDeniedMessage.value = true
-    setTimeout(() => { accessDeniedMessage.value = false }, 3000)
-  } catch {
-    accessDeniedText.value = 'Error al solicitar acceso. Intenta de nuevo.'
-    accessDeniedMessage.value = true
-    setTimeout(() => { accessDeniedMessage.value = false }, 3000)
-  } finally {
-    requestingEnrollment.value = false
+    await requestEnrollmentOnAccessAttempt(course)
   }
 }
 

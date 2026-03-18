@@ -46,6 +46,67 @@
         </div>
       </div>
 
+      <div class="price-section">
+        <label class="toggle-row">
+          <span class="toggle-label">Curso activo</span>
+          <input v-model="form.isActive" type="checkbox" class="toggle" />
+        </label>
+        <p class="deadline-hint">
+          {{ deadlineForcesInactive
+            ? 'La fecha limite ya vencio; el backend guardara este curso como inactivo.'
+            : form.isActive
+              ? 'Mientras este activo, los roles 1 y 2 pueden solicitar matricula.'
+              : 'Mientras este inactivo, los roles 1 y 2 no podran acceder ni solicitar matricula.' }}
+        </p>
+      </div>
+
+      <!-- Colaboradores -->
+      <div class="collaborator-section">
+        <label class="input-label">Colaboradores</label>
+        <div v-if="selectedCollaborators.length" class="collab-chips">
+          <span v-for="c in selectedCollaborators" :key="c.id" class="collab-chip">
+            {{ c.username }}
+            <button type="button" class="chip-remove" @click="removeCollaborator(c.id)">&times;</button>
+          </span>
+        </div>
+        <input
+          v-model="collabQuery"
+          type="text"
+          class="collab-search-input"
+          placeholder="Buscar usuario..."
+          @input="onCollabSearch"
+        />
+        <ul v-if="collabResults.length" class="collab-results">
+          <li
+            v-for="u in collabResults"
+            :key="u.id"
+            class="collab-result-item"
+            :class="{ selected: selectedCollaborators.some(c => c.id === u.id) }"
+            @click="handleCollaboratorSelect(u)"
+          >
+            <span>{{ u.username }}</span>
+            <span class="collab-email">{{ u.email }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Modal confirmar rol docente -->
+      <Teleport to="body">
+        <div v-if="roleDialog.visible" class="modal-overlay" @click.self="roleDialog.visible = false">
+          <div class="liquid-glass-dialog">
+            <h3 class="dialog-title">Asignar rol de docente</h3>
+            <p class="dialog-message">
+              El usuario "{{ roleDialog.user?.username }}" no tiene el rol de docente.
+              ¿Deseas asignarle el rol de docente para agregarlo como colaborador?
+            </p>
+            <div class="dialog-buttons">
+              <button type="button" class="dialog-btn cancel" @click="roleDialog.visible = false">Cancelar</button>
+              <button type="button" class="dialog-btn accept" @click="confirmPromoteToDocente">Aceptar</button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
       <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar Cambios' : 'Crear Curso' }}</AppButton>
     </form>
   </div>
@@ -58,6 +119,7 @@ import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { useAuthStore } from '@/stores/authStore'
+import type { User } from '@/domain/models'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,6 +127,13 @@ const fileInput = ref<HTMLInputElement>()
 const saving = ref(false)
 const authStore = useAuthStore()
 const selectedFile = ref<File | null>(null)
+
+// Collaborator state
+const collabQuery = ref('')
+const collabResults = ref<User[]>([])
+const selectedCollaborators = ref<User[]>([])
+let collabSearchTimer: ReturnType<typeof setTimeout> | null = null
+const roleDialog = reactive<{ visible: boolean; user: User | null }>({ visible: false, user: null })
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -83,7 +152,16 @@ const form = reactive({
   thumbnailPreview: '',
   hasDeadline: false,
   deadline: '',
+  isActive: true,
 })
+
+const deadlineForcesInactive = computed(() => {
+  if (!form.hasDeadline || !form.deadline) return false
+  const deadline = new Date(form.deadline)
+  return !Number.isNaN(deadline.getTime()) && deadline.getTime() <= Date.now()
+})
+
+const effectiveIsActive = computed(() => form.isActive && !deadlineForcesInactive.value)
 
 onMounted(async () => {
   if (!authStore.user) await authStore.fetchProfile()
@@ -96,6 +174,7 @@ onMounted(async () => {
   form.isPremium = course.is_premium ?? course.isPremium
   form.price = course.price ? String(course.price) : ''
   form.thumbnailPreview = course.thumbnail_uri ?? course.thumbnailUri ?? ''
+  form.isActive = course.isActive ?? course.is_active ?? true
   if (course.deadline) {
     form.hasDeadline = true
     const d = new Date(course.deadline)
@@ -111,6 +190,56 @@ function onFileSelect(e: Event) {
   if (file) {
     selectedFile.value = file
     form.thumbnailPreview = URL.createObjectURL(file)
+  }
+}
+
+// ─── Collaborator logic ───────────────────────────────────
+function onCollabSearch() {
+  if (collabSearchTimer) clearTimeout(collabSearchTimer)
+  const q = collabQuery.value.trim()
+  if (!q) { collabResults.value = []; return }
+  collabSearchTimer = setTimeout(async () => {
+    const { userAdapter } = await import('@/infrastructure/api')
+    const users = await userAdapter.searchUsers(q)
+    collabResults.value = users.filter(u => u.username !== authStore.user?.username)
+  }, 300)
+}
+
+function handleCollaboratorSelect(user: User) {
+  if (selectedCollaborators.value.some(c => c.id === user.id)) {
+    removeCollaborator(user.id)
+    return
+  }
+  // Accept users with role 2 (docente) OR role 3 (creador)
+  const canBeCollaborator = user.roles?.some(r => r.id === 2 || r.id === 3)
+  if (canBeCollaborator) {
+    addCollaborator(user)
+  } else {
+    roleDialog.user = user
+    roleDialog.visible = true
+  }
+}
+
+function addCollaborator(user: User) {
+  if (!selectedCollaborators.value.some(c => c.id === user.id)) {
+    selectedCollaborators.value.push(user)
+  }
+}
+
+function removeCollaborator(userId: number) {
+  selectedCollaborators.value = selectedCollaborators.value.filter(c => c.id !== userId)
+}
+
+async function confirmPromoteToDocente() {
+  const user = roleDialog.user
+  if (!user) return
+  roleDialog.visible = false
+  try {
+    const { userAdapter } = await import('@/infrastructure/api')
+    await userAdapter.assignRole(user.id, 2)
+    addCollaborator(user)
+  } catch {
+    /* silently fail */
   }
 }
 
@@ -139,6 +268,7 @@ async function submitCourse() {
         isFree: !form.isPremium,
         price: form.isPremium ? Number(form.price) : 0,
         category: 'general',
+        isActive: effectiveIsActive.value,
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
@@ -152,6 +282,7 @@ async function submitCourse() {
         price: form.isPremium ? Number(form.price) : 0,
         category: 'general',
         creatorUsername: authStore.user?.username ?? '',
+        isActive: effectiveIsActive.value,
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
@@ -281,4 +412,131 @@ async function submitCourse() {
   color: #8E8E93;
   line-height: 1.4;
 }
+
+/* Collaborator section */
+.collaborator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.collab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.collab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1C1C1E;
+  color: #fff;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 16px;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: #8E8E93;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.collab-search-input {
+  background: #1C1C1E;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 15px;
+  width: 100%;
+}
+
+.collab-search-input:focus { outline: none; border-color: var(--purple-primary, #BF5AF2); }
+
+.collab-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: #1C1C1E;
+  border-radius: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.collab-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.collab-result-item:hover { background: rgba(255,255,255,0.06); }
+.collab-result-item.selected { opacity: 0.5; }
+.collab-email { color: #8E8E93; font-size: 12px; }
+
+/* Liquid glass dialog  */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.liquid-glass-dialog {
+  background: rgba(28,28,30,0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+}
+
+.dialog-title {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.dialog-message {
+  color: rgba(255,255,255,0.8);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+}
+
+.dialog-btn.cancel { color: #fff; }
+.dialog-btn.accept { color: #FF6B6B; }
 </style>

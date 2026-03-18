@@ -1,6 +1,6 @@
 import type {
   User, AuthResponse, Course, Topic, Task, Video, Notification,
-  ChatMessage, Subject, TaskSubmission, Subscription, Progress,
+  ChatMessage, Subject, TaskSubmission, Subscription, Progress, Certificate,
   ContentItem, VideoComment, LikeResult, PaginatedResponse, Institucion,
 } from './models'
 
@@ -32,6 +32,7 @@ export interface CoursePort {
   searchCourses(query: string, page?: number, limit?: number): Promise<PaginatedResponse<Course>>
   getCourseById(id: number): Promise<Course>
   getCoursesByCreatorId(userId: number): Promise<Course[]>
+  getManageableCourses(userId: number): Promise<Course[]>
   getEnrolledCoursesPaginated(userId?: number, page?: number, limit?: number): Promise<PaginatedResponse<Course>>
   getPurchasedCourses(userId?: number): Promise<Course[]>
   getCourseFilterCounts(userId?: number): Promise<Record<string, number>>
@@ -91,7 +92,7 @@ export interface ContentItemPort {
 }
 
 export interface SubmissionPort {
-  getMySubmissions(page?: number): Promise<TaskSubmission[]>
+  getMySubmissions(page?: number, limit?: number): Promise<TaskSubmission[]>
   getSubmissionsByTask(taskId: number): Promise<TaskSubmission[]>
   getSubmissionByCourse(courseId: number, ungradedOnly?: boolean): Promise<TaskSubmission[]>
   getSubmissionByUserAndTask(taskId: number, studentId?: number): Promise<TaskSubmission | null>
@@ -111,17 +112,44 @@ export interface SubscriptionPort {
 }
 
 export interface ProgressPort {
+  // ── Progreso del estudiante ──
   getMyProgress(): Promise<Progress[]>
   getProgressByCourse(courseId: number): Promise<Progress>
   getAllProgressByCourse(courseId: number): Promise<Progress[]>
   getMyEnrolledCourseIds(): Promise<number[]>
   isEnrolled(courseId: number): Promise<boolean>
+  getEnrolledCount(courseId: number): Promise<number>
   upsertProgress(data: Record<string, unknown>): Promise<Progress>
   getLeaderboard(courseId: number, limit?: number): Promise<Progress[]>
-  issueCertificate(courseId: number, userId?: number): Promise<Progress>
-  getMyCertificates(): Promise<unknown[]>
-  bulkIssueCertificatesForCreator(): Promise<{ issued: number }>
   recalculateProgress(courseId: number): Promise<void>
+
+  // ── Progreso por materia ──
+  getSubjectProgress(courseId: number): Promise<Progress[]>
+  getBySubject(subjectId: number): Promise<Progress>
+
+  // ── Certificados ──
+  issueCertificate(courseId: number, userId?: number): Promise<Progress>
+  getMyCertificates(): Promise<Certificate[]>
+  updateCertificateUrl(courseId: number, url: string, userId?: number): Promise<Progress>
+
+  // ── Certificados del creador ──
+  getCreatorCertificates(): Promise<Progress[]>
+  bulkIssueCertificatesForCreator(): Promise<{ issued: number }>
+
+  // ── Certificados admin (rol 3) ──
+  getAllCertificates(): Promise<Progress[]>
+  bulkIssueCertificatesAll(): Promise<{ issued: number }>
+
+  // ── Analytics del creador ──
+  getTopStudents(limit?: number): Promise<Record<string, unknown>[]>
+  getCreatorEnrollmentAnalytics(options?: Record<string, unknown>): Promise<Record<string, unknown>>
+
+  // ── Matrícula (enrollment) ──
+  requestEnrollment(courseId: number): Promise<Progress>
+  getEnrollmentStatus(courseId: number): Promise<Record<string, unknown>>
+  getPendingEnrollments(courseId?: number): Promise<Record<string, unknown>[]>
+  approveEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
+  rejectEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
 }
 
 export interface NotificationPort {

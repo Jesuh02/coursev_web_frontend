@@ -110,7 +110,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import type { Subject } from '@/domain/models'
 import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
-import { progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 
 const route = useRoute()
@@ -124,6 +124,8 @@ const loadingSubjects = ref(true)
 const errorMessage = ref('')
 const hasAccess = ref(false)
 const canCreate = ref(false)
+const isCollaboratorOnly = ref(false)
+const hasCollaboratorAccess = ref(false)
 const optionsSubject = ref<Subject | null>(null)
 const showDeleteConfirm = ref(false)
 const courseExpired = ref(false)
@@ -132,9 +134,15 @@ interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
 
 const filtered = computed(() => {
-  if (!search.value) return allSubjects.value
+  let list = allSubjects.value
+  // Collaborators only see subjects they created
+  if (isCollaboratorOnly.value && authStore.user) {
+    const userId = Number(authStore.user.id)
+    list = list.filter(s => s.createdBy && Number(s.createdBy) === userId)
+  }
+  if (!search.value) return list
   const q = search.value.toLowerCase()
-  return allSubjects.value.filter(s =>
+  return list.filter(s =>
     s.name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)
   )
 })
@@ -151,17 +159,18 @@ function canModifySubject(subject: Subject): boolean {
   return false
 }
 
-const isRole1Only = computed(() =>
-  authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
+const requiresEnrollmentApproval = computed(() =>
+  !authStore.isAdmin && !hasCollaboratorAccess.value
 )
 
 onMounted(async () => {
-  // Guard: users with only role 1 need approved enrollment
-  if (isRole1Only.value) {
+  await checkAccess()
+
+  if (requiresEnrollmentApproval.value) {
     try {
       const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
-      const status = data?.enrollmentStatus ?? data?.enrollment_status ?? null
-      if (status !== 'activo') {
+      const status = extractEnrollmentStatus(data)
+      if (status !== 'approved') {
         router.replace('/explore')
         return
       }
@@ -170,7 +179,7 @@ onMounted(async () => {
       return
     }
   }
-  await Promise.all([loadSubjects(), checkAccess()])
+  await loadSubjects()
   await checkCourseDeadline()
 })
 
@@ -179,23 +188,31 @@ async function checkCourseDeadline() {
   if (!courseId.value) return
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
-    if (course?.deadline) {
-      const isExpired = new Date(course.deadline) < new Date()
-      if (isExpired) {
-        courseExpired.value = true
-        errorMessage.value = 'Este curso ha finalizado. Ya no puedes acceder a su contenido.'
-      }
+    const isInactive = course?.isActive === false || course?.is_active === false
+    const isExpired = Boolean(course?.deadline) && new Date(course.deadline as string).getTime() < Date.now()
+    if (isInactive || isExpired) {
+      courseExpired.value = true
+      errorMessage.value = isExpired
+        ? 'Este curso ha finalizado. Ya no puedes acceder a su contenido.'
+        : 'Este curso esta inactivo. Ya no puedes acceder a su contenido.'
     }
-  } catch { /* silent */ }
+  } catch {
+    courseExpired.value = true
+    errorMessage.value = 'No fue posible validar el acceso al curso.'
+  }
 }
 
 async function checkAccess() {
+  hasCollaboratorAccess.value = false
   hasAccess.value = authStore.isAdmin
   if (authStore.isDocente && !authStore.isAdmin) {
     try {
       const res = await collaboratorAdapter.checkAccess(courseId.value)
       if (res?.hasAccess) {
+        hasCollaboratorAccess.value = true
+        hasAccess.value = true
         canCreate.value = true
+        isCollaboratorOnly.value = true
       }
     } catch { /* silent */ }
   }
@@ -242,6 +259,10 @@ function navigateToCreate() {
 }
 
 function navigateToDetail(subject: Subject) {
+  // Block collaborators from accessing subjects they didn't create
+  if (isCollaboratorOnly.value && authStore.user) {
+    if (!subject.createdBy || Number(subject.createdBy) !== Number(authStore.user.id)) return
+  }
   router.push({
     path: `/course/${courseId.value}`,
     query: {
