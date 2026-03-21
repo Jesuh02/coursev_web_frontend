@@ -2,6 +2,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/domain/models'
 import { authAdapter, userAdapter, tokenStorage, HttpError } from '@/infrastructure/api'
+import router from '@/router'
+import { useCourseStore } from '@/stores/courseStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import { useProgressStore } from '@/stores/progressStore'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import { useVideoStore } from '@/stores/videoStore'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -36,6 +42,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = ''
     try {
+      _resetUserStores()
+      tokenStorage.clear()
       const res = await authAdapter.login(usernameOrEmail, password)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
@@ -70,6 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = ''
     try {
+      _resetUserStores()
+      tokenStorage.clear()
       const res = await authAdapter.loginWithGoogle(email, displayName, avatarUrl, usernameHint)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
@@ -92,9 +102,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
+  function _resetUserStores() {
     user.value = null
+    useCourseStore().$patch({ courses: [], current: null, page: 1, hasMore: true, filterCounts: {}, activeFilter: 'all' })
+    useNotificationStore().$patch({ items: [], unreadCount: 0 })
+    useProgressStore().$patch({ myProgress: [], enrolledCourseIds: [] })
+    useSubscriptionStore().$patch({ subscriptions: [], creators: [] })
+    useVideoStore().$patch({ videos: [], current: null, page: 1, lastFetched: 0 })
+  }
+
+  function logout() {
+    _resetUserStores()
     tokenStorage.clear()
+    router.push('/login')
   }
 
   function setUser(u: User | null) { user.value = u }

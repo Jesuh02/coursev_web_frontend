@@ -114,7 +114,7 @@ async function handleLogin(username: string, password: string) {
     await authStore.login(username, password)
     router.push('/video')
   } catch {
-    error.value = authStore.error || 'Credenciales inválidas'
+    error.value = 'Credenciales incorrectas'
   } finally {
     loading.value = false
   }

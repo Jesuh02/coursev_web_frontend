@@ -32,6 +32,10 @@
         v-for="msg in messages"
         :key="msg.id"
         :message="msg"
+        :has-calification="msg.hasCalification"
+        :calification-value="msg.calificationValue"
+        :calification-added="msg.calificationAdded"
+        @add-grade="addGrade(msg)"
       />
 
       <div v-if="isTyping" class="typing-indicator">
@@ -65,17 +69,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import type { ChatMessage } from '@/domain/models'
-import { chatAdapter } from '@/infrastructure/api'
+import { ref, computed, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
+import { api } from '@/infrastructure/api/httpClient'
 import ChatBubble from './components/ChatBubble.vue'
 
+interface LocalMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+  sessionId?: string
+  hasCalification?: boolean
+  calificationValue?: number | null
+  calificationAdded?: boolean
+}
+
+interface LLMApiResponse {
+  respuesta_texto?: string
+  response?: string
+  esCalificacion?: boolean
+  nota?: number | null
+}
+
+const route = useRoute()
+const submissionId = computed(() =>
+  route.query.submissionId ? Number(route.query.submissionId) : null
+)
+const courseId = computed(() =>
+  route.query.courseId ? Number(route.query.courseId) : null
+)
+
 const messagesContainer = ref<HTMLElement>()
-const messages = ref<ChatMessage[]>([])
+const messages = ref<LocalMessage[]>([])
 const inputText = ref('')
 const isTyping = ref(false)
 const isRecording = ref(false)
 const showScrollBtn = ref(false)
+const isGrading = ref(false)
 const sessionId = ref(crypto.randomUUID())
 
 function scrollToBottom() {
@@ -88,7 +120,7 @@ async function sendMessage() {
   const text = inputText.value.trim()
   if (!text) return
 
-  const userMsg: ChatMessage = {
+  const userMsg: LocalMessage = {
     id: crypto.randomUUID(),
     content: text,
     role: 'user',
@@ -101,32 +133,49 @@ async function sendMessage() {
 
   isTyping.value = true
   try {
-    await chatAdapter.upsertMessage({
-      content: text,
-      role: 'user',
+    await chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value })
+
+    const data = await api.post<LLMApiResponse>('/procesar-prompt', {
+      prompt: text,
+      ...(submissionId.value != null && { submissionId: submissionId.value }),
+      ...(courseId.value != null && { courseId: courseId.value }),
       sessionId: sessionId.value,
     })
-    const history = await chatAdapter.getMessagesBySession(sessionId.value)
-    const last = history[history.length - 1]
-    if (last && last.role === 'assistant') {
-      messages.value.push({
-        id: last.id ?? crypto.randomUUID(),
-        content: last.content,
-        role: 'assistant',
-        createdAt: last.createdAt ?? new Date().toISOString(),
-        sessionId: sessionId.value,
-      })
+
+    const assistantMsg: LocalMessage = {
+      id: crypto.randomUUID(),
+      content: data.respuesta_texto || data.response || 'Sin respuesta',
+      role: 'assistant',
+      createdAt: new Date().toISOString(),
+      sessionId: sessionId.value,
+      hasCalification: data.esCalificacion === true,
+      calificationValue: data.nota ?? null,
+      calificationAdded: false,
     }
+    messages.value.push(assistantMsg)
+
+    await chatAdapter.upsertMessage({ content: assistantMsg.content, role: 'assistant', sessionId: sessionId.value })
   } catch {
     messages.value.push({
       id: crypto.randomUUID(),
-      content: 'Error al enviar el mensaje.',
+      content: 'Error al procesar el mensaje.',
       role: 'assistant',
       createdAt: new Date().toISOString(),
     })
   }
   isTyping.value = false
   scrollToBottom()
+}
+
+async function addGrade(msg: LocalMessage) {
+  if (submissionId.value == null || msg.calificationValue == null || isGrading.value) return
+  isGrading.value = true
+  try {
+    await submissionAdapter.gradeSubmission(submissionId.value, msg.calificationValue, msg.content)
+    msg.calificationAdded = true
+  } finally {
+    isGrading.value = false
+  }
 }
 
 function clearChat() {

@@ -129,6 +129,7 @@ import type { Subject } from '@/domain/models'
 import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
+import { useSubjectSocket } from '@/composables/useSubjectSocket'
 
 const route = useRoute()
 const router = useRouter()
@@ -154,11 +155,6 @@ const statsMap = ref<Record<number, SubjectStats>>({})
 
 const filtered = computed(() => {
   let list = allSubjects.value
-  // Collaborators only see subjects they created
-  if (isCollaboratorOnly.value && authStore.user) {
-    const userId = Number(authStore.user.id)
-    list = list.filter(s => s.createdBy && Number(s.createdBy) === userId)
-  }
   if (!search.value) return list
   const q = search.value.toLowerCase()
   return list.filter(s =>
@@ -183,6 +179,9 @@ const requiresEnrollmentApproval = computed(() =>
 )
 
 onMounted(async () => {
+  // Ensure user profile is loaded before access checks that depend on user id
+  if (!authStore.user) await authStore.fetchProfile()
+
   await checkAccess()
 
   if (requiresEnrollmentApproval.value) {
@@ -227,16 +226,52 @@ async function checkAccess() {
   hasAccess.value = authStore.isAdmin
   if (authStore.isDocente && !authStore.isAdmin) {
     try {
+      // Check if the user is the course creator first — creators see all subjects
+      const course = await courseAdapter.getCourseById(courseId.value)
+      const currentUserId = Number(authStore.user?.id ?? 0)
+      // API may return either camelCase or snake_case field
+      const creatorId = Number(course.creatorUserId ?? (course as any).creator_user_id ?? 0)
+      const isCourseCreator = currentUserId > 0 && currentUserId === creatorId
+
+      if (isCourseCreator) {
+        hasCollaboratorAccess.value = true
+        hasAccess.value = true
+        canCreate.value = true
+        // isCollaboratorOnly stays false — creator must see ALL subjects
+        return
+      }
+
       const res = await collaboratorAdapter.checkAccess(courseId.value)
       if (res?.hasAccess) {
         hasCollaboratorAccess.value = true
         hasAccess.value = true
         canCreate.value = true
-        isCollaboratorOnly.value = true
+        // Only restrict to own subjects when we KNOW the user is not the creator.
+        // If creatorId could not be determined (0), default to full access to avoid
+        // incorrectly hiding subjects from the actual course owner.
+        if (creatorId > 0) {
+          isCollaboratorOnly.value = true
+        }
       }
     } catch { /* silent */ }
   }
   if (authStore.isAdmin) canCreate.value = true
+}
+
+function normalizeSubject(s: any): Subject {
+  return {
+    ...s,
+    id: s.id,
+    courseId: s.courseId ?? s.course_id ?? 0,
+    name: s.name,
+    description: s.description ?? '',
+    code: s.code ?? null,
+    thumbnailUrl: s.thumbnailUrl ?? s.thumbnail_url ?? null,
+    orderIndex: s.orderIndex ?? s.order_index ?? 0,
+    isActive: s.isActive ?? s.is_active ?? true,
+    createdAt: s.createdAt ?? s.created_at ?? null,
+    createdBy: s.createdBy ?? s.created_by ?? null,
+  }
 }
 
 async function loadSubjects() {
@@ -244,7 +279,8 @@ async function loadSubjects() {
   loadingSubjects.value = true
   errorMessage.value = ''
   try {
-    allSubjects.value = await subjectAdapter.getSubjectsByCourse(courseId.value)
+    const raw: any[] = await subjectAdapter.getSubjectsByCourse(courseId.value)
+    allSubjects.value = raw.map(normalizeSubject)
     loadSubjectStats()
   } catch {
     errorMessage.value = 'Error al cargar materias'
@@ -296,10 +332,6 @@ function navigateToDetail(subject: Subject) {
     blockAlert.value = { show: true, reason: subjectBlocks.value[subject.id] }
     return
   }
-  // Block collaborators from accessing subjects they didn't create
-  if (isCollaboratorOnly.value && authStore.user) {
-    if (!subject.createdBy || Number(subject.createdBy) !== Number(authStore.user.id)) return
-  }
   router.push({
     path: `/course/${courseId.value}`,
     query: {
@@ -348,6 +380,29 @@ async function deleteSubj() {
 
 onActivated(async () => {
   await loadSubjects()
+})
+
+useSubjectSocket(courseId.value, {
+  onCreated(raw) {
+    const subject = normalizeSubject(raw)
+    if ((subject.courseId || (raw as any).course_id) !== courseId.value) return
+    if (!allSubjects.value.find(s => s.id === subject.id)) {
+      allSubjects.value = [...allSubjects.value, subject]
+      loadSubjectStats()
+    }
+  },
+  onUpdated(raw) {
+    const subject = normalizeSubject(raw)
+    const idx = allSubjects.value.findIndex(s => s.id === subject.id)
+    if (idx !== -1) {
+      const updated = [...allSubjects.value]
+      updated[idx] = subject
+      allSubjects.value = updated
+    }
+  },
+  onDeleted({ id }) {
+    allSubjects.value = allSubjects.value.filter(s => s.id !== id)
+  },
 })
 </script>
 

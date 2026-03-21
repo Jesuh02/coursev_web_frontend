@@ -5,7 +5,7 @@
     <form class="creation-form" @submit.prevent="submitCourse">
       <div class="form-content">
         <div class="thumb-upload" @click="openFilePicker">
-          <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" />
+          <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" @error="form.thumbnailPreview = ''" />
           <div v-else class="upload-placeholder">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
             <p>Subir miniatura</p>
@@ -113,6 +113,7 @@
       </Teleport>
 
       <div class="form-footer">
+        <p v-if="saveError" class="save-error">{{ saveError }}</p>
         <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar Cambios' : 'Crear Curso' }}</AppButton>
       </div>
     </form>
@@ -143,6 +144,7 @@ let collabSearchTimer: ReturnType<typeof setTimeout> | null = null
 const roleDialog = reactive<{ visible: boolean; user: User | null }>({ visible: false, user: null })
 
 const isEdit = computed(() => !!route.params.id)
+const saveError = ref('')
 
 // Min datetime = now (can't set deadline in the past)
 const minDeadline = computed(() => {
@@ -175,7 +177,7 @@ onMounted(async () => {
   if (!authStore.user) await authStore.fetchProfile()
 
   if (!isEdit.value) return
-  const { courseAdapter } = await import('@/infrastructure/api')
+  const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
   const course = await courseAdapter.getCourseById(Number(route.params.id))
   form.title = course.title
   form.description = course.description ?? ''
@@ -190,6 +192,14 @@ onMounted(async () => {
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
     form.deadline = d.toISOString().slice(0, 16)
   }
+
+  // Pre-load existing collaborators
+  try {
+    const collabs = await collaboratorAdapter.getByCourse(Number(route.params.id))
+    selectedCollaborators.value = collabs
+      .filter(c => c.user)
+      .map(c => ({ id: c.user!.id, username: c.user!.username, email: c.user!.email } as User))
+  } catch { /* ignore */ }
 })
 
 function openFilePicker() { fileInput.value?.click() }
@@ -329,8 +339,9 @@ async function confirmPromoteToDocente() {
 
 async function submitCourse() {
   saving.value = true
+  saveError.value = ''
   try {
-    const { courseAdapter } = await import('@/infrastructure/api')
+    const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
     const { api } = await import('@/infrastructure/api/httpClient')
 
     // Upload thumbnail if a new file was selected
@@ -357,6 +368,7 @@ async function submitCourse() {
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
       await courseAdapter.updateCourse(Number(route.params.id), payload)
+      await collaboratorAdapter.sync(Number(route.params.id), selectedCollaborators.value.map(c => c.id))
       router.back()
     } else {
       const payload: Record<string, unknown> = {
@@ -370,10 +382,15 @@ async function submitCourse() {
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
-      await courseAdapter.createCourse(payload)
+      const created = await courseAdapter.createCourse(payload) as { id?: number } & Record<string, unknown>
+      if (created?.id && selectedCollaborators.value.length > 0) {
+        await collaboratorAdapter.sync(created.id, selectedCollaborators.value.map(c => c.id))
+      }
       router.back()
     }
-  } catch { /* empty */ }
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : 'Error al guardar el curso. Intenta de nuevo.'
+  }
   saving.value = false
 }
 </script>
@@ -406,6 +423,13 @@ async function submitCourse() {
   padding: 16px;
   background: var(--bg-primary);
   border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.save-error {
+  font-size: 13px;
+  color: #FF453A;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
 .thumb-upload {

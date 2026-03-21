@@ -70,10 +70,18 @@ const router = createRouter({
   routes,
 })
 
-// Guard: block role-1-only users from accessing subjects
+const PUBLIC_ROUTES = new Set(['login', 'register', 'splash'])
+
+// Guard: redirect unauthenticated users to /login for any non-public route
 router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore()
+
+  if (!PUBLIC_ROUTES.has(to.name as string) && !authStore.isAuthenticated) {
+    next({ name: 'login' })
+    return
+  }
+
   if (to.meta.requiresHigherRole) {
-    const authStore = useAuthStore()
     const isRole1Only = authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
     if (isRole1Only) {
       next({ name: 'explore' })

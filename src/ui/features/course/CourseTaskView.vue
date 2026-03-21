@@ -25,6 +25,14 @@
         <p class="field-label mt-16">Fecha límite (opcional)</p>
         <input v-model="formDueDate" type="date" class="field-input" />
 
+        <p class="field-label mt-16">Archivo adjunto (opcional)</p>
+        <div class="file-upload-editor" @click="formFileInputRef?.click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+          <span>{{ formFile ? formFile.name : 'Seleccionar archivo' }}</span>
+          <button v-if="formFile" class="file-clear" @click.stop="formFile = null">✕</button>
+          <input ref="formFileInputRef" type="file" hidden @change="onFormFileSelected" />
+        </div>
+
         <p v-if="errorMsg" class="error-msg mt-16">{{ errorMsg }}</p>
         <div style="height: 32px" />
       </div>
@@ -103,6 +111,12 @@ const errorMsg = ref('')
 const formTitle = ref('')
 const formDescription = ref('')
 const formDueDate = ref('')
+const formFile = ref<File | null>(null)
+const formFileInputRef = ref<HTMLInputElement | null>(null)
+
+function onFormFileSelected(e: Event) {
+  formFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
 
 async function handleSave() {
   if (!formTitle.value.trim()) return
@@ -110,12 +124,18 @@ async function handleSave() {
   errorMsg.value = ''
   try {
     const topicId = route.query.topicId ? Number(route.query.topicId) : undefined
+    let formFileKey: string | undefined
+    if (formFile.value) {
+      const { key } = await uploadFileDirect(formFile.value, 'tasks', () => {})
+      formFileKey = key
+    }
     if (isCreateMode.value) {
       await taskAdapter.createTask({
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         topicId,
         dueDate: formDueDate.value || null,
+        ...(formFileKey ? { fileKey: formFileKey } : {}),
       } as Partial<Task>)
       const courseId = route.params.courseId as string
       const subjectId = route.query.subjectId as string | undefined
@@ -128,6 +148,7 @@ async function handleSave() {
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         dueDate: formDueDate.value || null,
+        ...(formFileKey ? { fileKey: formFileKey } : {}),
       } as Partial<Task>)
       router.back()
     }
@@ -239,6 +260,19 @@ onMounted(async () => {
 .field-input:focus { background: #222; }
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .error-msg { font-size: 13px; color: #FF453A; }
+
+.file-upload-editor {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border-radius: 8px; background: #1A1A1A; cursor: pointer; color: #8E8E93;
+  font-size: 14px; font-family: inherit;
+}
+.file-upload-editor:hover { background: #222; }
+.file-upload-editor span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-clear {
+  background: transparent; border: none; color: #666; cursor: pointer;
+  font-size: 14px; padding: 0 2px; flex-shrink: 0; line-height: 1;
+}
+.file-clear:hover { color: #FF453A; }
 
 /* ── Student mode ── */
 .task-content { padding: 16px; }
