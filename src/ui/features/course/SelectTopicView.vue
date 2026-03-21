@@ -49,6 +49,7 @@ const route = useRoute()
 
 const courseId = computed(() => Number(route.params.courseId))
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
+const isCreatingTask = computed(() => route.query.isCreatingTask === 'true')
 
 const search = ref('')
 const topics = ref<Topic[]>([])
@@ -88,10 +89,21 @@ async function loadTopics() {
 onMounted(loadTopics)
 
 function select(topic: Topic) {
-  router.push({
-    path: `/course/${courseId.value}/topic/${topic.id}/select-task`,
-    query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
-  })
+  if (isCreatingTask.value) {
+    // Admin/docente: go directly to task creation form for the selected topic
+    router.push({
+      path: `/course/${courseId.value}/task`,
+      query: {
+        topicId: String(topic.id),
+        ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
+      },
+    })
+  } else {
+    router.push({
+      path: `/course/${courseId.value}/topic/${topic.id}/select-task`,
+      query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
+    })
+  }
 }
 </script>
 

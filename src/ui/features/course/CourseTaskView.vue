@@ -117,14 +117,20 @@ async function handleSave() {
         topicId,
         dueDate: formDueDate.value || null,
       } as Partial<Task>)
+      const courseId = route.params.courseId as string
+      const subjectId = route.query.subjectId as string | undefined
+      router.push({
+        path: `/course/${courseId}`,
+        query: subjectId ? { subjectId } : undefined,
+      })
     } else {
       await taskAdapter.updateTask(taskId.value!, {
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         dueDate: formDueDate.value || null,
       } as Partial<Task>)
+      router.back()
     }
-    router.back()
   } catch {
     errorMsg.value = 'Error al guardar la tarea. Intenta de nuevo.'
   } finally {
