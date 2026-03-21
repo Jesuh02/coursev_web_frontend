@@ -29,16 +29,30 @@
       <section class="form-section">
         <h3 class="section-title">Información Personal</h3>
         <div class="row">
-          <AppInput v-model="form.nombres" label="Nombres" placeholder="Tus nombres" />
-          <AppInput v-model="form.apellidos" label="Apellidos" placeholder="Tus apellidos" />
+          <AppInput v-model="form.nombres" label="Nombres" placeholder="Tus nombres" :error="fieldErrors.nombres" />
+          <AppInput v-model="form.apellidos" label="Apellidos" placeholder="Tus apellidos" :error="fieldErrors.apellidos" />
+        </div>
+        <div class="row">
+          <AppInput v-model="form.cedula" label="Cédula" placeholder="Número de cédula" :error="fieldErrors.cedula" />
+          <div class="select-field" :class="{ error: !!fieldErrors.genero }">
+            <label class="select-label">Género</label>
+            <select v-model="form.genero">
+              <option value="">Selecciona una opción</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+              <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+            </select>
+            <span v-if="fieldErrors.genero" class="select-error">{{ fieldErrors.genero }}</span>
+          </div>
         </div>
       </section>
 
       <section class="form-section">
         <h3 class="section-title">Información de Contacto</h3>
-        <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" />
+        <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" :error="fieldErrors.email" />
         <div class="autocomplete-wrapper">
-          <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." @update:modelValue="onInstitucionInput" />
+          <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." :error="fieldErrors.institucion" @update:modelValue="onInstitucionInput" @focus="showInstitucionList = true" @blur="onInstitucionBlur" />
           <ul v-if="showInstitucionList && filteredInstituciones.length" class="autocomplete-list">
             <li v-for="inst in filteredInstituciones" :key="inst.id" @mousedown.prevent="selectInstitucion(inst)">
               <span class="inst-name">{{ inst.nombre }}</span>
@@ -47,17 +61,19 @@
           </ul>
         </div>
         <div class="row">
-          <AppInput v-model="form.telefono" type="tel" label="Teléfono" placeholder="+57" />
-          <AppInput v-model="form.fecha_nacimiento" type="date" label="Fecha de nacimiento" />
+          <AppInput v-model="form.telefono" type="tel" label="Teléfono" placeholder="+57" :error="fieldErrors.telefono" />
+          <AppInput v-model="form.fecha_nacimiento" type="date" label="Fecha de nacimiento" :error="fieldErrors.fecha_nacimiento" />
         </div>
       </section>
 
       <section class="form-section">
         <h3 class="section-title">Credenciales</h3>
-        <AppInput v-model="form.username" label="Usuario" placeholder="Nombre de usuario" />
-        <AppInput v-model="form.password" type="password" label="Contraseña" placeholder="Contraseña segura" />
+        <AppInput v-model="form.username" label="Usuario" placeholder="Nombre de usuario" :error="fieldErrors.username" />
+        <AppInput v-model="form.password" type="password" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password" />
         <AppInput v-model="confirmPassword" type="password" label="Confirmar contraseña" placeholder="Repite la contraseña" :error="passwordError" />
       </section>
+
+      <p v-if="submitError" class="submit-error">{{ submitError }}</p>
 
       <AppButton variant="primary" block :loading="loading" @click="handleRegister">
         Crear Cuenta
@@ -75,7 +91,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { institucionAdapter } from '@/infrastructure/api'
+import { HttpError, institucionAdapter } from '@/infrastructure/api'
 import type { Institucion } from '@/domain/models'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
@@ -85,6 +101,8 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const avatarPreview = ref<string | null>(null)
 const confirmPassword = ref('')
+const submitError = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 
 const instituciones = ref<Institucion[]>([])
 const institucionQuery = ref('')
@@ -102,6 +120,10 @@ function onInstitucionInput() {
   showInstitucionList.value = true
 }
 
+function onInstitucionBlur() {
+  setTimeout(() => { showInstitucionList.value = false }, 150)
+}
+
 function selectInstitucion(inst: Institucion) {
   institucionQuery.value = inst.nombre
   selectedInstitucionId.value = inst.id
@@ -117,6 +139,8 @@ onMounted(async () => {
 const form = ref({
   nombres: '',
   apellidos: '',
+  cedula: '',
+  genero: '',
   email: '',
   institucion: '',
   telefono: '',
@@ -130,6 +154,27 @@ const passwordError = computed(() => {
   return ''
 })
 
+function validateForm() {
+  const errors: Record<string, string> = {}
+
+  if (!form.value.nombres.trim()) errors.nombres = 'Campo requerido'
+  if (!form.value.apellidos.trim()) errors.apellidos = 'Campo requerido'
+  if (!/^\d{6,20}$/.test(form.value.cedula.trim())) errors.cedula = 'Ingresa una cédula válida'
+  if (!form.value.genero) errors.genero = 'Selecciona un género'
+  if (!form.value.email.trim()) errors.email = 'Campo requerido'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())) errors.email = 'Correo inválido'
+  if (!selectedInstitucionId.value) errors.institucion = 'Selecciona una institución'
+  if (!form.value.telefono.trim()) errors.telefono = 'Campo requerido'
+  if (!form.value.fecha_nacimiento) errors.fecha_nacimiento = 'Campo requerido'
+  if (!form.value.username.trim()) errors.username = 'Campo requerido'
+  if (form.value.username.trim().length < 4) errors.username = 'Mínimo 4 caracteres'
+  if (!form.value.password) errors.password = 'Campo requerido'
+  else if (form.value.password.length < 6) errors.password = 'Mínimo 6 caracteres'
+
+  fieldErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
 function onAvatarChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) {
@@ -138,13 +183,28 @@ function onAvatarChange(e: Event) {
 }
 
 async function handleRegister() {
-  if (passwordError.value) return
+  submitError.value = ''
+  if (!validateForm() || passwordError.value) return
   loading.value = true
   try {
-    await authStore.register(form.value.username, form.value.password, form.value.email)
+    await authStore.register(
+      form.value.username.trim(),
+      form.value.password,
+      form.value.email.trim(),
+      undefined,
+      {
+        nombres: form.value.nombres.trim(),
+        apellidos: form.value.apellidos.trim(),
+        cedula: form.value.cedula.trim(),
+        genero: form.value.genero,
+        telefono: form.value.telefono.trim(),
+        fecha_nacimiento: form.value.fecha_nacimiento,
+        institucion_id: selectedInstitucionId.value,
+      },
+    )
     router.push('/video')
-  } catch {
-    // error already set in store
+  } catch (error) {
+    submitError.value = error instanceof HttpError ? error.message : 'No se pudo completar el registro'
   } finally {
     loading.value = false
   }
@@ -286,6 +346,39 @@ async function handleRegister() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.select-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.select-field select {
+  min-height: 46px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0 16px;
+  font-size: 15px;
+  outline: none;
+}
+
+.select-field.error select {
+  border-color: var(--red-netflix);
+}
+
+.select-error,
+.submit-error {
+  font-size: 12px;
+  color: var(--red-netflix);
 }
 
 .section-title {

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useVideoStore } from '@/stores/videoStore'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/login' },
@@ -79,6 +80,12 @@ router.beforeEach((to, _from, next) => {
       return
     }
   }
+
+  // Prefetch videos al navegar a /video para que ya estén cuando monte la vista
+  if (to.name === 'videoHome') {
+    useVideoStore().fetchPublicFeed()
+  }
+
   next()
 })
 

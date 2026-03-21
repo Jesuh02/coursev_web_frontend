@@ -5,20 +5,15 @@
     </div>
 
     <div class="login-header">
-      <div class="header-gradient"></div>
       <div class="header-content">
-        <div class="logo-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
-        </div>
-        <h1 class="brand">CourseV</h1>
-        <p class="tagline">Plataforma educativa</p>
+        <h1 class="brand">CourseV <span class="brand-emoji">📋</span></h1>
       </div>
     </div>
 
     <div class="login-avatar">
       <div class="avatar-glow"></div>
       <div class="avatar-circle">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </div>
     </div>
 
@@ -27,7 +22,7 @@
       <div class="login-footer">
         <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
         <button class="register-link" @click="$router.push('/register')">
-          ¿No tienes cuenta? <span>Regístrate</span>
+          ¿No tienes una cuenta? <span>Regístrate</span>
         </button>
       </div>
     </div>
@@ -162,30 +157,56 @@ function particleStyle(i: number) {
   position: relative;
 }
 
+/* ── Partículas flotantes ── */
 .particles {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 0;
 }
 
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 70%);
-  animation: float 6s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.25), transparent 70%);
+  animation: float 7s ease-in-out infinite;
 }
 
+/* ── Header morado sólido ── */
 .login-header {
   position: relative;
-  padding: 48px 24px 24px;
+  background: linear-gradient(160deg, #7C3AED 0%, #5B21B6 60%, #4C1D95 100%);
+  border-radius: 0 0 36px 36px;
+  padding: 56px 24px 60px;
   text-align: center;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 0 8px 32px rgba(91, 33, 182, 0.5);
 }
 
-.header-gradient {
+.login-header::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(106, 27, 154, 0.4) 0%, transparent 100%);
+  top: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  animation: float 8s ease-in-out infinite;
+}
+
+.login-header::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  right: -20px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  animation: float 10s ease-in-out infinite reverse;
 }
 
 .header-content {
@@ -193,84 +214,123 @@ function particleStyle(i: number) {
   z-index: 1;
 }
 
-.logo-icon {
-  display: inline-flex;
-  color: var(--cyan-accent);
-  margin-bottom: 8px;
-}
-
 .brand {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--purple-light), var(--cyan-accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-style: italic;
+  color: #fff;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.3);
+  animation: fade-in-down 0.6s ease forwards;
 }
 
-.tagline {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin-top: 4px;
+.brand-emoji {
+  font-style: normal;
+  font-size: 34px;
 }
 
+/* ── Avatar superpuesto ── */
 .login-avatar {
   display: flex;
   justify-content: center;
-  margin: 16px 0;
   position: relative;
+  z-index: 5;
+  margin-top: -44px;
+  margin-bottom: 12px;
 }
 
 .avatar-glow {
   position: absolute;
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.4), transparent 70%);
-  animation: pulse-glow 3s infinite;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.45), transparent 70%);
+  animation: pulse-glow 3s ease-in-out infinite;
 }
 
 .avatar-circle {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  background: var(--bg-card);
-  border: 2px solid var(--purple-light);
+  background: #0f0f1a;
+  border: 2.5px solid var(--purple-light);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 1;
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.35);
+  animation: scale-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* ── Card principal ── */
 .login-card {
-  margin: 0 16px;
+  margin: 0 16px 24px;
   background: var(--bg-card-hover);
   border-radius: var(--radius-xl);
-  padding: 24px;
-  border: 1px solid var(--border-color);
+  padding: 24px 20px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  animation: fade-in-up 0.55s ease forwards;
 }
 
+/* ── Footer: olvidé contraseña + registro ── */
 .login-footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   margin-top: 20px;
 }
 
 .forgot-link {
   color: var(--purple-light);
   font-size: 13px;
+  transition: opacity 0.2s;
+}
+
+.forgot-link:hover {
+  opacity: 0.75;
 }
 
 .register-link {
-  color: var(--text-muted);
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--purple-light);
+  color: var(--text-primary);
   font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.register-link:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.register-link:active {
+  transform: scale(0.98);
 }
 
 .register-link span {
   color: var(--purple-light);
-  font-weight: 600;
+  font-weight: 700;
+}
+
+/* ── Animaciones locales ── */
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
 }
 </style>

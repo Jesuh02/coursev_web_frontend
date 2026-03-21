@@ -6,7 +6,7 @@ import type {
 
 export interface AuthPort {
   login(username: string, password: string): Promise<AuthResponse>
-  register(username: string, password: string, email: string, personaId?: number): Promise<AuthResponse>
+  register(username: string, password: string, email: string, personaId?: number, personaData?: Record<string, unknown>): Promise<AuthResponse>
   loginWithGoogle(email: string, displayName?: string, avatarUrl?: string, username?: string): Promise<AuthResponse>
   refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>
   changePassword(currentPassword: string, newPassword: string): Promise<void>
@@ -150,6 +150,16 @@ export interface ProgressPort {
   getPendingEnrollments(courseId?: number): Promise<Record<string, unknown>[]>
   approveEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
   rejectEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
+
+  // ── Matrícula aprobada (admin) ──
+  getApprovedEnrollments(): Promise<Record<string, unknown>[]>
+  revokeEnrollment(userId: number, courseId: number, reason?: string): Promise<Record<string, unknown>>
+
+  // ── Subject access blocks ──
+  blockSubjectAccess(userId: number, courseId: number, subjectId: number, reason: string): Promise<Record<string, unknown>>
+  unblockSubjectAccess(userId: number, subjectId: number): Promise<Record<string, unknown>>
+  checkSubjectAccessBlock(subjectId: number): Promise<Record<string, unknown>>
+  getMySubjectAccessBlocks(courseId: number): Promise<Record<string, unknown>[]>
 }
 
 export interface NotificationPort {

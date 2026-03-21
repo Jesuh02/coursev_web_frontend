@@ -7,7 +7,13 @@
       <svg v-else-if="icon === 'message-circle'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
       <svg v-else-if="icon === 'log-out'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
     </div>
-    <span class="menu-label">{{ label }}</span>
+    <div class="menu-label-area">
+      <div class="menu-label-row">
+        <span class="menu-label">{{ label }}</span>
+        <span v-if="badge" class="menu-badge" :style="{ color: badgeColor ?? '#AAAAAA' }">{{ badge }}</span>
+      </div>
+      <span v-if="subtitle" class="menu-subtitle">{{ subtitle }}</span>
+    </div>
     <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
   </button>
 </template>
@@ -17,8 +23,10 @@ defineProps<{
   icon: string
   label: string
   color: string
+  badge?: string
+  badgeColor?: string
+  subtitle?: string
 }>()
-
 defineEmits<{ click: [] }>()
 </script>
 
@@ -55,6 +63,34 @@ defineEmits<{ click: [] }>()
   flex: 1;
   font-size: 15px;
   color: #fff;
+}
+
+.menu-label-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.menu-subtitle {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chevron {

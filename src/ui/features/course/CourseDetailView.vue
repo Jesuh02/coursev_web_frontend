@@ -28,6 +28,33 @@
         <span v-if="canEditCourseSettings" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
       </div>
 
+      <div v-if="showStudentProgressCard" class="progress-card">
+        <div class="progress-card-header">
+          <div>
+            <p class="progress-eyebrow">{{ subjectId ? 'Tu progreso en la materia' : 'Tu progreso en el curso' }}</p>
+            <h2 class="progress-title-card">Avance actual</h2>
+          </div>
+          <div class="progress-header-side">
+            <div v-if="progressLoading" class="progress-spinner" aria-label="Actualizando progreso" />
+            <span class="progress-percent">{{ displayedProgressPercentText }}</span>
+          </div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: `${displayedProgressPercentage}%` }" />
+        </div>
+
+        <div class="progress-meta-row">
+          <span>{{ displayedTaskSummary }}</span>
+          <span>Nota: {{ displayedAverageGrade }}</span>
+        </div>
+
+        <div class="progress-footer-row">
+          <span class="progress-status" :class="progressStatusClass">{{ displayedStatus }}</span>
+          <span v-if="progressLoading" class="progress-loading-text">Actualizando progreso...</span>
+        </div>
+      </div>
+
       <!-- Enrollment Banner (visible cuando la matricula aprobada es requerida) -->
       <div v-if="showEnrollmentBanner" class="enrollment-banner">
         <div v-if="enrollmentStatus === 'pending'" class="enrollment-pending">
@@ -117,8 +144,8 @@
       </template>
 
       <template v-else>
-        <h2 v-if="topics.length" class="section-heading">Tareas</h2>
-        <div v-for="topic in topics" :key="topic.id" class="topic-block">
+        <h2 v-if="topicsWithTasks.length" class="section-heading">Tareas</h2>
+        <div v-for="topic in topicsWithTasks" :key="topic.id" class="topic-block">
           <div class="topic-row" @click="toggleTopicTasks(topic.id)">
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -139,6 +166,20 @@
                   <p class="task-title">{{ task.title }}</p>
                   <span class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
                 </div>
+                <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
+                  <button
+                    class="task-mgmt-btn edit"
+                    @click.stop="$router.push({ path: `/course/${courseId}/task/${task.id}`, query: { edit: 'true', topicId: String(topic.id), subjectId: subjectId ? String(subjectId) : undefined } })"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button
+                    class="task-mgmt-btn delete"
+                    @click.stop="deleteTaskItem(task.id, topic.id)"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  </button>
+                </div>
               </div>
               <p v-if="task.description" class="task-description">{{ task.description }}</p>
               <div class="task-attachments">
@@ -153,14 +194,13 @@
                 >📎 {{ ci.fileName || ci.content }}</a>
               </div>
               <button
-                v-if="!hasSubjectContentAccess"
                 class="submissions-btn"
                 @click="$router.push(`/task-submission/${task.id}`)"
-              >Ver Entregas</button>
+              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}</button>
             </div>
           </div>
         </div>
-        <div v-if="!topics.length" class="empty-state">
+        <div v-if="!topicsWithTasks.length" class="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
           <p>Sin tareas aún</p>
         </div>
@@ -184,7 +224,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Course, Topic, Task, ContentItem } from '@/domain/models'
+import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
 import {
   topicAdapter, taskAdapter, contentItemAdapter,
@@ -192,6 +232,11 @@ import {
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
+
+interface CourseProgressResponse extends Progress {
+  subjectProgress?: Progress[]
+  gradedTasks?: Array<Record<string, unknown>>
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -207,6 +252,9 @@ const course = ref<Course | null>(null)
 const topics = ref<Topic[]>([])
 const activeTab = ref<'docs' | 'tasks'>('docs')
 const loading = ref(true)
+const progressLoading = ref(false)
+const progressLoaded = ref(false)
+const studentProgress = ref<CourseProgressResponse | null>(null)
 
 const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
 const displayDescription = computed(() => subjectDescription.value || course.value?.description)
@@ -244,6 +292,13 @@ const showEnrollmentBanner = computed(() => {
   return enrollmentStatus.value !== 'approved'
 })
 
+const showStudentProgressCard = computed(() =>
+  !canEditCourseSettings.value &&
+  !hasSubjectContentAccess.value &&
+  !showEnrollmentBanner.value &&
+  (progressLoading.value || progressLoaded.value || Boolean(studentProgress.value))
+)
+
 const requestEnrollment = async () => {
   requestingEnrollment.value = true
   try {
@@ -276,6 +331,115 @@ const submissionMap = ref<Record<number, string>>({})
 const totalTaskCount = computed(() =>
   Object.values(topicTasks.value).reduce((sum, arr) => sum + arr.length, 0)
 )
+
+const topicsWithTasks = computed(() =>
+  topics.value.filter(t => (topicTasks.value[t.id]?.length ?? 0) > 0)
+)
+
+const selectedProgress = computed<Progress | null>(() => {
+  const progress = studentProgress.value
+  if (!progress) return null
+
+  if (subjectId.value && Array.isArray(progress.subjectProgress)) {
+    const subjectMatch = progress.subjectProgress.find(
+      (entry) => Number(entry.subjectId ?? 0) === Number(subjectId.value),
+    )
+    if (subjectMatch) return subjectMatch
+  }
+
+  return progress
+})
+
+const displayedProgressPercentage = computed(() => {
+  const raw = Number(selectedProgress.value?.progressPercentage ?? 0)
+  if (!Number.isFinite(raw)) return 0
+  return Math.max(0, Math.min(100, Math.round(raw)))
+})
+
+const displayedProgressPercentText = computed(() => {
+  if (!selectedProgress.value && progressLoading.value) return '--'
+  return `${displayedProgressPercentage.value}%`
+})
+
+const displayedAverageGrade = computed(() => {
+  if (!selectedProgress.value && progressLoading.value) return '--'
+  const grade = Number(selectedProgress.value?.averageGrade ?? 0)
+  return `${grade.toFixed(1)}/10`
+})
+
+const displayedTaskSummary = computed(() => {
+  if (!selectedProgress.value && progressLoading.value) return 'Cargando tareas...'
+  const completed = Number(selectedProgress.value?.completedTasks ?? 0)
+  const total = Number(selectedProgress.value?.totalTasks ?? 0)
+  return `${completed}/${total} tareas`
+})
+
+const displayedStatus = computed(() => {
+  if (!selectedProgress.value && progressLoading.value) return 'Actualizando'
+  return selectedProgress.value?.status || 'Perdido'
+})
+
+const progressStatusClass = computed(() =>
+  String(selectedProgress.value?.status || '')
+    .trim()
+    .toLowerCase() === 'ganado'
+    ? 'won'
+    : 'lost',
+)
+
+function getProgressCacheKey(cid: number): string | null {
+  const userId = Number(authStore.user?.id ?? 0)
+  if (userId <= 0 || cid <= 0) return null
+  return `course-detail-progress:${userId}:${cid}`
+}
+
+function readCachedProgress(cid: number): CourseProgressResponse | null {
+  const cacheKey = getProgressCacheKey(cid)
+  if (!cacheKey) return null
+
+  try {
+    const raw = localStorage.getItem(cacheKey)
+    return raw ? JSON.parse(raw) as CourseProgressResponse : null
+  } catch {
+    return null
+  }
+}
+
+function writeCachedProgress(cid: number, progress: CourseProgressResponse) {
+  const cacheKey = getProgressCacheKey(cid)
+  if (!cacheKey) return
+
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(progress))
+  } catch {
+    // Ignore storage quota and private mode errors.
+  }
+}
+
+async function loadStudentProgress(cid: number) {
+  const userId = Number(authStore.user?.id ?? 0)
+  if (userId <= 0 || authStore.isAdmin || canEditCourseSettings.value || hasSubjectContentAccess.value) return
+
+  const cached = readCachedProgress(cid)
+  if (cached) {
+    studentProgress.value = cached
+    progressLoaded.value = true
+  }
+
+  progressLoading.value = true
+  try {
+    const data = await progressAdapter.getProgressByCourse(cid) as CourseProgressResponse
+    if (data) {
+      studentProgress.value = data
+      progressLoaded.value = true
+      writeCachedProgress(cid, data)
+    }
+  } catch (e) {
+    console.error('Error loading student progress:', e)
+  } finally {
+    progressLoading.value = false
+  }
+}
 
 function getFileUrl(item: ContentItem): string {
   if (!item.fileUri) return '#'
@@ -329,6 +493,16 @@ async function deleteTopic(topicId: number) {
   } catch { /* silent */ }
 }
 
+async function deleteTaskItem(taskId: number, topicId: number) {
+  try {
+    await taskAdapter.deleteTask(taskId)
+    topicTasks.value = {
+      ...topicTasks.value,
+      [topicId]: (topicTasks.value[topicId] ?? []).filter(t => t.id !== taskId),
+    }
+  } catch { /* silent */ }
+}
+
 async function loadSubmissionStatuses(tasks: Task[]) {
   if (hasSubjectContentAccess.value) return
   const userId = authStore.user?.id
@@ -344,8 +518,29 @@ async function loadSubmissionStatuses(tasks: Task[]) {
 
 onMounted(async () => {
   const id = Number(courseId.value)
-  await courseStore.fetchCourseById(id)
+  try {
+    await courseStore.fetchCourseById(id)
+  } catch (e: any) {
+    const msg: string = e?.message ?? ''
+    console.warn('CourseDetailView: no se pudo cargar el curso:', msg)
+    router.back()
+    return
+  }
   course.value = courseStore.current
+
+  // Guard: if user is not admin and a subjectId is specified, check if subject is blocked
+  if (!authStore.hasRole(3) && subjectId.value) {
+    try {
+      const blockData: any = await progressAdapter.checkSubjectAccessBlock(subjectId.value)
+      if (blockData?.blocked === true) {
+        const reason = blockData?.reason || 'Sin motivo especificado'
+        // Store reason to show in UI before navigating back
+        alert(`Has sido bloqueado debido a: ${reason}`)
+        router.back()
+        return
+      }
+    } catch { /* silent — if check fails, allow access */ }
+  }
 
   if (authStore.hasRole(2) && !authStore.hasRole(3)) {
     try {
@@ -369,6 +564,8 @@ onMounted(async () => {
     }
   }
 
+  const progressPromise = loadStudentProgress(id)
+
   await checkEnrollmentStatus(id)
   if (course.value) {
     try {
@@ -376,22 +573,33 @@ onMounted(async () => {
         ? await topicAdapter.getTopicsBySubject(subjectId.value)
         : await topicAdapter.getTopicsByCourse(id)
     } catch { /* empty */ }
+    const taskEntries = await Promise.all(
+      topics.value.map(async (topic) => {
+        try {
+          const tasks = await taskAdapter.getTasksByTopic(topic.id)
+          return [topic.id, tasks] as const
+        } catch {
+          return [topic.id, [] as Task[]] as const
+        }
+      }),
+    )
+
+    const nextTaskMap: Record<number, Task[]> = {}
     const allTasks: Task[] = []
-    for (const topic of topics.value) {
-      try {
-        const tasks = await taskAdapter.getTasksByTopic(topic.id)
-        topicTasks.value[topic.id] = tasks
-        allTasks.push(...tasks)
-      } catch { topicTasks.value[topic.id] = [] }
+    for (const [topicId, tasks] of taskEntries) {
+      nextTaskMap[topicId] = tasks
+      allTasks.push(...tasks)
     }
-    loadSubmissionStatuses(allTasks)
+    topicTasks.value = nextTaskMap
+    await loadSubmissionStatuses(allTasks)
   }
+  await progressPromise
   loading.value = false
 })
 </script>
 
 <style scoped>
-.course-detail { min-height: 100vh; background: #080C1A; padding-bottom: 100px; overflow-y: auto; height: 100vh; }
+.course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
 .hero-section { position: relative; height: 240px; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
@@ -414,6 +622,107 @@ onMounted(async () => {
 .tag.subject-tag { color: #00D4FF; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
 .tag.config { cursor: pointer; border-color: rgba(255,255,255,0.15); }
 .tag.config:hover { background: rgba(255,255,255,0.1); }
+
+.progress-card {
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(17,20,40,0.96), rgba(12,15,28,0.92));
+  border: 1px solid rgba(0,212,255,0.16);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+}
+
+.progress-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.progress-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00D4FF;
+  margin-bottom: 4px;
+}
+
+.progress-title-card {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.progress-header-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,212,255,0.2);
+  border-top-color: #00D4FF;
+  animation: spin 0.8s linear infinite;
+}
+
+.progress-percent {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.progress-track {
+  margin-top: 16px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00D4FF, #00E5C5);
+  transition: width 0.25s ease;
+}
+
+.progress-meta-row,
+.progress-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #A7AEC7;
+}
+
+.progress-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.progress-status.won {
+  color: #30D158;
+  background: rgba(48,209,88,0.12);
+}
+
+.progress-status.lost {
+  color: #FF9500;
+  background: rgba(255,149,0,0.12);
+}
+
+.progress-loading-text {
+  color: #00D4FF;
+}
 
 .tabs { display: flex; gap: 12px; margin-bottom: 20px; }
 .tab-btn {
@@ -490,6 +799,16 @@ onMounted(async () => {
   background: transparent; transition: all 0.2s; cursor: pointer;
 }
 .submissions-btn:hover { background: rgba(0,212,255,0.08); }
+
+.task-mgmt-btns { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.task-mgmt-btn {
+  width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; cursor: pointer; transition: background 0.15s;
+}
+.task-mgmt-btn.edit { color: #00D4FF; }
+.task-mgmt-btn.edit:hover { background: rgba(0,212,255,0.12); }
+.task-mgmt-btn.delete { color: #FF453A; }
+.task-mgmt-btn.delete:hover { background: rgba(255,69,58,0.12); }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
 

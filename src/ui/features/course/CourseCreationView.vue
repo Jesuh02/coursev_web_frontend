@@ -3,91 +3,96 @@
     <TopBar :title="isEdit ? 'Editar Curso' : 'Crear Curso'" @back="$router.back()" />
 
     <form class="creation-form" @submit.prevent="submitCourse">
-      <div class="thumb-upload" @click="openFilePicker">
-        <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" />
-        <div v-else class="upload-placeholder">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-          <p>Subir miniatura</p>
+      <div class="form-content">
+        <div class="thumb-upload" @click="openFilePicker">
+          <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" />
+          <div v-else class="upload-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+            <p>Subir miniatura</p>
+          </div>
+          <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileSelect" />
         </div>
-        <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileSelect" />
-      </div>
 
-      <AppInput v-model="form.title" label="Título del curso" />
-      <AppInput v-model="form.description" label="Descripción" />
+        <AppInput v-model="form.title" label="Título del curso" />
+        <AppInput v-model="form.description" label="Descripción" />
+        <AppInput v-model="form.category" label="Categoría" />
 
-      <div class="price-section">
-        <label class="toggle-row">
-          <span class="toggle-label">Curso Premium</span>
-          <input v-model="form.isPremium" type="checkbox" class="toggle" />
-        </label>
-        <AppInput
-          v-if="form.isPremium"
-          v-model="form.price"
-          label="Precio"
-          type="number"
-        />
-      </div>
-
-      <!-- Fecha límite del curso -->
-      <div class="deadline-section">
-        <label class="toggle-row">
-          <span class="toggle-label">Establecer fecha límite</span>
-          <input v-model="form.hasDeadline" type="checkbox" class="toggle" />
-        </label>
-        <div v-if="form.hasDeadline" class="deadline-picker">
-          <label class="input-label">Fecha límite del curso</label>
-          <input
-            v-model="form.deadline"
-            type="datetime-local"
-            class="date-input"
-            :min="minDeadline"
+        <div class="price-section">
+          <label class="toggle-row">
+            <span class="toggle-label">Curso Premium</span>
+            <input v-model="form.isPremium" type="checkbox" class="toggle" />
+          </label>
+          <AppInput
+            v-if="form.isPremium"
+            v-model="form.price"
+            label="Precio"
+            type="number"
           />
-          <p class="deadline-hint">Pasada esta fecha, los colaboradores (rol 2) serán desactivados automáticamente.</p>
         </div>
-      </div>
 
-      <div class="price-section">
-        <label class="toggle-row">
-          <span class="toggle-label">Curso activo</span>
-          <input v-model="form.isActive" type="checkbox" class="toggle" />
-        </label>
-        <p class="deadline-hint">
-          {{ deadlineForcesInactive
-            ? 'La fecha limite ya vencio; el backend guardara este curso como inactivo.'
-            : form.isActive
-              ? 'Mientras este activo, los roles 1 y 2 pueden solicitar matricula.'
-              : 'Mientras este inactivo, los roles 1 y 2 no podran acceder ni solicitar matricula.' }}
-        </p>
-      </div>
-
-      <!-- Colaboradores -->
-      <div class="collaborator-section">
-        <label class="input-label">Colaboradores</label>
-        <div v-if="selectedCollaborators.length" class="collab-chips">
-          <span v-for="c in selectedCollaborators" :key="c.id" class="collab-chip">
-            {{ c.username }}
-            <button type="button" class="chip-remove" @click="removeCollaborator(c.id)">&times;</button>
-          </span>
+        <!-- Fecha límite del curso -->
+        <div class="deadline-section">
+          <label class="toggle-row">
+            <span class="toggle-label">Establecer fecha límite</span>
+            <input v-model="form.hasDeadline" type="checkbox" class="toggle" />
+          </label>
+          <div v-if="form.hasDeadline" class="deadline-picker">
+            <label class="input-label">Fecha límite del curso</label>
+            <input
+              v-model="form.deadline"
+              type="datetime-local"
+              class="date-input"
+              :min="minDeadline"
+            />
+            <p class="deadline-hint">Pasada esta fecha, los colaboradores (rol 2) serán desactivados automáticamente.</p>
+          </div>
         </div>
-        <input
-          v-model="collabQuery"
-          type="text"
-          class="collab-search-input"
-          placeholder="Buscar usuario..."
-          @input="onCollabSearch"
-        />
-        <ul v-if="collabResults.length" class="collab-results">
-          <li
-            v-for="u in collabResults"
-            :key="u.id"
-            class="collab-result-item"
-            :class="{ selected: selectedCollaborators.some(c => c.id === u.id) }"
-            @click="handleCollaboratorSelect(u)"
-          >
-            <span>{{ u.username }}</span>
-            <span class="collab-email">{{ u.email }}</span>
-          </li>
-        </ul>
+
+        <div class="price-section">
+          <label class="toggle-row">
+            <span class="toggle-label">Curso activo</span>
+            <input v-model="form.isActive" type="checkbox" class="toggle" />
+          </label>
+          <p class="deadline-hint">
+            {{ deadlineForcesInactive
+              ? 'La fecha limite ya vencio; el backend guardara este curso como inactivo.'
+              : form.isActive
+                ? 'Mientras este activo, los roles 1 y 2 pueden solicitar matricula.'
+                : 'Mientras este inactivo, los roles 1 y 2 no podran acceder ni solicitar matricula.' }}
+          </p>
+        </div>
+
+        <!-- Colaboradores -->
+        <div class="collaborator-section">
+          <label class="input-label">Colaboradores</label>
+          <div v-if="selectedCollaborators.length" class="collab-chips">
+            <span v-for="c in selectedCollaborators" :key="c.id" class="collab-chip">
+              {{ c.username }}
+              <button type="button" class="chip-remove" @click="removeCollaborator(c.id)">&times;</button>
+            </span>
+          </div>
+          <input
+            v-model="collabQuery"
+            type="text"
+            class="collab-search-input"
+            placeholder="Buscar por username o cédula..."
+            @input="onCollabSearch"
+          />
+          <ul v-if="collabResults.length" class="collab-results">
+            <li
+              v-for="u in collabResults"
+              :key="u.id"
+              class="collab-result-item"
+              :class="{ selected: selectedCollaborators.some(c => c.id === u.id) }"
+              @click="handleCollaboratorSelect(u)"
+            >
+              <div class="collab-result-text">
+                <span>{{ collabDisplayName(u) }}</span>
+                <span class="collab-email">{{ collabMetaLine(u) }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- Modal confirmar rol docente -->
@@ -107,7 +112,9 @@
         </div>
       </Teleport>
 
-      <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar Cambios' : 'Crear Curso' }}</AppButton>
+      <div class="form-footer">
+        <AppButton type="submit" :loading="saving" full>{{ isEdit ? 'Guardar Cambios' : 'Crear Curso' }}</AppButton>
+      </div>
     </form>
   </div>
 </template>
@@ -147,6 +154,7 @@ const minDeadline = computed(() => {
 const form = reactive({
   title: '',
   description: '',
+  category: '',
   isPremium: false,
   price: '',
   thumbnailPreview: '',
@@ -171,6 +179,7 @@ onMounted(async () => {
   const course = await courseAdapter.getCourseById(Number(route.params.id))
   form.title = course.title
   form.description = course.description ?? ''
+  form.category = course.category ?? 'general'
   form.isPremium = course.is_premium ?? course.isPremium
   form.price = course.price ? String(course.price) : ''
   form.thumbnailPreview = course.thumbnail_uri ?? course.thumbnailUri ?? ''
@@ -193,6 +202,73 @@ function onFileSelect(e: Event) {
   }
 }
 
+function normalizeSearchText(value: string | number | null | undefined) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function normalizeSearchDigits(value: string | number | null | undefined) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
+function getCollaboratorDocument(user: User) {
+  // Priorizar cedula, luego identificacion_original y finalmente identificacion.
+  const cedula = user.persona?.cedula?.toString().trim()
+  const identificacionOriginal = user.persona?.identificacion_original?.toString().trim()
+  const identificacion = user.persona?.identificacion?.toString().trim()
+  const doc = (cedula && cedula !== '0')
+    ? cedula
+    : (identificacionOriginal && identificacionOriginal !== '0')
+      ? identificacionOriginal
+      : (identificacion && identificacion !== '0')
+        ? identificacion
+        : ''
+  return doc
+}
+
+function matchesCollaboratorQuery(user: User, query: string) {
+  if (!query.trim()) return false
+  const normalizedQuery = normalizeSearchText(query)
+  const digitsQuery = normalizeSearchDigits(query)
+  const fullName = `${user.persona?.nombres ?? ''} ${user.persona?.apellidos ?? ''}`.trim()
+  const documentId = getCollaboratorDocument(user)
+
+  // Búsqueda por texto (username, email, nombres, apellidos)
+  const textMatches = [user.username, user.email, fullName].some(value =>
+    normalizeSearchText(value).includes(normalizedQuery)
+  )
+
+  // Búsqueda por cédula (solo si el query contiene dígitos)
+  const documentMatches = digitsQuery.length > 0 && normalizeSearchDigits(documentId).includes(digitsQuery)
+
+  return textMatches || documentMatches
+}
+
+function formatCollaboratorMeta(user: User) {
+  const documentId = getCollaboratorDocument(user)
+  if (documentId && user.email) return `${user.email} · Cédula ${documentId}`
+  if (documentId) return `Cédula ${documentId}`
+  return user.email || 'Sin correo'
+}
+
+function collabDisplayName(user: User) {
+  const nombres = user.persona?.nombres?.trim()
+  const apellidos = user.persona?.apellidos?.trim()
+  if (nombres) return apellidos ? `${nombres} ${apellidos}` : nombres
+  return user.username
+}
+
+function collabMetaLine(user: User) {
+  const doc = getCollaboratorDocument(user)
+  const parts = [`@${user.username}`]
+  if (doc) parts.push(`Cédula ${doc}`)
+  else if (user.email) parts.push(user.email)
+  return parts.join(' · ')
+}
+
 // ─── Collaborator logic ───────────────────────────────────
 function onCollabSearch() {
   if (collabSearchTimer) clearTimeout(collabSearchTimer)
@@ -200,8 +276,16 @@ function onCollabSearch() {
   if (!q) { collabResults.value = []; return }
   collabSearchTimer = setTimeout(async () => {
     const { userAdapter } = await import('@/infrastructure/api')
-    const users = await userAdapter.searchUsers(q)
-    collabResults.value = users.filter(u => u.username !== authStore.user?.username)
+    try {
+      const users = await userAdapter.searchUsers(q)
+      console.log('[CollaboratorFilter] Backend returned:', users.length, 'users for query:', q)
+      const filtered = users.filter(u => u.username !== authStore.user?.username)
+      console.log('[CollaboratorFilter] After self-exclusion:', filtered.length, 'users')
+      collabResults.value = filtered
+    } catch (err) {
+      console.error('[CollaboratorFilter] Search error:', err)
+      collabResults.value = []
+    }
   }, 300)
 }
 
@@ -265,9 +349,9 @@ async function submitCourse() {
       const payload: Record<string, unknown> = {
         title: form.title,
         description: form.description,
+        category: form.category,
         isFree: !form.isPremium,
         price: form.isPremium ? Number(form.price) : 0,
-        category: 'general',
         isActive: effectiveIsActive.value,
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
@@ -278,10 +362,10 @@ async function submitCourse() {
       const payload: Record<string, unknown> = {
         title: form.title,
         description: form.description,
+        category: form.category,
+        creatorUsername: authStore.user?.username ?? '',
         isFree: !form.isPremium,
         price: form.isPremium ? Number(form.price) : 0,
-        category: 'general',
-        creatorUsername: authStore.user?.username ?? '',
         isActive: effectiveIsActive.value,
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
@@ -296,15 +380,32 @@ async function submitCourse() {
 
 <style scoped>
 .course-creation {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   background: var(--bg-primary);
 }
 
 .creation-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.form-content {
+  flex: 1;
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+}
+
+.form-footer {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 
 .thumb-upload {
@@ -471,13 +572,18 @@ async function submitCourse() {
 
 .collab-result-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 12px 14px;
   cursor: pointer;
   color: #fff;
   font-size: 14px;
   transition: background 0.15s;
+}
+
+.collab-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .collab-result-item:hover { background: rgba(255,255,255,0.06); }

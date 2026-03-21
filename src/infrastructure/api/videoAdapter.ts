@@ -7,7 +7,7 @@ export const videoAdapter: VideoPort = {
     api.get<Video[]>(`/videos?page=${page}&pageSize=${limit}`),
 
   getPublicVideos: (page = 1, limit = 50) =>
-    api.publicGet<Video[]>(`/public/videos?page=${page}&pageSize=${limit}`),
+    api.publicGet<Video[]>(`/public/streaming/feed?page=${page}&pageSize=${limit}`),
 
   getStreamingFeed: (page = 1, limit = 20) =>
     api.get<Video[]>(`/streaming/feed?page=${page}&pageSize=${limit}`),

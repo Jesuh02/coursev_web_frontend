@@ -13,6 +13,7 @@
           v-for="course in courseStore.courses"
           :key="course.id"
           :course="course"
+          :creator-name="getCourseCreatorName(course)"
           @click="navigateToCourse(course)"
           @options="canManageCourses ? openCourseOptions($event) : undefined"
         />
@@ -72,7 +73,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCourseStore } from '@/stores/courseStore'
-import { collaboratorAdapter, courseAdapter } from '@/infrastructure/api'
+import { collaboratorAdapter, courseAdapter, userAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import type { Course } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
@@ -102,6 +103,129 @@ const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3))
 const accessDeniedMessage = ref(false)
 const accessDeniedText = ref('No tienes acceso a este curso.')
 const requestingEnrollment = ref(false)
+const creatorUsernames = ref<Record<number, string>>({})
+let searchRequestId = 0
+
+function mergeUniqueCourses(...courseLists: Course[][]) {
+  const merged = new Map<number, Course>()
+
+  for (const courseList of courseLists) {
+    for (const course of courseList) {
+      merged.set(course.id, course)
+    }
+  }
+
+  return Array.from(merged.values())
+}
+
+function isNumericQuery(query: string) {
+  return /^\d+$/.test(query.trim())
+}
+
+async function searchCoursesByCreatorIdentity(query: string) {
+  const users = await userAdapter.searchUsers(query)
+  const creatorIds = Array.from(new Set(
+    users
+      .map((user) => Number(user.id))
+      .filter((id) => id > 0),
+  ))
+
+  if (!creatorIds.length) return []
+
+  const creatorCourseResults = await Promise.allSettled(
+    creatorIds.map((creatorId) => courseAdapter.getCoursesByCreatorId(creatorId)),
+  )
+
+  return mergeUniqueCourses(
+    ...creatorCourseResults.map((result) => result.status === 'fulfilled' ? result.value : []),
+  )
+}
+
+async function runCourseSearch(query: string, pageNum = 1, limit = 20) {
+  const trimmedQuery = query.trim()
+  const requestId = ++searchRequestId
+
+  if (!trimmedQuery) {
+    courseStore.loading = false
+    courseStore.loadingMore = false
+    return
+  }
+
+  if (pageNum === 1) courseStore.loading = true
+  else courseStore.loadingMore = true
+
+  try {
+    const directResult = await courseAdapter.searchCourses(trimmedQuery, pageNum, limit)
+    let creatorMatches: Course[] = []
+
+    if (pageNum === 1 && (isNumericQuery(trimmedQuery) || !directResult.data.length)) {
+      try {
+        creatorMatches = await searchCoursesByCreatorIdentity(trimmedQuery)
+      } catch {
+        creatorMatches = []
+      }
+    }
+
+    if (requestId !== searchRequestId) return
+
+    const mergedPage = mergeUniqueCourses(directResult.data, creatorMatches)
+
+    if (pageNum === 1) {
+      courseStore.courses = mergedPage
+    } else {
+      courseStore.courses = mergeUniqueCourses(courseStore.courses, mergedPage)
+    }
+
+    courseStore.page = pageNum
+    courseStore.hasMore = creatorMatches.length === 0 && (directResult.pagination?.hasNext ?? false)
+  } finally {
+    if (requestId === searchRequestId) {
+      courseStore.loading = false
+      courseStore.loadingMore = false
+    }
+  }
+}
+
+function getCourseCreatorName(course: Course) {
+  const embeddedName = course.creatorUsername ?? course.creator_username
+  if (typeof embeddedName === 'string' && embeddedName.trim()) {
+    return embeddedName.trim()
+  }
+
+  const creatorId = Number(course.creatorUserId ?? course.creator_user_id ?? 0)
+  if (creatorId <= 0) return null
+
+  return creatorUsernames.value[creatorId] ?? null
+}
+
+async function resolveMissingCreatorUsernames(courses: Course[]) {
+  const missingCreatorIds = Array.from(new Set(
+    courses
+      .filter((course) => {
+        const creatorId = Number(course.creatorUserId ?? course.creator_user_id ?? 0)
+        return creatorId > 0 && !getCourseCreatorName(course)
+      })
+      .map((course) => Number(course.creatorUserId ?? course.creator_user_id ?? 0)),
+  ))
+
+  if (!missingCreatorIds.length) return
+
+  try {
+    const users = await userAdapter.getUsersByIds(missingCreatorIds)
+    if (!users.length) return
+
+    creatorUsernames.value = {
+      ...creatorUsernames.value,
+      ...Object.fromEntries(
+        users
+          .filter((user) => Number(user.id) > 0 && user.username)
+          .map((user) => [Number(user.id), user.username]),
+      ),
+    }
+  } catch {
+    /* silent */
+  }
+}
 
 function showAccessMessage(message: string) {
   accessDeniedText.value = message
@@ -137,9 +261,16 @@ async function hasCollaboratorAccess(courseId: number) {
 }
 
 async function navigateToCourse(course: Course) {
-  // Solo administracion puede omitir la validacion de matricula.
+  // Solo administracion (rol 3) puede omitir la validacion de matricula y acceder a cursos desactivados.
   if (!requiresEnrollmentApproval.value) {
     router.push(`/subjects/${course.id}`)
+    return
+  }
+
+  // Usuarios sin rol 3 no pueden acceder a cursos desactivados.
+  const isInactive = course.isActive === false || course.is_active === false
+  if (isInactive) {
+    showAccessMessage('Este curso está desactivado y no está disponible.')
     return
   }
 
@@ -182,11 +313,12 @@ function confirmDeleteCourse() {
 
 async function deleteCourse() {
   if (!optionsCourse.value) return
+  const deletedId = optionsCourse.value.id
   try {
-    await courseAdapter.deleteCourse(optionsCourse.value.id)
+    await courseAdapter.deleteCourse(deletedId)
+    courseStore.courses = courseStore.courses.filter(c => c.id !== deletedId)
     showDeleteConfirm.value = false
     optionsCourse.value = null
-    courseStore.fetchCourses()
   } catch { /* silent */ }
 }
 
@@ -194,7 +326,7 @@ function loadMore() {
   if (courseStore.loading || courseStore.loadingMore || !courseStore.hasMore) return
   const nextPage = courseStore.page + 1
   if (searchQuery.value.trim()) {
-    courseStore.searchCourses(searchQuery.value.trim(), nextPage)
+    void runCourseSearch(searchQuery.value.trim(), nextPage)
   } else if (activeFilter.value === 'all') {
     courseStore.fetchCourses(nextPage)
   }
@@ -203,15 +335,43 @@ function loadMore() {
 watch(searchQuery, (q) => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    if (q.trim()) courseStore.searchCourses(q.trim())
+    const trimmedQuery = q.trim()
+    searchRequestId += 1
+    if (trimmedQuery) void runCourseSearch(trimmedQuery)
     else courseStore.fetchCourses()
   }, 400)
 })
 
 watch(activeFilter, (filter) => {
   searchQuery.value = ''
+  searchRequestId += 1
   courseStore.fetchByFilter(filter)
 })
+
+async function resolveStudentCounts(courses: Course[]) {
+  const missing = courses.filter(c => c.studentCount === undefined)
+  if (!missing.length) return
+
+  const results = await Promise.allSettled(
+    missing.map(course => progressAdapter.getEnrolledCount(course.id)),
+  )
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      const data = result.value as any
+      missing[index].studentCount = typeof data === 'number' ? data : (data?.count ?? 0)
+    }
+  })
+}
+
+watch(
+  () => courseStore.courses,
+  (courses) => {
+    void resolveMissingCreatorUsernames(courses)
+    void resolveStudentCounts(courses)
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   courseStore.fetchCourses()

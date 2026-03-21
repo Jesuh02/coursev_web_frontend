@@ -49,11 +49,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(username: string, password: string, email: string) {
+  async function register(username: string, password: string, email: string, personaId?: number, personaData?: Record<string, unknown>) {
     loading.value = true
     error.value = ''
     try {
-      const res = await authAdapter.register(username, password, email)
+      const res = await authAdapter.register(username, password, email, personaId, personaData)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id

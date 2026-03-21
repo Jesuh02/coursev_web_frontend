@@ -123,6 +123,8 @@ const pipSupported = computed(() =>
 function resolveVideoUrl(v: Video): string | null {
   const raw = v.video_uri_string || v.videoUriString
   if (!raw || raw.startsWith('file:///')) return null
+  // URL pre-firmada → usar directamente (acceso directo a R2, sin proxy)
+  if (raw.includes('X-Amz-Signature')) return raw
   const r2Key = extractR2Key(raw)
   if (r2Key) return buildProxyFileUrl(r2Key)
   if (raw.startsWith('http://') || raw.startsWith('https://')) return raw

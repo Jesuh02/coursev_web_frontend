@@ -4,7 +4,7 @@ export interface User {
   email: string
   avatar: string | null
   personaId: number | null
-  persona: { id: number; nombres: string; apellidos: string; identificacion: string; telefono: string } | null
+  persona: { id: number; nombres: string; apellidos: string; identificacion: number; cedula?: number | string | null; identificacion_original?: string | null; telefono: string } | null
   roles: { id: number; nombre: string }[]
   isActive: boolean
   emailVerified: boolean
@@ -38,9 +38,12 @@ export interface Course {
   created_at: string
   creator_user_id: number
   creatorUserId: number
+  creator_username?: string | null
+  creatorUsername?: string | null
   isFree: boolean
   last_modified_by: number | null
   deadline: string | null
+  studentCount?: number
 }
 
 export interface Topic {
@@ -132,6 +135,8 @@ export interface TaskSubmission {
   feedback: string | null
   created_at: string
   updated_at: string
+  studentUsername?: string | null
+  studentAvatar?: string | null
 }
 
 export interface Subscription {

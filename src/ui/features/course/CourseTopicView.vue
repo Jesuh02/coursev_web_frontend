@@ -8,6 +8,7 @@
       <span class="bar-title">{{ isCreateMode ? 'Nuevo Tema' : 'Editar Tema' }}</span>
       <button class="bar-save" :disabled="saving || !formTitle.trim()" @click="handleSave">
         <span v-if="saving" class="spinner-sm" />
+        <span v-else-if="uploadProgress !== null">{{ uploadProgress }}%</span>
         <span v-else>Guardar</span>
       </button>
     </div>
@@ -136,7 +137,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Topic, ContentItem, Task } from '@/domain/models'
-import { topicAdapter, contentItemAdapter, taskAdapter, storageAdapter, buildProxyFileUrl } from '@/infrastructure/api'
+import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect, buildProxyFileUrl } from '@/infrastructure/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -150,6 +151,7 @@ const formTitle = ref('')
 const formDescription = ref('')
 const saving = ref(false)
 const errorMsg = ref('')
+const uploadProgress = ref<number | null>(null)
 
 interface PendingFile { file: File; type: 'video' | 'document' }
 const pendingFiles = ref<PendingFile[]>([])
@@ -193,22 +195,39 @@ function navigateToCreateTask() {
 }
 
 async function uploadPendingFiles(resolvedTopicId: number) {
-  for (const pf of pendingFiles.value) {
-    try {
-      const fd = new FormData()
-      fd.append('file', pf.file)
-      fd.append('folder', 'topics')
-      const { key } = await storageAdapter.uploadFile(fd)
-      await contentItemAdapter.create({
-        topicId: resolvedTopicId,
-        contentType: pf.type,
-        content: pf.file.name,
-        fileUri: key,
-        fileName: pf.file.name,
-        orderIndex: 0,
-      } as Partial<ContentItem>)
-    } catch { /* skip failed file */ }
-  }
+  const total = pendingFiles.value.length
+  if (total === 0) return
+  uploadProgress.value = 0
+  let completed = 0
+
+  // Subir todos en paralelo directamente a R2 (sin pasar por el servidor)
+  await Promise.all(
+    pendingFiles.value.map(async (pf) => {
+      try {
+        const prefix = pf.type === 'video' ? 'videos' : 'content'
+        const { key } = await uploadFileDirect(
+          pf.file,
+          prefix,
+          (pct) => {
+            // Progreso promedio de todos los archivos
+            uploadProgress.value = Math.round((completed * 100 + pct) / total)
+          },
+        )
+        await contentItemAdapter.create({
+          topicId: resolvedTopicId,
+          contentType: pf.type,
+          content: pf.file.name,
+          fileUri: key,
+          fileName: pf.file.name,
+          orderIndex: 0,
+        } as Partial<ContentItem>)
+        completed++
+        uploadProgress.value = Math.round((completed / total) * 100)
+      } catch { /* skip failed file */ }
+    }),
+  )
+
+  uploadProgress.value = null
 }
 
 async function handleSave() {
@@ -217,11 +236,10 @@ async function handleSave() {
   errorMsg.value = ''
   try {
     if (isCreateMode.value) {
-      // Fix: backend expects subject_id, not course_id
       const payload: Record<string, unknown> = {
         name: formTitle.value.trim(),
         description: formDescription.value.trim(),
-        subject_id: subjectId.value && subjectId.value > 0 ? subjectId.value : Number(courseId.value),
+        subjectId: subjectId.value && subjectId.value > 0 ? subjectId.value : Number(courseId.value),
       }
       const created = await topicAdapter.createTopic(payload as Partial<Topic>)
       if (pendingFiles.value.length && created?.id) {

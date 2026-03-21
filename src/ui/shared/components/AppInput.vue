@@ -9,8 +9,8 @@
         :placeholder="placeholder"
         :disabled="disabled"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-        @focus="focused = true"
-        @blur="focused = false"
+        @focus="focused = true; $emit('focus')"
+        @blur="focused = false; $emit('blur')"
       />
       <span v-if="$slots.suffix" class="input-suffix"><slot name="suffix" /></span>
     </div>
@@ -30,7 +30,7 @@ defineProps<{
   disabled?: boolean
 }>()
 
-defineEmits<{ 'update:modelValue': [value: string] }>()
+defineEmits<{ 'update:modelValue': [value: string]; focus: []; blur: [] }>()
 
 const focused = ref(false)
 </script>

@@ -52,6 +52,9 @@ export const progressAdapter: ProgressPort = {
   getAllCertificates: () => api.get<Progress[]>('/progress/admin/certificates'),
   bulkIssueCertificatesAll: () => api.post<{ issued: number }>('/progress/admin/certificates/bulk-issue', {}),
 
+  // ── Progreso por materia (admin/teacher) ──
+  getAllSubjectProgress: () => api.get<Record<string, unknown>[]>('/progress/admin/subject-progress'),
+
   // ── Analytics del creador ──
   getTopStudents: (limit = 5) => api.get<Record<string, unknown>[]>(`/progress/top-students?limit=${limit}`),
   getCreatorEnrollmentAnalytics: (options) => {
@@ -71,4 +74,18 @@ export const progressAdapter: ProgressPort = {
     api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/approve`, {}),
   rejectEnrollment: (userId, courseId) =>
     api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/reject`, {}),
+  getApprovedEnrollments: () =>
+    api.get<Record<string, unknown>[]>('/progress/admin/approved-enrollments'),
+  revokeEnrollment: (userId: number, courseId: number, reason?: string) =>
+    api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/revoke`, { reason: reason || '' }),
+
+  // ── Subject access blocks ──
+  blockSubjectAccess: (userId: number, courseId: number, subjectId: number, reason: string) =>
+    api.post<Record<string, unknown>>('/progress/admin/subject-access-block', { userId, courseId, subjectId, reason }),
+  unblockSubjectAccess: (userId: number, subjectId: number) =>
+    api.delete<Record<string, unknown>>(`/progress/admin/subject-access-block/${userId}/${subjectId}`),
+  checkSubjectAccessBlock: (subjectId: number) =>
+    api.get<Record<string, unknown>>(`/progress/subject/${subjectId}/access-block`),
+  getMySubjectAccessBlocks: (courseId: number) =>
+    api.get<Record<string, unknown>[]>(`/progress/course/${courseId}/subject-access-blocks`),
 }

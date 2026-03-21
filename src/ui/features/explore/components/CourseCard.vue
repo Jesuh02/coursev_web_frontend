@@ -9,6 +9,7 @@
     <div class="card-body">
       <h3 class="card-title">{{ course.title }}</h3>
       <p class="card-desc">{{ course.description }}</p>
+      <p class="card-creator">Por {{ creatorLabel }}</p>
       <div class="card-footer">
         <div class="footer-left">
           <span class="student-count">
@@ -36,12 +37,21 @@ import { resolveImageUrl } from '@/infrastructure/api'
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 
-const props = defineProps<{ course: Course }>()
+const props = defineProps<{ course: Course; creatorName?: string | null }>()
 defineEmits<{ click: [], options: [course: Course] }>()
 
 const authStore = useAuthStore()
 const thumb = computed(() => resolveImageUrl(props.course.thumbnailUri ?? props.course.thumbnail_uri))
 const canModify = computed(() => authStore.isAdmin)
+const creatorLabel = computed(() => {
+  const creatorName = props.creatorName ?? props.course.creatorUsername ?? props.course.creator_username
+  if (typeof creatorName === 'string' && creatorName.trim()) {
+    return `@${creatorName.trim()}`
+  }
+
+  const creatorId = Number(props.course.creatorUserId ?? props.course.creator_user_id ?? 0)
+  return creatorId > 0 ? `Usuario #${creatorId}` : 'Creador desconocido'
+})
 </script>
 
 <style scoped>
@@ -102,6 +112,12 @@ const canModify = computed(() => authStore.isAdmin)
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.card-creator {
+  font-size: 12px;
+  color: #c9c9ce;
   margin-bottom: 12px;
 }
 

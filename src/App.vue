@@ -10,12 +10,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 import BottomNavigation from '@/components/BottomNavigation.vue'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const showNav = computed(() => !route.meta.hideNav)
+
+onMounted(() => {
+  authStore.fetchProfile()
+})
 </script>
 
 <style scoped>

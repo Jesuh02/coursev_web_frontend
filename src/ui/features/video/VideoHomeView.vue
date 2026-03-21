@@ -17,20 +17,29 @@
         :video="video"
         :active="idx === activeIndex"
         @like="onLike(video)"
-        @comment="goToComments(video.id)"
+        @comment="openComments(video.id)"
         @share="onShare(video)"
         @profile="goToProfile(video.userId)"
       />
       <EmptyState v-if="!filteredVideos.length" title="No hay videos" description="Aún no hay contenido disponible" />
     </template>
+
+    <!-- Comments overlay (igual al BottomSheetDialog de Android) -->
+    <VideoCommentsOverlay
+      v-if="activeCommentVideoId !== null"
+      :video-id="activeCommentVideoId"
+      :highlight-comment-id="pendingHighlightId"
+      @close="closeComments"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import { likeAdapter } from '@/infrastructure/api'
 import type { Video } from '@/domain/models'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
@@ -38,14 +47,30 @@ import EmptyState from '@/ui/shared/components/EmptyState.vue'
 import VideoTopNav from './components/VideoTopNav.vue'
 import VideoCard from './components/VideoCard.vue'
 import VideoSkeleton from './components/VideoSkeleton.vue'
+import VideoCommentsOverlay from './VideoCommentsView.vue'
 
+const route  = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const videoStore = useVideoStore()
+const notifStore = useNotificationStore()
 const feedRef = ref<HTMLElement | null>(null)
 const showSearch = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
+
+// Comments overlay state
+const activeCommentVideoId = ref<number | null>(null)
+const pendingHighlightId   = ref<number | null>(null)
+
+function openComments(videoId: number, highlightId?: number | null) {
+  pendingHighlightId.value   = highlightId ?? null
+  activeCommentVideoId.value = videoId
+}
+function closeComments() {
+  activeCommentVideoId.value = null
+  pendingHighlightId.value   = null
+}
 
 function stripFeedThumbnail(video: Video): Video {
   return {
@@ -68,6 +93,18 @@ const filteredVideos = computed(() => {
 onMounted(() => {
   videoStore.fetchPublicFeed()
   window.addEventListener('keydown', onKeydown)
+
+  // Handle notification navigation: ?openComments=videoId&commentId=123&notifId=456
+  const openComments = Number(route.query.openComments)
+  if (openComments > 0) {
+    const highlightId = Number(route.query.commentId) || null
+    const notifId = Number(route.query.notifId) || null
+    openComments && openComments > 0 && (activeCommentVideoId.value = openComments)
+    pendingHighlightId.value = highlightId
+    if (notifId) notifStore.markRead(notifId)
+    // Clean query params from URL without re-navigating
+    router.replace({ name: 'videoHome' })
+  }
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -95,10 +132,6 @@ async function onLike(video: Video) {
   try {
     await likeAdapter.toggleLike('video', video.id)
   } catch { /* silent */ }
-}
-
-function goToComments(videoId: number) {
-  router.push(`/video/${videoId}`)
 }
 
 function onShare(video: Video) {

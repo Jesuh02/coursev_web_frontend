@@ -23,7 +23,9 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   async function markRead(id: number) {
-    await notificationAdapter.markAsRead(id)
+    try {
+      await notificationAdapter.markAsRead(id)
+    } catch { /* CORS / network errors are non-critical */ }
     const item = items.value.find(i => i.id === id)
     if (item) {
       item.is_read = true

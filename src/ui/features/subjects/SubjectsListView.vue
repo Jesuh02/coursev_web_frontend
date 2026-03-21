@@ -35,6 +35,7 @@
         v-for="subject in filtered"
         :key="subject.id"
         class="subject-card"
+        :class="{ 'subject-blocked': !!subjectBlocks[subject.id] }"
         @click="navigateToDetail(subject)"
         @contextmenu.prevent="canModifySubject(subject) ? openOptions(subject) : undefined"
       >
@@ -42,6 +43,9 @@
           <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl) || ''" alt="" />
           <div v-else class="thumb-placeholder">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+          </div>
+          <div v-if="subjectBlocks[subject.id]" class="blocked-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
           </div>
         </div>
         <div class="subject-body">
@@ -101,11 +105,24 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="blockAlert.show" class="bottom-sheet-overlay" @click="blockAlert.show = false">
+        <div class="confirm-dialog block-alert-dialog" @click.stop>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
+          <h3>Acceso bloqueado</h3>
+          <p class="block-reason-text">Has sido bloqueado debido a: {{ blockAlert.reason }}</p>
+          <div class="confirm-actions">
+            <button class="cancel-btn" @click="blockAlert.show = false">Entendido</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import type { Subject } from '@/domain/models'
@@ -129,6 +146,8 @@ const hasCollaboratorAccess = ref(false)
 const optionsSubject = ref<Subject | null>(null)
 const showDeleteConfirm = ref(false)
 const courseExpired = ref(false)
+const subjectBlocks = ref<Record<number, string>>({})
+const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
 
 interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
@@ -181,6 +200,7 @@ onMounted(async () => {
   }
   await loadSubjects()
   await checkCourseDeadline()
+  await loadSubjectBlocks()
 })
 
 async function checkCourseDeadline() {
@@ -254,11 +274,28 @@ async function loadSubjectStats() {
   } catch { /* silent */ }
 }
 
+async function loadSubjectBlocks() {
+  if (authStore.isAdmin || !courseId.value) return
+  try {
+    const blocks: any[] = await progressAdapter.getMySubjectAccessBlocks(courseId.value)
+    const map: Record<number, string> = {}
+    for (const b of blocks) {
+      map[b.subject_id] = b.reason || 'Sin motivo especificado'
+    }
+    subjectBlocks.value = map
+  } catch { /* silent */ }
+}
+
 function navigateToCreate() {
   router.push({ path: '/subjects/create', query: { courseId: String(courseId.value) } })
 }
 
 function navigateToDetail(subject: Subject) {
+  // Check if subject is blocked for this user
+  if (subjectBlocks.value[subject.id]) {
+    blockAlert.value = { show: true, reason: subjectBlocks.value[subject.id] }
+    return
+  }
   // Block collaborators from accessing subjects they didn't create
   if (isCollaboratorOnly.value && authStore.user) {
     if (!subject.createdBy || Number(subject.createdBy) !== Number(authStore.user.id)) return
@@ -308,6 +345,10 @@ async function deleteSubj() {
     await loadSubjects()
   } catch { /* silent */ }
 }
+
+onActivated(async () => {
+  await loadSubjects()
+})
 </script>
 
 <style scoped>
@@ -403,4 +444,18 @@ async function deleteSubj() {
 .confirm-actions { display: flex; gap: 12px; justify-content: flex-end; }
 .cancel-btn { padding: 10px 20px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 15px; }
 .delete-btn { padding: 10px 20px; border-radius: 10px; background: #FF453A; color: #fff; font-size: 15px; font-weight: 600; }
+
+.subject-blocked { opacity: 0.5; }
+.subject-blocked:hover { background: #1C1C1E; }
+.blocked-badge {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #FF453A; display: flex; align-items: center; justify-content: center;
+}
+
+.block-alert-dialog { text-align: center; }
+.block-alert-dialog svg { margin: 0 auto 12px; }
+.block-alert-dialog h3 { color: #FF453A; }
+.block-reason-text { font-size: 15px; color: #ccc; margin-bottom: 20px; }
+.block-alert-dialog .confirm-actions { justify-content: center; }
 </style>
