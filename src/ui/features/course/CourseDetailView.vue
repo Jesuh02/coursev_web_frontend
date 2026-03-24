@@ -327,7 +327,9 @@ const requiresEnrollmentApproval = computed(() => {
 })
 
 // Muestra el banner cuando la persona no es admin y aun no tiene matricula aprobada.
+// No se muestra durante la carga inicial para evitar que invitados (ya aprobados) vean el banner brevemente.
 const showEnrollmentBanner = computed(() => {
+  if (loading.value) return false
   if (!requiresEnrollmentApproval.value || hasSubjectContentAccess.value) return false
   return enrollmentStatus.value !== 'approved'
 })

@@ -25,10 +25,17 @@
         <p class="field-label mt-16">Fecha límite (opcional)</p>
         <input v-model="formDueDate" type="date" class="field-input" />
 
-        <p class="field-label mt-16">Archivo adjunto (opcional)</p>
+        <p class="field-label mt-16">Documentos adjuntos</p>
+        <div v-if="existingContentItems.length" class="existing-attachments">
+          <div v-for="ci in existingContentItems" :key="ci.id" class="existing-attachment-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            <span class="existing-attachment-name">{{ ci.fileName || ci.content }}</span>
+            <button class="file-clear" @click.stop="deleteContentItem(ci.id)">✕</button>
+          </div>
+        </div>
         <div class="file-upload-editor" @click="formFileInputRef?.click()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-          <span>{{ formFile ? formFile.name : 'Seleccionar archivo' }}</span>
+          <span>{{ formFile ? formFile.name : 'Agregar nuevo archivo' }}</span>
           <button v-if="formFile" class="file-clear" @click.stop="formFile = null">✕</button>
           <input ref="formFileInputRef" type="file" hidden @change="onFormFileSelected" />
         </div>
@@ -95,8 +102,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, uploadFileDirect } from '@/infrastructure/api'
+import type { Task, TaskSubmission, ContentItem } from '@/domain/models'
+import { taskAdapter, submissionAdapter, contentItemAdapter, uploadFileDirect } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
@@ -126,9 +133,23 @@ const formDescription = ref('')
 const formDueDate = ref('')
 const formFile = ref<File | null>(null)
 const formFileInputRef = ref<HTMLInputElement | null>(null)
+const existingContentItems = ref<ContentItem[]>([])
 
 function onFormFileSelected(e: Event) {
   formFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
+
+async function deleteContentItem(id: number) {
+  try {
+    await contentItemAdapter.delete(id)
+    existingContentItems.value = existingContentItems.value.filter(ci => ci.id !== id)
+  } catch { /* silent */ }
+}
+
+function getContentType(file: File): string {
+  if (file.type.startsWith('image/')) return 'image'
+  if (file.type.startsWith('video/')) return 'video'
+  return 'document'
 }
 
 async function handleSave() {
@@ -137,19 +158,22 @@ async function handleSave() {
   errorMsg.value = ''
   try {
     const topicId = route.query.topicId ? Number(route.query.topicId) : undefined
-    let formFileKey: string | undefined
-    if (formFile.value) {
-      const { key } = await uploadFileDirect(formFile.value, 'tasks', () => {})
-      formFileKey = key
-    }
     if (isCreateMode.value) {
-      await taskAdapter.createTask({
+      const created = await taskAdapter.createTask({
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         topicId,
         dueDate: formDueDate.value || null,
-        ...(formFileKey ? { fileKey: formFileKey } : {}),
       } as Partial<Task>)
+      if (formFile.value && created?.id) {
+        const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
+        await contentItemAdapter.create({
+          taskId: created.id,
+          title: formFile.value.name,
+          body: key,
+          contentType: getContentType(formFile.value),
+        })
+      }
       const courseId = route.params.courseId as string
       const subjectId = route.query.subjectId as string | undefined
       router.push({
@@ -161,8 +185,16 @@ async function handleSave() {
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         dueDate: formDueDate.value || null,
-        ...(formFileKey ? { fileKey: formFileKey } : {}),
       } as Partial<Task>)
+      if (formFile.value) {
+        const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
+        await contentItemAdapter.create({
+          taskId: taskId.value!,
+          title: formFile.value.name,
+          body: key,
+          contentType: getContentType(formFile.value),
+        })
+      }
       router.back()
     }
   } catch {
@@ -221,10 +253,14 @@ onMounted(async () => {
   if (isEditorMode.value && !isCreateMode.value) {
     loading.value = true
     try {
-      const t = await taskAdapter.getTaskById(taskId.value!)
+      const [t, items] = await Promise.all([
+        taskAdapter.getTaskById(taskId.value!),
+        contentItemAdapter.getByTask(taskId.value!),
+      ])
       formTitle.value = t.title ?? ''
       formDescription.value = t.description ?? ''
       formDueDate.value = t.dueDate ?? t.due_date ?? ''
+      existingContentItems.value = items
     } catch { /* empty */ }
     loading.value = false
     return
@@ -276,6 +312,15 @@ onMounted(async () => {
 .field-input:focus { background: #222; }
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .error-msg { font-size: 13px; color: #FF453A; }
+
+.existing-attachments {
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
+}
+.existing-attachment-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 8px; background: #1A1A1A; color: #ccc; font-size: 14px;
+}
+.existing-attachment-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .file-upload-editor {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
