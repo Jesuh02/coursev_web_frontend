@@ -20,19 +20,30 @@
       <p class="empty-title">¡Hurra! Ya estás al día</p>
       <p class="empty-desc">No tienes notificaciones nuevas</p>
     </div>
+
+    <!-- subject_access_blocked dialog -->
+    <div v-if="blockAlert" class="block-alert-overlay" @click.self="blockAlert = null">
+      <div class="block-alert-card">
+        <h2 class="block-alert-title">Acceso restringido</h2>
+        <p class="block-alert-msg">{{ blockAlert }}</p>
+        <button class="block-alert-btn" @click="blockAlert = null">Entendido</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import type { Notification } from '@/domain/models'
 import NotificationItem from './components/NotificationItem.vue'
 import NotificationSkeleton from './components/NotificationSkeleton.vue'
 
 const notifStore = useNotificationStore()
 const router = useRouter()
+const blockAlert = ref<string | null>(null)
 
 onMounted(() => notifStore.fetchNotifications())
 
@@ -68,17 +79,27 @@ function handleClick(notification: Notification) {
       if (relatedId) router.push({ name: 'courseDetail', params: { id: relatedId } })
       break
 
-    case 'new_video':
-      if (relatedId) router.push({ name: 'videoDetails', params: { id: relatedId } })
+    case 'new_video': {
+      // If the video belongs to a course, navigate to subjects list; otherwise to video details
+      const courseId = extractId(meta, 'course_id', 'courseId')
+      if (courseId) {
+        router.push({ name: 'subjectsList', params: { courseId } })
+      } else if (relatedId) {
+        router.push({ name: 'videoDetails', params: { id: relatedId } })
+      }
       break
+    }
 
     case 'new_task':
-    case 'task_submission':
-    case 'task_graded': {
+    case 'task_submission': {
       const taskId = extractId(meta, 'task_id', 'taskId') ?? relatedId
       if (taskId) router.push({ name: 'taskSubmission', params: { taskId } })
       break
     }
+
+    case 'task_graded':
+      handleTaskGraded(notification, relatedId, meta)
+      break
 
     case 'video_like': {
       const videoId = extractId(meta, 'video_id', 'videoId') ?? relatedId
@@ -107,16 +128,56 @@ function handleClick(notification: Notification) {
       break
 
     case 'collaborator_added':
-    case 'enrollment_approved': {
+    case 'enrollment_approved':
+    case 'course_invitation': {
       const courseId = extractId(meta, 'course_id', 'courseId') ?? relatedId
-      if (courseId) router.push({ name: 'courseDetail', params: { id: courseId } })
+      if (courseId) router.push({ name: 'subjectsList', params: { courseId } })
       break
     }
 
-    case 'enrollment_request':
-      router.push({ name: 'adminDashboard' })
+    case 'enrollment_request': {
+      const courseId = extractId(meta, 'course_id', 'courseId') ?? relatedId
+      const courseName = String(meta.courseName ?? meta.course_name ?? '').trim()
+      const query: Record<string, string> = {
+        tab: 'enrollment',
+        subtab: 'pre',
+      }
+      if (courseId) query.courseId = String(courseId)
+      if (courseName) query.courseName = courseName
+      if (notification.sender_username) query.username = notification.sender_username
+      router.push({ name: 'adminDashboard', query })
       break
+    }
+
+    case 'subject_access_blocked': {
+      const reason = (meta.reason as string) || notification.message || 'Sin motivo especificado'
+      blockAlert.value = reason
+      break
+    }
   }
+}
+
+async function handleTaskGraded(
+  notification: Notification,
+  relatedId: number | null,
+  meta: Record<string, unknown>,
+) {
+  // Try metadata first (most reliable)
+  let taskId: number | null = extractId(meta, 'task_id', 'taskId')
+
+  // related_id may be a submissionId — fetch submission to resolve task_id
+  if (!taskId && relatedId) {
+    try {
+      const sub = await submissionAdapter.getSubmissionById(relatedId)
+      taskId = sub?.task_id ?? null
+    } catch {
+      // If fetch fails, fall back to using relatedId directly as taskId
+      taskId = relatedId
+    }
+  }
+
+  taskId = taskId ?? relatedId
+  if (taskId) router.push({ name: 'taskSubmission', params: { taskId } })
 }
 </script>
 
@@ -168,5 +229,50 @@ function handleClick(notification: Notification) {
 .empty-desc {
   font-size: 14px;
   color: #8E8E93;
+}
+
+.block-alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.block-alert-card {
+  background: var(--bg-secondary, #1c1c1e);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 320px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.block-alert-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.block-alert-msg {
+  font-size: 14px;
+  color: #aeaeb2;
+  line-height: 1.5;
+}
+
+.block-alert-btn {
+  align-self: flex-end;
+  background: #0a84ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 </style>

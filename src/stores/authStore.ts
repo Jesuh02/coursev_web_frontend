@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+// NOTE: tokenStorage is a plain object (non-reactive), so we
+// cannot use computed(() => tokenStorage.isAuthenticated) —
+// Vue never re-evaluates a computed with zero reactive deps.
 import type { User } from '@/domain/models'
 import { authAdapter, userAdapter, tokenStorage, HttpError } from '@/infrastructure/api'
 import router from '@/router'
@@ -14,7 +17,8 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref('')
 
-  const isAuthenticated = computed(() => tokenStorage.isAuthenticated)
+  // Reactive ref so the router guard and LoginView always see the real state.
+  const isAuthenticated = ref(tokenStorage.isAuthenticated)
 
   function hasRole(roleId: number): boolean {
     return user.value?.roles?.some(r => r.id === roleId) ?? false
@@ -48,6 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
+      isAuthenticated.value = true
       await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error de conexión'
@@ -65,6 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
+      isAuthenticated.value = true
       await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error de registro'
@@ -84,6 +90,7 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id
+      isAuthenticated.value = true
       await hydrateAuthoritativeUser(res.user)
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error con Google'
@@ -104,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function _resetUserStores() {
     user.value = null
+    isAuthenticated.value = false
     useCourseStore().$patch({ courses: [], current: null, page: 1, hasMore: true, filterCounts: {}, activeFilter: 'all' })
     useNotificationStore().$patch({ items: [], unreadCount: 0 })
     useProgressStore().$patch({ myProgress: [], enrolledCourseIds: [] })

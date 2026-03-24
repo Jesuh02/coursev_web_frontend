@@ -1,5 +1,5 @@
 import type { CoursePort } from '@/domain/ports'
-import type { Course, PaginatedResponse } from '@/domain/models'
+import type { Course, GuestEntry, PaginatedResponse } from '@/domain/models'
 import { api } from './httpClient'
 import { tokenStorage } from './httpClient'
 
@@ -50,4 +50,11 @@ export const courseAdapter: CoursePort = {
   createCourse: (data) => api.post<Course>('/courses', data),
   updateCourse: (id, data) => api.put<Course>(`/courses/${id}`, data),
   deleteCourse: (id) => api.delete(`/courses/${id}`),
+
+  inviteGuests: (courseId, userIds) =>
+    api.post<{ invited: number; results: unknown[] }>(`/courses/${courseId}/guests`, { userIds }),
+  getGuests: (courseId) =>
+    api.get<GuestEntry[]>(`/courses/${courseId}/guests`),
+  removeGuest: (courseId, userId) =>
+    api.delete(`/courses/${courseId}/guests/${userId}`),
 }

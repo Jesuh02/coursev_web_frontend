@@ -166,6 +166,16 @@ export interface Progress {
   avatar?: string | null
 }
 
+/** Invitado directo a un curso (acceso inmediato sin prematrícula). */
+export interface GuestEntry {
+  userId: number
+  courseId: number
+  username: string | null
+  avatar: string | null
+  requestedAt: string | null
+  reviewedBy: number | null
+}
+
 /** Certificado emitido a un estudiante al completar un curso. */
 export interface Certificate {
   courseId: number

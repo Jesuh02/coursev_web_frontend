@@ -2,7 +2,15 @@
   <div class="explore-view">
     <ExploreHeader
       v-model:search="searchQuery"
+      :collapsed="isHeaderCollapsed"
+      :active-filter-name="activeFilterLabel"
+      :total-courses="totalCoursesStat"
+      :popular-courses="popularCoursesStat"
+      :new-courses="newCoursesStat"
       @open-filter="showFilter = true"
+      @clear-filter="clearFilter"
+      @toggle-collapse="isHeaderCollapsed = !isHeaderCollapsed"
+      @quick-filter="applyQuickFilter"
     />
 
     <ExploreSkeleton v-if="courseStore.loading" />
@@ -95,8 +103,45 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
+const isHeaderCollapsed = ref(true)
 
 const canManageCourses = computed(() => authStore.isAdmin)
+const activeFilterLabel = computed(() => {
+  const labels: Record<string, string> = {
+    all: '',
+    enrolled: 'Mis inscripciones',
+    purchased: 'Cursos comprados',
+    created: 'Mis cursos',
+    others: 'Cursos de otros',
+    premium: 'Premium',
+    free: 'Gratuitos',
+    popular: 'Mas populares',
+    new: 'Nuevos',
+  }
+  return labels[activeFilter.value] || null
+})
+
+const totalCoursesStat = computed(() => {
+  const counts = courseStore.filterCounts || {}
+  return Number(counts.all ?? counts.total ?? courseStore.courses.length ?? 0)
+})
+
+const popularCoursesStat = computed(() => {
+  const counts = courseStore.filterCounts || {}
+  if (Number.isFinite(Number(counts.popular))) return Number(counts.popular)
+  return courseStore.courses.filter((course) => Number(course.studentCount ?? 0) > 0).length
+})
+
+const newCoursesStat = computed(() => {
+  const counts = courseStore.filterCounts || {}
+  if (Number.isFinite(Number(counts.new))) return Number(counts.new)
+  const recentThreshold = Date.now() - 1000 * 60 * 60 * 24 * 30
+  return courseStore.courses.filter((course) => {
+    const rawDate = (course as any).createdAt ?? (course as any).created_at ?? (course as any).timestamp
+    const parsed = rawDate ? new Date(rawDate).getTime() : NaN
+    return Number.isFinite(parsed) && parsed >= recentThreshold
+  }).length
+})
 
 const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3))
 
@@ -332,6 +377,46 @@ function loadMore() {
   }
 }
 
+function clearFilter() {
+  activeFilter.value = 'all'
+  searchQuery.value = ''
+  searchRequestId += 1
+  courseStore.fetchCourses()
+}
+
+function applyQuickFilter(filterKey: string) {
+  if (filterKey === 'all') {
+    clearFilter()
+    return
+  }
+
+  if (filterKey === 'popular' || filterKey === 'new') {
+    activeFilter.value = filterKey
+    searchQuery.value = ''
+    searchRequestId += 1
+    courseStore.fetchByFilter('all').then(() => {
+      const sortedByStudents = [...courseStore.courses]
+        .sort((a, b) => Number(b.studentCount ?? 0) - Number(a.studentCount ?? 0))
+
+      if (filterKey === 'popular') {
+        courseStore.courses = sortedByStudents.slice(0, 12)
+        return
+      }
+
+      courseStore.courses = [...courseStore.courses]
+        .sort((a, b) => {
+          const aDate = new Date((a as any).createdAt ?? (a as any).created_at ?? (a as any).timestamp ?? 0).getTime()
+          const bDate = new Date((b as any).createdAt ?? (b as any).created_at ?? (b as any).timestamp ?? 0).getTime()
+          return bDate - aDate
+        })
+        .slice(0, 12)
+    })
+    return
+  }
+
+  activeFilter.value = filterKey
+}
+
 watch(searchQuery, (q) => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
@@ -375,6 +460,7 @@ watch(
 
 onMounted(() => {
   courseStore.fetchCourses()
+  courseStore.fetchFilterCounts(authStore.user?.id)
   observer = new IntersectionObserver(
     (entries) => { if (entries[0]?.isIntersecting) loadMore() },
     { rootMargin: '200px' },
@@ -388,7 +474,10 @@ onUnmounted(() => observer?.disconnect())
 <style scoped>
 .explore-view {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background:
+    radial-gradient(130% 120% at 10% 0%, rgba(88, 142, 255, 0.12), transparent 48%),
+    radial-gradient(120% 120% at 92% 4%, rgba(178, 126, 255, 0.12), transparent 46%),
+    var(--bg-primary);
   padding-bottom: 80px;
   overflow-y: auto;
 }

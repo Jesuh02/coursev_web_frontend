@@ -112,7 +112,7 @@
 
         <div class="search-bar card-enter" style="animation-delay: 0.15s">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input v-model="searchQuery" class="search-input" placeholder="Buscar por estudiante..." />
+          <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
         </div>
 
         <div v-if="filteredSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.2s">
@@ -130,6 +130,9 @@
             <div class="student-avatar">{{ (sub.studentUsername ?? 'E')[0].toUpperCase() }}</div>
             <div class="student-info">
               <p class="student-name">{{ sub.studentUsername ?? `Estudiante #${sub.student_id}` }}</p>
+              <p v-if="personaNameMap.get(Number(sub.student_id ?? sub.studentId))" class="persona-name">
+                {{ personaNameMap.get(Number(sub.student_id ?? sub.studentId)) }}
+              </p>
               <p class="submission-date">{{ formatDate(sub.created_at) }}</p>
             </div>
             <span class="grade-badge" :class="sub.grade !== null && sub.grade !== undefined ? 'graded' : 'pending'">
@@ -244,6 +247,7 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
 import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, buildProxyFileUrl } from '@/infrastructure/api'
+import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 
@@ -261,6 +265,8 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const isSubjectCreator = ref(false)
 const searchQuery = ref('')
 const chartAnimated = ref(false)
+// Map studentId → persona full name (nombres + apellidos)
+const personaNameMap = ref(new Map<number, string>())
 
 interface GradingState { grade: number | null; feedback: string; saving: boolean; saved: boolean }
 const gradingMap = reactive<Record<number, GradingState>>({})
@@ -276,10 +282,12 @@ const gradedPercent = computed(() =>
 const filteredSubmissions = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return allSubmissions.value
-  return allSubmissions.value.filter(s =>
-    (s.studentUsername ?? '').toLowerCase().includes(q) ||
-    String(s.student_id).includes(q)
-  )
+  return allSubmissions.value.filter(s => {
+    const username = (s.studentUsername ?? '').toLowerCase()
+    const studentId = String(s.student_id ?? s.studentId ?? '')
+    const personaName = (personaNameMap.value.get(Number(s.student_id ?? s.studentId)) ?? '').toLowerCase()
+    return username.includes(q) || studentId.includes(q) || personaName.includes(q)
+  })
 })
 
 const status = computed<'not-submitted' | 'pending' | 'graded'>(() => {
@@ -434,6 +442,20 @@ onMounted(async () => {
           saving: false,
           saved: false,
         }
+      }
+      // Enrich with persona names for name-based search
+      const studentIds = [...new Set(subs.map(s => Number(s.student_id ?? s.studentId)).filter(n => n > 0))]
+      if (studentIds.length > 0) {
+        try {
+          const res = await api.get<{ userId: number; fullName: string }[]>(
+            `/personas/by-user-ids?userIds=${studentIds.join(',')}`
+          )
+          const map = new Map<number, string>()
+          for (const item of res ?? []) {
+            if (item.fullName) map.set(Number(item.userId), item.fullName)
+          }
+          personaNameMap.value = map
+        } catch { /* persona enrichment is best-effort */ }
       }
     }
   } catch { /* empty */ }
@@ -660,6 +682,7 @@ onMounted(async () => {
 }
 .student-info { flex: 1; min-width: 0; }
 .student-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.persona-name { font-size: 11px; color: #BF5AF2; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .submission-date { font-size: 11px; color: #8E8E93; margin-top: 2px; }
 .grade-badge {
   flex-shrink: 0; padding: 4px 10px; border-radius: 10px;

@@ -93,6 +93,37 @@
             </li>
           </ul>
         </div>
+        <!-- Invitados -->
+        <div class="collaborator-section">
+          <label class="input-label">Invitados (acceso inmediato)</label>
+          <div v-if="selectedGuests.length" class="collab-chips">
+            <span v-for="g in selectedGuests" :key="g.id" class="collab-chip guest-chip">
+              {{ g.username }}
+              <button type="button" class="chip-remove" @click="removeGuest(g.id)">&times;</button>
+            </span>
+          </div>
+          <input
+            v-model="guestQuery"
+            type="text"
+            class="collab-search-input"
+            placeholder="Buscar usuario para invitar..."
+            @input="onGuestSearch"
+          />
+          <ul v-if="guestResults.length" class="collab-results">
+            <li
+              v-for="u in guestResults"
+              :key="u.id"
+              class="collab-result-item"
+              :class="{ selected: selectedGuests.some(g => g.id === u.id) }"
+              @click="handleGuestSelect(u)"
+            >
+              <div class="collab-result-text">
+                <span>{{ collabDisplayName(u) }}</span>
+                <span class="collab-email">{{ collabMetaLine(u) }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- Modal confirmar rol docente -->
@@ -142,6 +173,12 @@ const collabResults = ref<User[]>([])
 const selectedCollaborators = ref<User[]>([])
 let collabSearchTimer: ReturnType<typeof setTimeout> | null = null
 const roleDialog = reactive<{ visible: boolean; user: User | null }>({ visible: false, user: null })
+
+// Guest state
+const guestQuery = ref('')
+const guestResults = ref<User[]>([])
+const selectedGuests = ref<User[]>([])
+let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 
 const isEdit = computed(() => !!route.params.id)
 const saveError = ref('')
@@ -199,6 +236,28 @@ onMounted(async () => {
     selectedCollaborators.value = collabs
       .filter(c => c.user)
       .map(c => ({ id: c.user!.id, username: c.user!.username, email: c.user!.email } as User))
+  } catch { /* ignore */ }
+
+  // Pre-load existing guests (exclude anyone already loaded as collaborator)
+  try {
+    const { courseAdapter: ca } = await import('@/infrastructure/api')
+    const guests = await ca.getGuests(Number(route.params.id))
+    const collabIds = new Set(selectedCollaborators.value.map(c => c.id))
+    selectedGuests.value = guests
+      .filter(g => !collabIds.has(g.userId))
+      .map(g => ({
+        id: g.userId,
+        username: g.username ?? `user_${g.userId}`,
+        email: '',
+        avatar: g.avatar,
+        personaId: null,
+        persona: null,
+        roles: [],
+        isActive: true,
+        emailVerified: true,
+        createdAt: null,
+        updatedAt: null,
+      } as User))
   } catch { /* ignore */ }
 })
 
@@ -337,6 +396,42 @@ async function confirmPromoteToDocente() {
   }
 }
 
+// ─── Guest logic ──────────────────────────────────────────
+function onGuestSearch() {
+  if (guestSearchTimer) clearTimeout(guestSearchTimer)
+  const q = guestQuery.value.trim()
+  if (!q) { guestResults.value = []; return }
+  guestSearchTimer = setTimeout(async () => {
+    const { userAdapter } = await import('@/infrastructure/api')
+    try {
+      const users = await userAdapter.searchUsers(q)
+      guestResults.value = users.filter(u => u.username !== authStore.user?.username)
+    } catch {
+      guestResults.value = []
+    }
+  }, 300)
+}
+
+function handleGuestSelect(user: User) {
+  if (selectedGuests.value.some(g => g.id === user.id)) {
+    removeGuest(user.id)
+    return
+  }
+  // Don't add if already a collaborator
+  if (selectedCollaborators.value.some(c => c.id === user.id)) {
+    guestQuery.value = ''
+    guestResults.value = []
+    return
+  }
+  selectedGuests.value.push(user)
+  guestQuery.value = ''
+  guestResults.value = []
+}
+
+function removeGuest(userId: number) {
+  selectedGuests.value = selectedGuests.value.filter(g => g.id !== userId)
+}
+
 async function submitCourse() {
   saving.value = true
   saveError.value = ''
@@ -367,8 +462,12 @@ async function submitCourse() {
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
-      await courseAdapter.updateCourse(Number(route.params.id), payload)
-      await collaboratorAdapter.sync(Number(route.params.id), selectedCollaborators.value.map(c => c.id))
+      const courseId = Number(route.params.id)
+      await courseAdapter.updateCourse(courseId, payload)
+      await collaboratorAdapter.sync(courseId, selectedCollaborators.value.map(c => c.id))
+      if (selectedGuests.value.length > 0) {
+        await courseAdapter.inviteGuests(courseId, selectedGuests.value.map(g => g.id))
+      }
       router.back()
     } else {
       const payload: Record<string, unknown> = {
@@ -383,8 +482,13 @@ async function submitCourse() {
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
       const created = await courseAdapter.createCourse(payload) as { id?: number } & Record<string, unknown>
-      if (created?.id && selectedCollaborators.value.length > 0) {
-        await collaboratorAdapter.sync(created.id, selectedCollaborators.value.map(c => c.id))
+      if (created?.id) {
+        if (selectedCollaborators.value.length > 0) {
+          await collaboratorAdapter.sync(created.id, selectedCollaborators.value.map(c => c.id))
+        }
+        if (selectedGuests.value.length > 0) {
+          await courseAdapter.inviteGuests(created.id, selectedGuests.value.map(g => g.id))
+        }
       }
       router.back()
     }
@@ -669,4 +773,10 @@ async function submitCourse() {
 
 .dialog-btn.cancel { color: #fff; }
 .dialog-btn.accept { color: #FF6B6B; }
+
+/* Guest chips — teal accent to distinguish from collaborator chips */
+.guest-chip {
+  background: rgba(0, 180, 160, 0.15);
+  border: 1px solid rgba(0, 180, 160, 0.35);
+}
 </style>

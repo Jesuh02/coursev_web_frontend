@@ -403,8 +403,8 @@ watch(
 )
 
 function logout() {
+  // authStore.logout() ya llama router.push('/login') internamente
   authStore.logout()
-  router.push('/login')
 }
 </script>
 

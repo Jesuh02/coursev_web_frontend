@@ -81,6 +81,15 @@ function decodeJwtPayload(token: string): Record<string, string> {
 }
 
 onMounted(async () => {
+  // Si ya hay una sesión activa, redirigir sin mostrar el login (igual que LoginFragment.kt)
+  if (authStore.isAuthenticated) {
+    await authStore.fetchProfile()
+    if (authStore.isAuthenticated) {
+      router.replace('/video')
+      return
+    }
+  }
+
   if (!GOOGLE_CLIENT_ID) return
   await loadGoogleScript()
   window.google?.accounts.id.initialize({

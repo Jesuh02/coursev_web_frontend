@@ -19,6 +19,9 @@ export const submissionAdapter: SubmissionPort = {
     return api.get<TaskSubmission | null>(`/submissions/task/${taskId}/student${query}`)
   },
 
+  getSubmissionById: (id) =>
+    api.get<TaskSubmission>(`/submissions/${id}`),
+
   submitWork: (data) => api.post<TaskSubmission>('/submissions', data),
 
   gradeSubmission: (id, grade, feedback) =>

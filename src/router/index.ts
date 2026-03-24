@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
 
   // Main tabs
   { path: '/video', name: 'videoHome', component: () => import('@/ui/features/video/VideoHomeView.vue') },
-  { path: '/video/upload', name: 'videoUpload', component: () => import('@/ui/features/video/VideoUploadView.vue'), meta: { hideNav: true } },
+  { path: '/video/upload', name: 'videoUpload', component: () => import('@/ui/features/video/VideoDetailsView.vue'), meta: { hideNav: true } },
   { path: '/explore', name: 'explore', component: () => import('@/ui/features/explore/ExploreView.vue') },
   { path: '/home', name: 'home', component: () => import('@/ui/features/home/HomeView.vue') },
   { path: '/notifications', name: 'notifications', component: () => import('@/ui/features/notifications/NotificationsView.vue') },
@@ -57,7 +57,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/payment/:courseId', name: 'paymentForm', component: () => import('@/ui/features/payment/PaymentFormView.vue'), props: true, meta: { hideNav: true } },
 
   // Subjects
-  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true, meta: { requiresHigherRole: true } },
+  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true },
   { path: '/subjects/create', name: 'subjectCreation', component: () => import('@/ui/features/subjects/SubjectCreationView.vue'), meta: { hideNav: true, requiresHigherRole: true } },
 
   // Misc

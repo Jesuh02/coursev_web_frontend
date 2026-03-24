@@ -1,7 +1,7 @@
 import type {
   User, AuthResponse, Course, Topic, Task, Video, Notification,
   ChatMessage, Subject, TaskSubmission, Subscription, Progress, Certificate,
-  ContentItem, VideoComment, LikeResult, PaginatedResponse, Institucion,
+  ContentItem, VideoComment, LikeResult, PaginatedResponse, Institucion, GuestEntry,
 } from './models'
 
 export interface AuthPort {
@@ -39,6 +39,9 @@ export interface CoursePort {
   createCourse(data: Record<string, unknown>): Promise<Course>
   updateCourse(id: number, data: Record<string, unknown>): Promise<Course>
   deleteCourse(id: number): Promise<void>
+  inviteGuests(courseId: number, userIds: number[]): Promise<{ invited: number; results: unknown[] }>
+  getGuests(courseId: number): Promise<GuestEntry[]>
+  removeGuest(courseId: number, userId: number): Promise<void>
 }
 
 export interface VideoPort {
@@ -96,6 +99,7 @@ export interface SubmissionPort {
   getSubmissionsByTask(taskId: number): Promise<TaskSubmission[]>
   getSubmissionByCourse(courseId: number, ungradedOnly?: boolean): Promise<TaskSubmission[]>
   getSubmissionByUserAndTask(taskId: number, studentId?: number): Promise<TaskSubmission | null>
+  getSubmissionById(id: number): Promise<TaskSubmission>
   submitWork(data: Record<string, unknown>): Promise<TaskSubmission>
   gradeSubmission(id: number, grade: number, feedback?: string): Promise<TaskSubmission>
   uploadSubmissionFile(formData: FormData, folder: string): Promise<{ key: string; url: string }>

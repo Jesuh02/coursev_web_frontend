@@ -55,7 +55,20 @@
         </div>
 
         <div class="submission-section">
-          <h3 class="section-title">Tu Entrega</h3>
+          <!-- Status banner -->
+          <div v-if="existingSubmission" class="submission-status" :class="existingSubmission.grade !== null ? 'status-graded' : 'status-pending'">
+            <div class="status-icon">
+              <svg v-if="existingSubmission.grade !== null" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="status-body">
+              <p class="status-title" v-if="existingSubmission.grade !== null">Calificada: {{ existingSubmission.grade }} / 10</p>
+              <p class="status-title" v-else>Enviada — Pendiente de revisión</p>
+              <p v-if="existingSubmission.feedback" class="status-feedback">{{ existingSubmission.feedback }}</p>
+            </div>
+          </div>
+
+          <h3 class="section-title">{{ existingSubmission ? 'Actualizar entrega' : 'Tu Entrega' }}</h3>
           <textarea
             v-model="submission"
             class="submission-input"
@@ -72,7 +85,7 @@
             <span class="progress-label">Subiendo... {{ uploadProgress }}%</span>
           </div>
           <p v-if="submitError" class="submit-error">{{ submitError }}</p>
-          <AppButton full :disabled="uploading" @click="submitTask">{{ uploading ? 'Enviando...' : 'Enviar Tarea' }}</AppButton>
+          <AppButton full :disabled="uploading" @click="submitTask">{{ uploading ? 'Enviando...' : existingSubmission ? 'Actualizar Tarea' : 'Enviar Tarea' }}</AppButton>
         </div>
       </div>
     </template>
@@ -82,7 +95,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Task } from '@/domain/models'
+import type { Task, TaskSubmission } from '@/domain/models'
 import { taskAdapter, submissionAdapter, uploadFileDirect } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -161,6 +174,7 @@ async function handleSave() {
 
 // ── Student submission state ──
 const task = ref<Task | null>(null)
+const existingSubmission = ref<TaskSubmission | null>(null)
 const submission = ref('')
 const selectedFile = ref<File | null>(null)
 const uploading = ref(false)
@@ -187,11 +201,12 @@ async function submitTask() {
       )
       fileKey = key
     }
-    await submissionAdapter.submitWork({
+    const result = await submissionAdapter.submitWork({
       task_id: task.value.id,
       text: submission.value,
       ...(fileKey ? { file_key: fileKey } : {}),
     })
+    existingSubmission.value = result
     submission.value = ''
     selectedFile.value = null
     uploadProgress.value = 0
@@ -216,6 +231,7 @@ onMounted(async () => {
   }
   if (!isEditorMode.value && taskId.value) {
     try { task.value = await taskAdapter.getTaskById(taskId.value) } catch { /* empty */ }
+    try { existingSubmission.value = await submissionAdapter.getSubmissionByUserAndTask(taskId.value) } catch { /* empty */ }
   }
 })
 </script>
@@ -308,4 +324,24 @@ onMounted(async () => {
 }
 .progress-label { display: block; font-size: 12px; color: #8E8E93; margin-top: 4px; }
 .submit-error { font-size: 13px; color: #FF453A; }
+
+/* ── Submission status banner ── */
+.submission-status {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+  border-radius: 12px; margin-bottom: 4px;
+}
+.status-pending {
+  background: rgba(255, 159, 10, 0.12);
+  border: 1px solid rgba(255, 159, 10, 0.35);
+  color: #FF9F0A;
+}
+.status-graded {
+  background: rgba(48, 209, 88, 0.12);
+  border: 1px solid rgba(48, 209, 88, 0.35);
+  color: #30D158;
+}
+.status-icon { flex-shrink: 0; margin-top: 1px; }
+.status-body { display: flex; flex-direction: column; gap: 4px; }
+.status-title { font-size: 15px; font-weight: 600; margin: 0; }
+.status-feedback { font-size: 13px; opacity: 0.85; margin: 0; line-height: 1.4; color: #fff; }
 </style>

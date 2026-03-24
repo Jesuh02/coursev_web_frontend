@@ -713,21 +713,67 @@
               <span class="emoji">🧠</span>
               <p>No hay resultados de refuerzo</p>
             </div>
-            <div v-else class="items-list">
-              <div
-                v-for="(rr, idx) in reinforcementResults"
-                :key="idx"
-                class="item-card reinforcement-card"
-              >
-                <div class="item-info">
-                  <h5>{{ rr.username }} · {{ rr.courseName }}</h5>
-                  <p class="course-name">{{ rr.subjectName }} › {{ rr.topicName }} › {{ rr.taskName }}</p>
-                  <div class="reinforcement-stats">
-                    <span class="stat-pill">{{ rr.correctAnswers }}/{{ rr.totalQuestions }} correctas</span>
-                    <span class="stat-pill" :class="rr.grade >= 3 ? 'pill-active' : 'pill-inactive'">Nota: {{ rr.grade.toFixed(1) }}</span>
-                    <span class="stat-pill">{{ rr.difficulty }}</span>
+            <div v-else class="reinforcement-content">
+              <div class="reinforcement-summary-grid">
+                <div class="reinforcement-summary-pill">
+                  <span class="summary-label">Practican</span>
+                  <strong class="summary-value">{{ reinforcementUniqueUsers }}</strong>
+                </div>
+                <div class="reinforcement-summary-pill">
+                  <span class="summary-label">Materias activas</span>
+                  <strong class="summary-value">{{ reinforcementUniqueSubjects }}</strong>
+                </div>
+                <div class="reinforcement-summary-pill">
+                  <span class="summary-label">Nota promedio</span>
+                  <strong class="summary-value">{{ reinforcementAverageGrade }}</strong>
+                </div>
+              </div>
+
+              <div class="reinforcement-filters">
+                <input
+                  v-model="reinforcementUserFilter"
+                  type="text"
+                  class="filter-input"
+                  placeholder="Filtrar por usuario"
+                >
+                <input
+                  v-model="reinforcementSubjectFilter"
+                  type="text"
+                  class="filter-input"
+                  placeholder="Filtrar por materia"
+                >
+              </div>
+
+              <div v-if="filteredReinforcementResults.length" class="items-list reinforcement-list">
+                <div
+                  v-for="(rr, idx) in filteredReinforcementResults"
+                  :key="idx"
+                  class="item-card reinforcement-card"
+                  :style="{ animationDelay: `${Math.min(idx * 40, 360)}ms` }"
+                >
+                  <img
+                    class="user-avatar-sm"
+                    :src="resolveAvatar(rr.avatarUrl || '')"
+                    :alt="rr.username"
+                    @error="onAvatarError"
+                  >
+                  <div class="item-info">
+                    <h5>{{ rr.username }}</h5>
+                    <p class="course-name">{{ rr.courseName }}</p>
+                    <p class="reinforcement-route">{{ rr.subjectName || 'Sin materia' }} · {{ rr.topicName || 'Sin tema' }} · {{ rr.taskName || 'Sin tarea' }}</p>
+                    <div class="reinforcement-stats">
+                      <span class="stat-pill">{{ rr.correctAnswers }}/{{ rr.totalQuestions }} correctas</span>
+                      <span class="stat-pill" :class="rr.grade >= 3 ? 'pill-active' : 'pill-inactive'">Nota {{ rr.grade.toFixed(1) }}</span>
+                      <span class="stat-pill">{{ rr.scorePercent }}%</span>
+                      <span class="stat-pill" :class="`difficulty-${rr.difficulty.toLowerCase()}`">{{ rr.difficultyLabel }}</span>
+                      <span class="stat-pill time-pill">{{ formatReinforcementDate(rr.createdAt) }}</span>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <div v-else class="empty-state">
+                <span class="emoji">🔍</span>
+                <p>Sin coincidencias con los filtros aplicados</p>
               </div>
             </div>
           </div>
@@ -1300,7 +1346,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -1401,6 +1447,7 @@ function resolveCertificateUrl(rawUrl: string | null | undefined): string | null
 }
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const notifStore = useNotificationStore()
 
@@ -1551,6 +1598,10 @@ watch(visibleTabs, (tabs) => {
 watch(activeTab, (tab) => {
   if (tab === 'activation' && users.value.length === 0 && !loadingUsers.value) {
     loadUsers()
+  }
+
+  if (tab === 'enrollment' && enrollmentSubTab.value === 'matricula') {
+    loadApprovedEnrollmentsIfNeeded()
   }
 })
 
@@ -1798,7 +1849,9 @@ const filteredEnrollments = computed(() => {
   const cq = enrollmentCourseFilter.value.toLowerCase()
   return pendingEnrollments.value.filter(r => {
     const matchUser = matchesFlexibleUserSearch(uq, r.displayName, r.username, r.identificacion)
-    const matchCourse = !cq || (r.courseName ?? '').toLowerCase().includes(cq)
+    const matchCourse = !cq
+      || (r.courseName ?? '').toLowerCase().includes(cq)
+      || String(r.courseId ?? '').includes(cq)
     return matchUser && matchCourse
   })
 })
@@ -2055,6 +2108,43 @@ const revokingKeys = ref<Record<string, boolean>>({})
 const blockedSubjectKeys = ref<Set<string>>(new Set())
 let approvedLoaded = false
 
+const applyAdminQueryNavigation = async () => {
+  const tab = String(route.query.tab ?? '').trim()
+  const subtab = String(route.query.subtab ?? '').trim()
+  const queryCourseId = String(route.query.courseId ?? '').trim()
+  const queryCourseName = String(route.query.courseName ?? '').trim()
+  const queryUsername = String(route.query.username ?? '').trim()
+
+  if (tab === 'enrollment' && hasAdminRole.value) {
+    activeTab.value = 'enrollment'
+  }
+
+  if (activeTab.value !== 'enrollment') return
+
+  if (subtab === 'matricula') {
+    enrollmentSubTab.value = 'matricula'
+    await loadApprovedEnrollmentsIfNeeded()
+    if (queryCourseName) {
+      approvedCourseFilter.value = queryCourseName
+    } else if (queryCourseId) {
+      approvedCourseFilter.value = queryCourseId
+    }
+    return
+  }
+
+  if (subtab === 'pre' || !subtab) {
+    enrollmentSubTab.value = 'pre'
+    if (queryCourseName) {
+      enrollmentCourseFilter.value = queryCourseName
+    } else if (queryCourseId) {
+      enrollmentCourseFilter.value = queryCourseId
+    }
+    if (queryUsername) {
+      enrollmentUserFilter.value = queryUsername
+    }
+  }
+}
+
 const isSubjectBlocked = (userId: number, courseId: number, subjectId: number): boolean =>
   blockedSubjectKeys.value.has(`${userId}-${courseId}-${subjectId}`)
 
@@ -2080,7 +2170,9 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
 
   const filtered = approvedEnrollments.value.filter(e => {
     const matchUser = matchesFlexibleUserSearch(uq, e.fullName, e.username, e.identificacion)
-    const matchCourse = !cq || (e.courseName ?? '').toLowerCase().includes(cq)
+    const matchCourse = !cq
+      || (e.courseName ?? '').toLowerCase().includes(cq)
+      || String(e.courseId).includes(cq)
     const matchSubject = !sq || e.subjects.some(s => s.name.toLowerCase().includes(sq))
     return matchUser && matchCourse && matchSubject
   })
@@ -2497,6 +2589,7 @@ const loadStudentProgressData = async () => {
 // ─── Moderation: Resultados de refuerzo (rol 3) ─────────────────────────
 interface ReinforcementResult {
   username: string
+  avatarUrl: string
   courseName: string
   subjectName: string
   topicName: string
@@ -2505,47 +2598,147 @@ interface ReinforcementResult {
   correctAnswers: number
   grade: number
   difficulty: string
+  difficultyLabel: string
+  createdAt: string
+  scorePercent: number
 }
 
 const reinforcementResults = ref<ReinforcementResult[]>([])
 const loadingReinforcement = ref(false)
+const reinforcementUserFilter = ref('')
+const reinforcementSubjectFilter = ref('')
+
+const parseSafeNumber = (value: unknown): number => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+const difficultyLabel = (value: unknown): string => {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  if (normalized === 'EASY') return 'Facil'
+  if (normalized === 'MEDIUM') return 'Medio'
+  if (normalized === 'HARD') return 'Dificil'
+  return 'Normal'
+}
+
+const normalizeReinforcementItem = (raw: Record<string, any>, fallbackCourseName = ''): ReinforcementResult => {
+  const totalQuestions = parseSafeNumber(raw.totalQuestions ?? raw.total_questions)
+  const correctAnswers = parseSafeNumber(raw.correctAnswers ?? raw.correct_answers)
+  const grade = parseSafeNumber(raw.grade ?? raw.calificacion)
+  const difficulty = String(raw.difficulty ?? raw.dificultad ?? 'HARD').toUpperCase()
+
+  const username = String(
+    raw.username
+      ?? raw.usuario
+      ?? raw.usuarios?.username
+      ?? raw.users?.username
+      ?? 'Estudiante'
+  )
+
+  const courseName = String(
+    raw.courseName
+      ?? raw.courses?.title
+      ?? fallbackCourseName
+      ?? ''
+  )
+
+  const subjectName = String(
+    raw.subjectName
+      ?? raw.materia
+      ?? raw.topics?.subjects?.name
+      ?? ''
+  )
+
+  const topicName = String(raw.topicName ?? raw.tema ?? raw.topics?.name ?? '')
+  const taskName = String(raw.taskName ?? raw.tarea ?? raw.tasks?.title ?? '')
+  const createdAt = String(raw.createdAt ?? raw.created_at ?? '')
+  const avatarUrl = String(raw.avatarUrl ?? raw.avatar ?? raw.usuarios?.avatar ?? raw.users?.avatar ?? '')
+  const scorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+
+  return {
+    username,
+    avatarUrl,
+    courseName,
+    subjectName,
+    topicName,
+    taskName,
+    totalQuestions,
+    correctAnswers,
+    grade,
+    difficulty,
+    difficultyLabel: difficultyLabel(difficulty),
+    createdAt,
+    scorePercent,
+  }
+}
+
+const filteredReinforcementResults = computed(() => {
+  const userQuery = normalizeSearchText(reinforcementUserFilter.value)
+  const subjectQuery = normalizeSearchText(reinforcementSubjectFilter.value)
+
+  return reinforcementResults.value.filter((item) => {
+    const byUser = !userQuery || matchesFlexibleUserSearch(userQuery, item.username)
+    const bySubject = !subjectQuery || normalizeSearchText(item.subjectName).includes(subjectQuery)
+    return byUser && bySubject
+  })
+})
+
+const reinforcementUniqueUsers = computed(() => new Set(reinforcementResults.value.map((item) => item.username)).size)
+const reinforcementUniqueSubjects = computed(() => new Set(reinforcementResults.value.map((item) => item.subjectName).filter(Boolean)).size)
+const reinforcementAverageGrade = computed(() => {
+  if (!reinforcementResults.value.length) return '0.0'
+  const sum = reinforcementResults.value.reduce((acc, item) => acc + item.grade, 0)
+  return (sum / reinforcementResults.value.length).toFixed(1)
+})
+
+const formatReinforcementDate = (value: string): string => {
+  if (!value) return 'Sin fecha'
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) return value.slice(0, 10)
+  const diff = Date.now() - parsed
+  if (diff < 60_000) return 'Ahora'
+  if (diff < 3_600_000) return `hace ${Math.floor(diff / 60_000)}m`
+  if (diff < 86_400_000) return `hace ${Math.floor(diff / 3_600_000)}h`
+  if (diff < 604_800_000) return `hace ${Math.floor(diff / 86_400_000)}d`
+  return new Date(parsed).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
 
 const loadReinforcementData = async () => {
   loadingReinforcement.value = true
   try {
     const userId = authStore.user?.id
     if (!userId) return
+
+    if (hasAdminRole.value) {
+      const all = await api.get<Record<string, any>[]>('/reinforcement-results/all')
+      reinforcementResults.value = (Array.isArray(all) ? all : [])
+        .map((item) => normalizeReinforcementItem(item))
+        .sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))
+      return
+    }
+
     const courses = await loadManageableCourses(userId)
 
-    // Fetch all reinforcement results in parallel — allSettled so a single 403 doesn't abort everything
+    // Para rol docente, carga por cursos gestionables.
     const settled = await Promise.allSettled(
       courses.map(async (course: any) => {
         const results = await reinforcementAdapter.getResultsByCourse(course.id)
         return { course, results }
       })
     )
-    const courseResults = settled
-      .filter((r): r is PromiseFulfilledResult<{ course: any; results: any }> => r.status === 'fulfilled')
-      .map(r => r.value)
 
     const items: ReinforcementResult[] = []
-    for (const { course, results } of courseResults) {
+    for (const result of settled) {
+      if (result.status !== 'fulfilled') continue
+      const courseName = result.value.course?.title || ''
+      const results = result.value.results
       if (!Array.isArray(results)) continue
-      for (const r of results) {
-        items.push({
-          username: (r as any).username || (r as any).usuario || 'Estudiante',
-          courseName: course.title || `Curso #${course.id}`,
-          subjectName: (r as any).subjectName || (r as any).materia || '',
-          topicName: (r as any).topicName || (r as any).tema || '',
-          taskName: (r as any).taskName || (r as any).tarea || '',
-          totalQuestions: (r as any).totalQuestions || (r as any).total_preguntas || 0,
-          correctAnswers: (r as any).correctAnswers || (r as any).respuestas_correctas || 0,
-          grade: (r as any).grade || (r as any).calificacion || 0,
-          difficulty: (r as any).difficulty || (r as any).dificultad || 'Normal'
-        })
+      for (const raw of results) {
+        items.push(normalizeReinforcementItem(raw as Record<string, any>, courseName))
       }
     }
-    reinforcementResults.value = items
+
+    reinforcementResults.value = items.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))
   } catch (e) {
     console.error('Error loading reinforcement results:', e)
   } finally {
@@ -3121,6 +3314,11 @@ onMounted(() => {
     promises.push(loadSubjectProgress())
   }
   Promise.allSettled(promises)
+  applyAdminQueryNavigation()
+})
+
+watch(() => route.query, () => {
+  applyAdminQueryNavigation()
 })
 </script>
 
@@ -4185,16 +4383,114 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .stat-pill {
-  padding: 3px 10px;
-  border-radius: 10px;
-  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
   font-weight: 600;
-  background: rgba(139, 127, 255, 0.12);
-  color: #c7b9ff;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #D1D1D6;
+}
+
+.reinforcement-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reinforcement-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reinforcement-summary-pill {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.summary-label {
+  font-size: 10px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.summary-value {
+  font-size: 18px;
+  line-height: 1;
+  color: #fff;
+  font-weight: 800;
+}
+
+.reinforcement-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.reinforcement-list {
+  gap: 10px;
+}
+
+.reinforcement-card {
+  align-items: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle at top right, rgba(255, 214, 10, 0.08), transparent 45%), rgba(18, 18, 22, 0.94);
+  animation: reinforcementIn 0.45s cubic-bezier(.22, .7, .2, 1) both;
+}
+
+.reinforcement-route {
+  font-size: 11px;
+  color: #8E8E93;
+  margin-top: 2px;
+}
+
+.time-pill {
+  color: #8E8E93;
+}
+
+.difficulty-easy {
+  color: #34D399;
+  border-color: rgba(52, 211, 153, 0.26);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.difficulty-medium {
+  color: #FBBF24;
+  border-color: rgba(251, 191, 36, 0.26);
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.difficulty-hard {
+  color: #FB7185;
+  border-color: rgba(251, 113, 133, 0.26);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+@keyframes reinforcementIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 680px) {
+  .reinforcement-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reinforcement-filters {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Activation Section (Redesigned) ─────────────────── */

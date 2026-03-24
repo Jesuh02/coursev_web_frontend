@@ -14,11 +14,13 @@
         <div class="hero-gradient" />
         <div class="hero-accent" />
       </div>
+      <div class="hero-info">
+        <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
+        <h1 class="course-title">{{ displayTitle }}</h1>
+      </div>
     </div>
 
     <div class="course-body">
-      <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">★ Destacado</span>
-      <h1 class="course-title">{{ displayTitle }}</h1>
       <p class="course-desc">{{ displayDescription }}</p>
 
       <div class="tags-row">
@@ -26,6 +28,29 @@
         <span class="tag">{{ course?.isFree ? 'Curso Gratuito' : 'Curso Premium' }}</span>
         <span v-if="subjectName" class="tag subject-tag">📚 {{ subjectName }}</span>
         <span v-if="canEditCourseSettings" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
+      </div>
+
+      <!-- Pending submissions alert (admin/docente only) -->
+      <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="pending-alert-card">
+        <div class="pending-alert-header">
+          <div class="pending-alert-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="pending-alert-text">
+            <p class="pending-alert-title">{{ totalPendingCount }} entrega{{ totalPendingCount !== 1 ? 's' : '' }} por revisar</p>
+            <p class="pending-alert-sub">{{ Object.values(pendingByTopic).filter(c => c > 0).length }} tema{{ Object.values(pendingByTopic).filter(c => c > 0).length !== 1 ? 's' : '' }} con pendientes</p>
+          </div>
+          <button class="pending-alert-btn" @click="activeTab = 'tasks'">Ver tareas</button>
+        </div>
+        <div class="pending-topic-list">
+          <template v-for="topic in topics" :key="topic.id">
+            <div v-if="(pendingByTopic[topic.id] ?? 0) > 0" class="pending-topic-row">
+              <div class="pending-topic-dot" />
+              <span class="pending-topic-name">{{ topic.title }}</span>
+              <span class="pending-topic-count">{{ pendingByTopic[topic.id] }} sin revisar</span>
+            </div>
+          </template>
+        </div>
       </div>
 
       <div v-if="showStudentProgressCard" class="progress-card">
@@ -88,8 +113,9 @@
         <button class="tab-btn" :class="{ active: activeTab === 'docs' }" @click="activeTab = 'docs'">
           Temas <span class="tab-count">{{ topics.length }}</span>
         </button>
-        <button class="tab-btn" :class="{ active: activeTab === 'tasks' }" @click="activeTab = 'tasks'">
+        <button class="tab-btn tab-btn--tasks" :class="{ active: activeTab === 'tasks' }" @click="activeTab = 'tasks'">
           Tareas <span class="tab-count">{{ totalTaskCount }}</span>
+          <span v-if="hasSubjectContentAccess && totalPendingCount > 0" class="tab-pending-badge">{{ totalPendingCount }}</span>
         </button>
       </div>
 
@@ -144,7 +170,19 @@
       </template>
 
       <template v-else>
-        <h2 v-if="topicsWithTasks.length" class="section-heading">Tareas</h2>
+        <!-- Pending tasks summary bar (admin/docente only) -->
+        <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="tasks-pending-bar">
+          <div class="tasks-pending-bar-left">
+            <span class="tasks-pending-bar-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <span class="tasks-pending-bar-text">
+              <strong>{{ totalPendingCount }}</strong> entrega{{ totalPendingCount !== 1 ? 's' : '' }} pendiente{{ totalPendingCount !== 1 ? 's' : '' }} de revisión
+            </span>
+          </div>
+          <span class="tasks-pending-bar-topics">{{ Object.values(pendingByTopic).filter(c => c > 0).length }} tema{{ Object.values(pendingByTopic).filter(c => c > 0).length !== 1 ? 's' : '' }}</span>
+        </div>
+        <h2 v-if="topicsWithTasks.length" class="section-heading" :style="hasSubjectContentAccess && totalPendingCount > 0 ? 'margin-top:12px' : ''">Tareas</h2>
         <div v-for="topic in topicsWithTasks" :key="topic.id" class="topic-block">
           <div class="topic-row" @click="toggleTopicTasks(topic.id)">
             <div class="topic-icon">
@@ -152,6 +190,7 @@
             </div>
             <span class="topic-name">{{ topic.title }}</span>
             <span class="task-count-badge">{{ topicTasks[topic.id]?.length ?? 0 }} tareas</span>
+            <span v-if="hasSubjectContentAccess && (pendingByTopic[topic.id] ?? 0) > 0" class="topic-pending-pill">⏳ {{ pendingByTopic[topic.id] }} sin revisar</span>
             <svg class="chevron" :class="{ open: expandedTaskTopics.has(topic.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div v-if="expandedTaskTopics.has(topic.id)" class="topic-expanded">
@@ -164,7 +203,8 @@
                 </div>
                 <div class="task-info">
                   <p class="task-title">{{ task.title }}</p>
-                  <span class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
+                  <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
+                  <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
                 </div>
                 <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
                   <button
@@ -196,7 +236,7 @@
               <button
                 class="submissions-btn"
                 @click="$router.push(`/task-submission/${task.id}`)"
-              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}</button>
+              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
             </div>
           </div>
         </div>
@@ -222,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -327,6 +367,19 @@ const topicContent = ref<Record<number, ContentItem[]>>({})
 const topicTasks = ref<Record<number, Task[]>>({})
 const taskContent = ref<Record<number, ContentItem[]>>({})
 const submissionMap = ref<Record<number, string>>({})
+const pendingMap = ref<Record<number, number>>({}) // taskId → ungraded count (admin/docente only)
+
+const totalPendingCount = computed(() =>
+  Object.values(pendingMap.value).reduce((a, b) => a + b, 0)
+)
+
+const pendingByTopic = computed(() => {
+  const map: Record<number, number> = {}
+  for (const [topicId, tasks] of Object.entries(topicTasks.value)) {
+    map[Number(topicId)] = tasks.reduce((sum, t) => sum + (pendingMap.value[t.id] ?? 0), 0)
+  }
+  return map
+})
 
 const totalTaskCount = computed(() =>
   Object.values(topicTasks.value).reduce((sum, arr) => sum + arr.length, 0)
@@ -454,8 +507,8 @@ function getSubmissionStatus(taskId: number): string {
 function getSubmissionLabel(taskId: number): string {
   const s = submissionMap.value[taskId]
   if (s === 'graded') return 'Calificada'
-  if (s === 'pending') return 'Pendiente'
-  return 'Pendiente'
+  if (s === 'pending') return 'Enviada · Pendiente'
+  return 'Sin entregar'
 }
 
 async function toggleTopic(topicId: number) {
@@ -515,6 +568,26 @@ async function loadSubmissionStatuses(tasks: Task[]) {
     } catch { /* no submission */ }
   }
 }
+
+async function loadPendingSubmissions(courseIdNum: number) {
+  if (!hasSubjectContentAccess.value) return
+  try {
+    const subs = await submissionAdapter.getSubmissionByCourse(courseIdNum, true)
+    const counts: Record<number, number> = {}
+    for (const sub of subs) {
+      counts[sub.task_id] = (counts[sub.task_id] ?? 0) + 1
+    }
+    pendingMap.value = counts
+  } catch { /* silent */ }
+}
+
+onActivated(async () => {
+  // Al volver desde otra vista (ej: TaskSubmissionView), refrescar estados de entrega
+  const allTasks = Object.values(topicTasks.value).flat()
+  if (allTasks.length) await loadSubmissionStatuses(allTasks)
+  const courseIdNum = Number(courseId.value)
+  if (courseIdNum) await loadPendingSubmissions(courseIdNum)
+})
 
 onMounted(async () => {
   const id = Number(courseId.value)
@@ -592,6 +665,7 @@ onMounted(async () => {
     }
     topicTasks.value = nextTaskMap
     await loadSubmissionStatuses(allTasks)
+    if (hasSubjectContentAccess.value) await loadPendingSubmissions(id)
   }
   await progressPromise
   loading.value = false
@@ -601,19 +675,20 @@ onMounted(async () => {
 <style scoped>
 .course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
-.hero-section { position: relative; height: 240px; }
+.hero-section { position: relative; height: 280px; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
 .hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; }
-.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 60%; background: linear-gradient(transparent, #080C1A); }
+.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 75%; background: linear-gradient(transparent, #080C1A); }
 .hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
+.hero-info { position: absolute; bottom: 18px; left: 16px; right: 16px; z-index: 5; }
 
-.course-body { padding: 0 16px; margin-top: -20px; position: relative; }
+.course-body { padding: 0 16px; margin-top: 16px; position: relative; }
 
-.featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.12); color: #FFD700; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.15); color: #FFD700; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
-.course-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.course-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0; line-height: 1.15; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
 .course-desc { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 14px; }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -793,12 +868,92 @@ onMounted(async () => {
 .attachment-link:hover { text-decoration: underline; }
 
 .submissions-btn {
-  display: block; width: 100%; margin-top: 12px; padding: 10px;
+  display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; padding: 10px;
   text-align: center; font-size: 14px; font-weight: 600; color: #00D4FF;
   border: 1.5px solid rgba(0,212,255,0.3); border-radius: 12px;
   background: transparent; transition: all 0.2s; cursor: pointer;
 }
 .submissions-btn:hover { background: rgba(0,212,255,0.08); }
+
+.submissions-btn-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(245,158,11,0.25); color: #F59E0B;
+  font-size: 11px; font-weight: 700; margin-left: 8px;
+}
+
+/* ── Pending alert card (admin/docente) ───────────────────── */
+.pending-alert-card {
+  margin-bottom: 20px; padding: 16px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(234,88,12,0.06));
+  border: 1px solid rgba(245,158,11,0.22);
+}
+.pending-alert-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.pending-alert-icon {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center;
+}
+.pending-alert-text { flex: 1; }
+.pending-alert-title { font-size: 15px; font-weight: 700; color: #F59E0B; margin-bottom: 2px; }
+.pending-alert-sub { font-size: 12px; color: #8E8E93; }
+.pending-alert-btn {
+  padding: 6px 14px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.28);
+  color: #F59E0B; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.pending-alert-btn:hover { background: rgba(245,158,11,0.22); }
+.pending-topic-list { display: flex; flex-direction: column; gap: 5px; }
+.pending-topic-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  border-radius: 10px; background: rgba(255,255,255,0.03);
+}
+.pending-topic-dot { width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
+.pending-topic-name { font-size: 13px; color: #ccc; flex: 1; }
+.pending-topic-count { font-size: 12px; font-weight: 600; color: #F59E0B; }
+
+/* ── Tareas tab pending badge ─────────────────────────── */
+.tab-btn--tasks { position: relative; }
+.tab-pending-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: #F59E0B; color: #000;
+  font-size: 11px; font-weight: 800; margin-left: 6px;
+  box-shadow: 0 0 0 2px rgba(245,158,11,0.25);
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+.tab-btn.active .tab-pending-badge { background: rgba(0,0,0,0.3); color: #fff; box-shadow: none; animation: none; }
+@keyframes pulse-badge {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,0.25); }
+  50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.0); }
+}
+
+/* ── Tasks panel pending summary bar ─────────────────── */
+.tasks-pending-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-radius: 12px; margin-bottom: 14px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(234,88,12,0.07));
+  border: 1px solid rgba(245,158,11,0.22);
+}
+.tasks-pending-bar-left { display: flex; align-items: center; gap: 9px; }
+.tasks-pending-bar-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(245,158,11,0.15); flex-shrink: 0; }
+.tasks-pending-bar-text { font-size: 13px; color: #ccc; }
+.tasks-pending-bar-text strong { color: #F59E0B; font-weight: 700; }
+.tasks-pending-bar-topics { font-size: 12px; font-weight: 600; color: #F59E0B; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.22); padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+
+/* per-topic pending pill in tasks tab */
+.topic-pending-pill {
+  padding: 3px 9px; border-radius: 9px; font-size: 11px; font-weight: 600;
+  background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.28);
+  color: #F59E0B; white-space: nowrap;
+}
+
+/* per-task pending inline label */
+.task-pending-inline {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; color: #F59E0B;
+  background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.22);
+  padding: 2px 8px; border-radius: 7px; margin-top: 4px;
+}
 
 .task-mgmt-btns { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 .task-mgmt-btn {

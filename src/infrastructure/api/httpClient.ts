@@ -97,6 +97,8 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
   const url = `${API_V1}${path}`
   const handler = raw ? handleRawResponse<T> : handleResponse<T>
   let lastError: Error | null = null
+  // Prevent browser from serving stale cached responses across different user sessions
+  const cachePolicy: RequestCache = 'no-store'
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, INITIAL_BACKOFF_MS * attempt))
@@ -105,12 +107,12 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
       const headers = isPublic
         ? { 'Content-Type': 'application/json' }
         : authHeaders()
-      const res = await fetch(url, { ...options, headers: { ...headers, ...options?.headers } })
+      const res = await fetch(url, { ...options, cache: cachePolicy, headers: { ...headers, ...options?.headers } })
 
       if (res.status === 401 && !isPublic) {
         const refreshed = await tryRefresh()
         if (refreshed) {
-          const retryRes = await fetch(url, { ...options, headers: authHeaders() })
+          const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
           return handler(retryRes)
         }
         tokenStorage.clear()
