@@ -5,6 +5,8 @@ import { ref, computed } from 'vue'
 // Vue never re-evaluates a computed with zero reactive deps.
 import type { User } from '@/domain/models'
 import { authAdapter, userAdapter, tokenStorage, HttpError } from '@/infrastructure/api'
+import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
+import { commitTenantSelection } from '@/infrastructure/api/tenantResolver'
 import router from '@/router'
 import { useCourseStore } from '@/stores/courseStore'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -128,11 +130,36 @@ export const useAuthStore = defineStore('auth', () => {
   function setUser(u: User | null) { user.value = u }
   function setToken(t: string | null) { tokenStorage.token = t }
 
+  /**
+   * Commits a pre-resolved tenant login result (from tenantResolver.resolveLogin).
+   * Used by LoginView when it handles cedula disambiguation or institution selection itself.
+   */
+  async function commitAuth(result: TenantLoginResult) {
+    loading.value = true
+    error.value = ''
+    try {
+      _resetUserStores()
+      tokenStorage.clear()
+      commitTenantSelection(result)
+      const res = result.data
+      tokenStorage.token = res.accessToken
+      tokenStorage.refreshToken = res.refreshToken
+      tokenStorage.userId = (res.user as User).id
+      isAuthenticated.value = true
+      await hydrateAuthoritativeUser(res.user as User)
+    } catch (e) {
+      error.value = e instanceof HttpError ? e.message : 'Error al iniciar sesión'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user, loading, error,
     isAuthenticated, isAdmin, isDocente, isAdminOrDocente, isCreator,
     hasRole, canModifyCourse,
     login, register, loginWithGoogle, fetchProfile, logout,
-    setUser, setToken,
+    setUser, setToken, commitAuth,
   }
 })

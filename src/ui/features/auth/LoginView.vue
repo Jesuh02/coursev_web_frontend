@@ -19,6 +19,33 @@
 
     <div class="login-card animate-fade-in-up">
       <LoginForm @submit="handleLogin" @google="handleGoogle" :loading="loading" :error="error" />
+
+      <!-- Campo de cédula: aparece cuando dos usuarios comparten credenciales -->
+      <div v-if="showCedula" class="cedula-section">
+        <p class="cedula-hint">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Ingresa tu número de cédula para identificar tu cuenta
+        </p>
+        <div class="cedula-field">
+          <input
+            v-model="cedula"
+            type="text"
+            inputmode="numeric"
+            placeholder="Número de cédula"
+            class="cedula-input"
+            @keydown.enter="handleCedulaSubmit"
+          />
+        </div>
+        <button
+          class="btn-cedula"
+          :disabled="loading || !cedula.trim()"
+          @click="handleCedulaSubmit"
+        >
+          <span v-if="loading" class="spinner"></span>
+          <span v-else>Confirmar identidad</span>
+        </button>
+      </div>
+
       <div class="login-footer">
         <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
         <button class="register-link" @click="$router.push('/register')">
@@ -26,6 +53,14 @@
         </button>
       </div>
     </div>
+
+    <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
+    <TenantSelectionDialog
+      v-if="pendingMatches.length > 0"
+      :matches="pendingMatches"
+      @select="handleTenantSelect"
+      @close="pendingMatches = []"
+    />
 
     <ForgotPasswordDialog v-if="showForgotPassword" @close="showForgotPassword = false" />
   </div>
@@ -35,8 +70,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { resolveLogin, CedulaRequiredError, MultipleTenantError } from '@/infrastructure/api/tenantResolver'
+import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
+import TenantSelectionDialog from './components/TenantSelectionDialog.vue'
 
 declare global {
   interface Window {
@@ -59,6 +97,13 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 const showForgotPassword = ref(false)
+
+// Estado para desambiguación por cédula y selección de institución
+const showCedula = ref(false)
+const cedula = ref('')
+const pendingMatches = ref<TenantLoginResult[]>([])
+const pendingUsername = ref('')
+const pendingPassword = ref('')
 
 function loadGoogleScript(): Promise<void> {
   return new Promise((resolve) => {
@@ -119,11 +164,58 @@ async function handleGoogleCredential(response: { credential: string }) {
 async function handleLogin(username: string, password: string) {
   loading.value = true
   error.value = ''
+  // Guardar credenciales por si se necesita retry con cédula
+  pendingUsername.value = username
+  pendingPassword.value = password
   try {
-    await authStore.login(username, password)
+    const result = await resolveLogin(username, password)
+    await authStore.commitAuth(result)
     router.push('/video')
-  } catch {
-    error.value = 'Credenciales incorrectas'
+  } catch (e) {
+    if (e instanceof CedulaRequiredError) {
+      showCedula.value = true
+      error.value = 'Tu cédula es necesaria para identificar tu cuenta entre varias instituciones'
+    } else if (e instanceof MultipleTenantError) {
+      pendingMatches.value = e.matches
+    } else {
+      error.value = e instanceof Error ? e.message : 'Credenciales incorrectas'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+/** Se llama cuando el usuario ingresa su cédula después del campo de desambiguación */
+async function handleCedulaSubmit() {
+  if (!cedula.value.trim()) return
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await resolveLogin(pendingUsername.value, pendingPassword.value, cedula.value.trim())
+    await authStore.commitAuth(result)
+    router.push('/video')
+  } catch (e) {
+    if (e instanceof MultipleTenantError) {
+      // La cédula coincide en múltiples instituciones → mostrar selección
+      pendingMatches.value = e.matches
+    } else {
+      error.value = e instanceof Error ? e.message : 'Cédula no encontrada o inválida'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+/** Se llama cuando el usuario selecciona una institución del diálogo */
+async function handleTenantSelect(match: TenantLoginResult) {
+  pendingMatches.value = []
+  loading.value = true
+  error.value = ''
+  try {
+    await authStore.commitAuth(match)
+    router.push('/video')
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Error al iniciar sesión'
   } finally {
     loading.value = false
   }
@@ -325,6 +417,80 @@ function particleStyle(i: number) {
 .register-link span {
   color: var(--purple-light);
   font-weight: 700;
+}
+
+/* ── Campo de cédula (desambiguación) ── */
+.cedula-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fade-in-up 0.3s ease forwards;
+}
+
+.cedula-hint {
+  font-size: 13px;
+  color: var(--text-secondary, #a0a0b0);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.cedula-field {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.cedula-field:focus-within {
+  border-color: var(--purple-light);
+}
+
+.cedula-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 13px 14px;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.cedula-input::placeholder {
+  color: var(--text-hint);
+}
+
+.btn-cedula {
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #7C3AED, #5B21B6);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.btn-cedula:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cedula:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+.btn-cedula:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 /* ── Animaciones locales ── */
