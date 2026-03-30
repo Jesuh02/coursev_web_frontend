@@ -179,6 +179,7 @@ async function handleSave() {
       router.push({
         path: `/course/${courseId}`,
         query: subjectId ? { subjectId } : undefined,
+        state: { from: 'taskCreation' },
       })
     } else {
       await taskAdapter.updateTask(taskId.value!, {

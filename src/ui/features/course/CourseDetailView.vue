@@ -273,6 +273,8 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 
+defineOptions({ name: 'CourseDetailView' })
+
 interface CourseProgressResponse extends Progress {
   subjectProgress?: Progress[]
   gradedTasks?: Array<Record<string, unknown>>
@@ -558,6 +560,48 @@ async function deleteTaskItem(taskId: number, topicId: number) {
   } catch { /* silent */ }
 }
 
+async function loadTopicsAndTasks(id: number) {
+  try {
+    topics.value = subjectId.value
+      ? await topicAdapter.getTopicsBySubject(subjectId.value)
+      : await topicAdapter.getTopicsByCourse(id)
+  } catch { /* empty */ }
+
+  const taskEntries = await Promise.all(
+    topics.value.map(async (topic) => {
+      try {
+        const tasks = await taskAdapter.getTasksByTopic(topic.id)
+        return [topic.id, tasks] as const
+      } catch {
+        return [topic.id, [] as Task[]] as const
+      }
+    }),
+  )
+
+  const nextTaskMap: Record<number, Task[]> = {}
+  const allTasks: Task[] = []
+  for (const [topicId, tasks] of taskEntries) {
+    nextTaskMap[topicId] = tasks
+    allTasks.push(...tasks)
+  }
+  topicTasks.value = nextTaskMap
+
+  // Reload task content for already-expanded topics so new tasks show their attachments
+  for (const [topicIdStr, tasks] of Object.entries(nextTaskMap)) {
+    if (expandedTaskTopics.has(Number(topicIdStr))) {
+      for (const task of tasks) {
+        if (taskContent.value[task.id] === undefined) {
+          try { taskContent.value[task.id] = await contentItemAdapter.getByTask(task.id) }
+          catch { taskContent.value[task.id] = [] }
+        }
+      }
+    }
+  }
+
+  await loadSubmissionStatuses(allTasks)
+  if (hasSubjectContentAccess.value) await loadPendingSubmissions(id)
+}
+
 async function loadSubmissionStatuses(tasks: Task[]) {
   if (hasSubjectContentAccess.value) return
   const userId = authStore.user?.id
@@ -584,11 +628,11 @@ async function loadPendingSubmissions(courseIdNum: number) {
 }
 
 onActivated(async () => {
-  // Al volver desde otra vista (ej: TaskSubmissionView), refrescar estados de entrega
-  const allTasks = Object.values(topicTasks.value).flat()
-  if (allTasks.length) await loadSubmissionStatuses(allTasks)
   const courseIdNum = Number(courseId.value)
-  if (courseIdNum) await loadPendingSubmissions(courseIdNum)
+  if (!courseIdNum) return
+  // Switch to tasks tab if coming back from task creation
+  if (history.state?.from === 'taskCreation') activeTab.value = 'tasks'
+  await loadTopicsAndTasks(courseIdNum)
 })
 
 onMounted(async () => {
@@ -643,31 +687,7 @@ onMounted(async () => {
 
   await checkEnrollmentStatus(id)
   if (course.value) {
-    try {
-      topics.value = subjectId.value
-        ? await topicAdapter.getTopicsBySubject(subjectId.value)
-        : await topicAdapter.getTopicsByCourse(id)
-    } catch { /* empty */ }
-    const taskEntries = await Promise.all(
-      topics.value.map(async (topic) => {
-        try {
-          const tasks = await taskAdapter.getTasksByTopic(topic.id)
-          return [topic.id, tasks] as const
-        } catch {
-          return [topic.id, [] as Task[]] as const
-        }
-      }),
-    )
-
-    const nextTaskMap: Record<number, Task[]> = {}
-    const allTasks: Task[] = []
-    for (const [topicId, tasks] of taskEntries) {
-      nextTaskMap[topicId] = tasks
-      allTasks.push(...tasks)
-    }
-    topicTasks.value = nextTaskMap
-    await loadSubmissionStatuses(allTasks)
-    if (hasSubjectContentAccess.value) await loadPendingSubmissions(id)
+    await loadTopicsAndTasks(id)
   }
   await progressPromise
   loading.value = false
