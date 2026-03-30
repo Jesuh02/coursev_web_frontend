@@ -6,8 +6,14 @@ function normalizeApiBase(value: string | undefined): string {
   return withProtocol.replace(/\/+$/, '')
 }
 
-const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
-const API_V1 = `${API_BASE}/api/v1`
+let _apiBase = normalizeApiBase(import.meta.env.VITE_API_URL)
+let API_V1 = `${_apiBase}/api/v1`
+
+/** Dynamically updates the API base URL (used by multi-tenant tenant switching). */
+export function setApiBase(url: string): void {
+  _apiBase = url.replace(/\/+$/, '')
+  API_V1 = `${_apiBase}/api/v1`
+}
 
 const TOKEN_KEY = 'auth_token'
 const REFRESH_KEY = 'refresh_token'

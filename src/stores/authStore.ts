@@ -6,7 +6,7 @@ import { ref, computed } from 'vue'
 import type { User } from '@/domain/models'
 import { authAdapter, userAdapter, tokenStorage, HttpError } from '@/infrastructure/api'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
-import { commitTenantSelection } from '@/infrastructure/api/tenantResolver'
+import { setSelectedTenant } from '@/config/tenants'
 import router from '@/router'
 import { useCourseStore } from '@/stores/courseStore'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -140,7 +140,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       _resetUserStores()
       tokenStorage.clear()
-      commitTenantSelection(result)
+      setSelectedTenant(result.tenant.id)
       const res = result.data
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
