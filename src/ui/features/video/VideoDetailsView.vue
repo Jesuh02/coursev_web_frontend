@@ -299,7 +299,7 @@ async function submit() {
       videoUri:         buildProxyFileUrl(videoKey),
       thumbnailUri:     thumbnailUrl,
       username,
-    } as Omit<Video, 'id'>)
+    } as unknown as Omit<Video, 'id'>)
 
     uploadProgress.value = 100
     uploadStatus.value   = '¡Video subido exitosamente!'

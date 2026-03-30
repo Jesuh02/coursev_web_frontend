@@ -169,8 +169,8 @@ async function handleSave() {
         const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
         await contentItemAdapter.create({
           taskId: created.id,
-          title: formFile.value.name,
-          body: key,
+          fileName: formFile.value.name,
+          content: key,
           contentType: getContentType(formFile.value),
         })
       }
@@ -191,8 +191,8 @@ async function handleSave() {
         const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
         await contentItemAdapter.create({
           taskId: taskId.value!,
-          title: formFile.value.name,
-          body: key,
+          fileName: formFile.value.name,
+          content: key,
           contentType: getContentType(formFile.value),
         })
       }

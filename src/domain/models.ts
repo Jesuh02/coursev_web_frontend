@@ -128,6 +128,7 @@ export interface TaskSubmission {
   id: number
   task_id: number
   student_id: number
+  studentId?: number
   file_uri: string | null
   file_name: string | null
   submission_date: number | null

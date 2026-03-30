@@ -68,7 +68,7 @@ export const useVideoStore = defineStore('videos', () => {
   }
 
   return {
-    videos, current, loading, page,
+    videos, current, loading, page, lastFetched,
     fetchFeed, fetchPublicFeed, fetchVideoById, searchVideos,
   }
 })

@@ -21,6 +21,12 @@ export interface UserPort {
   getUsersByIds(ids: number[]): Promise<User[]>
   registerFCMToken(token: string): Promise<void>
   uploadAvatar(file: File): Promise<string>
+  // Admin
+  listAllUsers(limit?: number, offset?: number): Promise<User[]>
+  deactivateUser(userId: number): Promise<unknown>
+  activateUser(userId: number): Promise<unknown>
+  processExpiredCourseUsers(expiredCourseIds: number[]): Promise<unknown>
+  assignRole(userId: number, roleId: number): Promise<unknown>
 }
 
 export interface CoursePort {
@@ -143,6 +149,9 @@ export interface ProgressPort {
   // ── Certificados admin (rol 3) ──
   getAllCertificates(): Promise<Progress[]>
   bulkIssueCertificatesAll(): Promise<{ issued: number }>
+
+  // ── Progreso por materia (admin/teacher) ──
+  getAllSubjectProgress(): Promise<Record<string, unknown>[]>
 
   // ── Analytics del creador ──
   getTopStudents(limit?: number): Promise<Record<string, unknown>[]>

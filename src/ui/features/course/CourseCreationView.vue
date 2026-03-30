@@ -481,7 +481,7 @@ async function submitCourse() {
         deadline: form.hasDeadline && form.deadline ? new Date(form.deadline).toISOString() : null,
       }
       if (thumbnailUri) payload.thumbnailUri = thumbnailUri
-      const created = await courseAdapter.createCourse(payload) as { id?: number } & Record<string, unknown>
+      const created = await courseAdapter.createCourse(payload) as unknown as { id?: number } & Record<string, unknown>
       if (created?.id) {
         if (selectedCollaborators.value.length > 0) {
           await collaboratorAdapter.sync(created.id, selectedCollaborators.value.map(c => c.id))
