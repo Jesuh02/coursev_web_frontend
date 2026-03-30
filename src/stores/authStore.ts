@@ -133,20 +133,40 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Commits a pre-resolved tenant login result (from tenantResolver.resolveLogin).
    * Used by LoginView when it handles cedula disambiguation or institution selection itself.
+   *
+   * When credentials are provided, performs a fresh login against the selected
+   * tenant's own server instead of reusing the probe token.  This prevents
+   * "invalid signature" errors that occur when the probe token was signed by a
+   * different server's JWT secret during cross-tenant resolution.
    */
-  async function commitAuth(result: TenantLoginResult) {
+  async function commitAuth(
+    result: TenantLoginResult,
+    credentials?: { username: string; password: string },
+  ) {
     loading.value = true
     error.value = ''
     try {
       _resetUserStores()
       tokenStorage.clear()
       setSelectedTenant(result.tenant.id)
-      const res = result.data
-      tokenStorage.token = res.accessToken
-      tokenStorage.refreshToken = res.refreshToken
-      tokenStorage.userId = (res.user as User).id
-      isAuthenticated.value = true
-      await hydrateAuthoritativeUser(res.user as User)
+
+      if (credentials) {
+        // Re-login on the target server to get a token signed by the correct secret
+        const res = await authAdapter.login(credentials.username, credentials.password)
+        tokenStorage.token = res.accessToken
+        tokenStorage.refreshToken = res.refreshToken
+        tokenStorage.userId = (res.user as User).id
+        isAuthenticated.value = true
+        await hydrateAuthoritativeUser(res.user as User)
+      } else {
+        // Fallback: reuse probe token (only when credentials are unavailable)
+        const res = result.data
+        tokenStorage.token = res.accessToken
+        tokenStorage.refreshToken = res.refreshToken
+        tokenStorage.userId = (res.user as User).id
+        isAuthenticated.value = true
+        await hydrateAuthoritativeUser(res.user as User)
+      }
     } catch (e) {
       error.value = e instanceof HttpError ? e.message : 'Error al iniciar sesión'
       throw e

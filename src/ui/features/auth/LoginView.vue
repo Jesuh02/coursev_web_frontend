@@ -169,7 +169,7 @@ async function handleLogin(username: string, password: string) {
   pendingPassword.value = password
   try {
     const result = await resolveLogin(username, password)
-    await authStore.commitAuth(result)
+    await authStore.commitAuth(result, { username, password })
     router.push('/video')
   } catch (e) {
     if (e instanceof CedulaRequiredError) {
@@ -192,7 +192,7 @@ async function handleCedulaSubmit() {
   error.value = ''
   try {
     const result = await resolveLogin(pendingUsername.value, pendingPassword.value, cedula.value.trim())
-    await authStore.commitAuth(result)
+    await authStore.commitAuth(result, { username: pendingUsername.value, password: pendingPassword.value })
     router.push('/video')
   } catch (e) {
     if (e instanceof MultipleTenantError) {
@@ -212,7 +212,7 @@ async function handleTenantSelect(match: TenantLoginResult) {
   loading.value = true
   error.value = ''
   try {
-    await authStore.commitAuth(match)
+    await authStore.commitAuth(match, { username: pendingUsername.value, password: pendingPassword.value })
     router.push('/video')
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Error al iniciar sesión'
