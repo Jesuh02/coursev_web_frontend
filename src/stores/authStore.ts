@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 // cannot use computed(() => tokenStorage.isAuthenticated) —
 // Vue never re-evaluates a computed with zero reactive deps.
 import type { User } from '@/domain/models'
-import { authAdapter, userAdapter, tokenStorage, HttpError } from '@/infrastructure/api'
+import { authAdapter, userAdapter, tokenStorage, HttpError, setOnUnauthorized } from '@/infrastructure/api'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import { setSelectedTenant } from '@/config/tenants'
 import router from '@/router'
@@ -126,6 +126,11 @@ export const useAuthStore = defineStore('auth', () => {
     tokenStorage.clear()
     router.push('/login')
   }
+
+  // Register global 401 interceptor: any unrecoverable 401 (e.g. refresh fails,
+  // invalid signature from wrong server) automatically calls logout() so the user
+  // is redirected to /login even when the caller doesn't catch HttpError.
+  setOnUnauthorized(logout)
 
   function setUser(u: User | null) { user.value = u }
   function setToken(t: string | null) { tokenStorage.token = t }

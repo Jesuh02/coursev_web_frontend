@@ -547,6 +547,10 @@ async function deleteTopic(topicId: number) {
   try {
     await topicAdapter.deleteTopic(topicId)
     topics.value = topics.value.filter(t => t.id !== topicId)
+    // Limpiar estado relacionado con el tema eliminado
+    expandedTopics.delete(topicId)
+    delete topicContent.value[topicId]
+    delete topicTasks.value[topicId]
   } catch { /* silent */ }
 }
 
@@ -557,6 +561,10 @@ async function deleteTaskItem(taskId: number, topicId: number) {
       ...topicTasks.value,
       [topicId]: (topicTasks.value[topicId] ?? []).filter(t => t.id !== taskId),
     }
+    // Limpiar estado relacionado con la tarea eliminada
+    delete taskContent.value[taskId]
+    delete submissionMap.value[taskId]
+    delete pendingMap.value[taskId]
   } catch { /* silent */ }
 }
 

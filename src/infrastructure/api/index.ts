@@ -1,4 +1,4 @@
-export { api, tokenStorage, buildProxyFileUrl, extractR2Key, resolveImageUrl, HttpError } from './httpClient'
+export { api, tokenStorage, buildProxyFileUrl, extractR2Key, resolveImageUrl, HttpError, setOnUnauthorized } from './httpClient'
 export { authAdapter } from './authAdapter'
 export { userAdapter } from './userAdapter'
 export { courseAdapter } from './courseAdapter'

@@ -196,7 +196,14 @@ async function handleSave() {
           contentType: getContentType(formFile.value),
         })
       }
-      router.back()
+      // Navegar de vuelta con state para indicar edición de tarea
+      const courseId = route.params.courseId as string
+      const subjectId = route.query.subjectId as string | undefined
+      router.push({
+        path: `/course/${courseId}`,
+        query: subjectId ? { subjectId } : undefined,
+        state: { from: 'taskCreation' },
+      })
     }
   } catch {
     errorMsg.value = 'Error al guardar la tarea. Intenta de nuevo.'

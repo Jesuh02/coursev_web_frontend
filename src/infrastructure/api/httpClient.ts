@@ -68,6 +68,14 @@ export const tokenStorage = {
 
 let refreshPromise: Promise<boolean> | null = null
 
+/** Registered by authStore — called when a 401 cannot be recovered (e.g. refresh fails, invalid signature). */
+let _onUnauthorized: (() => void) | null = null
+
+/** Register a callback to invoke when the session can no longer be recovered from a 401. */
+export function setOnUnauthorized(cb: () => void): void {
+  _onUnauthorized = cb
+}
+
 async function tryRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
@@ -125,6 +133,7 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
           return handler(retryRes)
         }
         tokenStorage.clear()
+        _onUnauthorized?.()
         throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
       }
 
