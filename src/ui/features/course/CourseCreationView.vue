@@ -521,6 +521,8 @@ async function submitCourse() {
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  min-height: 0;
+  overflow-x: hidden;
 }
 
 .form-footer {
@@ -547,6 +549,7 @@ async function submitCourse() {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .thumb-upload img { width: 100%; height: 100%; object-fit: cover; }
@@ -564,6 +567,7 @@ async function submitCourse() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .toggle-row {
@@ -608,6 +612,7 @@ async function submitCourse() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .deadline-picker {
@@ -647,6 +652,7 @@ async function submitCourse() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .collab-chips {
