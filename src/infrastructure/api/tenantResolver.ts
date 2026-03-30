@@ -125,12 +125,13 @@ async function probeAllServers(
     const hashes = unique.map(m => m.personaCedulaHash).filter(Boolean)
     const uniqueHashes = [...new Set(hashes)]
     // All cedula hashes are identical → same person in multiple institutions → show picker
+    // OR Different cedulas → could be different accounts, show picker so user can choose
     if (hashes.length === unique.length && uniqueHashes.length === 1) {
       throw new MultipleTenantError(unique)
     }
-    // Different cedulas or missing → different people, auto-select first
-    setSelectedTenant(unique[0].tenant.id)
-    return unique[0]
+    // If cedulas differ or are missing, still show picker instead of auto-selecting
+    // This allows the user to manually select the correct institution
+    throw new MultipleTenantError(unique)
   }
 
   setSelectedTenant(unique[0].tenant.id)

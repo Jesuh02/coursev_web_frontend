@@ -96,6 +96,9 @@ async function tryRefresh(): Promise<boolean> {
 function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' }
   if (tokenStorage.token) h['Authorization'] = `Bearer ${tokenStorage.token}`
+  // Include X-Tenant-ID header to ensure requests target the correct tenant database
+  const selectedTenantId = localStorage.getItem('selected_tenant_id')
+  if (selectedTenantId) h['X-Tenant-ID'] = selectedTenantId
   return h
 }
 
