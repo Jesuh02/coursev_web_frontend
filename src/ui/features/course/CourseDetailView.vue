@@ -560,7 +560,15 @@ async function deleteTaskItem(taskId: number, topicId: number) {
   } catch { /* silent */ }
 }
 
-async function loadTopicsAndTasks(id: number) {
+async function loadTopicsAndTasks(id: number, clearCache = false) {
+  // Si clearCache es true, limpiar estados expandidos y contenido cacheado
+  if (clearCache) {
+    expandedTopics.clear()
+    expandedTaskTopics.clear()
+    topicContent.value = {}
+    taskContent.value = {}
+  }
+
   try {
     topics.value = subjectId.value
       ? await topicAdapter.getTopicsBySubject(subjectId.value)
@@ -630,9 +638,17 @@ async function loadPendingSubmissions(courseIdNum: number) {
 onActivated(async () => {
   const courseIdNum = Number(courseId.value)
   if (!courseIdNum) return
-  // Switch to tasks tab if coming back from task creation
-  if (history.state?.from === 'taskCreation') activeTab.value = 'tasks'
-  await loadTopicsAndTasks(courseIdNum)
+  
+  // Detectar si regresamos de crear/editar tema o tarea
+  const fromState = history.state?.from
+  if (fromState === 'taskCreation') {
+    activeTab.value = 'tasks'
+  } else if (fromState === 'topicCreation' || fromState === 'topicEdit') {
+    activeTab.value = 'docs'
+  }
+  
+  // Recargar datos desde el servidor, limpiando la caché de contenido expandido
+  await loadTopicsAndTasks(courseIdNum, true)
 })
 
 onMounted(async () => {

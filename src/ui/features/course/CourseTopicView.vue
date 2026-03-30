@@ -245,6 +245,12 @@ async function handleSave() {
       if (pendingFiles.value.length && created?.id) {
         await uploadPendingFiles(created.id)
       }
+      // Navegar de vuelta con state para indicar creación de tema
+      router.push({
+        path: `/course/${courseId.value}`,
+        query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
+        state: { from: 'topicCreation' },
+      })
     } else {
       const id = topicId.value!
       await topicAdapter.updateTopic(id, {
@@ -256,8 +262,13 @@ async function handleSave() {
         contentItems.value = await contentItemAdapter.getByTopic(id)
       }
       pendingFiles.value = []
+      // Navegar de vuelta con state para indicar edición de tema
+      router.push({
+        path: `/course/${courseId.value}`,
+        query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
+        state: { from: 'topicEdit' },
+      })
     }
-    router.back()
   } catch {
     errorMsg.value = 'Error al guardar el tema. Intenta de nuevo.'
   } finally {

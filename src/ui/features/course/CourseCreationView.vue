@@ -500,11 +500,19 @@ async function submitCourse() {
 </script>
 
 <style scoped>
+/* Override TopBar sticky behavior for this view */
+.course-creation :deep(.top-bar) {
+  position: relative;
+  top: auto;
+}
+
 .course-creation {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--bg-primary);
+  overflow: hidden;
+  position: relative;
 }
 
 .creation-form {
@@ -512,6 +520,7 @@ async function submitCourse() {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .form-content {
@@ -521,14 +530,15 @@ async function submitCourse() {
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  min-height: 0;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .form-footer {
   padding: 16px;
   background: var(--bg-primary);
   border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
 }
 
 .save-error {
