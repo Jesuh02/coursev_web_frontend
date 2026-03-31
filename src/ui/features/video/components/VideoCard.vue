@@ -178,7 +178,7 @@ const displayDescription = computed(() => {
   return raw && raw.length > 0 ? raw : ''
 })
 
-const isPremium = computed(() => props.video.isPaid || subscribed.value)
+const isPremium = computed(() => props.video.is_paid || subscribed.value)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
