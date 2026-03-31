@@ -97,4 +97,26 @@ router.beforeEach((to, _from, next) => {
   next()
 })
 
+// Handle stale chunk errors after a new deployment.
+// When Vite rebuilds, chunk hashes change. Old HTML in cache references
+// missing chunks → dynamic import fails with "Failed to fetch dynamically
+// imported module". The fix is a full page reload so the browser fetches
+// the fresh HTML and correct chunk URLs.
+router.onError((error, to) => {
+  const isChunkLoadError =
+    error?.message?.includes('Failed to fetch dynamically imported module') ||
+    error?.message?.includes('Importing a module script failed') ||
+    error?.message?.includes('Unable to preload CSS') ||
+    /Loading chunk .* failed/.test(error?.message ?? '')
+
+  if (isChunkLoadError) {
+    // Avoid reload loop: only reload if the URL differs from current location
+    if (to?.fullPath && window.location.pathname + window.location.search !== to.fullPath) {
+      window.location.href = to.fullPath
+    } else {
+      window.location.reload()
+    }
+  }
+})
+
 export default router
