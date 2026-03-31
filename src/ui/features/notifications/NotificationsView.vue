@@ -45,7 +45,10 @@ const notifStore = useNotificationStore()
 const router = useRouter()
 const blockAlert = ref<string | null>(null)
 
-onMounted(() => notifStore.fetchNotifications())
+onMounted(() => {
+  notifStore.fetchNotifications()
+  notifStore.requestBrowserPermission()
+})
 
 function parseMetadata(raw: string | null): Record<string, unknown> {
   if (!raw) return {}

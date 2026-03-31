@@ -12,17 +12,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import BottomNavigation from '@/components/BottomNavigation.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 const showNav = computed(() => !route.meta.hideNav)
 
-onMounted(() => {
-  authStore.fetchProfile()
+onMounted(async () => {
+  await authStore.fetchProfile()
+  // Connect notification socket & request browser permission once user is known
+  const userId = Number(authStore.user?.id ?? 0)
+  if (userId > 0) {
+    notifStore.connectSocket(userId)
+    notifStore.requestBrowserPermission()
+  }
+})
+
+// Re-connect if user changes (login/logout)
+watch(() => authStore.user?.id, (newId) => {
+  const userId = Number(newId ?? 0)
+  if (userId > 0) {
+    notifStore.connectSocket(userId)
+    notifStore.requestBrowserPermission()
+  } else {
+    notifStore.disconnectSocket()
+  }
 })
 </script>
 
