@@ -312,15 +312,16 @@ async function navigateToCourse(course: Course) {
     return
   }
 
-  // Usuarios sin rol 3 no pueden acceder a cursos desactivados.
-  const isInactive = course.isActive === false || course.is_active === false
-  if (isInactive) {
-    showAccessMessage('Este curso está desactivado y no está disponible.')
+  // Colaboradores tienen acceso directo sin importar estado del curso ni matricula.
+  if (await hasCollaboratorAccess(course.id)) {
+    router.push(`/subjects/${course.id}`)
     return
   }
 
-  if (await hasCollaboratorAccess(course.id)) {
-    router.push(`/subjects/${course.id}`)
+  // Usuarios sin rol 3 ni acceso de colaborador no pueden acceder a cursos desactivados.
+  const isInactive = course.isActive === false || course.is_active === false
+  if (isInactive) {
+    showAccessMessage('Este curso está desactivado y no está disponible.')
     return
   }
 
