@@ -1,7 +1,7 @@
 <template>
   <header class="video-top-nav">
     <!-- Search button (left) -->
-    <button class="search-btn" @click="$emit('toggleSearch')">
+    <button class="search-btn" @click="emit('toggle-search')">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -35,7 +35,7 @@
 
     <!-- Right side icons -->
     <div class="right-icons">
-      <button class="avatar-btn" @click="emit('goLogin')">
+      <button class="avatar-btn" @click="emit('go-login')">
         <AppAvatar :size="36" :alt="'U'" />
       </button>
       
@@ -88,20 +88,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 import { useAuthStore } from '@/stores/authStore'
 
-const emit = defineEmits<{ toggleSearch: []; goLogin: [] }>()
+const emit = defineEmits<{ 'toggle-search': []; 'go-login': [] }>()
 
 const router = useRouter()
 const authStore = useAuthStore()
 const showMenu = ref(false)
 
-// Acceder directamente a user.roles (ref reactivo) para garantizar reactividad
-const isAdmin = computed(() => authStore.user?.roles?.some(r => r.id === 3) ?? false)
-const isAdminOrDocente = computed(() => authStore.user?.roles?.some(r => r.id === 2 || r.id === 3) ?? false)
+// Usar storeToRefs para garantizar reactividad con los computed del store
+const { isAdmin, isAdminOrDocente } = storeToRefs(authStore)
 
 function navigate(path: string) {
   showMenu.value = false
