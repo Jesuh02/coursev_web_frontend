@@ -37,6 +37,7 @@
           :video="video"
           :active="idx === activeIndex"
           @playback-state-change="onPlaybackStateChange(idx, $event)"
+          @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
           @like="onLike(video)"
           @comment="openComments(video.id)"
           @share="onShare(video)"
@@ -90,6 +91,7 @@ const searchQuery = ref('')
 const activeIndex = ref(0)
 const pipActive = ref(false)
 const activeVideoPaused = ref(false)
+const activeVideoControlsVisible = ref(false)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
@@ -98,7 +100,7 @@ const pipSupported = computed(() =>
 const activeVideo = computed(() => filteredVideos.value[activeIndex.value] ?? null)
 
 const showPictureInPictureButton = computed(() =>
-  pipSupported.value && activeVideoPaused.value
+  pipSupported.value && activeVideoControlsVisible.value
 )
 
 // Comments overlay state
@@ -132,6 +134,11 @@ function syncPiPState() {
 function onPlaybackStateChange(index: number, payload: { paused: boolean }) {
   if (index !== activeIndex.value) return
   activeVideoPaused.value = payload.paused
+}
+
+function onControlsVisibilityChange(index: number, payload: { visible: boolean }) {
+  if (index !== activeIndex.value) return
+  activeVideoControlsVisible.value = payload.visible
 }
 
 function stripFeedThumbnail(video: Video): Video {

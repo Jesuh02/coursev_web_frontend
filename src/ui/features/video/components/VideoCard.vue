@@ -153,6 +153,7 @@ const emit = defineEmits<{
   share: []
   profile: []
   playbackStateChange: [payload: { paused: boolean }]
+  controlsVisibilityChange: [payload: { visible: boolean }]
 }>()
 
 const videoEl = ref<HTMLVideoElement | null>(null)
@@ -268,6 +269,7 @@ watch(() => props.active, (isActive) => {
     videoEl.value.pause()
     setPausedState(true)
     showControls.value = false
+    emit('controlsVisibilityChange', { visible: false })
   }
 })
 
@@ -281,12 +283,16 @@ let controlsTimeout: ReturnType<typeof setTimeout> | undefined
 function onCardClick() {
   if (!videoEl.value) return
   showControls.value = !showControls.value
+  emit('controlsVisibilityChange', { visible: showControls.value })
   if (showControls.value) resetControlsTimer()
 }
 
 function resetControlsTimer() {
   clearTimeout(controlsTimeout)
-  controlsTimeout = setTimeout(() => { showControls.value = false }, 4000)
+  controlsTimeout = setTimeout(() => {
+    showControls.value = false
+    emit('controlsVisibilityChange', { visible: false })
+  }, 4000)
 }
 
 function togglePause() {
