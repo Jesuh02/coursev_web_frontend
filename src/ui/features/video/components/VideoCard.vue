@@ -345,7 +345,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .video-card {
   position: relative;
-  height: calc(100dvh - 56px);
+  height: 100dvh;
+  width: 100%;
   scroll-snap-align: start;
   background: #000;
   flex-shrink: 0;
@@ -488,12 +489,12 @@ onBeforeUnmount(() => {
 
 .right-actions {
   position: absolute;
-  right: 8px;
-  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+  right: 12px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   z-index: 10;
   pointer-events: auto;
 }
@@ -502,26 +503,25 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: #fff;
   transition: transform 0.15s;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
 }
 
 .action-btn:active {
-  transform: scale(0.85);
+  transform: scale(0.88);
 }
 
 .action-btn.liked svg {
-  filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.6));
+  filter: drop-shadow(0 0 10px rgba(255, 45, 85, 0.7));
 }
 
 .profile-btn {
-  margin-bottom: 4px;
-  position: relative;
+  margin-bottom: 6px;
 }
 
-.profile-avatar-shell {
+.profile-avatar-container {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -529,24 +529,23 @@ onBeforeUnmount(() => {
 }
 
 .profile-btn :deep(.avatar) {
-  border: 1.5px solid #9c27b0;
+  border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 .subscribe-badge {
   position: absolute;
-  bottom: -5px;
+  bottom: -4px;
   left: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
   transform: translateX(-50%);
-  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #ff4aa2 0%, #ff2d55 100%);
+  background: linear-gradient(180deg, #ff2d55 0%, #ff1744 100%);
   color: #fff;
-  font-size: 15px;
   font-weight: 700;
   line-height: 1;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
@@ -567,9 +566,9 @@ onBeforeUnmount(() => {
 
 .bottom-info {
   position: absolute;
-  left: 16px;
+  left: 12px;
   right: 80px;
-  bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
   pointer-events: none;
 }
@@ -583,56 +582,45 @@ onBeforeUnmount(() => {
 }
 
 .creator-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+
+.follow-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .premium-badge {
   display: inline-flex;
   align-items: center;
   min-height: 18px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 215, 0, 0.12);
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+  border: 1px solid rgba(255, 215, 0, 0.4);
   color: #ffd700;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.follow-label {
-  font-size: 14px;
-  color: #aaa;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .video-desc {
   font-size: 14px;
   color: #fff;
   line-height: 1.4;
-  margin-bottom: 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-clamp: 3;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-}
-
-.video-topic {
-  margin: 0 0 12px;
-  font-size: 14px;
-  color: #64b5f6;
-  line-height: 1.35;
+  margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-clamp: 2;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .audio-row {
@@ -640,14 +628,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(0, 0, 0, 0.26);
-  padding: 6px 12px;
-  border-radius: 20px;
-  width: fit-content;
-  max-width: min(100%, 240px);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 .audio-text {

@@ -1,30 +1,44 @@
 <template>
-  <div class="video-home" ref="feedRef" @scroll="onScroll">
+  <div class="video-home-container">
+    <!-- Top Navigation -->
     <VideoTopNav @toggle-search="showSearch = !showSearch" @go-login="logoutAndGoToLogin" />
 
+    <!-- Search Overlay -->
     <div v-if="showSearch" class="search-overlay">
       <SearchBar v-model="searchQuery" placeholder="Buscar videos..." />
     </div>
 
-    <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
-      <VideoSkeleton v-for="i in 2" :key="i" />
+    <!-- Video Feed -->
+    <div class="video-home" ref="feedRef" @scroll="onScroll">
+      <!-- Skeleton Loading -->
+      <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
+        <VideoSkeleton v-for="i in 2" :key="i" />
+      </div>
+
+      <!-- Video Cards -->
+      <template v-else>
+        <VideoCard
+          v-for="(video, idx) in filteredVideos"
+          :key="video.id"
+          :video="video"
+          :active="idx === activeIndex"
+          @like="onLike(video)"
+          @comment="openComments(video.id)"
+          @share="onShare(video)"
+          @profile="goToProfile(video.userId)"
+        />
+        <EmptyState 
+          v-if="!filteredVideos.length" 
+          title="No hay videos" 
+          description="Aún no hay contenido disponible" 
+        />
+      </template>
     </div>
 
-    <template v-else>
-      <VideoCard
-        v-for="(video, idx) in filteredVideos"
-        :key="video.id"
-        :video="video"
-        :active="idx === activeIndex"
-        @like="onLike(video)"
-        @comment="openComments(video.id)"
-        @share="onShare(video)"
-        @profile="goToProfile(video.userId)"
-      />
-      <EmptyState v-if="!filteredVideos.length" title="No hay videos" description="Aún no hay contenido disponible" />
-    </template>
+    <!-- Bottom Navigation -->
+    <BottomNavigation />
 
-    <!-- Comments overlay (igual al BottomSheetDialog de Android) -->
+    <!-- Comments Overlay -->
     <VideoCommentsOverlay
       v-if="activeCommentVideoId !== null"
       :video-id="activeCommentVideoId"
@@ -48,6 +62,7 @@ import VideoTopNav from './components/VideoTopNav.vue'
 import VideoCard from './components/VideoCard.vue'
 import VideoSkeleton from './components/VideoSkeleton.vue'
 import VideoCommentsOverlay from './VideoCommentsView.vue'
+import BottomNavigation from '@/components/BottomNavigation.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -184,14 +199,22 @@ function logoutAndGoToLogin() {
 </script>
 
 <style scoped>
-.video-home {
-  flex: 1;
+.video-home-container {
+  position: relative;
   height: 100dvh;
-  overflow-y: scroll;
+  width: 100%;
   background: #000;
+  overflow: hidden;
+}
+
+.video-home {
+  height: 100dvh;
+  width: 100%;
+  overflow-y: scroll;
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  background: #000;
 }
 
 .video-home::-webkit-scrollbar {
@@ -200,17 +223,19 @@ function logoutAndGoToLogin() {
 
 .search-overlay {
   position: fixed;
-  top: 78px;
+  top: 70px;
   left: 0;
   right: 0;
   z-index: 60;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .skeleton-feed {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 </style>
