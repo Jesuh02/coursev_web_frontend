@@ -36,8 +36,8 @@ function showBrowserNotification(title: string, body: string, icon?: string) {
   try {
     new Notification(title, {
       body,
-      icon: icon ?? '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: icon ?? '/icon-192.png',
+      badge: '/icon-192.png',
       tag: 'coursev-notification',
     })
   } catch {

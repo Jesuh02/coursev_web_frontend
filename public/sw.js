@@ -1,9 +1,11 @@
-const CACHE_NAME = 'coursev-v1'
+const CACHE_NAME = 'coursev-v2'
 const ASSETS = [
     '/',
     '/index.html',
     '/manifest.json',
-    '/favicon.svg',
+    '/descarga.png',
+    '/icon-192.png',
+    '/icon-512.png',
 ]
 
 self.addEventListener('install', (event) => {

@@ -94,6 +94,9 @@
 
     <!-- ── Input Bar ── -->
     <div class="input-bar">
+      <button class="plus-btn" title="Opciones">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
       <div class="input-row">
         <textarea
           ref="inputRef"
@@ -122,13 +125,20 @@
           <div class="rec-pulse" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
         </button>
-        <button
-          v-else
-          class="action-btn action-btn--mic"
-          @click="startRecording"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
-        </button>
+        <template v-else>
+          <button class="action-btn action-btn--mic" @click="startRecording">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+          </button>
+          <button class="action-btn action-btn--wave">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="2" y="10" width="2.5" height="4" rx="1.25"/>
+              <rect x="6.5" y="6" width="2.5" height="12" rx="1.25"/>
+              <rect x="11" y="3" width="2.5" height="18" rx="1.25"/>
+              <rect x="15.5" y="6" width="2.5" height="12" rx="1.25"/>
+              <rect x="20" y="10" width="2.5" height="4" rx="1.25"/>
+            </svg>
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -136,8 +146,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
-import { chatAdapter } from '@/infrastructure/api'
-import { api, tokenStorage } from '@/infrastructure/api/httpClient'
+import { api, tokenStorage } from '@/infrastructure/api'
 
 interface LocalMessage {
   id: string
@@ -321,14 +330,16 @@ function esc(s: string) {
 
 // ── Save helper (non-blocking) ──
 
-function persistMessage(content: string, role: 'user' | 'assistant', excelUrl: string | null = null) {
-  chatAdapter.upsertMessage({
-    content,
-    role,
-    sessionId: sessionId.value,
+function persistMessage(content: string, isFromUser: boolean, excelUrl: string | null = null) {
+  api.post('/chat-messages', {
+    session_id: sessionId.value,
+    usuario_id: tokenStorage.userId,
+    message: content,
+    is_from_user: isFromUser,
+    timestamp: Date.now(),
     origin: 'db_query',
-    excelUrl,
-  } as any).catch(() => { /* save failure is silent – does not disrupt UX */ })
+    excelUrl: excelUrl ?? null,
+  }).catch(() => { /* save failure is silent – does not disrupt UX */ })
 }
 
 // ── Send ──
@@ -345,7 +356,7 @@ async function sendQuery() {
   scrollToBottom()
 
   // Persist user message immediately – independent of the LLM call
-  persistMessage(text, 'user')
+  persistMessage(text, true)
 
   isTyping.value = true
   try {
@@ -372,7 +383,7 @@ async function sendQuery() {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl: finalExcelUrl })
 
     // Persist assistant response – independent of next UI action
-    persistMessage(reply, 'assistant', finalExcelUrl)
+    persistMessage(reply, false, finalExcelUrl)
   } catch {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
   }
@@ -470,10 +481,11 @@ function clearChat() {
 }
 
 .welcome-heading {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   color: #fff;
   text-align: center;
+  letter-spacing: -0.3px;
 }
 
 /* ── Suggestion cards ── */
@@ -489,17 +501,17 @@ function clearChat() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 12px;
-  border-radius: 14px;
-  background: #1A1A1A;
-  border: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 18px;
+  border-radius: 50px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
   cursor: pointer;
   transition: background 0.15s, border-color 0.2s, transform 0.1s;
   text-align: left;
 }
 .suggestion-card:hover {
-  background: #222;
-  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.3);
 }
 .suggestion-card:active { transform: scale(0.97); }
 
@@ -680,9 +692,29 @@ function clearChat() {
   background: #0D0D0D;
   border-top: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
 }
 
+.plus-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.plus-btn:hover { background: #252525; color: #fff; }
+
 .input-row {
+  flex: 1;
+  flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -736,6 +768,12 @@ function clearChat() {
   color: rgba(255,255,255,0.5);
 }
 .action-btn--mic:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+.action-btn--wave {
+  background: #1a1a1a;
+  color: rgba(255,255,255,0.6);
+}
+.action-btn--wave:hover { background: #252525; color: #fff; }
 
 .action-btn--recording {
   background: #FF3B30;
