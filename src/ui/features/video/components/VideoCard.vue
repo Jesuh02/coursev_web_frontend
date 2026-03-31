@@ -105,6 +105,8 @@
         <span v-if="subscribed" class="follow-label">• Suscrito</span>
         <span v-if="isPremium" class="premium-badge">✦ PRO</span>
       </div>
+      <h3 v-if="video.title" class="video-title">{{ video.title }}</h3>
+      <p v-if="video.description" class="video-desc">{{ video.description }}</p>
       <div class="audio-row">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
           <path d="M9 18V5l12-2v13" />
@@ -617,6 +619,15 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.03em;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.video-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
 }
 
 .video-desc {

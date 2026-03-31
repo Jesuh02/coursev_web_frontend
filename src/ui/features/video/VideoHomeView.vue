@@ -8,18 +8,6 @@
       <SearchBar v-model="searchQuery" placeholder="Buscar videos..." />
     </div>
 
-    <transition name="meta-fade">
-      <section
-        v-if="activeVideo && !showSearch"
-        class="video-meta-overlay"
-        :class="{ 'video-meta-overlay--paused': activeVideoPaused }"
-      >
-        <div class="video-meta-chip">Reproduciendo ahora</div>
-        <h1 class="video-meta-title">{{ activeVideo.title || 'Video sin titulo' }}</h1>
-        <p v-if="activeVideo.description" class="video-meta-description">{{ activeVideo.description }}</p>
-      </section>
-    </transition>
-
     <button
       v-if="showPictureInPictureButton"
       class="pip-btn"
@@ -110,7 +98,7 @@ const pipSupported = computed(() =>
 const activeVideo = computed(() => filteredVideos.value[activeIndex.value] ?? null)
 
 const showPictureInPictureButton = computed(() =>
-  pipSupported.value && (pipActive.value || activeVideoPaused.value)
+  pipSupported.value && activeVideoPaused.value
 )
 
 // Comments overlay state
@@ -343,63 +331,6 @@ function logoutAndGoToLogin() {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.video-meta-overlay {
-  position: fixed;
-  top: 78px;
-  left: 16px;
-  right: 72px;
-  z-index: 58;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(9, 11, 18, 0.84) 0%, rgba(9, 11, 18, 0.44) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-  pointer-events: none;
-}
-
-.video-meta-overlay--paused {
-  border-color: rgba(125, 211, 252, 0.26);
-  box-shadow: 0 18px 44px rgba(8, 47, 73, 0.28);
-}
-
-.video-meta-chip {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 8px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(125, 211, 252, 0.14);
-  color: #7dd3fc;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.video-meta-title {
-  margin: 0;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
-}
-
-.video-meta-description {
-  margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 13px;
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-clamp: 2;
-}
-
 .pip-btn {
   position: fixed;
   top: 144px;
@@ -440,34 +371,9 @@ function logoutAndGoToLogin() {
   height: 100%;
 }
 
-.meta-fade-enter-active,
-.meta-fade-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s ease;
-}
-
-.meta-fade-enter-from,
-.meta-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
 @media (max-width: 480px) {
-  .video-meta-overlay {
-    right: 16px;
-    top: 80px;
-    padding: 12px 14px;
-  }
-
-  .video-meta-title {
-    font-size: 18px;
-  }
-
-  .video-meta-description {
-    font-size: 12px;
-  }
-
   .pip-btn {
-    top: 176px;
+    top: 80px;
   }
 }
 </style>
