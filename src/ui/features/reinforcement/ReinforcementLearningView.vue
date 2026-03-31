@@ -296,6 +296,7 @@ interface QuizQuestion {
 type Phase = 'start' | 'loading' | 'quiz' | 'results'
 type Cell  = '' | 'X' | 'O'
 type WinnerType = 'player' | 'cpu' | null
+type DifficultyLevel = 'EASY' | 'INTERMEDIATE' | 'HARD'
 
 // ─── Route ─────────────────────────────────────────────────────────────────────
 const route     = useRoute()
@@ -308,14 +309,14 @@ const taskName  = computed(() => (route.query.taskName  as string) || '')
 // ─── Config ────────────────────────────────────────────────────────────────────
 const letters = ['A', 'B', 'C', 'D']
 
-const difficultyOptions = [
+const difficultyOptions: Array<{ value: DifficultyLevel; label: string; emoji: string; color: string }> = [
   { value: 'EASY',         label: 'Fácil',      emoji: '🌱', color: '#2ECC71' },
   { value: 'INTERMEDIATE', label: 'Intermedio',  emoji: '⚡', color: '#F39C12' },
   { value: 'HARD',         label: 'Difícil',     emoji: '🔥', color: '#E74C3C' },
 ]
 
 // ─── State ─────────────────────────────────────────────────────────────────────
-const selectedDifficulty = ref<'EASY' | 'INTERMEDIATE' | 'HARD'>('HARD')
+const selectedDifficulty = ref<DifficultyLevel>('HARD')
 const phase        = ref<Phase>('start')
 const questions    = ref<QuizQuestion[]>([])
 const currentIdx   = ref(0)
