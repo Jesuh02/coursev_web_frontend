@@ -17,16 +17,17 @@
     <template v-else>
       <div class="topic-list">
         <button
-          v-for="topic in filtered"
+          v-for="(topic, i) in filtered"
           :key="topic.id"
           class="topic-option"
+          :style="{ animationDelay: `${i * 55}ms` }"
           @click="select(topic)"
         >
           <div class="topic-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
           </div>
           <span class="topic-name">{{ topic.title }}</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
       </div>
 
@@ -109,41 +110,75 @@ function select(topic: Topic) {
 
 <style scoped>
 .select-topic { min-height: 100vh; background: var(--bg-primary); }
-.topic-list { padding: 0 16px; }
+.topic-list { padding: 8px 16px 32px; }
 
 .topic-option {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  padding: 14px 0;
+  padding: 14px 12px;
+  border-radius: 14px;
   text-align: left;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+  transition: background 0.22s ease, transform 0.22s ease;
+  animation: slideUp 0.35s ease both;
 }
 
+.topic-option::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 66px;
+  right: 0;
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+}
+
+.topic-option:last-child::after { display: none; }
+
+.topic-option:active {
+  transform: scale(0.98);
+  background: rgba(255,255,255,0.05);
+}
+
+@media (hover: hover) {
+  .topic-option:hover { background: rgba(255,255,255,0.05); }
+  .topic-option:hover .chevron { transform: translateX(4px); stroke: #00D4FF; }
+}
+
+.chevron { flex-shrink: 0; transition: transform 0.22s ease, stroke 0.22s ease; }
+
 .topic-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: rgba(0,212,255,0.1);
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.14);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.topic-name { flex: 1; font-size: 15px; color: #fff; }
+.topic-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
 
 .loading-center {
   display: flex;
   justify-content: center;
-  padding: 60px 0;
+  padding: 72px 0;
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(0,212,255,0.2);
+  width: 30px;
+  height: 30px;
+  border: 2.5px solid rgba(0,212,255,0.18);
   border-top-color: #00D4FF;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -170,5 +205,10 @@ function select(topic: Topic) {
   color: #00D4FF;
   font-size: 15px;
   font-weight: 600;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>
