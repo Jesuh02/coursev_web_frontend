@@ -135,7 +135,7 @@ async function sendMessage() {
   try {
     await chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value })
 
-    const data = await api.post<LLMApiResponse>('/procesar-prompt', {
+    const data = await api.post<LLMApiResponse>('/llm/process', {
       prompt: text,
       ...(submissionId.value != null && { submissionId: submissionId.value }),
       ...(courseId.value != null && { courseId: courseId.value }),
