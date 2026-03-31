@@ -26,6 +26,24 @@
           <span v-if="taskName" class="ctx-pill task">📝 {{ taskName }}</span>
         </div>
 
+        <!-- Difficulty selector -->
+        <div class="diff-section">
+          <p class="diff-label">Nivel de dificultad</p>
+          <div class="diff-row">
+            <button
+              v-for="d in difficultyOptions"
+              :key="d.value"
+              class="diff-btn"
+              :class="{ 'diff-active': selectedDifficulty === d.value }"
+              :style="selectedDifficulty === d.value ? { '--diff-color': d.color } : {}"
+              @click="selectedDifficulty = d.value"
+            >
+              <span class="diff-emoji">{{ d.emoji }}</span>
+              <span class="diff-name">{{ d.label }}</span>
+            </button>
+          </div>
+        </div>
+
         <AppButton variant="primary" full @click="startQuiz">
           ¡Comenzar Sesión! 🚀
         </AppButton>
@@ -253,7 +271,14 @@ const taskName  = computed(() => (route.query.taskName  as string) || '')
 // ─── Config ────────────────────────────────────────────────────────────────────
 const letters = ['A', 'B', 'C', 'D']
 
+const difficultyOptions = [
+  { value: 'EASY',         label: 'Fácil',      emoji: '🌱', color: '#2ECC71' },
+  { value: 'INTERMEDIATE', label: 'Intermedio',  emoji: '⚡', color: '#F39C12' },
+  { value: 'HARD',         label: 'Difícil',     emoji: '🔥', color: '#E74C3C' },
+]
+
 // ─── State ─────────────────────────────────────────────────────────────────────
+const selectedDifficulty = ref<'EASY' | 'INTERMEDIATE' | 'HARD'>('HARD')
 const phase        = ref<Phase>('start')
 const questions    = ref<QuizQuestion[]>([])
 const currentIdx   = ref(0)
@@ -450,6 +475,15 @@ function optLetterClass(i: number) {
 async function startQuiz() {
   if (!courseId.value) { showError('No se especificó un curso'); return }
 
+  // Always reset previous questions to force fresh generation
+  questions.value    = []
+  currentIdx.value   = 0
+  answered.value     = false
+  pickedIdx.value    = -1
+  correctCount.value = 0
+  fillAnswer.value   = ''
+  fillCorrect.value  = false
+
   phase.value = 'loading'
   loadingTimer = setInterval(() => loadingTick.value++, 2000)
 
@@ -457,7 +491,7 @@ async function startQuiz() {
     const userId = tokenStorage.userId
     const body: Record<string, unknown> = {
       courseId:      courseId.value,
-      difficulty:    'HARD',
+      difficulty:    selectedDifficulty.value,
       targetCount:   10,
       questionType:  'multiple_choice',
     }
@@ -632,6 +666,53 @@ onUnmounted(() => {
 }
 .ctx-pill.topic { background: rgba(98,0,238,0.2); color: #BF5AF2; border: 1px solid rgba(191,90,242,0.3); }
 .ctx-pill.task  { background: rgba(0,212,255,0.12); color: #00D4FF; border: 1px solid rgba(0,212,255,0.3); }
+
+/* Difficulty selector */
+.diff-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.diff-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8E8E93;
+  margin: 0;
+}
+.diff-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.diff-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  color: #8E8E93;
+}
+.diff-btn:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-2px);
+}
+.diff-btn.diff-active {
+  border-color: var(--diff-color, #E74C3C);
+  background: color-mix(in srgb, var(--diff-color, #E74C3C) 15%, transparent);
+  color: var(--diff-color, #E74C3C);
+}
+.diff-emoji { font-size: 22px; line-height: 1; }
+.diff-name  { font-size: 11px; font-weight: 700; letter-spacing: 0.2px; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    LOADING SCREEN
