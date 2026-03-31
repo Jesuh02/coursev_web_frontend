@@ -402,7 +402,34 @@ function formatMathOption(value: number) {
   return value.toFixed(2).replace(/\.00$/, '')
 }
 
+function shuffleMultipleChoiceQuestion(question: QuizQuestion): QuizQuestion {
+  if (!Array.isArray(question.options) || question.options.length < 2) return question
+
+  const indexedOptions = question.options.map((option, index) => ({
+    option,
+    isCorrect: index === question.correctIndex,
+  }))
+
+  for (let i = indexedOptions.length - 1; i > 0; i--) {
+    const randomIndex = Math.floor(Math.random() * (i + 1))
+    const temp = indexedOptions[i]
+    indexedOptions[i] = indexedOptions[randomIndex]
+    indexedOptions[randomIndex] = temp
+  }
+
+  const correctIndex = indexedOptions.findIndex(item => item.isCorrect)
+  return {
+    ...question,
+    options: indexedOptions.map(item => item.option),
+    correctIndex: correctIndex >= 0 ? correctIndex : question.correctIndex,
+  }
+}
+
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
+  if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
+    return shuffleMultipleChoiceQuestion(question)
+  }
+
   if (question.type !== 'fill_in_blank' || !shouldConvertMathFillQuestion(question.question, question.correctAnswer)) {
     return question
   }
@@ -412,7 +439,7 @@ function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
 
   const absValue = Math.abs(numericAnswer)
   const step = absValue >= 1000 ? Math.max(1, Math.round(absValue * 0.05)) : absValue >= 100 ? 10 : absValue >= 20 ? 5 : 1
-  return {
+  return shuffleMultipleChoiceQuestion({
     ...question,
     type: 'multiple_choice',
     options: [
@@ -422,7 +449,7 @@ function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
       formatMathOption(numericAnswer + (step * 2)),
     ],
     correctIndex: 0,
-  }
+  })
 }
 
 // ─── Confetti ───────────────────────────────────────────────────────────────────
