@@ -1,49 +1,71 @@
 <template>
-  <div class="course-selection">
+  <div class="cs-root">
+    <div class="cs-bg" aria-hidden="true" />
     <TopBar title="Seleccionar Curso" @back="$router.back()" />
 
-    <SearchBar v-model="search" placeholder="Buscar curso..." />
+    <div class="cs-body">
 
-    <!-- Skeleton -->
-    <div v-if="loading" class="list-wrap">
-      <div v-for="n in 5" :key="n" class="skeleton-row">
-        <div class="sk-thumb" />
-        <div class="sk-body">
-          <div class="sk-line sk-title" />
-          <div class="sk-line sk-sub" />
+      <!-- Header -->
+      <div class="cs-header">
+        <span class="cs-emoji">🎓</span>
+        <div>
+          <h2 class="cs-title">¿En qué curso?</h2>
+          <p class="cs-sub">Elige el curso para tu sesión de refuerzo</p>
         </div>
       </div>
-    </div>
 
-    <template v-else>
-      <div v-if="filtered.length" class="list-header">
-        <span class="list-count">{{ filtered.length }} {{ filtered.length === 1 ? 'curso' : 'cursos' }}</span>
+      <!-- Search -->
+      <div class="search-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <input v-model="search" class="search-input" placeholder="Buscar curso…" type="search" />
+        <Transition name="fade-x">
+          <button v-if="search" class="search-clear" @click="search = ''">✕</button>
+        </Transition>
       </div>
 
-      <div class="list-wrap">
-        <button
-          v-for="(course, i) in filtered"
-          :key="course.id"
-          class="course-option"
-          :style="{ animationDelay: `${i * 50}ms` }"
-          @click="select(course)"
-        >
-          <div class="course-thumb">
-            <img v-if="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)" :src="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)!" alt="" />
-            <div v-else class="thumb-placeholder">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="4" /></svg>
+      <!-- Skeleton -->
+      <div v-if="loading" class="list">
+        <div v-for="n in 5" :key="n" class="sk-card" :style="{ animationDelay: `${n * 60}ms` }">
+          <div class="sk-thumb" />
+          <div class="sk-body">
+            <div class="sk-line sk-t" />
+            <div class="sk-line sk-s" />
+          </div>
+          <div class="sk-chev" />
+        </div>
+      </div>
+
+      <template v-else>
+        <div v-if="filtered.length" class="list-meta">
+          <span class="list-count">{{ filtered.length }} {{ filtered.length === 1 ? 'curso' : 'cursos' }}</span>
+        </div>
+
+        <div v-if="filtered.length" class="list">
+          <button
+            v-for="(course, i) in filtered"
+            :key="course.id"
+            class="course-card"
+            :style="{ animationDelay: `${i * 55}ms` }"
+            @click="select(course)"
+          >
+            <div class="course-thumb">
+              <img v-if="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)" :src="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)!" alt="" />
+              <div v-else class="thumb-ph">📚</div>
             </div>
-          </div>
-          <div class="course-info">
-            <p class="course-name">{{ course.title }}</p>
-            <p class="course-meta">{{ course.description }}</p>
-          </div>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#484848" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
-        </button>
-      </div>
+            <div class="course-info">
+              <p class="course-name">{{ course.title }}</p>
+              <p v-if="course.description" class="course-desc">{{ course.description }}</p>
+            </div>
+            <span class="chev">›</span>
+          </button>
+        </div>
 
-      <EmptyState v-if="!filtered.length" icon="book" message="No hay cursos disponibles" />
-    </template>
+        <div v-else class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <p class="empty-text">Sin cursos disponibles</p>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -54,8 +76,6 @@ import type { Course } from '@/domain/models'
 import { resolveImageUrl, courseAdapter } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import SearchBar from '@/ui/shared/components/SearchBar.vue'
-import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,147 +152,145 @@ function select(course: Course) {
 </script>
 
 <style scoped>
-.course-selection { min-height: 100vh; background: var(--bg-primary); }
-
-/* ── List header ── */
-.list-header {
-  padding: 4px 20px 0;
-}
-
-.list-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: #48484A;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* ── Wrapper ── */
-.list-wrap { padding: 4px 12px 40px; }
-
-/* ── Course card ── */
-.course-option {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 11px 8px;
-  border-radius: 14px;
-  text-align: left;
+.cs-root {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 25% 0%, rgba(98,0,238,.16) 0%, transparent 55%),
+              radial-gradient(ellipse at 85% 90%, rgba(0,212,255,.08) 0%, transparent 50%),
+              #0A0A0F;
   position: relative;
-  transition: background 0.18s ease, transform 0.18s ease;
-  animation: fadeSlide 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.course-option::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 74px;
-  right: 8px;
-  height: 1px;
-  background: rgba(255,255,255,0.04);
+.cs-bg {
+  position: fixed; inset: 0; pointer-events: none;
+  background: inherit; z-index: 0;
 }
 
-.course-option:last-child::after { display: none; }
-
-.course-option:active {
-  transform: scale(0.975);
-  background: rgba(255,255,255,0.04);
+/* Body */
+.cs-body {
+  position: relative; z-index: 1;
+  padding: 12px 16px 80px;
+  max-width: 480px; margin: 0 auto;
 }
 
-@media (hover: hover) {
-  .course-option:hover { background: rgba(255,255,255,0.04); }
-  .course-option:hover .chevron { transform: translateX(3px); stroke: #00D4FF; }
+/* Header */
+.cs-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0 16px;
 }
+.cs-emoji { font-size: 42px; line-height: 1; flex-shrink: 0; }
+.cs-title { font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 2px; }
+.cs-sub   { font-size: 12px; color: #666; margin: 0; }
 
-.chevron {
-  flex-shrink: 0;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.18s ease;
+/* Search */
+.search-wrap {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  padding: 0 14px;
+  margin-bottom: 12px;
+  transition: border-color .2s;
 }
+.search-wrap:focus-within { border-color: rgba(139,92,246,.5); }
+.search-icon { flex-shrink: 0; }
+.search-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 14px; color: #fff; padding: 13px 0;
+  font-family: inherit;
+}
+.search-input::placeholder { color: #555; }
+.search-clear {
+  font-size: 13px; color: #555; cursor: pointer;
+  flex-shrink: 0; transition: color .15s;
+}
+.search-clear:hover { color: #aaa; }
 
-/* ── Thumbnail ── */
+/* List meta */
+.list-meta { padding: 2px 2px 8px; }
+.list-count { font-size: 11px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: .7px; }
+
+/* List */
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+/* Course card */
+.course-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: all .22s cubic-bezier(.34,1.2,.64,1);
+  animation: fadeUp .35s cubic-bezier(.22,1,.36,1) both;
+}
+.course-card:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(139,92,246,.3);
+  transform: translateX(3px);
+}
+.course-card:active { transform: scale(.97); }
+
+/* Thumb */
 .course-thumb {
-  width: 54px;
-  height: 40px;
-  border-radius: 9px;
-  overflow: hidden;
-  flex-shrink: 0;
+  width: 52px; height: 40px; border-radius: 11px;
+  overflow: hidden; flex-shrink: 0;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.07);
 }
-
 .course-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.thumb-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #1c1c1e;
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.thumb-ph {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
 }
 
-/* ── Text ── */
+/* Info */
 .course-info { flex: 1; min-width: 0; }
-
 .course-name {
-  font-size: 14.5px;
-  font-weight: 500;
-  color: #F2F2F7;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
+  font-size: 14px; font-weight: 600; color: #F2F2F7;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 0 0 2px;
+}
+.course-desc {
+  font-size: 12px; color: #555;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 0;
 }
 
-.course-meta {
-  font-size: 12px;
-  color: #48484A;
-  margin-top: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
+.chev { font-size: 22px; color: #444; flex-shrink: 0; line-height: 1; transition: color .15s, transform .15s; }
+.course-card:hover .chev { color: #8B5CF6; transform: translateX(3px); }
+
+/* Skeleton cards */
+.sk-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 18px;
+  animation: shimmer 1.5s ease infinite;
 }
+.sk-thumb { width: 52px; height: 40px; border-radius: 11px; background: #222; flex-shrink: 0; }
+.sk-body  { flex: 1; }
+.sk-line  { border-radius: 6px; background: #1e1e1e; }
+.sk-t     { height: 13px; width: 60%; margin-bottom: 8px; }
+.sk-s     { height: 10px; width: 38%; }
+.sk-chev  { width: 16px; height: 16px; border-radius: 50%; background: #1e1e1e; flex-shrink: 0; }
 
-/* ── Skeleton ── */
-.skeleton-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 11px 8px;
+/* Empty */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 60px 0; text-align: center;
 }
+.empty-icon { font-size: 48px; opacity: .4; }
+.empty-text { font-size: 14px; color: #555; margin: 0; font-weight: 600; }
 
-.sk-thumb {
-  width: 54px;
-  height: 40px;
-  border-radius: 9px;
-  background: #1c1c1e;
-  flex-shrink: 0;
-  animation: shimmer 1.4s ease infinite;
-}
+/* Transitions */
+.fade-x-enter-active { animation: fadeIn .2s ease both; }
+.fade-x-leave-active { animation: fadeIn .15s ease reverse both; }
 
-.sk-body { flex: 1; }
-
-.sk-line {
-  border-radius: 6px;
-  background: #1c1c1e;
-  animation: shimmer 1.4s ease infinite;
-}
-
-.sk-title { height: 13px; width: 62%; margin-bottom: 8px; }
-.sk-sub   { height: 11px; width: 40%; }
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0.5; }
-  50%       { opacity: 1; }
-}
-
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes shimmer { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes fadeUp  { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
