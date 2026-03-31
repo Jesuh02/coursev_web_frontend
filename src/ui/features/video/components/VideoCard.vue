@@ -8,7 +8,7 @@
       :poster="thumbUrl ?? undefined"
       loop
       playsinline
-      preload="auto"
+      :preload="preloadHint ?? 'none'"
       @loadeddata="loaded = true"
       @error="onVideoError"
     />
@@ -152,7 +152,7 @@ import { likeAdapter, commentAdapter, subscriptionAdapter } from '@/infrastructu
 import { tokenStorage, resolveImageUrl, buildProxyFileUrl, extractR2Key } from '@/infrastructure/api/httpClient'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 
-const props = defineProps<{ video: Video; active: boolean }>()
+const props = defineProps<{ video: Video; active: boolean; preloadHint?: 'auto' | 'metadata' | 'none' }>()
 const emit = defineEmits<{
   like: []
   comment: []
@@ -398,6 +398,15 @@ onBeforeUnmount(() => {
     videoEl.value.load()
   }
 })
+
+/** Called by the parent feed to kick off buffering before this card becomes active. */
+function startPreload() {
+  if (!videoEl.value || !videoUrl.value) return
+  if (videoEl.value.preload !== 'auto') videoEl.value.preload = 'auto'
+  if (videoEl.value.readyState === 0) videoEl.value.load()
+}
+
+defineExpose({ startPreload })
 </script>
 
 <style scoped>

@@ -573,8 +573,9 @@ async function startQuiz() {
     if (taskId.value)  body.taskId  = taskId.value
     if (userId)        body.userId  = userId
 
-    // Generate questions (may take 30–120 s)
-    const data = await api.postSlow<QuizQuestion[]>('/reinforcement/generate-questions', body)
+    // Generate questions (may take 30–300 s depending on difficulty)
+    const TIMEOUT_MS = selectedDifficulty.value === 'HARD' ? 300_000 : 180_000
+    const data = await api.postSlow<QuizQuestion[]>('/reinforcement/generate-questions', body, TIMEOUT_MS)
 
     const raw: QuizQuestion[] = Array.isArray(data)
       ? data
@@ -585,7 +586,12 @@ async function startQuiz() {
     questions.value = qs
     phase.value = 'quiz'
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Error al generar preguntas'
+    let msg = 'Error al generar preguntas'
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      msg = 'La generación tardó demasiado. Intenta de nuevo o selecciona una dificultad menor.'
+    } else if (e instanceof Error) {
+      msg = e.message
+    }
     showError(msg)
     phase.value = 'start'
   } finally {

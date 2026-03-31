@@ -4,13 +4,35 @@ import type { Video } from '@/domain/models'
 import { videoAdapter } from '@/infrastructure/api'
 
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+const STORAGE_KEY = 'video_feed_cache'
+const STORAGE_TS_KEY = 'video_feed_cache_ts'
+const MAX_CACHED = 10 // solo los primeros N videos para no saturar localStorage
+
+function readCache(): Video[] | null {
+  try {
+    const ts = Number(localStorage.getItem(STORAGE_TS_KEY) ?? 0)
+    if (Date.now() - ts > CACHE_TTL) return null
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as Video[]) : null
+  } catch { return null }
+}
+
+function writeCache(videos: Video[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(videos.slice(0, MAX_CACHED)))
+    localStorage.setItem(STORAGE_TS_KEY, String(Date.now()))
+  } catch { /* quota exceeded — skip */ }
+}
 
 export const useVideoStore = defineStore('videos', () => {
-  const videos = ref<Video[]>([])
+  // Seed in-memory state from localStorage so the feed is visible before
+  // the first network round-trip completes (TikTok-style instant render).
+  const cached = readCache()
+  const videos = ref<Video[]>(cached ?? [])
   const current = ref<Video | null>(null)
   const loading = ref(false)
   const page = ref(1)
-  const lastFetched = ref(0)
+  const lastFetched = ref(cached ? Date.now() - (CACHE_TTL - 1000) : 0) // treat cache as almost-fresh
   let publicFeedPromise: Promise<void> | null = null
 
   async function fetchFeed(pageNum = 1) {
@@ -42,6 +64,7 @@ export const useVideoStore = defineStore('videos', () => {
         if (pageNum === 1) videos.value = data
         else videos.value.push(...data)
         lastFetched.value = Date.now()
+        if (pageNum === 1) writeCache(data)
       } finally {
         loading.value = false
         if (pageNum === 1) publicFeedPromise = null

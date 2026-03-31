@@ -20,8 +20,10 @@
         <VideoCard
           v-for="(video, idx) in filteredVideos"
           :key="video.id"
+          :ref="(el) => setCardRef(el, idx)"
           :video="video"
           :active="idx === activeIndex"
+          :preload-hint="getPreloadHint(idx)"
           @playback-state-change="onPlaybackStateChange(idx, $event)"
           @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
           @like="onLike(video)"
@@ -66,6 +68,8 @@ import VideoSkeleton from './components/VideoSkeleton.vue'
 import VideoCommentsOverlay from './VideoCommentsView.vue'
 import BottomNavigation from '@/components/BottomNavigation.vue'
 
+type VideoCardInstance = InstanceType<typeof VideoCard>
+
 const route  = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -77,6 +81,19 @@ const searchQuery = ref('')
 const activeIndex = ref(0)
 const activeVideoPaused = ref(false)
 const activeVideoControlsVisible = ref(false)
+const cardRefs = ref<(VideoCardInstance | null)[]>([])
+
+function setCardRef(el: unknown, idx: number) {
+  cardRefs.value[idx] = (el as VideoCardInstance | null)
+}
+
+/** Controls how aggressively the browser buffers each card based on distance. */
+function getPreloadHint(idx: number): 'auto' | 'metadata' | 'none' {
+  const dist = Math.abs(idx - activeIndex.value)
+  if (dist === 0) return 'auto'
+  if (dist <= 2) return 'metadata'
+  return 'none'
+}
 
 // Comments overlay state
 const activeCommentVideoId = ref<number | null>(null)
@@ -178,11 +195,17 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
 })
 
-watch(activeIndex, async () => {
+watch(activeIndex, async (newIdx) => {
   await nextTick()
   requestAnimationFrame(() => {
     syncActiveVideoPauseState()
   })
+  // Proactively prebuffer the next 2 videos so playback starts instantly.
+  // The preloadHint prop already switches to 'metadata' reactively;
+  // calling startPreload() upgrades them to 'auto' and kicks off download.
+  for (const offset of [1, 2]) {
+    cardRefs.value[newIdx + offset]?.startPreload()
+  }
 })
 
 function onScroll() {

@@ -141,6 +141,8 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
     } catch (e) {
       lastError = e as Error
       if (e instanceof HttpError) throw e
+      // Do not retry if the request was intentionally aborted (timeout signal)
+      if (e instanceof DOMException && e.name === 'AbortError') throw e
     }
   }
 
@@ -191,10 +193,10 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   getRaw: <T>(path: string) => request<T>(path, undefined, false, true),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  /** POST with extended timeout for slow LLM endpoints (AbortController after 120s). */
-  postSlow: <T>(path: string, body: unknown) => {
+  /** POST with extended timeout for slow LLM endpoints. @param timeoutMs defaults to 120 s. */
+  postSlow: <T>(path: string, body: unknown, timeoutMs = 120_000) => {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 120_000)
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     return request<T>(path, { method: 'POST', body: JSON.stringify(body), signal: controller.signal })
       .finally(() => clearTimeout(timer))
   },
