@@ -368,20 +368,27 @@ onBeforeUnmount(() => {
 
 .video-player {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: #000;
 }
 
 .video-player:fullscreen {
+  inset: 0;
+  bottom: 0;
   object-fit: contain;
 }
 
 .video-placeholder {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -402,7 +409,10 @@ onBeforeUnmount(() => {
 
 .video-error {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -431,7 +441,10 @@ onBeforeUnmount(() => {
 
 .pause-indicator {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -501,7 +514,7 @@ onBeforeUnmount(() => {
 .right-actions {
   position: absolute;
   right: 12px;
-  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -579,7 +592,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 12px;
   right: 80px;
-  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
   pointer-events: none;
 }
@@ -660,13 +673,8 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
-  .right-actions {
-    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
-  }
-
   .bottom-info {
     right: 76px;
-    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
   }
 }
 
