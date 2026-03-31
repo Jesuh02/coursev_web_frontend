@@ -52,30 +52,36 @@
           <div v-if="showMenu" class="dropdown-menu" @click.stop>
             <!-- LLM Refuerzo: visible para cualquier rol, incluso sin rol -->
             <button class="menu-item" @click="navigate('/evaluative-reinforcement')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-4 7.4V18a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.6C7.5 15 5 12.5 5 9a7 7 0 0 1 7-7z"/>
-                <path d="M9 21h6M10 17h4"/>
-              </svg>
-              <span>LLM Refuerzo</span>
+              <span class="menu-icon icon-purple">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-4 7.4V18a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.6C7.5 15 5 12.5 5 9a7 7 0 0 1 7-7z"/>
+                  <path d="M9 21h6M10 17h4"/>
+                </svg>
+              </span>
+              <span class="menu-label">LLM Refuerzo</span>
             </button>
 
             <!-- LLM Tareas: solo rol 2 (docente) y rol 3 (admin) -->
             <button v-if="isAdminOrDocente" class="menu-item" @click="navigate('/chatbot')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-              </svg>
-              <span>LLM Tareas</span>
+              <span class="menu-icon icon-orange">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </span>
+              <span class="menu-label">LLM Tareas</span>
             </button>
 
             <!-- LLM DB: solo rol 3 (admin) -->
             <button v-if="isAdmin" class="menu-item" @click="navigate('/admin/database')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-              </svg>
-              <span>LLM DB</span>
+              <span class="menu-icon icon-cyan">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+              </span>
+              <span class="menu-label">LLM DB</span>
             </button>
           </div>
         </transition>
@@ -230,11 +236,22 @@ function navigate(path: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.menu-dots-btn:hover {
+  background: rgba(167, 139, 250, 0.25);
+  border-color: rgba(167, 139, 250, 0.5);
+  transform: scale(1.08);
 }
 
 .menu-dots-btn:active {
-  opacity: 0.6;
+  transform: scale(0.9);
 }
 
 .menu-wrapper {
@@ -243,40 +260,122 @@ function navigate(path: string) {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 12px);
   right: 0;
   z-index: 200;
-  background: rgba(28, 28, 30, 0.96);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 6px;
-  min-width: 168px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  /* Liquid Glass */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(180, 140, 255, 0.14) 35%,
+    rgba(255, 190, 140, 0.10) 65%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+  backdrop-filter: blur(48px) saturate(190%) brightness(1.12);
+  -webkit-backdrop-filter: blur(48px) saturate(190%) brightness(1.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.48);
+  border-bottom-color: rgba(255, 255, 255, 0.18);
+  border-right-color: rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  padding: 10px 8px;
+  min-width: 208px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.28) inset,
+    0 20px 60px rgba(0, 0, 0, 0.38),
+    0 8px 28px rgba(120, 80, 255, 0.22),
+    0 2px 8px rgba(255, 150, 80, 0.12);
+}
+
+/* Brillo de glass en la parte superior */
+.dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.92) 30%,
+    rgba(255, 255, 255, 0.96) 50%,
+    rgba(255, 255, 255, 0.92) 70%,
+    transparent 100%
+  );
+  border-radius: 0 0 50% 50%;
+  pointer-events: none;
+}
+
+/* Blob de color decorativo */
+.dropdown-menu::after {
+  content: '';
+  position: absolute;
+  top: -24px;
+  right: -16px;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.32) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 16px;
   color: #fff;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 800;
+  letter-spacing: 0.3px;
   text-align: left;
-  transition: background 0.15s;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
 }
 
 .menu-item:hover,
 .menu-item:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(4px) scale(1.02);
 }
 
-.menu-item svg {
+/* Burbujas de icono */
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  opacity: 0.85;
+  color: #fff;
+}
+
+.icon-purple {
+  background: linear-gradient(145deg, #c084fc, #7c3aed);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.icon-orange {
+  background: linear-gradient(145deg, #fb923c, #c2410c);
+  box-shadow: 0 4px 14px rgba(251, 146, 60, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.icon-cyan {
+  background: linear-gradient(145deg, #22d3ee, #0e7490);
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.menu-label {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
 }
 
 .menu-backdrop {
@@ -285,14 +384,17 @@ function navigate(path: string) {
   z-index: 49;
 }
 
-.menu-fade-enter-active,
+.menu-fade-enter-active {
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .menu-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .menu-fade-enter-from,
 .menu-fade-leave-to {
   opacity: 0;
-  transform: translateY(-6px) scale(0.97);
+  transform: translateY(-10px) scale(0.88);
 }
 </style>

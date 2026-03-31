@@ -153,6 +153,41 @@
               </button>
             </div>
 
+            <!-- Ordering type -->
+            <div v-else-if="currentQ.type === 'ordering'" class="ordering-wrap">
+              <p class="ordering-hint">Toca los pasos en el orden correcto:</p>
+              <div class="ordering-items">
+                <button
+                  v-for="(item, i) in currentQ.items"
+                  :key="i"
+                  class="ordering-item"
+                  :class="orderingItemClass(i)"
+                  :disabled="answered"
+                  @click="toggleOrderItem(i)"
+                >
+                  <span class="ordering-pos">
+                    {{ orderingUserSeq.includes(i) ? orderingUserSeq.indexOf(i) + 1 : '·' }}
+                  </span>
+                  <span class="ordering-text">{{ item }}</span>
+                </button>
+              </div>
+              <Transition name="slide-down">
+                <div v-if="answered" class="fill-feedback" :class="fillCorrect ? 'fill-ok' : 'fill-err'">
+                  <span class="fill-icon">{{ fillCorrect ? '✓' : '✗' }}</span>
+                  <span>{{ fillCorrect ? '¡Orden correcto!' : 'Orden incorrecto. Revisa la explicación.' }}</span>
+                </div>
+              </Transition>
+              <AppButton
+                v-if="!answered"
+                variant="primary"
+                full
+                :disabled="orderingUserSeq.length !== (currentQ.items?.length ?? 0)"
+                @click="checkOrdering"
+              >
+                Verificar orden
+              </AppButton>
+            </div>
+
             <!-- Fill-in-blank input -->
             <div v-else class="fill-wrap">
               <input
@@ -254,6 +289,8 @@ interface QuizQuestion {
   correctAnswer?: string
   explanation?: string
   type?: string
+  items?: string[]       // ordering type: pasos desordenados
+  correctOrder?: number[] // ordering type: índices en orden correcto
 }
 
 type Phase = 'start' | 'loading' | 'quiz' | 'results'
@@ -287,8 +324,9 @@ const pickedIdx    = ref(-1)
 const correctCount = ref(0)
 const errorMsg     = ref('')
 const qTransition  = ref('slide-left')
-const fillAnswer   = ref('')
-const fillCorrect  = ref(false)
+const fillAnswer      = ref('')
+const fillCorrect     = ref(false)
+const orderingUserSeq = ref<number[]>([])
 
 // Loading animation
 const loadingTick    = ref(0)
@@ -471,6 +509,40 @@ function optLetterClass(i: number) {
   }
 }
 
+// ─── Ordering helpers ────────────────────────────────────────────────────────────
+function toggleOrderItem(i: number) {
+  if (answered.value) return
+  const idx = orderingUserSeq.value.indexOf(i)
+  if (idx !== -1) {
+    orderingUserSeq.value.splice(idx, 1)
+  } else {
+    orderingUserSeq.value.push(i)
+  }
+}
+
+function checkOrdering() {
+  if (answered.value) return
+  const q = currentQ.value
+  const correct = JSON.stringify(orderingUserSeq.value) === JSON.stringify(q.correctOrder ?? [])
+  fillCorrect.value = correct
+  if (correct) correctCount.value++
+  answered.value = true
+}
+
+function orderingItemClass(i: number): Record<string, boolean> {
+  const pos = orderingUserSeq.value.indexOf(i)
+  if (!answered.value) {
+    return { 'ordering-selected': pos !== -1 }
+  }
+  const correctSeq = currentQ.value.correctOrder ?? []
+  const correctPos = correctSeq.indexOf(i)
+  if (pos === -1) return { 'ordering-missing': true }
+  return {
+    'ordering-correct-item': pos === correctPos,
+    'ordering-wrong-item':   pos !== correctPos,
+  }
+}
+
 // ─── Actions ────────────────────────────────────────────────────────────────────
 async function startQuiz() {
   if (!courseId.value) { showError('No se especificó un curso'); return }
@@ -543,21 +615,23 @@ function nextQ() {
   if (isLastQ.value) { phase.value = 'results'; return }
   qTransition.value = 'slide-left'
   currentIdx.value++
-  answered.value    = false
-  pickedIdx.value   = -1
-  fillAnswer.value  = ''
-  fillCorrect.value = false
+  answered.value       = false
+  pickedIdx.value      = -1
+  fillAnswer.value     = ''
+  fillCorrect.value    = false
+  orderingUserSeq.value = []
 }
 
 function restart() {
-  currentIdx.value   = 0
-  answered.value     = false
-  pickedIdx.value    = -1
-  correctCount.value = 0
-  fillAnswer.value   = ''
-  fillCorrect.value  = false
-  questions.value    = []
-  phase.value        = 'start'
+  currentIdx.value      = 0
+  answered.value        = false
+  pickedIdx.value       = -1
+  correctCount.value    = 0
+  fillAnswer.value      = ''
+  fillCorrect.value     = false
+  orderingUserSeq.value = []
+  questions.value       = []
+  phase.value           = 'start'
 }
 
 function showError(msg: string) {
@@ -1281,4 +1355,91 @@ onUnmounted(() => {
 .fill-feedback.fill-ok  { background: rgba(48,209,88,0.15);  color: #30D158; }
 .fill-feedback.fill-err { background: rgba(255,69,58,0.15);  color: #FF453A; }
 .fill-icon { font-size: 16px; font-weight: 900; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ORDERING
+═══════════════════════════════════════════════════════════════════════════════ */
+.ordering-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+.ordering-hint {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0;
+  text-align: center;
+}
+.ordering-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ordering-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.08);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(.34,1.56,.64,1);
+  color: #e0e0e0;
+}
+.ordering-item:hover:not(:disabled) {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.18);
+  transform: translateX(3px);
+}
+.ordering-item:disabled { cursor: default; }
+.ordering-item.ordering-selected {
+  border-color: rgba(139,92,246,0.7);
+  background: rgba(139,92,246,0.12);
+}
+.ordering-item.ordering-correct-item {
+  border-color: #30D158;
+  background: rgba(48,209,88,0.12);
+}
+.ordering-item.ordering-wrong-item {
+  border-color: #FF453A;
+  background: rgba(255,69,58,0.12);
+}
+.ordering-item.ordering-missing {
+  opacity: 0.45;
+}
+.ordering-pos {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: #8E8E93;
+  transition: all 0.2s;
+}
+.ordering-selected .ordering-pos {
+  background: var(--purple-light);
+  color: #fff;
+}
+.ordering-correct-item .ordering-pos {
+  background: #30D158;
+  color: #fff;
+}
+.ordering-wrong-item .ordering-pos {
+  background: #FF453A;
+  color: #fff;
+}
+.ordering-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+}
 </style>
