@@ -24,14 +24,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import type { Subject } from '@/domain/models'
+import { subjectAdapter } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
+const route = useRoute()
+const courseId = computed(() => Number(route.params.courseId))
 const search = ref('')
 const subjects = ref<Subject[]>([])
 
@@ -41,8 +44,16 @@ const filtered = computed(() => {
   return subjects.value.filter(s => s.name.toLowerCase().includes(q))
 })
 
+onMounted(async () => {
+  try {
+    subjects.value = await subjectAdapter.getSubjectsByCourse(courseId.value)
+  } catch {
+    // silently fail
+  }
+})
+
 function select(subject: Subject) {
-  router.push(`/reinforcement/subject/${subject.id}`)
+  router.push(`/course/${courseId.value}/select-topic?subjectId=${subject.id}`)
 }
 </script>
 

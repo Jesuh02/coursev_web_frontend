@@ -51,7 +51,7 @@
         <transition name="menu-fade">
           <div v-if="showMenu" class="dropdown-menu" @click.stop>
             <!-- LLM Refuerzo: visible para cualquier rol, incluso sin rol -->
-            <button class="menu-item" @click="navigate('/evaluative-reinforcement')">
+            <button class="menu-item" @click="navigate('/course-selection')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-4 7.4V18a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.6C7.5 15 5 12.5 5 9a7 7 0 0 1 7-7z"/>
                 <path d="M9 21h6M10 17h4"/>

@@ -191,6 +191,13 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   getRaw: <T>(path: string) => request<T>(path, undefined, false, true),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  /** POST with extended timeout for slow LLM endpoints (AbortController after 120s). */
+  postSlow: <T>(path: string, body: unknown) => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 120_000)
+    return request<T>(path, { method: 'POST', body: JSON.stringify(body), signal: controller.signal })
+      .finally(() => clearTimeout(timer))
+  },
   put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   publicGet: <T>(path: string) => request<T>(path, undefined, true),

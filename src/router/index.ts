@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/user/:userId', name: 'userProfile', component: () => import('@/ui/features/profile/UserProfileView.vue'), props: true },
 
   // Chat
-  { path: '/chatbot', name: 'chatbot', component: () => import('@/ui/features/chat/ChatBotView.vue'), meta: { hideNav: true } },
+  { path: '/chatbot', name: 'chatbot', component: () => import('@/ui/features/chat/ChatBotLLMView.vue'), meta: { hideNav: true } },
 
   // Reinforcement
   { path: '/reinforcement/:courseId', name: 'reinforcementLearning', component: () => import('@/ui/features/reinforcement/ReinforcementLearningView.vue'), props: true, meta: { hideNav: true } },

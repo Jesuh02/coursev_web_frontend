@@ -28,10 +28,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Course } from '@/domain/models'
-import { resolveImageUrl } from '@/infrastructure/api'
+import { resolveImageUrl, courseAdapter } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
@@ -46,8 +46,16 @@ const filtered = computed(() => {
   return courses.value.filter(c => c.title.toLowerCase().includes(q))
 })
 
+onMounted(async () => {
+  try {
+    courses.value = await courseAdapter.getCourses()
+  } catch {
+    // silently fail
+  }
+})
+
 function select(course: Course) {
-  router.push(`/reinforcement/${course.id}`)
+  router.push(`/subject-selection/${course.id}`)
 }
 </script>
 
