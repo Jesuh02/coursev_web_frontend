@@ -267,6 +267,7 @@ import { useCourseStore } from '@/stores/courseStore'
 import {
   topicAdapter, taskAdapter, contentItemAdapter,
   submissionAdapter, resolveImageUrl, buildProxyFileUrl, collaboratorAdapter, subjectAdapter,
+  tokenStorage,
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -499,9 +500,10 @@ async function loadStudentProgress(cid: number) {
 }
 
 function getFileUrl(item: ContentItem): string {
-  if (!item.fileUri) return '#'
-  if (item.fileUri.startsWith('http')) return item.fileUri
-  return buildProxyFileUrl(item.fileUri)
+  const uri = item.fileUri || item.content || ''
+  if (!uri) return '#'
+  if (uri.startsWith('http')) return uri
+  return buildProxyFileUrl(uri)
 }
 
 function getDownloadFileName(item: ContentItem): string {
@@ -514,9 +516,12 @@ async function downloadContentItem(item: ContentItem) {
   if (fileUrl === '#') return
 
   const downloadName = getDownloadFileName(item)
+  const token = tokenStorage.token
 
   try {
-    const response = await fetch(fileUrl)
+    const response = await fetch(fileUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
     if (!response.ok) throw new Error(`Download failed: ${response.status}`)
 
     const blob = await response.blob()
@@ -532,7 +537,7 @@ async function downloadContentItem(item: ContentItem) {
     console.error('Error downloading file:', error)
     const fallbackLink = document.createElement('a')
     fallbackLink.href = fileUrl
-    fallbackLink.download = downloadName
+    fallbackLink.target = '_blank'
     fallbackLink.rel = 'noopener'
     document.body.appendChild(fallbackLink)
     fallbackLink.click()
