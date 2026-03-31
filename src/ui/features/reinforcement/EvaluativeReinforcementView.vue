@@ -158,7 +158,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const data = await reinforcementAdapter.getMyResults()
-    results.value = Array.isArray(data) ? data : []
+    results.value = Array.isArray(data) ? (data as unknown as ReinforcementResult[]) : []
   } catch {
     results.value = []
   } finally {
