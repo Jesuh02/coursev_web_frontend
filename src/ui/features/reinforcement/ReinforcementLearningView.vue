@@ -567,16 +567,14 @@ async function startQuiz() {
       difficulty:    selectedDifficulty.value,
       targetCount:   10,
       questionType:  'multiple_choice',
+      forceFresh:    true,
     }
     if (topicId.value) body.topicId = topicId.value
     if (taskId.value)  body.taskId  = taskId.value
     if (userId)        body.userId  = userId
 
-    // Fire prefetch non-blocking
-    api.post('/reinforcement/prefetch', body).catch(() => {})
-
     // Generate questions (may take 30–120 s)
-    const data = await api.post<QuizQuestion[]>('/reinforcement/generate-questions', body)
+    const data = await api.postSlow<QuizQuestion[]>('/reinforcement/generate-questions', body)
 
     const raw: QuizQuestion[] = Array.isArray(data)
       ? data
