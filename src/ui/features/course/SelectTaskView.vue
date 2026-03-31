@@ -54,6 +54,7 @@ const route = useRoute()
 const courseId = computed(() => Number(route.params.courseId))
 const topicId = computed(() => Number(route.params.topicId))
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 
 const search = ref('')
 const tasks = ref<Task[]>([])
@@ -81,14 +82,25 @@ async function loadTasks() {
 onMounted(loadTasks)
 
 function select(task: Task) {
-  router.push({
-    path: `/task-submission/${task.id}`,
-    query: {
-      courseId: String(courseId.value),
-      topicId: String(topicId.value),
-      ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
-    },
-  })
+  if (isReinforcement.value) {
+    router.push({
+      path: `/course/${courseId.value}/topic/${topicId.value}/difficulty`,
+      query: {
+        taskId: String(task.id),
+        ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
+        mode: 'reinforcement',
+      },
+    })
+  } else {
+    router.push({
+      path: `/task-submission/${task.id}`,
+      query: {
+        courseId: String(courseId.value),
+        topicId: String(topicId.value),
+        ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
+      },
+    })
+  }
 }
 </script>
 

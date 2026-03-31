@@ -19,10 +19,17 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 
 const router = useRouter()
+const route = useRoute()
+
+const courseId = computed(() => Number(route.params.courseId))
+const topicId = computed(() => Number(route.params.topicId))
+const taskId = computed(() => route.query.taskId ? Number(route.query.taskId) : null)
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 
 const difficulties = [
   { value: 'easy', label: 'Fácil', emoji: '🟢', description: 'Preguntas básicas de comprensión' },
@@ -30,8 +37,19 @@ const difficulties = [
   { value: 'hard', label: 'Difícil', emoji: '🔴', description: 'Análisis y pensamiento crítico' }
 ]
 
-function select(_difficulty: string) {
-  router.back()
+function select(difficulty: string) {
+  if (isReinforcement.value) {
+    router.push({
+      path: `/reinforcement/${courseId.value}`,
+      query: {
+        topicId: String(topicId.value),
+        ...(taskId.value ? { taskId: String(taskId.value) } : {}),
+        difficulty,
+      },
+    })
+  } else {
+    router.back()
+  }
 }
 </script>
 

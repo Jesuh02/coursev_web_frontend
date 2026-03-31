@@ -215,6 +215,7 @@ export interface ChatPort {
   upsertMessage(message: Partial<ChatMessage> & { sessionId: string; origin?: string }): Promise<void>
   getMessagesBySession(sessionId: string): Promise<ChatMessage[]>
   getMyMessages(): Promise<ChatMessage[]>
+  getMyMessagesByOrigin(origin: string): Promise<ChatMessage[]>
   deleteMessage(id: number): Promise<void>
   deleteSession(sessionId: string): Promise<void>
 }

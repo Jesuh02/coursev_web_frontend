@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import type { Course } from '@/domain/models'
 import { resolveImageUrl, courseAdapter } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -58,10 +58,12 @@ import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const search = ref('')
 const courses = ref<Course[]>([])
 const loading = ref(false)
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 
 const filtered = computed(() => {
   if (!search.value) return courses.value
@@ -124,7 +126,8 @@ onMounted(async () => {
 })
 
 function select(course: Course) {
-  router.push(`/subject-selection/${course.id}`)
+  const modeQuery = isReinforcement.value ? '?mode=reinforcement' : ''
+  router.push(`/subject-selection/${course.id}${modeQuery}`)
 }
 </script>
 

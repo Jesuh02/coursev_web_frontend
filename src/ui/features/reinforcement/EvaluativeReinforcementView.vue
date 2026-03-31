@@ -28,7 +28,7 @@
       </div>
 
       <div class="start-session-section">
-        <button class="start-session-btn" @click="$router.push('/course-selection')">
+        <button class="start-session-btn" @click="$router.push('/course-selection?mode=reinforcement')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-4 7.4V18a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.6C7.5 15 5 12.5 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6M10 17h4"/></svg>
           Iniciar Sesión de Refuerzo
         </button>

@@ -75,6 +75,23 @@
             </a>
           </div>
         </div>
+
+        <!-- Message actions for bot messages -->
+        <div v-if="msg.role === 'assistant'" class="msg-actions">
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--active': copiedMsgId === msg.id }" @click="copyMessage(msg)" :title="copiedMsgId === msg.id ? 'Copiado' : 'Copiar'">
+            <svg v-if="copiedMsgId !== msg.id" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--liked': likedMsgId === msg.id }" @click="likeMessage(msg)" title="Me gusta">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+          </button>
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--disliked': dislikedMsgId === msg.id }" @click="dislikeMessage(msg)" title="No me gusta">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+          </button>
+          <button class="msg-action-btn" @click="shareMessage(msg)" title="Compartir">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+        </div>
       </template>
 
       <!-- Typing animation -->
@@ -94,9 +111,6 @@
 
     <!-- ── Input Bar ── -->
     <div class="input-bar">
-      <button class="plus-btn" title="Opciones">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
       <div class="input-row">
         <textarea
           ref="inputRef"
@@ -125,20 +139,9 @@
           <div class="rec-pulse" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
         </button>
-        <template v-else>
-          <button class="action-btn action-btn--mic" @click="startRecording">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
-          </button>
-          <button class="action-btn action-btn--wave">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="2" y="10" width="2.5" height="4" rx="1.25"/>
-              <rect x="6.5" y="6" width="2.5" height="12" rx="1.25"/>
-              <rect x="11" y="3" width="2.5" height="18" rx="1.25"/>
-              <rect x="15.5" y="6" width="2.5" height="12" rx="1.25"/>
-              <rect x="20" y="10" width="2.5" height="4" rx="1.25"/>
-            </svg>
-          </button>
-        </template>
+        <button v-else class="action-btn action-btn--mic" @click="startRecording">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -146,7 +149,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
-import { api, tokenStorage } from '@/infrastructure/api'
+import { chatAdapter, api, tokenStorage } from '@/infrastructure/api'
 
 interface LocalMessage {
   id: string
@@ -168,6 +171,9 @@ const inputText = ref('')
 const isTyping = ref(false)
 const isRecording = ref(false)
 const sessionId = ref(`db_query_${tokenStorage.userId ?? Date.now()}`)
+const copiedMsgId = ref<string | null>(null)
+const likedMsgId = ref<string | null>(null)
+const dislikedMsgId = ref<string | null>(null)
 
 let mediaRecorder: any = null
 let recognition: any = null
@@ -191,12 +197,12 @@ onUnmounted(() => {
 
 async function loadHistory() {
   try {
-    const data = await api.get<any[]>('/chat-messages/my/db_query')
+    const data = await chatAdapter.getMyMessagesByOrigin('db_query') as any[]
     if (Array.isArray(data) && data.length > 0) {
       messages.value = data.map((m: any) => ({
         id: String(m.id ?? crypto.randomUUID()),
-        role: (m.isFromUser ?? m.is_from_user) ? 'user' : 'assistant',
-        content: m.message ?? '',
+        role: (m.isFromUser ?? m.is_from_user) ? 'user' as const : 'assistant' as const,
+        content: m.message ?? m.content ?? '',
         excelUrl: m.excelUrl ?? m.excel_url ?? null,
       }))
       scrollToBottom()
@@ -331,15 +337,13 @@ function esc(s: string) {
 // ── Save helper (non-blocking) ──
 
 function persistMessage(content: string, isFromUser: boolean, excelUrl: string | null = null) {
-  api.post('/chat-messages', {
-    session_id: sessionId.value,
-    usuario_id: tokenStorage.userId,
-    message: content,
-    is_from_user: isFromUser,
-    timestamp: Date.now(),
+  chatAdapter.upsertMessage({
+    content,
+    role: isFromUser ? 'user' : 'assistant',
+    sessionId: sessionId.value,
     origin: 'db_query',
-    excelUrl: excelUrl ?? null,
-  }).catch(() => { /* save failure is silent – does not disrupt UX */ })
+    excelUrl,
+  } as any).catch(() => { /* silent – does not disrupt UX */ })
 }
 
 // ── Send ──
@@ -394,6 +398,33 @@ async function sendQuery() {
 // Clear only the local view – messages in DB are kept for persistence
 function clearChat() {
   messages.value = []
+}
+
+// ── Message actions ──
+
+function copyMessage(msg: LocalMessage) {
+  navigator.clipboard.writeText(msg.content).then(() => {
+    copiedMsgId.value = msg.id
+    setTimeout(() => { copiedMsgId.value = null }, 2000)
+  }).catch(() => {})
+}
+
+function likeMessage(msg: LocalMessage) {
+  likedMsgId.value = likedMsgId.value === msg.id ? null : msg.id
+  dislikedMsgId.value = null
+}
+
+function dislikeMessage(msg: LocalMessage) {
+  dislikedMsgId.value = dislikedMsgId.value === msg.id ? null : msg.id
+  likedMsgId.value = null
+}
+
+function shareMessage(msg: LocalMessage) {
+  if (navigator.share) {
+    navigator.share({ text: msg.content }).catch(() => {})
+  } else {
+    navigator.clipboard.writeText(msg.content).catch(() => {})
+  }
 }
 </script>
 
@@ -697,23 +728,7 @@ function clearChat() {
   gap: 10px;
 }
 
-.plus-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #1a1a1a;
-  border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-}
-.plus-btn:hover { background: #252525; color: #fff; }
-
 .input-row {
-  flex: 1;
   flex: 1;
   display: flex;
   align-items: flex-end;
@@ -769,12 +784,6 @@ function clearChat() {
 }
 .action-btn--mic:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
-.action-btn--wave {
-  background: #1a1a1a;
-  color: rgba(255,255,255,0.6);
-}
-.action-btn--wave:hover { background: #252525; color: #fff; }
-
 .action-btn--recording {
   background: #FF3B30;
   color: #fff;
@@ -793,4 +802,35 @@ function clearChat() {
   0% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1.35); opacity: 0; }
 }
+
+/* ── Message action bar ── */
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 6px 40px;
+  animation: fadeUp .2s ease;
+}
+
+.msg-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.msg-action-btn:hover {
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.75);
+}
+.msg-action-btn:active { transform: scale(0.88); }
+.msg-action-btn--active { color: #00D4FF !important; }
+.msg-action-btn--liked { color: #34C759 !important; }
+.msg-action-btn--disliked { color: #FF453A !important; }
 </style>

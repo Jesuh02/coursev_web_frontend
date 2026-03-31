@@ -50,6 +50,7 @@ import EmptyState from '@/ui/shared/components/EmptyState.vue'
 const router = useRouter()
 const route = useRoute()
 const courseId = computed(() => Number(route.params.courseId))
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 const search = ref('')
 const subjects = ref<Subject[]>([])
 const loading = ref(false)
@@ -72,7 +73,8 @@ onMounted(async () => {
 })
 
 function select(subject: Subject) {
-  router.push(`/course/${courseId.value}/select-topic?subjectId=${subject.id}`)
+  const modeParam = isReinforcement.value ? '&mode=reinforcement' : ''
+  router.push(`/course/${courseId.value}/select-topic?subjectId=${subject.id}${modeParam}`)
 }
 </script>
 

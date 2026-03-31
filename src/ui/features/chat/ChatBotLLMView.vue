@@ -132,6 +132,23 @@
           </div>
         </div>
 
+        <!-- Message action bar below bot messages -->
+        <div v-if="msg.role === 'assistant'" class="msg-actions">
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--active': copiedMsgId === msg.id }" @click="copyMessage(msg)" :title="copiedMsgId === msg.id ? 'Copiado' : 'Copiar'">
+            <svg v-if="copiedMsgId !== msg.id" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--liked': likedMsgId === msg.id }" @click="likeMessage(msg)" title="Me gusta">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+          </button>
+          <button class="msg-action-btn" :class="{ 'msg-action-btn--disliked': dislikedMsgId === msg.id }" @click="dislikeMessage(msg)" title="No me gusta">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+          </button>
+          <button class="msg-action-btn" @click="shareMessage(msg)" title="Compartir">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+        </div>
+
         <!-- Excel download button below bot message -->
         <div
           v-if="msg.role === 'assistant' && msg.excelUrl"
@@ -201,9 +218,6 @@
 
     <!-- ── Input bar ── -->
     <div class="input-bar">
-      <button class="plus-btn" title="Opciones">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
       <div class="input-wrap">
         <textarea
           ref="inputRef"
@@ -436,7 +450,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
-import { api, tokenStorage, submissionAdapter, courseAdapter, taskAdapter, HttpError } from '@/infrastructure/api'
+import { api, tokenStorage, chatAdapter, submissionAdapter, courseAdapter, taskAdapter, HttpError } from '@/infrastructure/api'
 import type { Course, TaskSubmission, Task } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
@@ -548,6 +562,11 @@ const studentProgressData = ref<StudentProgressData[]>([])
 const selectedProgressContext = ref<StudentProgressContext | null>(null)
 const exportingExcel = ref(false)
 
+// Message actions
+const copiedMsgId = ref<string | null>(null)
+const likedMsgId = ref<string | null>(null)
+const dislikedMsgId = ref<string | null>(null)
+
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
 const filteredOverlayItems = computed(() => {
@@ -595,18 +614,18 @@ useChatSocket(tokenStorage.userId || null, 'chatbot_llm', (msg: ChatSocketMessag
 
 async function loadHistoryFromBackend() {
   try {
-    // Load by origin (per-account, WhatsApp-style) first; fallback to session
+    // Load by origin (per-account) first; fallback to session
     let data: any[]
     try {
-      data = await api.get<any[]>('/chat-messages/my/chatbot_llm')
+      data = await chatAdapter.getMyMessagesByOrigin('chatbot_llm') as any[]
     } catch {
-      data = await api.get<any[]>(`/chat-messages/session/${sessionId.value}`)
+      data = await chatAdapter.getMessagesBySession(sessionId.value) as any[]
     }
     if (!Array.isArray(data) || data.length === 0) return
     messages.value = data.map((m: any) => ({
       id: String(m.id ?? crypto.randomUUID()),
-      role: (m.isFromUser ?? m.is_from_user) ? 'user' : 'assistant',
-      content: m.message ?? '',
+      role: (m.isFromUser ?? m.is_from_user) ? 'user' as const : 'assistant' as const,
+      content: m.message ?? m.content ?? '',
       createdAt: m.timestamp
         ? new Date(typeof m.timestamp === 'number' ? m.timestamp : m.timestamp).toISOString()
         : (m.createdAt ?? m.created_at ?? new Date().toISOString()),
@@ -627,16 +646,18 @@ async function saveMessageToBackend(
   extra: Record<string, unknown> = {}
 ) {
   try {
-    await api.post('/chat-messages', {
-      session_id: sessionId.value,
-      usuario_id: tokenStorage.userId,
-      username: authStore.user?.username ?? null,
-      message: content,
-      is_from_user: isFromUser,
-      timestamp: Date.now(),
+    await chatAdapter.upsertMessage({
+      content,
+      role: isFromUser ? 'user' : 'assistant',
+      sessionId: sessionId.value,
       origin: 'chatbot_llm',
-      ...extra,
-    })
+      excelUrl: (extra.excel_url as string) ?? null,
+      username: authStore.user?.username ?? null,
+      hasCalification: extra.has_calification ?? false,
+      calificationValue: extra.calification_value ?? null,
+      calificationAdded: extra.calification_added ?? false,
+      submissionId: extra.submission_id ?? null,
+    } as any)
   } catch (e) {
     // Silently ignore — persistence failure shouldn't break UX
   }
@@ -1211,6 +1232,33 @@ function loadGradedContext(g: GradedEntry) {
 function clearChat() {
   messages.value = []
   selectedTask.value = null
+}
+
+// ─── Message actions ───────────────────────────────────────────────────────
+
+function copyMessage(msg: ChatMsg) {
+  navigator.clipboard.writeText(msg.content).then(() => {
+    copiedMsgId.value = msg.id
+    setTimeout(() => { copiedMsgId.value = null }, 2000)
+  }).catch(() => {})
+}
+
+function likeMessage(msg: ChatMsg) {
+  likedMsgId.value = likedMsgId.value === msg.id ? null : msg.id
+  dislikedMsgId.value = null
+}
+
+function dislikeMessage(msg: ChatMsg) {
+  dislikedMsgId.value = dislikedMsgId.value === msg.id ? null : msg.id
+  likedMsgId.value = null
+}
+
+function shareMessage(msg: ChatMsg) {
+  if (navigator.share) {
+    navigator.share({ text: msg.content }).catch(() => {})
+  } else {
+    navigator.clipboard.writeText(msg.content).catch(() => {})
+  }
 }
 
 function formatTime(iso: string): string {
@@ -1797,21 +1845,6 @@ function renderMarkdown(text: string): string {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 
-.plus-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #2A3942;
-  border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-}
-.plus-btn:hover { background: #3A4952; color: #E9EDEF; }
-
 .input-wrap {
   flex: 1;
   background: #2A3942;
@@ -1860,6 +1893,37 @@ function renderMarkdown(text: string): string {
   color: rgba(255,255,255,0.6);
 }
 .send-btn--wave:disabled { opacity: 0.4; }
+
+/* ─── Message action bar ────────────────────────── */
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 6px 42px;
+  animation: msgIn .2s ease;
+}
+
+.msg-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: rgba(233,237,239,0.35);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.msg-action-btn:hover {
+  background: rgba(255,255,255,0.07);
+  color: rgba(233,237,239,0.8);
+}
+.msg-action-btn:active { transform: scale(0.88); }
+.msg-action-btn--active { color: #00A884 !important; }
+.msg-action-btn--liked { color: #34C759 !important; }
+.msg-action-btn--disliked { color: #FF453A !important; }
 
 /* ─── Bottom sheet overlays ─────────────────────── */
 .sheet-backdrop {

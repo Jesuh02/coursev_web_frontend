@@ -8,7 +8,7 @@
         <h2 class="start-title">Sesión de Refuerzo</h2>
         <p class="start-desc">Responde preguntas para fortalecer tu conocimiento del curso</p>
         <div class="difficulty-info">
-          <span class="diff-chip">{{ difficulty }}</span>
+          <span class="diff-chip">{{ difficultyLabel }}</span>
           <span class="question-count">{{ totalQuestions }} preguntas</span>
         </div>
         <AppButton full @click="start">Comenzar</AppButton>
@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
@@ -68,7 +69,17 @@ interface Question {
   correctIndex: number
 }
 
+const route = useRoute()
+const courseId = computed(() => Number(route.params.courseId))
+const topicId = computed(() => route.query.topicId ? Number(route.query.topicId) : null)
+const taskId = computed(() => route.query.taskId ? Number(route.query.taskId) : null)
+const selectedDifficulty = computed(() => (route.query.difficulty as string) || 'medium')
+
 const letters = ['A', 'B', 'C', 'D']
+const difficultyLabel = computed(() => {
+  const map: Record<string, string> = { easy: 'Fácil', medium: 'Intermedio', hard: 'Difícil' }
+  return map[selectedDifficulty.value] || 'Intermedio'
+})
 const difficulty = ref('Intermedio')
 const started = ref(false)
 const answered = ref(false)

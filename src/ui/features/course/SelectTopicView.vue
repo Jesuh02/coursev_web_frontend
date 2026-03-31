@@ -61,6 +61,7 @@ const route = useRoute()
 const courseId = computed(() => Number(route.params.courseId))
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
 const isCreatingTask = computed(() => route.query.isCreatingTask === 'true')
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 
 const search = ref('')
 const topics = ref<Topic[]>([])
@@ -110,9 +111,12 @@ function select(topic: Topic) {
       },
     })
   } else {
+    const query: Record<string, string> = {}
+    if (subjectId.value) query.subjectId = String(subjectId.value)
+    if (isReinforcement.value) query.mode = 'reinforcement'
     router.push({
       path: `/course/${courseId.value}/topic/${topic.id}/select-task`,
-      query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
+      query: Object.keys(query).length ? query : undefined,
     })
   }
 }
