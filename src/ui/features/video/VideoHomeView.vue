@@ -224,7 +224,6 @@ function goToProfile(userId: number | null) {
 
 function logoutAndGoToLogin() {
   authStore.logout()
-  router.replace({ name: 'login' })
 }
 </script>
 

@@ -124,7 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     _resetUserStores()
     tokenStorage.clear()
-    router.push('/login')
+    router.replace({ name: 'login' })
   }
 
   // Register global 401 interceptor: any unrecoverable 401 (e.g. refresh fails,
