@@ -13,7 +13,7 @@
       <div class="pill-wrapper">
         <!-- En Vivo (Live) with orange glow -->
         <div class="glow-effect orange-glow" />
-        <button class="pill-btn live-btn" @click="$router.push('/upload')" title="En Vivo">
+        <button class="pill-btn live-btn" title="En Vivo">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M23 7l-7 5 7 5V7z" />
             <rect x="1" y="5" width="15" height="14" rx="2" />
