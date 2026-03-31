@@ -177,7 +177,7 @@
             </svg>
             Agregar calificación{{ msg.nota != null ? ` (${msg.nota}/10)` : '' }}
           </button>
-          <button class="grade-btn grade-btn--reject" @click="msg.calificationAdded = true">
+          <button class="grade-btn grade-btn--reject" @click="rejectGrade(msg)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -467,6 +467,7 @@ interface ChatMsg {
   nota?: number | null
   calificationAdded?: boolean
   excelUrl?: string | null
+  submissionId?: number | null
 }
 
 interface SelectedTaskCtx {
@@ -633,6 +634,7 @@ async function loadHistoryFromBackend() {
       nota: m.calificationValue != null ? parseFloat(m.calificationValue) : null,
       calificationAdded: m.calificationAdded ?? m.calification_added ?? false,
       excelUrl: m.excelUrl ?? m.excel_url ?? null,
+      submissionId: m.submissionId ?? m.submission_id ?? null,
     }))
     scrollToBottom()
   } catch (e) {
@@ -965,6 +967,7 @@ async function sendMessage() {
       nota: data.nota ?? null,
       calificationAdded: false,
       excelUrl: (data as any).excelUrl ?? null,
+      submissionId: ctx?.submissionId ?? null,
     }
     messages.value.push(botMsg)
     saveMessageToBackend(botMsg.content, false, {
@@ -1003,30 +1006,46 @@ async function sendMessage() {
 
 async function addGrade(msg: ChatMsg) {
   if (msg.calificationAdded) return
-  const ctx = selectedTask.value
-  if (!ctx) return
+
+  // Resolve submissionId: stored in message → active context (mirrors Android fallback chain)
+  const submissionId = msg.submissionId ?? selectedTask.value?.submissionId ?? null
+  if (submissionId == null) {
+    console.warn('addGrade: no submissionId available')
+    return
+  }
 
   const grade = msg.nota ?? extractGradeFromText(msg.content)
   if (grade == null) return
 
   const feedback = extractFeedback(msg.content)
+  const ctx = selectedTask.value
 
   try {
-    await submissionAdapter.gradeSubmission(ctx.submissionId, grade, feedback)
+    await submissionAdapter.gradeSubmission(submissionId, grade, feedback)
 
     msg.calificationAdded = true
 
+    // Persist the calificationAdded flag so it survives a reload
+    saveMessageToBackend(msg.content, false, {
+      has_calification: true,
+      calification_value: String(grade),
+      calification_added: true,
+      submission_id: submissionId,
+    })
+
     // Track for graded overlay
     gradedTasks.value.unshift({
-      submissionId: ctx.submissionId,
-      taskName: ctx.taskName,
-      studentName: ctx.studentName,
+      submissionId,
+      taskName: ctx?.taskName ?? `Entrega #${submissionId}`,
+      studentName: ctx?.studentName ?? 'Estudiante',
       grade,
       feedback,
     })
 
     // Confirmation message
-    const confirmContent = `✅ Calificación **${grade}/10** guardada para **${ctx.studentName}** en la tarea **${ctx.taskName}**.`
+    const confirmContent = ctx
+      ? `✅ Calificación **${grade}/10** guardada para **${ctx.studentName}** en la tarea **${ctx.taskName}**.`
+      : `✅ Calificación **${grade}/10** guardada correctamente (entrega #${submissionId}).`
     messages.value.push({
       id: crypto.randomUUID(),
       content: confirmContent,
@@ -1037,12 +1056,23 @@ async function addGrade(msg: ChatMsg) {
       has_calification: true,
       calification_value: String(grade),
       calification_added: true,
-      submission_id: ctx.submissionId,
+      submission_id: submissionId,
     })
     scrollToBottom()
   } catch (e) {
     console.error('Error grading submission:', e)
   }
+}
+
+function rejectGrade(msg: ChatMsg) {
+  msg.calificationAdded = true
+  // Persist so the rejection survives a reload
+  saveMessageToBackend(msg.content, false, {
+    has_calification: true,
+    calification_value: msg.nota != null ? String(msg.nota) : null,
+    calification_added: true,
+    submission_id: msg.submissionId ?? selectedTask.value?.submissionId ?? null,
+  })
 }
 
 function extractGradeFromText(text: string): number | null {
