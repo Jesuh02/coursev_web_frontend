@@ -1,44 +1,77 @@
 <template>
   <header class="video-top-nav">
-    <button class="nav-btn" @click="$emit('toggleSearch')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+    <!-- Search button (left) -->
+    <button class="search-btn" @click="$emit('toggleSearch')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
     </button>
 
-    <div class="center-pills">
-      <button class="pill live-pill" @click="$router.push('/upload')" title="En Vivo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
-      </button>
-      <button class="pill courses-pill" @click="$emit('goLogin')" title="Cursos">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-      </button>
+    <!-- Center Pills Container (Live + Courses) -->
+    <div class="center-pills-container">
+      <div class="pill-wrapper">
+        <!-- En Vivo (Live) with orange glow -->
+        <div class="glow-effect orange-glow" />
+        <button class="pill-btn live-btn" @click="$router.push('/upload')" title="En Vivo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23 7l-7 5 7 5V7z" />
+            <rect x="1" y="5" width="15" height="14" rx="2" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="pill-wrapper">
+        <!-- Courses with purple glow -->
+        <div class="glow-effect purple-glow" />
+        <button class="pill-btn courses-btn" @click="$router.push('/explore')" title="Cursos">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
+      </div>
     </div>
 
+    <!-- Right side icons -->
     <div class="right-icons">
-      <button class="nav-btn" @click="$router.push('/profile')">
-        <AppAvatar :size="30" :alt="'U'" />
+      <button class="avatar-btn" @click="$router.push('/profile')">
+        <AppAvatar :size="36" :alt="'U'" />
       </button>
+      
       <div class="menu-wrapper">
-        <button class="nav-btn" @click="showMenu = !showMenu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        <button class="menu-dots-btn" @click="showMenu = !showMenu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+            <circle cx="12" cy="5" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="19" r="2"/>
+          </svg>
         </button>
 
         <transition name="menu-fade">
           <div v-if="showMenu" class="dropdown-menu" @click.stop>
-            <!-- LLM de refuerzo: cualquier rol, incluso sin rol -->
             <button class="menu-item" @click="navigate('/chatbot')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4M12 8h.01"/>
+              </svg>
               <span>LLM Refuerzo</span>
             </button>
 
-            <!-- LLM de tareas: solo rol 2 y 3 -->
-            <button v-if="authStore.isAdminOrDocente" class="menu-item" @click="navigate('/admin')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <button v-if="isAdminOrDocente" class="menu-item" @click="navigate('/admin')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
               <span>LLM Tareas</span>
             </button>
 
-            <!-- LLM db: solo rol 3 -->
-            <button v-if="authStore.isAdmin" class="menu-item" @click="navigate('/admin/database')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            <button v-if="isAdmin" class="menu-item" @click="navigate('/admin/database')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              </svg>
               <span>LLM DB</span>
             </button>
           </div>
@@ -47,12 +80,12 @@
     </div>
   </header>
 
-  <!-- Overlay para cerrar el menú al tocar fuera -->
+  <!-- Menu backdrop overlay -->
   <div v-if="showMenu" class="menu-backdrop" @click="showMenu = false" />
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -62,6 +95,11 @@ defineEmits<{ toggleSearch: []; goLogin: [] }>()
 const router = useRouter()
 const authStore = useAuthStore()
 const showMenu = ref(false)
+
+// Computed para asegurar reactividad de los roles
+const isAdmin = computed(() => authStore.isAdmin)
+const isAdminOrDocente = computed(() => authStore.isAdminOrDocente)
+const hasAnyRole = computed(() => authStore.user?.roles && authStore.user.roles.length > 0)
 
 function navigate(path: string) {
   showMenu.value = false
@@ -80,7 +118,7 @@ function navigate(path: string) {
   align-items: center;
   justify-content: space-between;
   padding: 26px 12px 8px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
   pointer-events: none;
 }
 
@@ -88,55 +126,113 @@ function navigate(path: string) {
   pointer-events: auto;
 }
 
-.nav-btn {
+.search-btn {
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  padding: 8px;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+  transition: opacity 0.2s;
 }
 
-.center-pills {
+.search-btn:active {
+  opacity: 0.6;
+}
+
+/* Center Pills Container with glowing buttons */
+.center-pills-container {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
-  gap: 8px;
+  gap: 12px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(32, 32, 34, 0.48);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(40, 40, 44, 0.6);
+  backdrop-filter: blur(20px);
 }
 
-.pill {
+.pill-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Glow effects */
+.glow-effect {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+.orange-glow {
+  background: radial-gradient(circle, rgba(255, 149, 0, 0.8) 0%, transparent 70%);
+}
+
+.purple-glow {
+  background: radial-gradient(circle, rgba(191, 90, 242, 0.8) 0%, transparent 70%);
+}
+
+/* Pill buttons */
+.pill-btn {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
   transition: transform 0.2s;
+  z-index: 1;
 }
 
-.pill:active {
+.pill-btn:active {
   transform: scale(0.9);
 }
 
-.live-pill {
+.live-btn {
   background: linear-gradient(180deg, #ff9f0a 0%, #ff7a00 100%);
-  box-shadow: 0 0 18px rgba(255, 149, 0, 0.24);
+  box-shadow: 0 2px 12px rgba(255, 149, 0, 0.3);
 }
 
-.courses-pill {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.courses-btn {
+  background: linear-gradient(180deg, #bf5af2 0%, #a855f7 100%);
+  box-shadow: 0 2px 12px rgba(191, 90, 242, 0.3);
 }
 
+/* Right side icons */
 .right-icons {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+}
+
+.avatar-btn {
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.menu-dots-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.menu-dots-btn:active {
+  opacity: 0.6;
 }
 
 .menu-wrapper {

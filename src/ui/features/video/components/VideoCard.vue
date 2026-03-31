@@ -1,5 +1,6 @@
 <template>
   <div class="video-card" @click="onCardClick">
+    <!-- Video player -->
     <video
       ref="videoEl"
       class="video-player"
@@ -12,85 +13,128 @@
       @error="onVideoError"
     />
 
+    <!-- Video placeholder (thumbnail or loading) -->
     <div v-if="!loaded && !videoError" class="video-placeholder">
       <img v-if="thumbUrl" :src="thumbUrl" class="poster-img" alt="" />
       <div v-else class="poster-fallback">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
       </div>
     </div>
 
+    <!-- Video error state -->
     <div v-if="videoError" class="video-error">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
       <span>No se pudo cargar el video</span>
       <button class="retry-btn" @click.stop="retryLoad">Reintentar</button>
     </div>
 
+    <!-- Pause indicator (temporary overlay) -->
     <transition name="fade">
       <div v-if="showPauseIcon" class="pause-indicator">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.8)"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.8)">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
       </div>
     </transition>
 
-    <transition name="fade">
-      <div v-if="showControls" class="controls-overlay" @click.stop>
-        <button class="control-btn" @click="togglePause" :title="paused ? 'Reproducir' : 'Pausar'">
-          <svg v-if="paused" width="24" height="24" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-        </button>
-        <button class="control-btn" @click="enterFullscreen" title="Pantalla completa">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        </button>
-        <button v-if="pipSupported" class="control-btn" @click="enterPiP" title="Picture in Picture">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="11" y="9" width="10" height="7" rx="1" fill="rgba(255,255,255,0.3)"/></svg>
-        </button>
-      </div>
-    </transition>
-
-    <div class="overlay-gradient-top" />
-    <div class="overlay-gradient-bottom" />
-
+    <!-- Right side action buttons -->
     <div class="right-actions">
+      <!-- Profile button with subscribe badge -->
       <button class="action-btn profile-btn" @click.stop="$emit('profile')">
-        <span class="profile-avatar-shell">
-          <AppAvatar :size="42" :alt="displayUsername" :src="null" />
-          <span class="subscribe-badge">+</span>
-        </span>
+        <div class="profile-avatar-container">
+          <AppAvatar :size="48" :alt="displayUsername" :src="null" />
+          <div v-if="!subscribed" class="subscribe-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+              <line x1="12" y1="5" x2="12" y2="19" stroke-width="2.5"/>
+              <line x1="5" y1="12" x2="19" y2="12" stroke-width="2.5"/>
+            </svg>
+          </div>
+        </div>
       </button>
 
+      <!-- Like button -->
       <button :class="['action-btn', { liked }]" @click.stop="handleLike">
-        <svg width="30" height="30" viewBox="0 0 24 24" :fill="liked ? '#ff2d55' : 'none'" :stroke="liked ? '#ff2d55' : '#fff'" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-        <span class="action-count">{{ likeCount }}</span>
+        <svg width="32" height="32" viewBox="0 0 24 24" :fill="liked ? '#ff2d55' : 'none'" :stroke="liked ? '#ff2d55' : '#fff'" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+        <span class="action-count">{{ formatCount(likeCount) }}</span>
       </button>
 
+      <!-- Comment button -->
       <button class="action-btn" @click.stop="$emit('comment')">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-        <span class="action-count">{{ commentCount }}</span>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span class="action-count">{{ formatCount(commentCount) }}</span>
       </button>
 
+      <!-- Share button -->
       <button class="action-btn" @click.stop="$emit('share')">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
         <span class="action-label">Compartir</span>
       </button>
 
+      <!-- Mute/Unmute button -->
       <button class="action-btn" @click.stop="muted = !muted">
-        <svg v-if="!muted" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-        <svg v-else width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+        <svg v-if="!muted" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg>
+        <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" />
+          <line x1="17" y1="9" x2="23" y2="15" />
+        </svg>
       </button>
     </div>
 
+    <!-- Bottom info section -->
     <div class="bottom-info">
       <div class="creator-row">
-        <span class="creator-name">{{ displayUsername }}</span>
+        <span class="creator-name">@{{ displayUsername }}</span>
+        <span v-if="subscribed" class="follow-label">• Suscrito</span>
         <span v-if="isPremium" class="premium-badge">✦ PRO</span>
-        <span class="follow-label">{{ subscribed ? '• Suscrito' : '• Suscribirse' }}</span>
       </div>
       <p v-if="displayDescription" class="video-desc">{{ displayDescription }}</p>
-      <p v-if="displayTitle" class="video-topic">{{ displayTitle }}</p>
       <div class="audio-row">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-        <span class="audio-text">Original Audio</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+        <span class="audio-text">Original Audio - {{ displayUsername }}</span>
       </div>
     </div>
+
+    <!-- Optional controls overlay -->
+    <transition name="fade">
+      <div v-if="showControls" class="controls-overlay" @click.stop>
+        <button class="control-btn" @click="togglePause" :title="paused ? 'Reproducir' : 'Pausar'">
+          <svg v-if="paused" width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+        <button class="control-btn" @click="enterFullscreen" title="Pantalla completa">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        </button>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -134,11 +178,17 @@ const displayDescription = computed(() => {
   return raw && raw.length > 0 ? raw : ''
 })
 
-const isPremium = computed(() => subscribed.value)
+const isPremium = computed(() => props.video.isPaid || subscribed.value)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
 )
+
+function formatCount(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+  return count.toString()
+}
 
 function resolveVideoUrl(v: Video): string | null {
   const raw = v.video_uri_string || v.videoUriString
