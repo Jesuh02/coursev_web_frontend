@@ -32,11 +32,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Course } from '@/domain/models'
 import { resolveImageUrl, courseAdapter } from '@/infrastructure/api'
+import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const search = ref('')
 const courses = ref<Course[]>([])
 
@@ -48,7 +50,29 @@ const filtered = computed(() => {
 
 onMounted(async () => {
   try {
-    courses.value = await courseAdapter.getCourses()
+    const userId = authStore.user?.id
+
+    if (authStore.isAdmin) {
+      // Rol 3: todos los cursos existentes
+      courses.value = await courseAdapter.getCourses()
+    } else if (authStore.isDocente) {
+      // Rol 2: cursos donde es colaborador/creador + cursos matriculados
+      const [manageable, enrolledRes] = await Promise.all([
+        courseAdapter.getManageableCourses(userId!),
+        courseAdapter.getEnrolledCoursesPaginated(userId),
+      ])
+      const enrolled: Course[] = enrolledRes.data ?? (enrolledRes as unknown as Course[])
+      const seen = new Set<number>()
+      courses.value = [...manageable, ...enrolled].filter(c => {
+        if (seen.has(c.id)) return false
+        seen.add(c.id)
+        return true
+      })
+    } else {
+      // Rol 1: solo cursos en los que está matriculado
+      const res = await courseAdapter.getEnrolledCoursesPaginated(userId)
+      courses.value = res.data ?? (res as unknown as Course[])
+    }
   } catch {
     // silently fail
   }

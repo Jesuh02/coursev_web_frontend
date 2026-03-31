@@ -1,91 +1,141 @@
 <template>
-  <div class="database-query">
-    <div class="chat-header">
-      <button class="header-btn" @click="$router.back()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+  <div class="db-chat">
+    <!-- ── Header ── -->
+    <header class="db-header">
+      <button class="hdr-icon" @click="$router.back()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
       </button>
-      <div class="bot-info">
-        <div class="bot-avatar">
-          <span class="status-dot" />
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2">
+
+      <div class="hdr-title-group">
+        <span class="hdr-title">LLM Database</span>
+        <span class="hdr-badge">DeepSeek-V3</span>
+      </div>
+
+      <button class="hdr-icon" @click="clearChat" title="Limpiar chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M22 2 12 12" /></svg>
+      </button>
+    </header>
+
+    <!-- ── Messages ── -->
+    <div ref="messagesContainer" class="db-messages">
+      <!-- Welcome empty state -->
+      <div v-if="!messages.length" class="welcome">
+        <h2 class="welcome-heading">¿En qué puedo ayudarte?</h2>
+
+        <div class="suggestions">
+          <button class="suggestion-card" @click="insertAndSend('¿Cuál es el progreso general de los estudiantes por curso?')">
+            <span class="sug-icon sug-icon--blue">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="sug-text">Progreso de estudiantes</span>
+          </button>
+
+          <button class="suggestion-card" @click="insertAndSend('Genera un excel con el progreso de los estudiantes por curso')">
+            <span class="sug-icon sug-icon--green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="sug-text">Excel de progreso</span>
+          </button>
+
+          <button class="suggestion-card" @click="insertAndSend('Muéstrame los últimos 10 usuarios registrados')">
+            <span class="sug-icon sug-icon--purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <span class="sug-text">Últimos usuarios</span>
+          </button>
+
+          <button class="suggestion-card" @click="insertAndSend('¿Cuál es el rendimiento promedio de los docentes en todos los cursos?')">
+            <span class="sug-icon sug-icon--amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </span>
+            <span class="sug-text">Rendimiento de docentes</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages list -->
+      <template v-for="msg in messages" :key="msg.id">
+        <div class="msg-row" :class="msg.role === 'user' ? 'msg-row--user' : 'msg-row--bot'">
+          <!-- Bot avatar -->
+          <div v-if="msg.role === 'assistant'" class="bot-avatar-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+          </div>
+
+          <div class="bubble" :class="msg.role === 'user' ? 'bubble--user' : 'bubble--bot'">
+            <div class="bubble-text" v-html="renderMarkdown(msg.content)" />
+
+            <!-- Excel download -->
+            <a v-if="msg.excelUrl" :href="msg.excelUrl" target="_blank" rel="noopener" class="excel-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              Descargar Excel
+            </a>
+          </div>
+        </div>
+      </template>
+
+      <!-- Typing animation -->
+      <div v-if="isTyping" class="msg-row msg-row--bot">
+        <div class="bot-avatar-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2">
             <ellipse cx="12" cy="5" rx="9" ry="3"/>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
           </svg>
         </div>
-        <div>
-          <p class="bot-name">LLM Database</p>
-          <p class="bot-model">DeepSeek-V3</p>
+        <div class="bubble bubble--bot bubble--typing">
+          <span class="dot" /><span class="dot" /><span class="dot" />
         </div>
-      </div>
-      <button class="header-btn" @click="clearChat">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-      </button>
-    </div>
-
-    <div class="chat-divider" />
-
-    <div ref="messagesContainer" class="messages-container">
-      <div v-if="!messages.length" class="welcome-state">
-        <div class="welcome-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="1.5">
-            <ellipse cx="12" cy="5" rx="9" ry="3"/>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-          </svg>
-        </div>
-        <h3 class="welcome-title">LLM Database Assistant</h3>
-        <p class="welcome-desc">Consulta la base de datos con lenguaje natural o SQL directo</p>
-        <div class="quick-chips">
-          <button class="chip" @click="insertSuggestion('Muéstrame los últimos 10 usuarios registrados')">👥 Últimos usuarios</button>
-          <button class="chip" @click="insertSuggestion('¿Cuántos cursos hay en total?')">📚 Total cursos</button>
-          <button class="chip" @click="insertSuggestion('Genera un excel con todos los estudiantes y sus notas')">📊 Excel de notas</button>
-        </div>
-      </div>
-
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="message-row"
-        :class="msg.role === 'user' ? 'row-user' : 'row-assistant'"
-      >
-        <div class="message-bubble" :class="msg.role === 'user' ? 'user-msg' : 'assistant-msg'">
-          <div class="msg-content" v-html="renderMarkdown(msg.content)" />
-          <a
-            v-if="msg.excelUrl"
-            :href="msg.excelUrl"
-            target="_blank"
-            rel="noopener"
-            class="excel-link"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-            Descargar Excel
-          </a>
-        </div>
-      </div>
-
-      <div v-if="isTyping" class="typing-indicator">
-        <span /><span /><span />
       </div>
     </div>
 
-    <div class="input-area">
-      <input
-        ref="inputRef"
-        v-model="inputText"
-        class="message-input"
-        placeholder="Escribe una consulta..."
-        @keydown.enter="sendQuery"
-      />
-      <button class="send-btn" :disabled="!inputText.trim() || isTyping" @click="sendQuery">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-      </button>
+    <!-- ── Input Bar ── -->
+    <div class="input-bar">
+      <div class="input-row">
+        <textarea
+          ref="inputRef"
+          v-model="inputText"
+          class="chat-input"
+          placeholder="Preguntar al LLM Database"
+          rows="1"
+          @input="autoResize"
+          @keydown.enter.exact="sendQuery"
+        />
+
+        <!-- Voice / Send toggle -->
+        <button
+          v-if="inputText.trim()"
+          class="action-btn action-btn--send"
+          :disabled="isTyping"
+          @click="sendQuery"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+        <button
+          v-else-if="isRecording"
+          class="action-btn action-btn--recording"
+          @click="stopRecording"
+        >
+          <div class="rec-pulse" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+        </button>
+        <button
+          v-else
+          class="action-btn action-btn--mic"
+          @click="startRecording"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { chatAdapter } from '@/infrastructure/api'
 import { api, tokenStorage } from '@/infrastructure/api/httpClient'
 
@@ -103,13 +153,34 @@ interface LLMApiResponse {
 }
 
 const messagesContainer = ref<HTMLElement>()
-const inputRef = ref<HTMLInputElement>()
+const inputRef = ref<HTMLTextAreaElement>()
 const messages = ref<LocalMessage[]>([])
 const inputText = ref('')
 const isTyping = ref(false)
+const isRecording = ref(false)
 const sessionId = ref(`db_query_${tokenStorage.userId ?? Date.now()}`)
 
+let mediaRecorder: any = null
+let recognition: any = null
+
+// ── Lifecycle ──
+
 onMounted(async () => {
+  await loadHistory()
+})
+
+onUnmounted(() => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+  if (recognition) {
+    recognition.abort()
+  }
+})
+
+// ── History ──
+
+async function loadHistory() {
   try {
     let data: any[]
     try {
@@ -129,7 +200,9 @@ onMounted(async () => {
   } catch {
     // ignore
   }
-})
+}
+
+// ── Scroll ──
 
 function scrollToBottom() {
   nextTick(() => {
@@ -137,64 +210,121 @@ function scrollToBottom() {
   })
 }
 
-function insertSuggestion(text: string) {
-  inputText.value = text
-  nextTick(() => inputRef.value?.focus())
+// ── Input helpers ──
+
+function autoResize() {
+  const el = inputRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
 }
+
+function insertAndSend(text: string) {
+  inputText.value = text
+  nextTick(() => sendQuery())
+}
+
+// ── Voice recording (Web Speech API) ──
+
+function startRecording() {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    messages.value.push({
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '⚠️ Tu navegador no soporta reconocimiento de voz. Intenta con Chrome.',
+    })
+    return
+  }
+
+  recognition = new SpeechRecognition()
+  recognition.lang = 'es-ES'
+  recognition.interimResults = false
+  recognition.maxAlternatives = 1
+  recognition.continuous = false
+
+  recognition.onresult = (event: any) => {
+    const transcript = event.results[0][0].transcript
+    inputText.value = transcript
+    isRecording.value = false
+    nextTick(() => {
+      autoResize()
+      inputRef.value?.focus()
+    })
+  }
+
+  recognition.onerror = () => {
+    isRecording.value = false
+  }
+
+  recognition.onend = () => {
+    isRecording.value = false
+  }
+
+  recognition.start()
+  isRecording.value = true
+}
+
+function stopRecording() {
+  if (recognition) {
+    recognition.stop()
+  }
+  isRecording.value = false
+}
+
+// ── Markdown / Tables ──
 
 function renderMarkdown(text: string): string {
   const lines = text.split('\n')
-  const processedLines: string[] = []
+  const out: string[] = []
   let i = 0
 
   while (i < lines.length) {
+    // Table detection
     if (
       i + 1 < lines.length &&
       lines[i].includes('|') &&
       /^\s*\|?\s*[-:]+[-|:\s]*$/.test(lines[i + 1])
     ) {
-      const headerCells = lines[i].split('|').map(c => c.trim()).filter(c => c.length > 0)
+      const headers = lines[i].split('|').map(c => c.trim()).filter(Boolean)
       let j = i + 2
-      const bodyRows: string[][] = []
+      const rows: string[][] = []
       while (j < lines.length && lines[j].includes('|') && !/^\s*$/.test(lines[j])) {
-        const cells = lines[j].split('|').map(c => c.trim()).filter(c => c.length > 0)
-        if (cells.length > 0) bodyRows.push(cells)
+        rows.push(lines[j].split('|').map(c => c.trim()).filter(Boolean))
         j++
       }
-      let table = '<div class="table-wrapper"><table class="md-table">'
-      table += '<thead><tr>'
-      for (const h of headerCells) {
-        table += `<th>${h.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</th>`
+      let t = '<div class="tbl-wrap"><table class="md-tbl"><thead><tr>'
+      for (const h of headers) t += `<th>${esc(h)}</th>`
+      t += '</tr></thead><tbody>'
+      for (const r of rows) {
+        t += '<tr>'
+        for (let k = 0; k < headers.length; k++) t += `<td>${esc(r[k] ?? '')}</td>`
+        t += '</tr>'
       }
-      table += '</tr></thead><tbody>'
-      for (const row of bodyRows) {
-        table += '<tr>'
-        for (let k = 0; k < headerCells.length; k++) {
-          const cell = (row[k] ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          table += `<td>${cell}</td>`
-        }
-        table += '</tr>'
-      }
-      table += '</tbody></table></div>'
-      processedLines.push(table)
+      t += '</tbody></table></div>'
+      out.push(t)
       i = j
     } else {
-      const line = lines[i]
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="code-block"><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/^(#{1,3})\s+(.+)$/, (_, _h, t) => `<strong>${t}</strong>`)
-      processedLines.push(line)
+      out.push(
+        lines[i]
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="code-blk"><code>$2</code></pre>')
+          .replace(/`([^`]+)`/g, '<code class="c-inline">$1</code>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/^(#{1,3})\s+(.+)$/, (_, _h, t) => `<strong>${t}</strong>`)
+      )
       i++
     }
   }
-
-  return processedLines.join('<br />')
+  return out.join('<br/>')
 }
+
+function esc(s: string) {
+  return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+}
+
+// ── Send ──
 
 async function sendQuery() {
   const text = inputText.value.trim()
@@ -202,27 +332,23 @@ async function sendQuery() {
 
   messages.value.push({ id: crypto.randomUUID(), role: 'user', content: text })
   inputText.value = ''
+  nextTick(() => {
+    if (inputRef.value) inputRef.value.style.height = 'auto'
+  })
   scrollToBottom()
 
   isTyping.value = true
   try {
     await chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value, origin: 'db_query' })
 
-    // Detect if user wants an Excel export
     const wantsExcel = /excel|exportar|descargar|csv/i.test(text)
-
     let excelUrl: string | null = null
 
     if (wantsExcel) {
       try {
-        const excelData = await api.post<{ url: string; rows: number }>('/excel/generate-excel', {
-          query: text,
-          userId: tokenStorage.userId,
-        })
-        excelUrl = excelData.url
-      } catch {
-        // Fall through to normal LLM query
-      }
+        const d = await api.post<{ url: string; rows: number }>('/excel/generate-excel', { query: text, userId: tokenStorage.userId })
+        excelUrl = d.url
+      } catch { /* fallthrough */ }
     }
 
     const data = await api.postSlow<LLMApiResponse>('/llm/process', {
@@ -235,19 +361,9 @@ async function sendQuery() {
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
     const finalExcelUrl = excelUrl || data.excelUrl || null
 
-    messages.value.push({
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: reply,
-      excelUrl: finalExcelUrl,
-    })
+    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl: finalExcelUrl })
 
-    await chatAdapter.upsertMessage({
-      content: reply,
-      role: 'assistant',
-      sessionId: sessionId.value,
-      origin: 'db_query',
-    })
+    await chatAdapter.upsertMessage({ content: reply, role: 'assistant', sessionId: sessionId.value, origin: 'db_query' })
   } catch {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
   }
@@ -262,285 +378,371 @@ function clearChat() {
 </script>
 
 <style scoped>
-.database-query {
+*,*::before,*::after { box-sizing: border-box; }
+
+/* ── Root ── */
+.db-chat {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #000;
+  height: 100dvh;
+  background: #0D0D0D;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  color: #E8E8E8;
 }
 
-.chat-header {
+/* ── Header ── */
+.db-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 14px 16px;
   background: #0D0D0D;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
 }
 
-.header-btn {
+.hdr-icon {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  color: rgba(255,255,255,0.6);
+  transition: background 0.15s;
+}
+.hdr-icon:hover { background: rgba(255,255,255,0.08); }
+
+.hdr-title-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.bot-info {
+.hdr-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.hdr-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(0,212,255,0.15);
+  color: #00D4FF;
+  letter-spacing: 0.3px;
+}
+
+/* ── Messages container ── */
+.db-messages {
   flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.db-messages::-webkit-scrollbar { width: 4px; }
+.db-messages::-webkit-scrollbar-track { background: transparent; }
+.db-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+/* ── Welcome state ── */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 40px 20px;
+  gap: 32px;
+}
+
+.welcome-heading {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+}
+
+/* ── Suggestion cards ── */
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.suggestion-card {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: #1A1A1A;
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.2s, transform 0.1s;
+  text-align: left;
+}
+.suggestion-card:hover {
+  background: #222;
+  border-color: rgba(255,255,255,0.12);
+}
+.suggestion-card:active { transform: scale(0.97); }
+
+.sug-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sug-icon--blue   { background: rgba(0,140,255,0.15); color: #3B9EFF; }
+.sug-icon--green  { background: rgba(52,199,89,0.15); color: #34C759; }
+.sug-icon--purple { background: rgba(191,90,242,0.15); color: #BF5AF2; }
+.sug-icon--amber  { background: rgba(255,179,64,0.15); color: #FFB340; }
+
+.sug-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ccc;
+  line-height: 1.3;
 }
 
-.bot-avatar { position: relative; }
+/* ── Message rows ── */
+.msg-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  animation: fadeUp .2s ease;
+}
+.msg-row--user { justify-content: flex-end; }
+.msg-row--bot  { justify-content: flex-start; }
 
-.status-dot {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 8px;
-  height: 8px;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bot-avatar-sm {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #00D4FF;
-  border: 2px solid #0D0D0D;
-}
-
-.bot-name { font-size: 15px; font-weight: 600; color: #E8E8E8; }
-.bot-model { font-size: 11px; color: #666; }
-
-.chat-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(0,212,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.welcome-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  text-align: center;
-  padding: 40px;
-}
-
-.welcome-icon { margin-bottom: 16px; }
-.welcome-title { font-size: 20px; font-weight: 600; color: #fff; }
-.welcome-desc { font-size: 14px; color: #8E8E93; margin-top: 6px; max-width: 280px; }
-
-.quick-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.chip {
-  padding: 8px 14px;
-  border-radius: 20px;
-  background: #1C1C1E;
-  border: 1px solid rgba(0,212,255,0.2);
-  color: #e8e8e8;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.chip:hover {
-  background: #2C2C2E;
-  border-color: #00D4FF;
-}
-
-.message-row {
-  display: flex;
-}
-.row-user { justify-content: flex-end; }
-.row-assistant { justify-content: flex-start; }
-
-.message-bubble {
-  max-width: 85%;
+/* ── Bubbles ── */
+.bubble {
+  max-width: 82%;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   word-break: break-word;
 }
 
-.user-msg {
-  background: #00D4FF;
-  color: #000;
+.bubble--user {
+  background: linear-gradient(135deg, #0084FF 0%, #0066CC 100%);
+  color: #fff;
   border-bottom-right-radius: 4px;
 }
 
-.assistant-msg {
+.bubble--bot {
   background: #1C1C1E;
   color: #E8E8E8;
   border-bottom-left-radius: 4px;
 }
 
-.excel-link {
+.bubble-text :deep(strong) { color: #fff; }
+.bubble-text :deep(em)     { color: #bbb; font-style: italic; }
+
+/* Typing */
+.bubble--typing {
+  display: flex;
+  gap: 5px;
+  padding: 14px 18px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00D4FF;
+  animation: blink 1.4s infinite ease-in-out both;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Excel pill ── */
+.excel-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  padding: 6px 12px;
-  background: rgba(0,212,255,0.15);
-  color: #00D4FF;
-  border-radius: 8px;
+  margin-top: 10px;
+  padding: 7px 14px;
+  background: rgba(52,199,89,0.12);
+  color: #34C759;
+  border: 1px solid rgba(52,199,89,0.25);
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s;
 }
-.excel-link:hover {
-  background: rgba(0,212,255,0.25);
-}
+.excel-pill:hover { background: rgba(52,199,89,0.22); }
 
-.msg-content :deep(pre.code-block) {
-  background: #0A0A0A;
-  border: 1px solid rgba(0,212,255,0.2);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin: 8px 0;
+/* ── Markdown tables ── */
+.bubble-text :deep(.tbl-wrap) {
   overflow-x: auto;
-  font-size: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-.msg-content :deep(code.inline-code) {
-  background: rgba(0,212,255,0.15);
-  color: #00D4FF;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 13px;
-}
-
-.msg-content :deep(strong) { color: #fff; }
-
-.typing-indicator {
-  display: flex;
-  gap: 4px;
-  padding: 12px 16px;
-  background: #1C1C1E;
-  border-radius: 18px;
-  align-self: flex-start;
-  width: fit-content;
-}
-
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #00D4FF;
-  animation: typing-bounce 1.4s infinite ease-in-out both;
-}
-
-.typing-indicator span:nth-child(1) { animation-delay: 0s; }
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typing-bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-.input-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #0D0D0D;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.message-input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 20px;
-  background: #1C1C1E;
-  border: none;
-  color: #00D4FF;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-}
-
-.message-input::placeholder { color: #666; }
-.message-input:focus { outline: none; }
-
-.send-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #00D4FF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #000;
-  transition: opacity 0.2s;
-}
-
-.send-btn:disabled { opacity: 0.4; }
-
-/* ─── Markdown table styles ─── */
-.msg-content :deep(.table-wrapper) {
-  overflow-x: auto;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: 1px solid rgba(0,212,255,0.2);
-}
-
-.msg-content :deep(.md-table) {
+.bubble-text :deep(.md-tbl) {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
   white-space: nowrap;
 }
 
-.msg-content :deep(.md-table th) {
-  background: rgba(0,212,255,0.12);
+.bubble-text :deep(.md-tbl th) {
+  background: rgba(0,212,255,0.08);
   color: #00D4FF;
-  padding: 8px 10px;
+  padding: 9px 12px;
   text-align: left;
   font-weight: 600;
-  border-bottom: 1px solid rgba(0,212,255,0.2);
+  border-bottom: 1px solid rgba(0,212,255,0.15);
 }
 
-.msg-content :deep(.md-table td) {
-  padding: 6px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  color: #E8E8E8;
+.bubble-text :deep(.md-tbl td) {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #d0d0d0;
 }
 
-.msg-content :deep(.md-table tbody tr:hover) {
-  background: rgba(0,212,255,0.05);
+.bubble-text :deep(.md-tbl tbody tr:hover) {
+  background: rgba(0,212,255,0.04);
 }
 
-.msg-content :deep(pre.code-block) {
-  background: #0A0A0A;
-  border: 1px solid rgba(0,212,255,0.2);
+.bubble-text :deep(.code-blk) {
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 8px 0;
   overflow-x: auto;
   font-size: 12px;
+  color: #e0e0e0;
 }
 
-.msg-content :deep(code.inline-code) {
-  background: rgba(0,212,255,0.15);
+.bubble-text :deep(.c-inline) {
+  background: rgba(0,212,255,0.12);
   color: #00D4FF;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.msg-content :deep(strong) { color: #fff; }
+/* user bubble table overrides */
+.bubble--user :deep(.md-tbl th) {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+.bubble--user :deep(.md-tbl td) { color: rgba(255,255,255,0.9); }
+
+/* ── Input bar ── */
+.input-bar {
+  padding: 10px 16px 14px;
+  background: #0D0D0D;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: #1A1A1A;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 6px 6px 6px 16px;
+  transition: border-color 0.2s;
+}
+.input-row:focus-within {
+  border-color: rgba(0,212,255,0.35);
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #E8E8E8;
+  font-size: 15px;
+  font-family: inherit;
+  resize: none;
+  max-height: 120px;
+  padding: 8px 0;
+  line-height: 1.4;
+}
+.chat-input::placeholder { color: #666; }
+.chat-input:focus { outline: none; }
+.chat-input::-webkit-scrollbar { width: 0; }
+
+/* ── Action buttons ── */
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.1s, background 0.15s;
+}
+.action-btn:active { transform: scale(0.9); }
+
+.action-btn--send {
+  background: #fff;
+  color: #0D0D0D;
+}
+.action-btn--send:disabled { opacity: 0.3; }
+
+.action-btn--mic {
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+}
+.action-btn--mic:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+.action-btn--recording {
+  background: #FF3B30;
+  color: #fff;
+  position: relative;
+}
+
+.rec-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,59,48,0.4);
+  animation: pulse-ring 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
 </style>
