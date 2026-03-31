@@ -139,13 +139,12 @@
           </div>
           <div class="topic-expanded">
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
-            <a
+            <button
               v-for="item in topicContent[topic.id]"
               :key="item.id"
               class="content-row"
-              :href="getFileUrl(item)"
-              target="_blank"
-              rel="noopener"
+              type="button"
+              @click="downloadContentItem(item)"
             >
               <div class="ci-icon" :class="item.contentType">
                 <svg v-if="item.contentType === 'video'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -156,7 +155,7 @@
                 <p class="ci-type">{{ item.contentType === 'video' ? 'Video' : 'Documento' }}</p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
-            </a>
+            </button>
             <div class="files-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               ARCHIVOS DEL TEMA
@@ -224,14 +223,13 @@
               <p v-if="task.description" class="task-description">{{ task.description }}</p>
               <div class="task-attachments">
                 <span v-if="!taskContent[task.id]?.length" class="no-attachments">No hay archivos adjuntos</span>
-                <a
+                <button
                   v-for="ci in taskContent[task.id]"
                   :key="ci.id"
                   class="attachment-link"
-                  :href="getFileUrl(ci)"
-                  target="_blank"
-                  rel="noopener"
-                >📎 {{ ci.fileName || ci.content }}</a>
+                  type="button"
+                  @click="downloadContentItem(ci)"
+                >📎 {{ ci.fileName || ci.content }}</button>
               </div>
               <button
                 class="submissions-btn"
@@ -504,6 +502,42 @@ function getFileUrl(item: ContentItem): string {
   if (!item.fileUri) return '#'
   if (item.fileUri.startsWith('http')) return item.fileUri
   return buildProxyFileUrl(item.fileUri)
+}
+
+function getDownloadFileName(item: ContentItem): string {
+  const candidate = (item.fileName || item.content || '').trim()
+  return candidate || `archivo-${item.id}`
+}
+
+async function downloadContentItem(item: ContentItem) {
+  const fileUrl = getFileUrl(item)
+  if (fileUrl === '#') return
+
+  const downloadName = getDownloadFileName(item)
+
+  try {
+    const response = await fetch(fileUrl)
+    if (!response.ok) throw new Error(`Download failed: ${response.status}`)
+
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = downloadName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch (error) {
+    console.error('Error downloading file:', error)
+    const fallbackLink = document.createElement('a')
+    fallbackLink.href = fileUrl
+    fallbackLink.download = downloadName
+    fallbackLink.rel = 'noopener'
+    document.body.appendChild(fallbackLink)
+    fallbackLink.click()
+    fallbackLink.remove()
+  }
 }
 
 function getSubmissionStatus(taskId: number): string {
@@ -898,7 +932,8 @@ onMounted(async () => {
 .content-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
   border-radius: 10px; background: rgba(255,255,255,0.03); margin-bottom: 6px;
-  text-decoration: none; color: inherit; transition: background 0.15s;
+  width: 100%; border: none; text-decoration: none; color: inherit; transition: background 0.15s;
+  cursor: pointer; text-align: left;
 }
 .content-row:hover { background: rgba(255,255,255,0.06); }
 .ci-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -924,7 +959,10 @@ onMounted(async () => {
 .task-description { font-size: 13px; color: #8E8E93; margin-top: 8px; line-height: 1.4; }
 .task-attachments { margin-top: 8px; }
 .no-attachments { font-size: 12px; color: #555; }
-.attachment-link { display: block; font-size: 12px; color: #00D4FF; text-decoration: none; margin-top: 4px; }
+.attachment-link {
+  display: block; margin-top: 4px; padding: 0; border: none; background: transparent;
+  font-size: 12px; color: #00D4FF; text-decoration: none; cursor: pointer;
+}
 .attachment-link:hover { text-decoration: underline; }
 
 .submissions-btn {

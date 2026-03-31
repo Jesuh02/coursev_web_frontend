@@ -69,19 +69,44 @@ const filtered = computed(() => {
   return courses.value.filter(c => c.title.toLowerCase().includes(q))
 })
 
+async function fetchAllCourses(): Promise<Course[]> {
+  const all: Course[] = []
+  let page = 1
+  while (true) {
+    const res = await courseAdapter.getCoursesPaginated(page, 100)
+    all.push(...(res.data ?? []))
+    if (!res.pagination?.hasNext) break
+    page++
+  }
+  return all
+}
+
+async function fetchAllEnrolled(userId?: number): Promise<Course[]> {
+  const all: Course[] = []
+  let page = 1
+  while (true) {
+    const res = await courseAdapter.getEnrolledCoursesPaginated(userId, page, 100)
+    const data: Course[] = Array.isArray(res) ? (res as unknown as Course[]) : (res.data ?? [])
+    all.push(...data)
+    const hasNext = !Array.isArray(res) && (res.pagination?.hasNext ?? false)
+    if (!hasNext) break
+    page++
+  }
+  return all
+}
+
 onMounted(async () => {
   loading.value = true
   try {
     const userId = authStore.user?.id
 
     if (authStore.isAdmin) {
-      courses.value = await courseAdapter.getCourses()
+      courses.value = await fetchAllCourses()
     } else if (authStore.isDocente) {
-      const [manageable, enrolledRes] = await Promise.all([
+      const [manageable, enrolled] = await Promise.all([
         courseAdapter.getManageableCourses(userId!),
-        courseAdapter.getEnrolledCoursesPaginated(userId),
+        fetchAllEnrolled(userId),
       ])
-      const enrolled: Course[] = enrolledRes.data ?? (enrolledRes as unknown as Course[])
       const seen = new Set<number>()
       courses.value = [...manageable, ...enrolled].filter(c => {
         if (seen.has(c.id)) return false
@@ -89,8 +114,7 @@ onMounted(async () => {
         return true
       })
     } else {
-      const res = await courseAdapter.getEnrolledCoursesPaginated(userId)
-      courses.value = res.data ?? (res as unknown as Course[])
+      courses.value = await fetchAllEnrolled(userId)
     }
   } catch {
     // silently fail
