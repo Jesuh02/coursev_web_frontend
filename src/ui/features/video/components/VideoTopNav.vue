@@ -282,7 +282,7 @@ function navigate(path: string) {
 .menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 199;
+  z-index: 49;
 }
 
 .menu-fade-enter-active,
