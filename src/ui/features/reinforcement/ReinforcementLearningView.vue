@@ -385,6 +385,46 @@ const scoreMsg = computed(() => {
   return 'Repasa el material y vuelve a intentarlo 💡'
 })
 
+function shouldConvertMathFillQuestion(question: string, correctAnswer?: string) {
+  const answer = String(correctAnswer ?? '').trim()
+  if (!answer || !/^-?\d+(?:[.,]\d+)?$/.test(answer.replace(/\s+/g, ''))) return false
+
+  const text = String(question ?? '').trim()
+  if (!text) return false
+  if (/(select\b|function\b|return\b|const\b|let\b|from\b|where\b|class\b|def\b|public\b)/i.test(text)) return false
+
+  return /(suma|sumatoria|calcula|resuelve|aritm[ée]tica|serie)/i.test(text)
+    || /[+×÷\-*=Σ∑]/.test(text)
+}
+
+function formatMathOption(value: number) {
+  if (Number.isInteger(value)) return String(value)
+  return value.toFixed(2).replace(/\.00$/, '')
+}
+
+function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
+  if (question.type !== 'fill_in_blank' || !shouldConvertMathFillQuestion(question.question, question.correctAnswer)) {
+    return question
+  }
+
+  const numericAnswer = Number(String(question.correctAnswer ?? '').trim().replace(/,/g, ''))
+  if (!Number.isFinite(numericAnswer)) return question
+
+  const absValue = Math.abs(numericAnswer)
+  const step = absValue >= 1000 ? Math.max(1, Math.round(absValue * 0.05)) : absValue >= 100 ? 10 : absValue >= 20 ? 5 : 1
+  return {
+    ...question,
+    type: 'multiple_choice',
+    options: [
+      formatMathOption(numericAnswer),
+      formatMathOption(numericAnswer + step),
+      formatMathOption(numericAnswer - step),
+      formatMathOption(numericAnswer + (step * 2)),
+    ],
+    correctIndex: 0,
+  }
+}
+
 // ─── Confetti ───────────────────────────────────────────────────────────────────
 const SYMS = ['⭐', '✨', '🌟', '💫', '🎊', '🎉']
 const confetti = Array.from({ length: 20 }, (_, i) => ({
@@ -582,7 +622,7 @@ async function startQuiz() {
       ? data
       : (data as { questions?: QuizQuestion[] })?.questions ?? []
 
-    const qs = raw.filter(q => q.question)
+    const qs = raw.filter(q => q.question).map(normalizeQuestionForDisplay)
     if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
     questions.value = qs
     quizStartTime = Date.now()

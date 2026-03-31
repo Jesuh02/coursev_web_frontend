@@ -117,16 +117,29 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
   // Prevent browser from serving stale cached responses across different user sessions
   const cachePolicy: RequestCache = 'no-store'
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, INITIAL_BACKOFF_MS * attempt))
+  const fetchWithAuthRetry = async (): Promise<T> => {
+    const headers = isPublic
+      ? { 'Content-Type': 'application/json' }
+      : authHeaders()
+
+    const execFetch = () => fetch(url, { ...options, cache: cachePolicy, headers: { ...headers, ...options?.headers } })
+    const res = await execFetch()
+
+    if (res.status === 401 && !isPublic) {
+      const refreshed = await tryRefresh()
+      if (refreshed) {
+        const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
+        return handler(retryRes)
+      }
+      tokenStorage.clear()
+      _onUnauthorized?.()
+      throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
+    }
 
     try {
-      const headers = isPublic
-        ? { 'Content-Type': 'application/json' }
-        : authHeaders()
-      const res = await fetch(url, { ...options, cache: cachePolicy, headers: { ...headers, ...options?.headers } })
-
-      if (res.status === 401 && !isPublic) {
+      return await handler(res)
+    } catch (error) {
+      if (!isPublic && error instanceof HttpError && error.statusCode === 401) {
         const refreshed = await tryRefresh()
         if (refreshed) {
           const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
@@ -136,8 +149,15 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
         _onUnauthorized?.()
         throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
       }
+      throw error
+    }
+  }
 
-      return handler(res)
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, INITIAL_BACKOFF_MS * attempt))
+
+    try {
+      return await fetchWithAuthRetry()
     } catch (e) {
       lastError = e as Error
       if (e instanceof HttpError) throw e
