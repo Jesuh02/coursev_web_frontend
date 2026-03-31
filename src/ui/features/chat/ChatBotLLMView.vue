@@ -86,23 +86,24 @@
 
       <!-- Welcome empty state -->
       <div v-if="!messages.length" class="empty-state">
-        <div class="empty-avatar">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
-        </div>
-        <p class="empty-title">Asistente de tareas</p>
-        <p v-if="authStore.isAdmin" class="empty-hint">
-          Escribe <kbd>#</kbd> para calificar una entrega — o pregunta sobre el progreso de <strong>todos los estudiantes y docentes</strong>
-        </p>
-        <p v-else class="empty-hint">
-          Escribe <kbd>#</kbd> para calificar una entrega — o usa 📊 para consultar el progreso de <strong>tus estudiantes</strong>
-        </p>
+        <p class="empty-title">¿En qué puedo ayudarte?</p>
         <div class="quick-chips">
-          <button class="quick-chip" @click="insertSuggestion('¿Cómo está el progreso general de mis estudiantes?')">📊 Progreso general</button>
-          <button class="quick-chip" @click="insertSuggestion('¿Qué estudiantes tienen riesgo de reprobar?')">⚠️ En riesgo</button>
-          <button class="quick-chip" @click="insertSuggestion('¿Cuál es el promedio de calificaciones de mis cursos?')">🏆 Promedios</button>
+          <button class="quick-chip" @click="insertSuggestion('¿Cómo está el progreso general de mis estudiantes?')">
+            <span class="chip-icon chip-icon--blue">📊</span>
+            <span class="chip-text">Progreso general</span>
+          </button>
+          <button class="quick-chip" @click="insertSuggestion('¿Qué estudiantes tienen riesgo de reprobar?')">
+            <span class="chip-icon chip-icon--amber">⚠️</span>
+            <span class="chip-text">En riesgo</span>
+          </button>
+          <button class="quick-chip" @click="insertSuggestion('¿Cuál es el promedio de calificaciones de mis cursos?')">
+            <span class="chip-icon chip-icon--green">🏆</span>
+            <span class="chip-text">Promedios</span>
+          </button>
+          <button class="quick-chip" @click="insertSuggestion('Escribe # para calificar una entrega de estudiante')">
+            <span class="chip-icon chip-icon--purple">✅</span>
+            <span class="chip-text">Calificar entrega</span>
+          </button>
         </div>
       </div>
 
@@ -200,6 +201,9 @@
 
     <!-- ── Input bar ── -->
     <div class="input-bar">
+      <button class="plus-btn" title="Opciones">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
       <div class="input-wrap">
         <textarea
           ref="inputRef"
@@ -214,14 +218,22 @@
         />
       </div>
       <button
-        class="send-btn"
-        :class="{ 'send-btn--active': inputText.trim() && !isTyping }"
-        :disabled="!inputText.trim() || isTyping"
+        v-if="inputText.trim() && !isTyping"
+        class="send-btn send-btn--active"
         @click="sendMessage"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/>
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+      <button v-else class="send-btn send-btn--wave" :disabled="isTyping">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="2" y="10" width="2.5" height="4" rx="1.25"/>
+          <rect x="6.5" y="6" width="2.5" height="12" rx="1.25"/>
+          <rect x="11" y="3" width="2.5" height="18" rx="1.25"/>
+          <rect x="15.5" y="6" width="2.5" height="12" rx="1.25"/>
+          <rect x="20" y="10" width="2.5" height="4" rx="1.25"/>
         </svg>
       </button>
     </div>
@@ -1785,6 +1797,21 @@ function renderMarkdown(text: string): string {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 
+.plus-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #2A3942;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.plus-btn:hover { background: #3A4952; color: #E9EDEF; }
+
 .input-wrap {
   flex: 1;
   background: #2A3942;
@@ -1827,6 +1854,12 @@ function renderMarkdown(text: string): string {
 }
 .send-btn--active:hover  { background: #02C78C; }
 .send-btn--active:active { transform: scale(0.93); }
+
+.send-btn--wave {
+  background: #1F2C34;
+  color: rgba(255,255,255,0.6);
+}
+.send-btn--wave:disabled { opacity: 0.4; }
 
 /* ─── Bottom sheet overlays ─────────────────────── */
 .sheet-backdrop {
