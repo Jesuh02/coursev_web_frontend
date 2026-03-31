@@ -66,11 +66,16 @@
 
             <div class="rc-bottom">
               <span class="diff-chip" :class="diffClass(r.difficulty)">{{ diffLabel(r.difficulty) }}</span>
-              <div class="rc-score">
-                <span class="score-correct">✅ {{ r.correct_answers }}/{{ r.total_questions }}</span>
-                <span class="score-grade" :class="r.grade >= 6 ? 'grade-pass' : 'grade-fail'">
-                  {{ r.grade.toFixed(1) }}/10
-                </span>
+              <div class="rc-meta">
+                <span v-if="r.duration_seconds > 0" class="rc-duration">⏱ {{ formatDuration(r.duration_seconds) }}</span>
+                <div class="rc-score">
+                  <span class="score-correct">✅ {{ r.correct_answers }}</span>
+                  <span class="score-incorrect">❌ {{ r.incorrect_answers }}</span>
+                  <span class="score-total">/ {{ r.total_questions }}</span>
+                  <span class="score-grade" :class="r.grade >= 6 ? 'grade-pass' : 'grade-fail'">
+                    {{ r.grade.toFixed(1) }}/10
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -110,9 +115,10 @@ interface ReinforcementResult {
 const results = ref<ReinforcementResult[]>([])
 const loading = ref(false)
 
-const totalSessions = computed(() => results.value.length)
-const totalCorrect  = computed(() => results.value.reduce((s, r) => s + (r.correct_answers ?? 0), 0))
-const totalAnswered = computed(() => results.value.reduce((s, r) => s + (r.total_questions ?? 0), 0))
+const totalSessions  = computed(() => results.value.length)
+const totalCorrect   = computed(() => results.value.reduce((s, r) => s + (r.correct_answers   ?? 0), 0))
+const totalIncorrect = computed(() => results.value.reduce((s, r) => s + (r.incorrect_answers ?? 0), 0))
+const totalAnswered  = computed(() => results.value.reduce((s, r) => s + (r.total_questions   ?? 0), 0))
 
 const avgGrade = computed(() => {
   if (!results.value.length) return '0.0'
@@ -126,10 +132,10 @@ const accuracy = computed(() => {
 })
 
 const metrics = computed(() => [
-  { label: 'Sesiones',  value: String(totalSessions.value),   icon: '📚', color: 'c-purple' },
-  { label: 'Promedio',  value: `${avgGrade.value}/10`,         icon: '🎯', color: 'c-cyan'   },
-  { label: 'Correctas', value: String(totalCorrect.value),     icon: '✅', color: 'c-green'  },
-  { label: 'Precisión', value: accuracy.value,                 icon: '📈', color: 'c-gold'   },
+  { label: 'Sesiones',    value: String(totalSessions.value),   icon: '📚', color: 'c-purple' },
+  { label: 'Promedio',    value: `${avgGrade.value}/10`,         icon: '🎯', color: 'c-cyan'   },
+  { label: 'Correctas',   value: String(totalCorrect.value),     icon: '✅', color: 'c-green'  },
+  { label: 'Incorrectas', value: String(totalIncorrect.value),   icon: '❌', color: 'c-red'    },
 ])
 
 const DIFF_LABEL: Record<string, string> = {
@@ -141,6 +147,13 @@ const DIFF_CLASS: Record<string, string> = {
 
 function diffLabel(d: string) { return DIFF_LABEL[String(d).toUpperCase()] ?? d }
 function diffClass(d: string) { return DIFF_CLASS[String(d).toUpperCase()] ?? 'diff-hard' }
+
+function formatDuration(secs: number): string {
+  if (!secs || secs <= 0) return ''
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
 
 function formatDate(value: string): string {
   if (!value) return ''
@@ -268,6 +281,7 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 .c-cyan   { color: #00D4FF; }
 .c-green  { color: #30D158; }
 .c-gold   { color: #FFD700; }
+.c-red    { color: #FF453A; }
 
 /* CTA */
 .cta-btn {
@@ -365,6 +379,18 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rc-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.rc-duration {
+  font-size: 11px;
+  color: #666;
 }
 .diff-chip {
   font-size: 11px; font-weight: 700; border-radius: 8px;
@@ -375,8 +401,10 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 .diff-hard { background: rgba(255,69,58,.12);  color: #FF453A; border: 1px solid rgba(255,69,58,.25); }
 .diff-free { background: rgba(0,212,255,.12);  color: #00D4FF; border: 1px solid rgba(0,212,255,.25); }
 
-.rc-score  { display: flex; align-items: center; gap: 10px; }
-.score-correct { font-size: 12px; color: #555; }
+.rc-score  { display: flex; align-items: center; gap: 8px; }
+.score-correct   { font-size: 12px; color: #30D158; font-weight: 600; }
+.score-incorrect { font-size: 12px; color: #FF453A; font-weight: 600; }
+.score-total     { font-size: 12px; color: #555; }
 .score-grade   { font-size: 16px; font-weight: 900; }
 .grade-pass    { color: #30D158; }
 .grade-fail    { color: #FF453A; }

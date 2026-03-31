@@ -116,7 +116,8 @@
             <div class="q-tag">Pregunta {{ currentIdx + 1 }}</div>
             <p class="q-text">{{ currentQ.question }}</p>
 
-            <div class="opts-list">
+            <!-- Multiple choice options -->
+            <div v-if="currentQ.options && currentQ.options.length >= 2" class="opts-list">
               <button
                 v-for="(opt, i) in currentQ.options"
                 :key="i"
@@ -132,6 +133,25 @@
                   <span v-else-if="answered && i === pickedIdx && i !== currentQ.correctIndex" class="opt-icon wrong-icon">✗</span>
                 </Transition>
               </button>
+            </div>
+
+            <!-- Fill-in-blank input -->
+            <div v-else class="fill-wrap">
+              <input
+                v-model="fillAnswer"
+                class="fill-input"
+                :disabled="answered"
+                placeholder="Escribe tu respuesta…"
+                type="text"
+                @keyup.enter="!answered && checkFill()"
+              />
+              <Transition name="slide-down">
+                <div v-if="answered" class="fill-feedback" :class="fillCorrect ? 'fill-ok' : 'fill-err'">
+                  <span class="fill-icon">{{ fillCorrect ? '✓' : '✗' }}</span>
+                  <span>{{ fillCorrect ? '¡Correcto!' : `Respuesta: ${currentQ.correctAnswer ?? currentQ.options?.[currentQ.correctIndex] ?? '—'}` }}</span>
+                </div>
+              </Transition>
+              <AppButton v-if="!answered" variant="primary" full @click="checkFill">Verificar</AppButton>
             </div>
 
             <!-- Explanation -->
@@ -213,6 +233,7 @@ interface QuizQuestion {
   question: string
   options: string[]
   correctIndex: number
+  correctAnswer?: string
   explanation?: string
   type?: string
 }
@@ -241,6 +262,8 @@ const pickedIdx    = ref(-1)
 const correctCount = ref(0)
 const errorMsg     = ref('')
 const qTransition  = ref('slide-left')
+const fillAnswer   = ref('')
+const fillCorrect  = ref(false)
 
 // Loading animation
 const loadingTick    = ref(0)
@@ -433,9 +456,10 @@ async function startQuiz() {
   try {
     const userId = tokenStorage.userId
     const body: Record<string, unknown> = {
-      courseId:    courseId.value,
-      difficulty:  'HARD',
-      targetCount: 10,
+      courseId:      courseId.value,
+      difficulty:    'HARD',
+      targetCount:   10,
+      questionType:  'multiple_choice',
     }
     if (topicId.value) body.topicId = topicId.value
     if (taskId.value)  body.taskId  = taskId.value
@@ -451,7 +475,7 @@ async function startQuiz() {
       ? data
       : (data as { questions?: QuizQuestion[] })?.questions ?? []
 
-    const qs = raw.filter(q => Array.isArray(q.options) && q.options.length >= 2)
+    const qs = raw.filter(q => q.question)
     if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
     questions.value = qs
     phase.value = 'quiz'
@@ -471,12 +495,24 @@ function pick(i: number) {
   if (i === currentQ.value.correctIndex) correctCount.value++
 }
 
+function checkFill() {
+  if (answered.value || !fillAnswer.value.trim()) return
+  const q = currentQ.value
+  const expected = (q.correctAnswer ?? q.options?.[q.correctIndex] ?? '').toLowerCase().trim()
+  const given    = fillAnswer.value.toLowerCase().trim()
+  fillCorrect.value = given === expected || (expected !== '' && given.includes(expected.split(' ')[0]))
+  if (fillCorrect.value) correctCount.value++
+  answered.value = true
+}
+
 function nextQ() {
   if (isLastQ.value) { phase.value = 'results'; return }
   qTransition.value = 'slide-left'
   currentIdx.value++
-  answered.value  = false
-  pickedIdx.value = -1
+  answered.value    = false
+  pickedIdx.value   = -1
+  fillAnswer.value  = ''
+  fillCorrect.value = false
 }
 
 function restart() {
@@ -484,6 +520,8 @@ function restart() {
   answered.value     = false
   pickedIdx.value    = -1
   correctCount.value = 0
+  fillAnswer.value   = ''
+  fillCorrect.value  = false
   questions.value    = []
   phase.value        = 'start'
 }
@@ -1118,4 +1156,48 @@ onUnmounted(() => {
   80%  { transform: scale(1.12) rotate(5deg); }
   to   { opacity: 1; transform: scale(1) rotate(0); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FILL-IN-BLANK
+═══════════════════════════════════════════════════════════════════════════════ */
+.fill-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+.fill-input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.fill-input:focus {
+  border-color: rgba(139,92,246,0.6);
+  background: rgba(139,92,246,0.07);
+}
+.fill-input:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.fill-input::placeholder { color: #555; }
+.fill-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fill-feedback.fill-ok  { background: rgba(48,209,88,0.15);  color: #30D158; }
+.fill-feedback.fill-err { background: rgba(255,69,58,0.15);  color: #FF453A; }
+.fill-icon { font-size: 16px; font-weight: 900; flex-shrink: 0; }
 </style>

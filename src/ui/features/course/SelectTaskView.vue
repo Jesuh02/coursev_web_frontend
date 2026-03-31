@@ -118,11 +118,11 @@ onMounted(loadTasks)
 function select(task: Task) {
   if (isReinforcement.value) {
     router.push({
-      path: `/course/${courseId.value}/topic/${topicId.value}/difficulty`,
+      path: `/reinforcement/${courseId.value}`,
       query: {
+        topicId: String(topicId.value),
         taskId: String(task.id),
         ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
-        mode: 'reinforcement',
       },
     })
   } else {

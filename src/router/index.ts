@@ -32,7 +32,6 @@ const routes: RouteRecordRaw[] = [
   { path: '/course/:courseId/task/:taskId?', name: 'courseTask', component: () => import('@/ui/features/course/CourseTaskView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:courseId/select-topic', name: 'selectTopic', component: () => import('@/ui/features/course/SelectTopicView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:courseId/topic/:topicId/select-task', name: 'selectTask', component: () => import('@/ui/features/course/SelectTaskView.vue'), props: true, meta: { hideNav: true } },
-  { path: '/course/:courseId/topic/:topicId/difficulty', name: 'selectDifficulty', component: () => import('@/ui/features/course/DifficultySelectionView.vue'), props: true, meta: { hideNav: true } },
 
   // Submissions
   { path: '/task-submission/:taskId', name: 'taskSubmission', component: () => import('@/ui/features/course/TaskSubmissionView.vue'), props: true, meta: { hideNav: true } },
