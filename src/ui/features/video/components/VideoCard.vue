@@ -129,6 +129,12 @@
             <rect x="14" y="4" width="4" height="16"/>
           </svg>
         </button>
+        <button v-if="pipSupported" class="control-btn" :class="{ 'control-btn--active': pipActive }" @click="togglePiP" :title="pipActive ? 'Salir de pantalla emergente' : 'Pantalla emergente'">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="14" rx="2" ry="2" />
+            <path d="M13 14h6v5h-6z" />
+          </svg>
+        </button>
         <button class="control-btn" @click="enterFullscreen" title="Pantalla completa">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
@@ -167,6 +173,11 @@ const liked = ref(false)
 const likeCount = ref(0)
 const commentCount = ref(0)
 const subscribed = ref(false)
+const pipActive = ref(false)
+
+const pipSupported = computed(() =>
+  typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
+)
 
 const videoUrl = ref<string | null>(null)
 const thumbUrl = ref<string | null>(null)
@@ -216,6 +227,8 @@ onMounted(() => {
   loadCounts()
   videoEl.value?.addEventListener('play', onVideoPlay)
   videoEl.value?.addEventListener('pause', onVideoPause)
+  document.addEventListener('enterpictureinpicture', syncPiPState)
+  document.addEventListener('leavepictureinpicture', syncPiPState)
   if (props.active) tryPlay()
   else setPausedState(true)
 })
@@ -321,15 +334,41 @@ async function enterFullscreen() {
   } catch { /* silent */ }
 }
 
-async function enterPiP() {
-  if (!videoEl.value) return
+function syncPiPState() {
+  pipActive.value = Boolean(document.pictureInPictureElement)
+}
+
+async function togglePiP() {
+  if (!videoEl.value || !pipSupported.value) return
+  
   try {
     if (document.pictureInPictureElement) {
       await document.exitPictureInPicture()
-    } else {
-      await videoEl.value.requestPictureInPicture()
+      syncPiPState()
+      return
     }
-  } catch { /* silent */ }
+
+    if (videoEl.value.readyState < 2) {
+      await new Promise<void>((resolve) => {
+        const onLoadedData = () => {
+          videoEl.value?.removeEventListener('loadeddata', onLoadedData)
+          resolve()
+        }
+        videoEl.value?.addEventListener('loadeddata', onLoadedData, { once: true })
+      })
+    }
+
+    try {
+      await videoEl.value.play()
+    } catch {
+      // Ignore autoplay restrictions
+    }
+
+    await videoEl.value.requestPictureInPicture()
+    syncPiPState()
+  } catch {
+    syncPiPState()
+  }
 }
 
 async function handleLike() {
@@ -351,6 +390,8 @@ onBeforeUnmount(() => {
   clearTimeout(controlsTimeout)
   videoEl.value?.removeEventListener('play', onVideoPlay)
   videoEl.value?.removeEventListener('pause', onVideoPause)
+  document.removeEventListener('enterpictureinpicture', syncPiPState)
+  document.removeEventListener('leavepictureinpicture', syncPiPState)
   if (videoEl.value && !document.pictureInPictureElement) {
     videoEl.value.pause()
     videoEl.value.removeAttribute('src')
@@ -480,6 +521,15 @@ onBeforeUnmount(() => {
 
 .control-btn:active {
   transform: scale(0.9);
+}
+
+.control-btn--active {
+  background: rgba(125, 211, 252, 0.2);
+  color: #7dd3fc;
+}
+
+.control-btn--active:hover {
+  background: rgba(125, 211, 252, 0.3);
 }
 
 .overlay-gradient-top {
