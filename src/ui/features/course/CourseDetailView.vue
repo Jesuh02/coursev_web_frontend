@@ -1,23 +1,5 @@
 <template>
-  <div class="course-detail" :class="{ 'content-ready': contentVisible }">
-    <!-- Celebration overlay on 100% completion -->
-    <Transition name="celebration">
-      <div v-if="showCelebration" class="celebration-overlay" @click="showCelebration = false">
-        <div class="confetti-container">
-          <div v-for="n in 40" :key="n" class="confetti-piece" :style="{ '--i': n, '--x': `${Math.random() * 100}%`, '--r': `${Math.random() * 720 - 360}deg`, '--d': `${2 + Math.random() * 2}s` }" />
-        </div>
-        <div class="celebration-content">
-          <div class="celebration-rings">
-            <div class="celebration-ring" />
-            <div class="celebration-ring celebration-ring--2" />
-          </div>
-          <div class="celebration-icon">🎓</div>
-          <h2 class="celebration-title">¡Curso Completado!</h2>
-          <p class="celebration-subtitle">Felicidades por tu logro</p>
-        </div>
-      </div>
-    </Transition>
-
+  <div class="course-detail">
     <div class="hero-section">
       <div class="hero-toolbar">
         <button class="toolbar-btn" @click="$router.back()">
@@ -71,7 +53,7 @@
         </div>
       </div>
 
-      <div v-if="showStudentProgressCard" class="progress-card animate-fade-up">
+      <div v-if="showStudentProgressCard" class="progress-card">
         <div class="progress-card-header">
           <div>
             <p class="progress-eyebrow">{{ subjectId ? 'Tu progreso en la materia' : 'Tu progreso en el curso' }}</p>
@@ -84,8 +66,7 @@
         </div>
 
         <div class="progress-track">
-          <div class="progress-fill" :class="{ 'progress-complete': displayedProgressPercentage === 100 }" :style="{ width: `${displayedProgressPercentage}%` }" />
-          <div v-if="displayedProgressPercentage === 100" class="progress-shimmer" />
+          <div class="progress-fill" :style="{ width: `${displayedProgressPercentage}%` }" />
         </div>
 
         <div class="progress-meta-row">
@@ -142,7 +123,7 @@
 
       <template v-else-if="activeTab === 'docs'">
         <h2 v-if="topics.length" class="section-heading">Contenido del Tema</h2>
-        <div v-for="(topic, tIdx) in topics" :key="topic.id" class="topic-block animate-fade-up" :style="{ animationDelay: `${tIdx * 100}ms` }">
+        <div v-for="topic in topics" :key="topic.id" class="topic-block">
           <div class="topic-row">
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -159,34 +140,22 @@
           <div class="topic-expanded">
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
             <a
-              v-for="(item, idx) in topicContent[topic.id]"
+              v-for="item in topicContent[topic.id]"
               :key="item.id"
-              class="content-row animate-slide-in"
+              class="content-row"
               :href="getFileUrl(item)"
               target="_blank"
               rel="noopener"
-              :style="{ animationDelay: `${idx * 70}ms` }"
             >
-              <div class="content-thumb" :style="{ background: getContentTypeInfo(item).bg }">
-                <img v-if="getContentThumbnailUrl(item)" :src="getContentThumbnailUrl(item)" alt="" class="content-thumb-img" />
-                <template v-else>
-                  <svg v-if="getContentTypeInfo(item).icon === 'video'" width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                  <svg v-else-if="getContentTypeInfo(item).icon === 'pdf'" width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="15" x2="15" y2="15" /></svg>
-                  <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                </template>
-                <span v-if="getContentTypeInfo(item).icon === 'video'" class="thumb-play-overlay">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                </span>
-                <span class="thumb-ext-badge" :style="{ background: getContentTypeInfo(item).color }">{{ getFileExtension(item) || getContentTypeInfo(item).label }}</span>
+              <div class="ci-icon" :class="item.contentType">
+                <svg v-if="item.contentType === 'video'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
               </div>
               <div class="ci-info">
                 <p class="ci-name">{{ item.fileName || item.content }}</p>
-                <div class="ci-meta-row">
-                  <span class="ci-type-label" :style="{ color: getContentTypeInfo(item).color }">{{ getContentTypeInfo(item).label }}</span>
-                  <span v-if="getFileExtension(item)" class="ci-ext-label">{{ getFileExtension(item) }}</span>
-                </div>
+                <p class="ci-type">{{ item.contentType === 'video' ? 'Video' : 'Documento' }}</p>
               </div>
-              <svg class="content-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </a>
             <div class="files-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
@@ -214,7 +183,7 @@
           <span class="tasks-pending-bar-topics">{{ Object.values(pendingByTopic).filter(c => c > 0).length }} tema{{ Object.values(pendingByTopic).filter(c => c > 0).length !== 1 ? 's' : '' }}</span>
         </div>
         <h2 v-if="topicsWithTasks.length" class="section-heading" :style="hasSubjectContentAccess && totalPendingCount > 0 ? 'margin-top:12px' : ''">Tareas</h2>
-        <div v-for="(topic, tIdx) in topicsWithTasks" :key="topic.id" class="topic-block animate-fade-up" :style="{ animationDelay: `${tIdx * 100}ms` }">
+        <div v-for="topic in topicsWithTasks" :key="topic.id" class="topic-block">
           <div class="topic-row">
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -227,20 +196,15 @@
           <div class="topic-expanded">
             <div class="tasks-label">TAREAS DEL TEMA</div>
             <div v-if="!topicTasks[topic.id]?.length" class="empty-inline">Sin tareas</div>
-            <div v-for="(task, tIdx) in topicTasks[topic.id]" :key="task.id" class="task-card animate-slide-in" :style="{ animationDelay: `${tIdx * 80}ms` }">
+            <div v-for="task in topicTasks[topic.id]" :key="task.id" class="task-card">
               <div class="task-row">
-                <div class="task-status-icon" :class="getSubmissionStatus(task.id)">
-                  <svg v-if="getSubmissionStatus(task.id) === 'graded'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><path d="M20 6L9 17l-5-5" /></svg>
-                  <svg v-else-if="getSubmissionStatus(task.id) === 'pending'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="12" cy="12" r="10" /></svg>
+                <div class="task-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                 </div>
                 <div class="task-info">
                   <p class="task-title">{{ task.title }}</p>
-                  <p v-if="task.description" class="task-description">{{ task.description }}</p>
-                  <div class="task-meta-row">
-                    <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
-                    <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
-                  </div>
+                  <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
+                  <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
                 </div>
                 <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
                   <button
@@ -256,37 +220,23 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
                 </div>
-                <svg v-if="!hasSubjectContentAccess" class="task-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
               </div>
-              <div v-if="taskContent[task.id]?.length" class="task-attachments">
-                <div class="task-attachments-label">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                  Archivos adjuntos
-                </div>
+              <p v-if="task.description" class="task-description">{{ task.description }}</p>
+              <div class="task-attachments">
+                <span v-if="!taskContent[task.id]?.length" class="no-attachments">No hay archivos adjuntos</span>
                 <a
                   v-for="ci in taskContent[task.id]"
                   :key="ci.id"
-                  class="task-attachment-item"
+                  class="attachment-link"
                   :href="getFileUrl(ci)"
                   target="_blank"
                   rel="noopener"
-                >
-                  <div class="task-att-thumb" :style="{ background: getContentTypeInfo(ci).bg }">
-                    <img v-if="getContentThumbnailUrl(ci)" :src="getContentThumbnailUrl(ci)" alt="" class="task-att-thumb-img" />
-                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(ci).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                  </div>
-                  <span class="task-att-name">{{ ci.fileName || ci.content }}</span>
-                  <span class="task-att-ext" :style="{ color: getContentTypeInfo(ci).color }">{{ getContentTypeInfo(ci).label }}</span>
-                </a>
+                >📎 {{ ci.fileName || ci.content }}</a>
               </div>
               <button
                 class="submissions-btn"
                 @click="$router.push(`/task-submission/${task.id}`)"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                {{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}
-                <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span>
-              </button>
+              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
             </div>
           </div>
         </div>
@@ -312,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -347,8 +297,6 @@ const loading = ref(true)
 const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
-const showCelebration = ref(false)
-const contentVisible = ref(false)
 
 const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
 const displayDescription = computed(() => subjectDescription.value || course.value?.description)
@@ -558,35 +506,6 @@ function getFileUrl(item: ContentItem): string {
   return buildProxyFileUrl(item.fileUri)
 }
 
-function getContentTypeInfo(item: ContentItem): { icon: string; color: string; bg: string; label: string } {
-  const ext = (item.fileName || '').split('.').pop()?.toLowerCase() || ''
-  if (item.contentType === 'video' || ['mp4', 'webm', 'mov', 'avi'].includes(ext))
-    return { icon: 'video', color: '#FF375F', bg: 'rgba(255,55,95,0.12)', label: 'Video' }
-  if (['pdf'].includes(ext))
-    return { icon: 'pdf', color: '#FF6B6B', bg: 'rgba(255,107,107,0.10)', label: 'PDF' }
-  if (['doc', 'docx'].includes(ext))
-    return { icon: 'word', color: '#4A90D9', bg: 'rgba(74,144,217,0.10)', label: 'Word' }
-  if (['ppt', 'pptx'].includes(ext))
-    return { icon: 'ppt', color: '#E8621C', bg: 'rgba(232,98,28,0.10)', label: 'PowerPoint' }
-  if (['xls', 'xlsx'].includes(ext))
-    return { icon: 'excel', color: '#217346', bg: 'rgba(33,115,70,0.10)', label: 'Excel' }
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext) || item.contentType === 'image')
-    return { icon: 'image', color: '#BF5AF2', bg: 'rgba(191,90,242,0.10)', label: 'Imagen' }
-  return { icon: 'file', color: '#BF5AF2', bg: 'rgba(191,90,242,0.10)', label: 'Documento' }
-}
-
-function getContentThumbnailUrl(item: ContentItem): string | undefined {
-  const ext = (item.fileName || '').split('.').pop()?.toLowerCase() || ''
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) || item.contentType === 'image') {
-    return getFileUrl(item)
-  }
-  return undefined
-}
-
-function getFileExtension(item: ContentItem): string {
-  return (item.fileName || '').split('.').pop()?.toUpperCase() || ''
-}
-
 function getSubmissionStatus(taskId: number): string {
   return submissionMap.value[taskId] ?? 'not-submitted'
 }
@@ -738,13 +657,6 @@ async function loadPendingSubmissions(courseIdNum: number) {
   } catch { /* silent */ }
 }
 
-watch(displayedProgressPercentage, (newVal, oldVal) => {
-  if (newVal === 100 && oldVal !== undefined && oldVal < 100) {
-    showCelebration.value = true
-    setTimeout(() => { showCelebration.value = false }, 4500)
-  }
-})
-
 onActivated(async () => {
   const courseIdNum = Number(courseId.value)
   if (!courseIdNum) return
@@ -817,38 +729,19 @@ onMounted(async () => {
   }
   await progressPromise
   loading.value = false
-  nextTick(() => { contentVisible.value = true })
 })
 </script>
 
 <style scoped>
-/* ── Base ───────────────────────────────────────────────── */
-.course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-/* ── Animations ────────────────────────────────────────── */
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes progressPulse { 0%, 100% { box-shadow: 0 0 8px rgba(0,212,255,0.3); } 50% { box-shadow: 0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,229,197,0.3); } }
-@keyframes rainbowShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes confettiFall { 0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(100vh) rotate(var(--r, 360deg)) scale(0.4); } }
-@keyframes celebrationIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes celebrationBounce { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 60% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
-@keyframes celebrationRing { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
-.animate-fade-up { animation: fadeUp 0.5s ease-out both; }
-.animate-slide-in { animation: slideIn 0.4s ease-out both; }
+.course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
 .hero-section { position: relative; height: 280px; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
-.toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.2s; }
-.toolbar-btn:hover { transform: scale(1.08); background: rgba(0,0,0,0.6); }
-.toolbar-btn:active { transform: scale(0.95); }
-.hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; }
-.hero-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-.hero-image:hover img { transform: scale(1.03); }
+.toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
+.hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; }
+.hero-image img { width: 100%; height: 100%; object-fit: cover; }
 .hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 75%; background: linear-gradient(transparent, #080C1A); }
-.hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #BF5AF2, #00D4FF); background-size: 200% 100%; animation: shimmer 3s linear infinite; }
+.hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
 .hero-info { position: absolute; bottom: 18px; left: 16px; right: 16px; z-index: 5; }
 
 .course-body { padding: 0 16px; margin-top: 16px; position: relative; }
@@ -859,8 +752,7 @@ onMounted(async () => {
 .course-desc { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 14px; }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: #ccc; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s, background 0.2s; }
-.tag:hover { transform: translateY(-1px); }
+.tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: #ccc; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
 .tag.purple { color: #BF5AF2; border-color: rgba(191,90,242,0.3); background: rgba(191,90,242,0.1); }
 .tag.subject-tag { color: #00D4FF; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
 .tag.config { cursor: pointer; border-color: rgba(255,255,255,0.15); }
@@ -873,9 +765,7 @@ onMounted(async () => {
   background: linear-gradient(180deg, rgba(17,20,40,0.96), rgba(12,15,28,0.92));
   border: 1px solid rgba(0,212,255,0.16);
   box-shadow: 0 18px 40px rgba(0,0,0,0.22);
-  transition: transform 0.3s, box-shadow 0.3s;
 }
-.progress-card:hover { transform: translateY(-2px); box-shadow: 0 22px 50px rgba(0,0,0,0.3), 0 0 30px rgba(0,212,255,0.06); }
 
 .progress-card-header {
   display: flex;
@@ -932,20 +822,7 @@ onMounted(async () => {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #00D4FF, #00E5C5);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
-.progress-fill.progress-complete {
-  background: linear-gradient(90deg, #00D4FF, #30D158, #FFD700, #BF5AF2, #00D4FF);
-  background-size: 200% 100%;
-  animation: rainbowShimmer 2s linear infinite, progressPulse 2s ease-in-out infinite;
-}
-.progress-shimmer {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-  border-radius: inherit;
+  transition: width 0.25s ease;
 }
 
 .progress-meta-row,
@@ -966,9 +843,7 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
-  transition: transform 0.2s;
 }
-.progress-status:hover { transform: scale(1.05); }
 
 .progress-status.won {
   color: #30D158;
@@ -988,10 +863,9 @@ onMounted(async () => {
 .tab-btn {
   flex: 1; padding: 12px; text-align: center; font-size: 15px; font-weight: 700;
   border-radius: 28px; color: #8E8E93; background: transparent;
-  border: 2px solid rgba(255,255,255,0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid rgba(255,255,255,0.08); transition: all 0.25s;
 }
-.tab-btn:hover:not(.active) { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.15); }
-.tab-btn.active { color: #000; background: linear-gradient(135deg, #00D4FF, #00E5C5); border-color: transparent; transform: scale(1.02); box-shadow: 0 4px 20px rgba(0,212,255,0.25); }
+.tab-btn.active { color: #000; background: linear-gradient(135deg, #00D4FF, #00E5C5); border-color: transparent; }
 .tab-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
@@ -1001,19 +875,18 @@ onMounted(async () => {
 
 .loading-center { display: flex; justify-content: center; padding: 50px 0; }
 .spinner { width: 28px; height: 28px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .section-heading { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 14px; }
 
-.topic-block { background: #111428; border-radius: 16px; margin-bottom: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); transition: border-color 0.3s, box-shadow 0.3s; }
-.topic-block:hover { border-color: rgba(191,90,242,0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-.topic-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.2s; }
+.topic-block { background: #111428; border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
+.topic-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; }
 .topic-row:hover { background: rgba(255,255,255,0.03); }
-.topic-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(191,90,242,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s, background 0.2s; }
-.topic-row:hover .topic-icon { transform: scale(1.08); background: rgba(191,90,242,0.22); }
+.topic-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(191,90,242,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .topic-name { flex: 1; font-size: 15px; font-weight: 600; color: #fff; }
-.topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, transform 0.2s; }
-.topic-action:hover { background: rgba(255,255,255,0.08); transform: scale(1.1); }
-.chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; }
+.topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+.topic-action:hover { background: rgba(255,255,255,0.08); }
+.chevron { transition: transform 0.25s; flex-shrink: 0; }
 .chevron.open { transform: rotate(180deg); }
 
 .task-count-badge { font-size: 12px; font-weight: 600; color: #00D4FF; white-space: nowrap; }
@@ -1023,106 +896,50 @@ onMounted(async () => {
 .empty-inline { font-size: 13px; color: #666; padding: 8px 0; }
 
 .content-row {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
-  border-radius: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px;
-  text-decoration: none; color: inherit; border: 1px solid transparent;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(255,255,255,0.03); margin-bottom: 6px;
+  text-decoration: none; color: inherit; transition: background 0.15s;
 }
-.content-row:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.06); transform: translateX(4px); }
-.content-row:active { transform: scale(0.98); }
-
-/* Thumbnail */
-.content-thumb {
-  width: 48px; height: 48px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; position: relative; overflow: hidden; transition: transform 0.2s;
-}
-.content-row:hover .content-thumb { transform: scale(1.06); }
-.content-thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
-.thumb-play-overlay {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-}
-.thumb-ext-badge {
-  position: absolute; bottom: 2px; right: 2px;
-  font-size: 7px; font-weight: 800; color: #fff;
-  padding: 1px 4px; border-radius: 3px;
-  letter-spacing: 0.3px; line-height: 1.2; text-transform: uppercase;
-}
-
+.content-row:hover { background: rgba(255,255,255,0.06); }
+.ci-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ci-icon.document, .ci-icon.pdf, .ci-icon.text { background: rgba(106,27,154,0.2); color: #BF5AF2; }
+.ci-icon.video { background: rgba(255,55,95,0.15); color: #FF375F; }
 .ci-info { flex: 1; min-width: 0; }
-.ci-name { font-size: 13px; font-weight: 600; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ci-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-.ci-type-label { font-size: 11px; font-weight: 600; }
-.ci-ext-label { font-size: 10px; font-weight: 700; color: #666; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; }
-.content-chevron { flex-shrink: 0; transition: transform 0.2s; }
-.content-row:hover .content-chevron { transform: translateX(3px); }
+.ci-name { font-size: 13px; font-weight: 500; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-type { font-size: 11px; color: #BF5AF2; margin-top: 1px; }
 
 .files-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #BF5AF2; letter-spacing: 0.5px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
 
 .tasks-label { font-size: 11px; font-weight: 700; color: #FF375F; letter-spacing: 0.5px; margin-bottom: 10px; }
 
-/* ── Task Card ── */
-.task-card {
-  background: rgba(255,255,255,0.03); border-radius: 14px; padding: 16px;
-  margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.04);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.task-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-.task-row { display: flex; align-items: flex-start; gap: 12px; }
-
-.task-status-icon {
-  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; transition: transform 0.3s;
-}
-.task-status-icon.graded { background: rgba(48,209,88,0.12); }
-.task-status-icon.pending { background: rgba(255,149,0,0.12); }
-.task-status-icon.not-submitted { background: rgba(142,142,147,0.10); }
-.task-card:hover .task-status-icon { transform: scale(1.1); }
-
-.task-info { flex: 1; min-width: 0; }
-.task-title { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3; }
-.task-description { font-size: 13px; color: #8E8E93; margin-top: 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.task-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-.status-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 8px; margin-top: 2px; transition: transform 0.2s; }
-.status-badge:hover { transform: scale(1.05); }
+/* ── Task card v2 (matches Android item_course_task_detail) ── */
+.task-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; margin-bottom: 8px; }
+.task-row { display: flex; align-items: center; gap: 10px; }
+.task-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(0,212,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.task-info { flex: 1; }
+.task-title { font-size: 14px; font-weight: 600; color: #fff; }
+.status-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 8px; margin-top: 4px; }
 .status-badge.pending, .status-badge.not-submitted { color: #FF9500; background: rgba(255,149,0,0.12); }
 .status-badge.graded { color: #30D158; background: rgba(48,209,88,0.12); }
-.task-chevron { flex-shrink: 0; margin-top: 8px; transition: transform 0.2s; }
-.task-card:hover .task-chevron { transform: translateX(3px); }
-
-/* Task Attachments with thumbnails */
-.task-attachments { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
-.task-attachments-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #BF5AF2; letter-spacing: 0.4px; margin-bottom: 8px; text-transform: uppercase; }
-.task-attachment-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; text-decoration: none; color: inherit; transition: background 0.2s; margin-bottom: 4px; }
-.task-attachment-item:hover { background: rgba(255,255,255,0.04); }
-.task-att-thumb { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
-.task-att-thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
-.task-att-name { flex: 1; font-size: 12px; color: #ccc; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.task-att-ext { font-size: 10px; font-weight: 700; flex-shrink: 0; }
-
+.task-description { font-size: 13px; color: #8E8E93; margin-top: 8px; line-height: 1.4; }
+.task-attachments { margin-top: 8px; }
 .no-attachments { font-size: 12px; color: #555; }
 .attachment-link { display: block; font-size: 12px; color: #00D4FF; text-decoration: none; margin-top: 4px; }
 .attachment-link:hover { text-decoration: underline; }
 
 .submissions-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; margin-top: 12px; padding: 10px;
+  display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; padding: 10px;
   text-align: center; font-size: 14px; font-weight: 600; color: #00D4FF;
   border: 1.5px solid rgba(0,212,255,0.3); border-radius: 12px;
-  background: transparent; cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent; transition: all 0.2s; cursor: pointer;
 }
-.submissions-btn:hover { background: rgba(0,212,255,0.08); border-color: rgba(0,212,255,0.5); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,212,255,0.12); }
-.submissions-btn:active { transform: scale(0.98); }
+.submissions-btn:hover { background: rgba(0,212,255,0.08); }
 
 .submissions-btn-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
   background: rgba(245,158,11,0.25); color: #F59E0B;
-  font-size: 11px; font-weight: 700;
+  font-size: 11px; font-weight: 700; margin-left: 8px;
 }
 
 /* ── Pending alert card (admin/docente) ───────────────────── */
@@ -1130,9 +947,7 @@ onMounted(async () => {
   margin-bottom: 20px; padding: 16px; border-radius: 16px;
   background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(234,88,12,0.06));
   border: 1px solid rgba(245,158,11,0.22);
-  transition: transform 0.2s;
 }
-.pending-alert-card:hover { transform: translateY(-1px); }
 .pending-alert-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .pending-alert-icon {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
@@ -1144,17 +959,14 @@ onMounted(async () => {
 .pending-alert-btn {
   padding: 6px 14px; border-radius: 10px; flex-shrink: 0;
   background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.28);
-  color: #F59E0B; font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s;
+  color: #F59E0B; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s;
 }
-.pending-alert-btn:hover { background: rgba(245,158,11,0.22); transform: scale(1.03); }
+.pending-alert-btn:hover { background: rgba(245,158,11,0.22); }
 .pending-topic-list { display: flex; flex-direction: column; gap: 5px; }
 .pending-topic-row {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px;
   border-radius: 10px; background: rgba(255,255,255,0.03);
-  transition: background 0.2s;
 }
-.pending-topic-row:hover { background: rgba(255,255,255,0.05); }
 .pending-topic-dot { width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
 .pending-topic-name { font-size: 13px; color: #ccc; flex: 1; }
 .pending-topic-count { font-size: 12px; font-weight: 600; color: #F59E0B; }
@@ -1170,6 +982,10 @@ onMounted(async () => {
   animation: pulse-badge 2s ease-in-out infinite;
 }
 .tab-btn.active .tab-pending-badge { background: rgba(0,0,0,0.3); color: #fff; box-shadow: none; animation: none; }
+@keyframes pulse-badge {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,0.25); }
+  50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.0); }
+}
 
 /* ── Tasks panel pending summary bar ─────────────────── */
 .tasks-pending-bar {
@@ -1202,12 +1018,12 @@ onMounted(async () => {
 .task-mgmt-btns { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 .task-mgmt-btn {
   width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: none; cursor: pointer; transition: all 0.2s;
+  background: transparent; border: none; cursor: pointer; transition: background 0.15s;
 }
 .task-mgmt-btn.edit { color: #00D4FF; }
-.task-mgmt-btn.edit:hover { background: rgba(0,212,255,0.12); transform: scale(1.1); }
+.task-mgmt-btn.edit:hover { background: rgba(0,212,255,0.12); }
 .task-mgmt-btn.delete { color: #FF453A; }
-.task-mgmt-btn.delete:hover { background: rgba(255,69,58,0.12); transform: scale(1.1); }
+.task-mgmt-btn.delete:hover { background: rgba(255,69,58,0.12); }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
 
@@ -1215,13 +1031,11 @@ onMounted(async () => {
 .action-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700;
-  color: #fff; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #fff; cursor: pointer; transition: transform 0.15s;
 }
-.action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-.action-btn:active { transform: scale(0.97); }
+.action-btn:hover { transform: scale(1.02); }
 .action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .action-btn.task { background: transparent; border: 2px solid #00D4FF; color: #00D4FF; }
-.action-btn.task:hover { background: rgba(0,212,255,0.08); }
 
 /* Enrollment banner */
 .enrollment-banner {
@@ -1260,61 +1074,7 @@ onMounted(async () => {
   color: #fff;
   font-size: 13px;
   font-weight: 700;
-  transition: all 0.25s;
+  transition: opacity 0.2s;
 }
-.enroll-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.3); }
 .enroll-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* ── Celebration Overlay ───────────────────────────────── */
-.celebration-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 1000; display: flex; align-items: center; justify-content: center;
-  background: rgba(8,12,26,0.88); backdrop-filter: blur(10px); cursor: pointer;
-}
-.celebration-enter-active { animation: celebrationIn 0.4s ease-out; }
-.celebration-leave-active { animation: celebrationIn 0.3s ease-in reverse; }
-
-.celebration-content { position: relative; text-align: center; z-index: 2; }
-.celebration-rings { position: relative; width: 200px; height: 200px; margin: 0 auto 20px; }
-.celebration-ring {
-  position: absolute; top: 50%; left: 50%;
-  width: 180px; height: 180px; border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: #00D4FF; border-right-color: #BF5AF2;
-  animation: celebrationRing 2s linear infinite;
-}
-.celebration-ring--2 {
-  width: 220px; height: 220px;
-  border-top-color: #FFD700; border-right-color: #30D158;
-  animation-duration: 3s; animation-direction: reverse;
-}
-.celebration-icon { font-size: 72px; position: relative; z-index: 3; animation: celebrationBounce 0.7s ease-out 0.2s both; }
-.celebration-title {
-  font-size: 28px; font-weight: 800; color: #fff; margin-top: 8px;
-  animation: celebrationBounce 0.5s ease-out 0.4s both;
-  background: linear-gradient(90deg, #00D4FF, #BF5AF2, #FFD700);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.celebration-subtitle { font-size: 16px; color: #A7AEC7; margin-top: 8px; animation: celebrationBounce 0.5s ease-out 0.6s both; }
-
-/* ── Confetti ──────────────────────────────────────────── */
-.confetti-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; pointer-events: none; }
-.confetti-piece {
-  position: absolute; width: 10px; height: 10px;
-  top: -10px; left: var(--x, 50%);
-  animation: confettiFall var(--d, 3s) ease-in-out forwards;
-  animation-delay: calc(var(--i, 1) * 0.08s); opacity: 0;
-}
-.confetti-piece:nth-child(6n+1) { background: #00D4FF; border-radius: 50%; width: 8px; height: 8px; }
-.confetti-piece:nth-child(6n+2) { background: #BF5AF2; border-radius: 2px; transform: rotate(45deg); }
-.confetti-piece:nth-child(6n+3) { background: #FFD700; width: 6px; height: 12px; border-radius: 3px; }
-.confetti-piece:nth-child(6n+4) { background: #30D158; border-radius: 50%; width: 7px; height: 7px; }
-.confetti-piece:nth-child(6n+5) { background: #FF375F; width: 12px; height: 6px; border-radius: 3px; }
-.confetti-piece:nth-child(6n+6) { background: #FF9500; border-radius: 2px; width: 9px; height: 9px; }
-
-/* ── Pulse badge ───────────────────────────────────────── */
-@keyframes pulse-badge {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,0.25); }
-  50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.0); }
-}
 </style>
