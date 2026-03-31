@@ -38,8 +38,46 @@
       <div class="history-section">
         <div class="section-header">
           <span class="section-title">📋 Historial</span>
+          <span v-if="results.length" class="section-badge">{{ results.length }}</span>
         </div>
-        <div class="empty-history">
+
+        <!-- Skeleton -->
+        <div v-if="loading" class="sk-list">
+          <div v-for="n in 3" :key="n" class="sk-item" :style="{ animationDelay: `${n * 80}ms` }" />
+        </div>
+
+        <!-- Results -->
+        <div v-else-if="results.length" class="results-list">
+          <div
+            v-for="(r, i) in results"
+            :key="r.id"
+            class="result-card"
+            :style="{ animationDelay: `${i * 50}ms` }"
+          >
+            <div class="rc-top">
+              <span class="rc-course">{{ r.courses?.title || 'Curso' }}</span>
+              <span class="rc-date">{{ formatDate(r.created_at) }}</span>
+            </div>
+
+            <div v-if="r.topics?.name || r.tasks?.title" class="rc-tags">
+              <span v-if="r.topics?.name" class="rc-tag">📚 {{ r.topics?.name }}</span>
+              <span v-if="r.tasks?.title" class="rc-tag">📝 {{ r.tasks?.title }}</span>
+            </div>
+
+            <div class="rc-bottom">
+              <span class="diff-chip" :class="diffClass(r.difficulty)">{{ diffLabel(r.difficulty) }}</span>
+              <div class="rc-score">
+                <span class="score-correct">✅ {{ r.correct_answers }}/{{ r.total_questions }}</span>
+                <span class="score-grade" :class="r.grade >= 6 ? 'grade-pass' : 'grade-fail'">
+                  {{ r.grade.toFixed(1) }}/10
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div v-else class="empty-history">
           <div class="empty-icon">🏆</div>
           <p class="empty-text">Completa tu primera sesión</p>
           <p class="empty-sub">Tu progreso aparecerá aquí</p>
@@ -51,14 +89,82 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import TopBar from '@/ui/shared/components/TopBar.vue'
+import { reinforcementAdapter } from '@/infrastructure/api'
 
-const metrics = [
-  { label: 'Sesiones',  value: '0',   icon: '📚', color: 'c-purple' },
-  { label: 'Promedio',  value: '0%',  icon: '🎯', color: 'c-cyan'   },
-  { label: 'Correctas', value: '0',   icon: '✅', color: 'c-green'  },
-  { label: 'Mejora',    value: '+0%', icon: '📈', color: 'c-gold'   },
-]
+interface ReinforcementResult {
+  id: number
+  total_questions: number
+  correct_answers: number
+  incorrect_answers: number
+  grade: number
+  difficulty: string
+  duration_seconds: number
+  created_at: string
+  courses?: { title?: string; thumbnail_uri?: string | null } | null
+  topics?: { name?: string; subjects?: { name?: string } | null } | null
+  tasks?: { title?: string } | null
+}
+
+const results = ref<ReinforcementResult[]>([])
+const loading = ref(false)
+
+const totalSessions = computed(() => results.value.length)
+const totalCorrect  = computed(() => results.value.reduce((s, r) => s + (r.correct_answers ?? 0), 0))
+const totalAnswered = computed(() => results.value.reduce((s, r) => s + (r.total_questions ?? 0), 0))
+
+const avgGrade = computed(() => {
+  if (!results.value.length) return '0.0'
+  const sum = results.value.reduce((s, r) => s + (r.grade ?? 0), 0)
+  return (sum / results.value.length).toFixed(1)
+})
+
+const accuracy = computed(() => {
+  if (!totalAnswered.value) return '0%'
+  return Math.round((totalCorrect.value / totalAnswered.value) * 100) + '%'
+})
+
+const metrics = computed(() => [
+  { label: 'Sesiones',  value: String(totalSessions.value),   icon: '📚', color: 'c-purple' },
+  { label: 'Promedio',  value: `${avgGrade.value}/10`,         icon: '🎯', color: 'c-cyan'   },
+  { label: 'Correctas', value: String(totalCorrect.value),     icon: '✅', color: 'c-green'  },
+  { label: 'Precisión', value: accuracy.value,                 icon: '📈', color: 'c-gold'   },
+])
+
+const DIFF_LABEL: Record<string, string> = {
+  EASY: 'Fácil', MEDIUM: 'Medio', INTERMEDIATE: 'Medio', HARD: 'Difícil', FREE: 'Libre',
+}
+const DIFF_CLASS: Record<string, string> = {
+  EASY: 'diff-easy', MEDIUM: 'diff-med', INTERMEDIATE: 'diff-med', HARD: 'diff-hard', FREE: 'diff-free',
+}
+
+function diffLabel(d: string) { return DIFF_LABEL[String(d).toUpperCase()] ?? d }
+function diffClass(d: string) { return DIFF_CLASS[String(d).toUpperCase()] ?? 'diff-hard' }
+
+function formatDate(value: string): string {
+  if (!value) return ''
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) return value.slice(0, 10)
+  const diff = Date.now() - parsed
+  if (diff < 60_000)        return 'Ahora'
+  if (diff < 3_600_000)     return `hace ${Math.floor(diff / 60_000)}m`
+  if (diff < 86_400_000)    return `hace ${Math.floor(diff / 3_600_000)}h`
+  if (diff < 604_800_000)   return `hace ${Math.floor(diff / 86_400_000)}d`
+  return new Date(parsed).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const data = await reinforcementAdapter.getMyResults()
+    results.value = Array.isArray(data) ? data : []
+  } catch {
+    results.value = []
+  } finally {
+    loading.value = false
+  }
+})
 
 const particles = Array.from({ length: 14 }, (_, i) => ({
   id: i,
@@ -205,8 +311,75 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   padding: 20px;
   backdrop-filter: blur(8px);
 }
-.section-header { margin-bottom: 16px; }
+.section-header { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .section-title { font-size: 15px; font-weight: 700; color: #fff; }
+.section-badge {
+  font-size: 11px; font-weight: 700; color: #8B5CF6;
+  background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.3);
+  padding: 1px 7px; border-radius: 20px;
+}
+
+/* Skeleton */
+.sk-list { display: flex; flex-direction: column; gap: 10px; }
+.sk-item {
+  height: 82px; border-radius: 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Result cards */
+.results-list { display: flex; flex-direction: column; gap: 10px; }
+.result-card {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: cardIn .4s cubic-bezier(.34,1.2,.64,1) both;
+}
+.rc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.rc-course { font-size: 14px; font-weight: 700; color: #fff; flex: 1; line-height: 1.3; }
+.rc-date   { font-size: 11px; color: #555; white-space: nowrap; padding-top: 1px; }
+
+.rc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-tag  {
+  font-size: 11px; color: #888;
+  background: rgba(255,255,255,.05);
+  border-radius: 8px; padding: 2px 8px;
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.rc-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.diff-chip {
+  font-size: 11px; font-weight: 700; border-radius: 8px;
+  padding: 3px 10px; letter-spacing: .3px;
+}
+.diff-easy { background: rgba(48,209,88,.15);  color: #30D158; border: 1px solid rgba(48,209,88,.25); }
+.diff-med  { background: rgba(255,214,10,.12); color: #FFD60A; border: 1px solid rgba(255,214,10,.25); }
+.diff-hard { background: rgba(255,69,58,.12);  color: #FF453A; border: 1px solid rgba(255,69,58,.25); }
+.diff-free { background: rgba(0,212,255,.12);  color: #00D4FF; border: 1px solid rgba(0,212,255,.25); }
+
+.rc-score  { display: flex; align-items: center; gap: 10px; }
+.score-correct { font-size: 12px; color: #555; }
+.score-grade   { font-size: 16px; font-weight: 900; }
+.grade-pass    { color: #30D158; }
+.grade-fail    { color: #FF453A; }
 
 .empty-history {
   display: flex;
