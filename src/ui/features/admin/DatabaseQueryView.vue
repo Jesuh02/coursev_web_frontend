@@ -182,12 +182,7 @@ onUnmounted(() => {
 
 async function loadHistory() {
   try {
-    let data: any[]
-    try {
-      data = await api.get<any[]>('/chat-messages/my/db_query')
-    } catch {
-      data = await api.get<any[]>(`/chat-messages/session/${sessionId.value}`)
-    }
+    const data = await api.get<any[]>('/chat-messages/my/db_query')
     if (Array.isArray(data) && data.length > 0) {
       messages.value = data.map((m: any) => ({
         id: String(m.id ?? crypto.randomUUID()),
@@ -198,7 +193,7 @@ async function loadHistory() {
       scrollToBottom()
     }
   } catch {
-    // ignore
+    // ignore – user may have no history yet
   }
 }
 
@@ -324,6 +319,18 @@ function esc(s: string) {
   return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
+// ── Save helper (non-blocking) ──
+
+function persistMessage(content: string, role: 'user' | 'assistant', excelUrl: string | null = null) {
+  chatAdapter.upsertMessage({
+    content,
+    role,
+    sessionId: sessionId.value,
+    origin: 'db_query',
+    excelUrl,
+  } as any).catch(() => { /* save failure is silent – does not disrupt UX */ })
+}
+
 // ── Send ──
 
 async function sendQuery() {
@@ -337,10 +344,11 @@ async function sendQuery() {
   })
   scrollToBottom()
 
+  // Persist user message immediately – independent of the LLM call
+  persistMessage(text, 'user')
+
   isTyping.value = true
   try {
-    await chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value, origin: 'db_query' })
-
     const wantsExcel = /excel|exportar|descargar|csv/i.test(text)
     let excelUrl: string | null = null
 
@@ -363,7 +371,8 @@ async function sendQuery() {
 
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl: finalExcelUrl })
 
-    await chatAdapter.upsertMessage({ content: reply, role: 'assistant', sessionId: sessionId.value, origin: 'db_query' })
+    // Persist assistant response – independent of next UI action
+    persistMessage(reply, 'assistant', finalExcelUrl)
   } catch {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
   }
@@ -371,9 +380,9 @@ async function sendQuery() {
   scrollToBottom()
 }
 
+// Clear only the local view – messages in DB are kept for persistence
 function clearChat() {
   messages.value = []
-  sessionId.value = `db_query_${Date.now()}`
 }
 </script>
 

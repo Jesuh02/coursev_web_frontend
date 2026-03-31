@@ -16,6 +16,7 @@ function toBackendPayload(message: Partial<ChatMessage> & { sessionId: string; o
     hasCalification: (message as Record<string, unknown>).hasCalification ?? false,
     calificationValue: (message as Record<string, unknown>).calificationValue ?? null,
     calificationAdded: (message as Record<string, unknown>).calificationAdded ?? false,
+    excelUrl: message.excelUrl ?? null,
     timestamp: Date.now(),
   }
 }

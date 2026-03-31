@@ -109,6 +109,7 @@ export interface ChatMessage {
   content: string
   createdAt: string
   sessionId?: string
+  excelUrl?: string | null
 }
 
 export interface Subject {
