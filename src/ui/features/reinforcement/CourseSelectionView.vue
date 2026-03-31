@@ -4,28 +4,41 @@
 
     <SearchBar v-model="search" placeholder="Buscar curso..." />
 
-    <div v-if="loading" class="loading-center">
-      <div class="spinner" />
+    <!-- Skeleton -->
+    <div v-if="loading" class="list-wrap">
+      <div v-for="n in 5" :key="n" class="skeleton-row">
+        <div class="sk-thumb" />
+        <div class="sk-body">
+          <div class="sk-line sk-title" />
+          <div class="sk-line sk-sub" />
+        </div>
+      </div>
     </div>
 
     <template v-else>
-      <div class="course-list">
+      <div v-if="filtered.length" class="list-header">
+        <span class="list-count">{{ filtered.length }} {{ filtered.length === 1 ? 'curso' : 'cursos' }}</span>
+      </div>
+
+      <div class="list-wrap">
         <button
           v-for="(course, i) in filtered"
           :key="course.id"
           class="course-option"
-          :style="{ animationDelay: `${i * 55}ms` }"
+          :style="{ animationDelay: `${i * 50}ms` }"
           @click="select(course)"
         >
           <div class="course-thumb">
             <img v-if="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)" :src="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)!" alt="" />
-            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="4" ry="4" /></svg>
+            <div v-else class="thumb-placeholder">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="4" /></svg>
+            </div>
           </div>
           <div class="course-info">
             <p class="course-name">{{ course.title }}</p>
             <p class="course-meta">{{ course.description }}</p>
           </div>
-          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#484848" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
       </div>
 
@@ -94,110 +107,144 @@ function select(course: Course) {
 <style scoped>
 .course-selection { min-height: 100vh; background: var(--bg-primary); }
 
-/* ── Search section spacing ── */
-.course-list { padding: 8px 16px 32px; }
+/* ── List header ── */
+.list-header {
+  padding: 4px 20px 0;
+}
 
-/* ── Card ── */
+.list-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #48484A;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Wrapper ── */
+.list-wrap { padding: 4px 12px 40px; }
+
+/* ── Course card ── */
 .course-option {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 14px 12px;
+  padding: 11px 8px;
   border-radius: 14px;
   text-align: left;
   position: relative;
-  transition: background 0.22s ease, transform 0.22s ease;
-  animation: slideUp 0.35s ease both;
+  transition: background 0.18s ease, transform 0.18s ease;
+  animation: fadeSlide 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .course-option::after {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 72px;
-  right: 0;
+  left: 74px;
+  right: 8px;
   height: 1px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.04);
 }
 
 .course-option:last-child::after { display: none; }
 
 .course-option:active {
-  transform: scale(0.98);
-  background: rgba(255,255,255,0.05);
+  transform: scale(0.975);
+  background: rgba(255,255,255,0.04);
 }
 
 @media (hover: hover) {
-  .course-option:hover {
-    background: rgba(255,255,255,0.05);
-  }
-  .course-option:hover .chevron {
-    transform: translateX(4px);
-    stroke: #00D4FF;
-  }
+  .course-option:hover { background: rgba(255,255,255,0.04); }
+  .course-option:hover .chevron { transform: translateX(3px); stroke: #00D4FF; }
 }
 
-.chevron { flex-shrink: 0; transition: transform 0.22s ease, stroke 0.22s ease; }
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.18s ease;
+}
 
 /* ── Thumbnail ── */
 .course-thumb {
-  width: 58px;
-  height: 42px;
-  border-radius: 10px;
-  background: #1c1c1e;
-  border: 1px solid rgba(255,255,255,0.07);
+  width: 54px;
+  height: 40px;
+  border-radius: 9px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
 }
 
-.course-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.course-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #1c1c1e;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ── Text ── */
 .course-info { flex: 1; min-width: 0; }
 
 .course-name {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
-  color: #fff;
-  letter-spacing: -0.01em;
+  color: #F2F2F7;
+  letter-spacing: -0.015em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .course-meta {
   font-size: 12px;
-  color: #636366;
+  color: #48484A;
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
-/* ── Loading ── */
-.loading-center {
+/* ── Skeleton ── */
+.skeleton-row {
   display: flex;
-  justify-content: center;
-  padding: 72px 0;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 8px;
 }
 
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 2.5px solid rgba(0,212,255,0.18);
-  border-top-color: #00D4FF;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+.sk-thumb {
+  width: 54px;
+  height: 40px;
+  border-radius: 9px;
+  background: #1c1c1e;
+  flex-shrink: 0;
+  animation: shimmer 1.4s ease infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.sk-body { flex: 1; }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
+.sk-line {
+  border-radius: 6px;
+  background: #1c1c1e;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.sk-title { height: 13px; width: 62%; margin-bottom: 8px; }
+.sk-sub   { height: 11px; width: 40%; }
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 </style>

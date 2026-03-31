@@ -543,7 +543,6 @@ function clearChat() {
 
 /* ── Bubbles ── */
 .bubble {
-  max-width: 82%;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 14px;
@@ -552,12 +551,14 @@ function clearChat() {
 }
 
 .bubble--user {
+  max-width: min(72%, 480px);
   background: linear-gradient(135deg, #0084FF 0%, #0066CC 100%);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .bubble--bot {
+  max-width: 92%;
   background: #1C1C1E;
   color: #E8E8E8;
   border-bottom-left-radius: 4px;
