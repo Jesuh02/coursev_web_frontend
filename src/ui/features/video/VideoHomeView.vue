@@ -8,6 +8,20 @@
       <SearchBar v-model="searchQuery" placeholder="Buscar videos..." />
     </div>
 
+    <button
+      v-if="pipSupported"
+      class="pip-btn"
+      :class="{ 'pip-btn--active': pipActive }"
+      :title="pipActive ? 'Cerrar pantalla emergente' : 'Abrir pantalla emergente'"
+      :aria-label="pipActive ? 'Cerrar pantalla emergente' : 'Abrir pantalla emergente'"
+      @click="togglePictureInPicture"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="14" rx="2" ry="2" />
+        <path d="M13 14h6v5h-6z" />
+      </svg>
+    </button>
+
     <!-- Video Feed -->
     <div class="video-home" ref="feedRef" @scroll="onScroll">
       <!-- Skeleton Loading -->
@@ -73,6 +87,11 @@ const feedRef = ref<HTMLElement | null>(null)
 const showSearch = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
+const pipActive = ref(false)
+
+const pipSupported = computed(() =>
+  typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
+)
 
 // Comments overlay state
 const activeCommentVideoId = ref<number | null>(null)
@@ -85,6 +104,16 @@ function openComments(videoId: number, highlightId?: number | null) {
 function closeComments() {
   activeCommentVideoId.value = null
   pendingHighlightId.value   = null
+}
+
+function getActiveVideoElement(): HTMLVideoElement | null {
+  const cards = feedRef.value?.querySelectorAll<HTMLElement>('.video-card')
+  const activeCard = cards?.[activeIndex.value]
+  return activeCard?.querySelector('video') ?? null
+}
+
+function syncPiPState() {
+  pipActive.value = Boolean(document.pictureInPictureElement)
 }
 
 function stripFeedThumbnail(video: Video): Video {
@@ -151,6 +180,7 @@ async function initializeFeed() {
 
 onMounted(() => {
   initializeFeed()
+  syncPiPState()
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -159,6 +189,42 @@ function onScroll() {
   if (!feedRef.value) return
   const cardH = feedRef.value.clientHeight
   activeIndex.value = Math.round(feedRef.value.scrollTop / cardH)
+}
+
+async function togglePictureInPicture() {
+  if (!pipSupported.value) return
+
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture()
+      syncPiPState()
+      return
+    }
+
+    const videoEl = getActiveVideoElement()
+    if (!videoEl || typeof videoEl.requestPictureInPicture !== 'function') return
+
+    if (videoEl.readyState < 2) {
+      await new Promise<void>((resolve) => {
+        const onLoadedData = () => {
+          videoEl.removeEventListener('loadeddata', onLoadedData)
+          resolve()
+        }
+        videoEl.addEventListener('loadeddata', onLoadedData, { once: true })
+      })
+    }
+
+    try {
+      await videoEl.play()
+    } catch {
+      // Ignore autoplay restrictions here; PiP may still succeed.
+    }
+
+    await videoEl.requestPictureInPicture()
+    syncPiPState()
+  } catch {
+    syncPiPState()
+  }
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -231,6 +297,40 @@ function logoutAndGoToLogin() {
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pip-btn {
+  position: fixed;
+  top: 84px;
+  right: 16px;
+  z-index: 65;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(12, 12, 16, 0.78);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.pip-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(20, 20, 28, 0.9);
+}
+
+.pip-btn:active {
+  transform: scale(0.96);
+}
+
+.pip-btn--active {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(8, 47, 73, 0.88);
 }
 
 .skeleton-feed {
