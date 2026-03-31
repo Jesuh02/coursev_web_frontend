@@ -1,5 +1,23 @@
 <template>
-  <div class="course-detail">
+  <div class="course-detail" :class="{ 'content-ready': contentVisible }">
+    <!-- Celebration overlay on 100% completion -->
+    <Transition name="celebration">
+      <div v-if="showCelebration" class="celebration-overlay" @click="showCelebration = false">
+        <div class="confetti-container">
+          <div v-for="n in 40" :key="n" class="confetti-piece" :style="{ '--i': n, '--x': `${Math.random() * 100}%`, '--r': `${Math.random() * 720 - 360}deg`, '--d': `${2 + Math.random() * 2}s` }" />
+        </div>
+        <div class="celebration-content">
+          <div class="celebration-rings">
+            <div class="celebration-ring" />
+            <div class="celebration-ring celebration-ring--2" />
+          </div>
+          <div class="celebration-icon">🎓</div>
+          <h2 class="celebration-title">¡Curso Completado!</h2>
+          <p class="celebration-subtitle">Felicidades por tu logro</p>
+        </div>
+      </div>
+    </Transition>
+
     <div class="hero-section">
       <div class="hero-toolbar">
         <button class="toolbar-btn" @click="$router.back()">
@@ -53,7 +71,7 @@
         </div>
       </div>
 
-      <div v-if="showStudentProgressCard" class="progress-card">
+      <div v-if="showStudentProgressCard" class="progress-card animate-fade-up">
         <div class="progress-card-header">
           <div>
             <p class="progress-eyebrow">{{ subjectId ? 'Tu progreso en la materia' : 'Tu progreso en el curso' }}</p>
@@ -66,7 +84,8 @@
         </div>
 
         <div class="progress-track">
-          <div class="progress-fill" :style="{ width: `${displayedProgressPercentage}%` }" />
+          <div class="progress-fill" :class="{ 'progress-complete': displayedProgressPercentage === 100 }" :style="{ width: `${displayedProgressPercentage}%` }" />
+          <div v-if="displayedProgressPercentage === 100" class="progress-shimmer" />
         </div>
 
         <div class="progress-meta-row">
@@ -123,8 +142,8 @@
 
       <template v-else-if="activeTab === 'docs'">
         <h2 v-if="topics.length" class="section-heading">Contenido del Tema</h2>
-        <div v-for="topic in topics" :key="topic.id" class="topic-block">
-          <div class="topic-row" @click="toggleTopic(topic.id)">
+        <div v-for="(topic, tIdx) in topics" :key="topic.id" class="topic-block animate-fade-up" :style="{ animationDelay: `${tIdx * 100}ms` }">
+          <div class="topic-row">
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
@@ -135,27 +154,39 @@
             <button v-if="hasSubjectContentAccess" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
-            <svg class="chevron" :class="{ open: expandedTopics.has(topic.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
-          <div v-if="expandedTopics.has(topic.id)" class="topic-expanded">
+          <div class="topic-expanded">
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
             <a
-              v-for="item in topicContent[topic.id]"
+              v-for="(item, idx) in topicContent[topic.id]"
               :key="item.id"
-              class="content-row"
+              class="content-row animate-slide-in"
               :href="getFileUrl(item)"
               target="_blank"
               rel="noopener"
+              :style="{ animationDelay: `${idx * 70}ms` }"
             >
-              <div class="ci-icon" :class="item.contentType">
-                <svg v-if="item.contentType === 'video'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+              <div class="content-thumb" :style="{ background: getContentTypeInfo(item).bg }">
+                <img v-if="getContentThumbnailUrl(item)" :src="getContentThumbnailUrl(item)" alt="" class="content-thumb-img" />
+                <template v-else>
+                  <svg v-if="getContentTypeInfo(item).icon === 'video'" width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                  <svg v-else-if="getContentTypeInfo(item).icon === 'pdf'" width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="15" x2="15" y2="15" /></svg>
+                  <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(item).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                </template>
+                <span v-if="getContentTypeInfo(item).icon === 'video'" class="thumb-play-overlay">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                </span>
+                <span class="thumb-ext-badge" :style="{ background: getContentTypeInfo(item).color }">{{ getFileExtension(item) || getContentTypeInfo(item).label }}</span>
               </div>
               <div class="ci-info">
                 <p class="ci-name">{{ item.fileName || item.content }}</p>
-                <p class="ci-type">{{ item.contentType === 'video' ? 'Video' : 'Documento' }}</p>
+                <div class="ci-meta-row">
+                  <span class="ci-type-label" :style="{ color: getContentTypeInfo(item).color }">{{ getContentTypeInfo(item).label }}</span>
+                  <span v-if="getFileExtension(item)" class="ci-ext-label">{{ getFileExtension(item) }}</span>
+                </div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg class="content-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </a>
             <div class="files-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
@@ -183,28 +214,33 @@
           <span class="tasks-pending-bar-topics">{{ Object.values(pendingByTopic).filter(c => c > 0).length }} tema{{ Object.values(pendingByTopic).filter(c => c > 0).length !== 1 ? 's' : '' }}</span>
         </div>
         <h2 v-if="topicsWithTasks.length" class="section-heading" :style="hasSubjectContentAccess && totalPendingCount > 0 ? 'margin-top:12px' : ''">Tareas</h2>
-        <div v-for="topic in topicsWithTasks" :key="topic.id" class="topic-block">
-          <div class="topic-row" @click="toggleTopicTasks(topic.id)">
+        <div v-for="(topic, tIdx) in topicsWithTasks" :key="topic.id" class="topic-block animate-fade-up" :style="{ animationDelay: `${tIdx * 100}ms` }">
+          <div class="topic-row">
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
             <span class="topic-name">{{ topic.title }}</span>
             <span class="task-count-badge">{{ topicTasks[topic.id]?.length ?? 0 }} tareas</span>
             <span v-if="hasSubjectContentAccess && (pendingByTopic[topic.id] ?? 0) > 0" class="topic-pending-pill">⏳ {{ pendingByTopic[topic.id] }} sin revisar</span>
-            <svg class="chevron" :class="{ open: expandedTaskTopics.has(topic.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
-          <div v-if="expandedTaskTopics.has(topic.id)" class="topic-expanded">
+          <div class="topic-expanded">
             <div class="tasks-label">TAREAS DEL TEMA</div>
             <div v-if="!topicTasks[topic.id]?.length" class="empty-inline">Sin tareas</div>
-            <div v-for="task in topicTasks[topic.id]" :key="task.id" class="task-card">
+            <div v-for="(task, tIdx) in topicTasks[topic.id]" :key="task.id" class="task-card animate-slide-in" :style="{ animationDelay: `${tIdx * 80}ms` }">
               <div class="task-row">
-                <div class="task-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                <div class="task-status-icon" :class="getSubmissionStatus(task.id)">
+                  <svg v-if="getSubmissionStatus(task.id) === 'graded'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg v-else-if="getSubmissionStatus(task.id) === 'pending'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="12" cy="12" r="10" /></svg>
                 </div>
                 <div class="task-info">
                   <p class="task-title">{{ task.title }}</p>
-                  <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
-                  <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
+                  <p v-if="task.description" class="task-description">{{ task.description }}</p>
+                  <div class="task-meta-row">
+                    <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
+                    <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
+                  </div>
                 </div>
                 <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
                   <button
@@ -220,23 +256,37 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
                 </div>
+                <svg v-if="!hasSubjectContentAccess" class="task-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
               </div>
-              <p v-if="task.description" class="task-description">{{ task.description }}</p>
-              <div class="task-attachments">
-                <span v-if="!taskContent[task.id]?.length" class="no-attachments">No hay archivos adjuntos</span>
+              <div v-if="taskContent[task.id]?.length" class="task-attachments">
+                <div class="task-attachments-label">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                  Archivos adjuntos
+                </div>
                 <a
                   v-for="ci in taskContent[task.id]"
                   :key="ci.id"
-                  class="attachment-link"
+                  class="task-attachment-item"
                   :href="getFileUrl(ci)"
                   target="_blank"
                   rel="noopener"
-                >📎 {{ ci.fileName || ci.content }}</a>
+                >
+                  <div class="task-att-thumb" :style="{ background: getContentTypeInfo(ci).bg }">
+                    <img v-if="getContentThumbnailUrl(ci)" :src="getContentThumbnailUrl(ci)" alt="" class="task-att-thumb-img" />
+                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="getContentTypeInfo(ci).color" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  </div>
+                  <span class="task-att-name">{{ ci.fileName || ci.content }}</span>
+                  <span class="task-att-ext" :style="{ color: getContentTypeInfo(ci).color }">{{ getContentTypeInfo(ci).label }}</span>
+                </a>
               </div>
               <button
                 class="submissions-btn"
                 @click="$router.push(`/task-submission/${task.id}`)"
-              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                {{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}
+                <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -262,7 +312,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -297,6 +347,8 @@ const loading = ref(true)
 const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
+const showCelebration = ref(false)
+const contentVisible = ref(false)
 
 const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
 const displayDescription = computed(() => subjectDescription.value || course.value?.description)
@@ -506,6 +558,35 @@ function getFileUrl(item: ContentItem): string {
   return buildProxyFileUrl(item.fileUri)
 }
 
+function getContentTypeInfo(item: ContentItem): { icon: string; color: string; bg: string; label: string } {
+  const ext = (item.fileName || '').split('.').pop()?.toLowerCase() || ''
+  if (item.contentType === 'video' || ['mp4', 'webm', 'mov', 'avi'].includes(ext))
+    return { icon: 'video', color: '#FF375F', bg: 'rgba(255,55,95,0.12)', label: 'Video' }
+  if (['pdf'].includes(ext))
+    return { icon: 'pdf', color: '#FF6B6B', bg: 'rgba(255,107,107,0.10)', label: 'PDF' }
+  if (['doc', 'docx'].includes(ext))
+    return { icon: 'word', color: '#4A90D9', bg: 'rgba(74,144,217,0.10)', label: 'Word' }
+  if (['ppt', 'pptx'].includes(ext))
+    return { icon: 'ppt', color: '#E8621C', bg: 'rgba(232,98,28,0.10)', label: 'PowerPoint' }
+  if (['xls', 'xlsx'].includes(ext))
+    return { icon: 'excel', color: '#217346', bg: 'rgba(33,115,70,0.10)', label: 'Excel' }
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext) || item.contentType === 'image')
+    return { icon: 'image', color: '#BF5AF2', bg: 'rgba(191,90,242,0.10)', label: 'Imagen' }
+  return { icon: 'file', color: '#BF5AF2', bg: 'rgba(191,90,242,0.10)', label: 'Documento' }
+}
+
+function getContentThumbnailUrl(item: ContentItem): string | null {
+  const ext = (item.fileName || '').split('.').pop()?.toLowerCase() || ''
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) || item.contentType === 'image') {
+    return getFileUrl(item)
+  }
+  return null
+}
+
+function getFileExtension(item: ContentItem): string {
+  return (item.fileName || '').split('.').pop()?.toUpperCase() || ''
+}
+
 function getSubmissionStatus(taskId: number): string {
   return submissionMap.value[taskId] ?? 'not-submitted'
 }
@@ -518,10 +599,6 @@ function getSubmissionLabel(taskId: number): string {
 }
 
 async function toggleTopic(topicId: number) {
-  if (expandedTopics.has(topicId)) {
-    expandedTopics.delete(topicId)
-    return
-  }
   expandedTopics.add(topicId)
   if (!topicContent.value[topicId]) {
     try {
@@ -531,10 +608,6 @@ async function toggleTopic(topicId: number) {
 }
 
 async function toggleTopicTasks(topicId: number) {
-  if (expandedTaskTopics.has(topicId)) {
-    expandedTaskTopics.delete(topicId)
-    return
-  }
   expandedTaskTopics.add(topicId)
   const tasks = topicTasks.value[topicId] ?? []
   for (const task of tasks) {
@@ -585,6 +658,21 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
       : await topicAdapter.getTopicsByCourse(id)
   } catch { /* empty */ }
 
+  for (const topic of topics.value) {
+    expandedTopics.add(topic.id)
+    expandedTaskTopics.add(topic.id)
+  }
+
+  await Promise.all(
+    topics.value.map(async (topic) => {
+      try {
+        topicContent.value[topic.id] = await contentItemAdapter.getByTopic(topic.id)
+      } catch {
+        topicContent.value[topic.id] = []
+      }
+    }),
+  )
+
   const taskEntries = await Promise.all(
     topics.value.map(async (topic) => {
       try {
@@ -604,16 +692,21 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
   }
   topicTasks.value = nextTaskMap
 
-  // Reload task content for already-expanded topics so new tasks show their attachments
-  for (const [topicIdStr, tasks] of Object.entries(nextTaskMap)) {
-    if (expandedTaskTopics.has(Number(topicIdStr))) {
-      for (const task of tasks) {
-        if (taskContent.value[task.id] === undefined) {
-          try { taskContent.value[task.id] = await contentItemAdapter.getByTask(task.id) }
-          catch { taskContent.value[task.id] = [] }
-        }
+  for (const tasks of Object.values(nextTaskMap)) {
+    for (const task of tasks) {
+      if (taskContent.value[task.id] === undefined) {
+        try { taskContent.value[task.id] = await contentItemAdapter.getByTask(task.id) }
+        catch { taskContent.value[task.id] = [] }
       }
     }
+  }
+
+  for (const topic of topics.value) {
+    await toggleTopic(topic.id)
+  }
+
+  for (const topic of topicsWithTasks.value) {
+    await toggleTopicTasks(topic.id)
   }
 
   await loadSubmissionStatuses(allTasks)
@@ -644,6 +737,13 @@ async function loadPendingSubmissions(courseIdNum: number) {
     pendingMap.value = counts
   } catch { /* silent */ }
 }
+
+watch(displayedProgressPercentage, (newVal, oldVal) => {
+  if (newVal === 100 && oldVal !== undefined && oldVal < 100) {
+    showCelebration.value = true
+    setTimeout(() => { showCelebration.value = false }, 4500)
+  }
+})
 
 onActivated(async () => {
   const courseIdNum = Number(courseId.value)
@@ -717,6 +817,7 @@ onMounted(async () => {
   }
   await progressPromise
   loading.value = false
+  nextTick(() => { contentVisible.value = true })
 })
 </script>
 

@@ -49,13 +49,12 @@
     <div class="overlay-gradient-top" />
     <div class="overlay-gradient-bottom" />
 
-    <div class="overlay-top">
-      <p class="video-title">{{ video.title }}</p>
-    </div>
-
     <div class="right-actions">
       <button class="action-btn profile-btn" @click.stop="$emit('profile')">
-        <AppAvatar :size="46" :alt="video.username" :src="null" />
+        <span class="profile-avatar-shell">
+          <AppAvatar :size="42" :alt="displayUsername" :src="null" />
+          <span class="subscribe-badge">+</span>
+        </span>
       </button>
 
       <button :class="['action-btn', { liked }]" @click.stop="handleLike">
@@ -81,14 +80,15 @@
 
     <div class="bottom-info">
       <div class="creator-row">
-        <span class="creator-name">{{ video.username }}</span>
-        <span class="creator-dot">•</span>
-        <span v-if="subscribed" class="sub-badge">Suscrito</span>
+        <span class="creator-name">{{ displayUsername }}</span>
+        <span v-if="isPremium" class="premium-badge">✦ PRO</span>
+        <span class="follow-label">{{ subscribed ? '• Suscrito' : '• Suscribirse' }}</span>
       </div>
-      <p v-if="video.description" class="video-desc">{{ video.description }}</p>
+      <p v-if="displayDescription" class="video-desc">{{ displayDescription }}</p>
+      <p v-if="displayTitle" class="video-topic">{{ displayTitle }}</p>
       <div class="audio-row">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-        <span class="audio-text">Original Audio - {{ video.username }}</span>
+        <span class="audio-text">Original Audio</span>
       </div>
     </div>
   </div>
@@ -118,6 +118,23 @@ const subscribed = ref(false)
 
 const videoUrl = ref<string | null>(null)
 const thumbUrl = ref<string | null>(null)
+
+const displayUsername = computed(() => {
+  const raw = props.video.username?.trim()
+  return raw && raw.length > 0 ? raw : 'coursev'
+})
+
+const displayTitle = computed(() => {
+  const raw = props.video.title?.trim()
+  return raw && raw.length > 0 ? raw : ''
+})
+
+const displayDescription = computed(() => {
+  const raw = props.video.description?.trim()
+  return raw && raw.length > 0 ? raw : ''
+})
+
+const isPremium = computed(() => subscribed.value)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
@@ -413,42 +430,20 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 240px;
+  height: 300px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
   z-index: 3;
   pointer-events: none;
 }
 
-.overlay-top {
-  position: absolute;
-  top: 60px;
-  left: 16px;
-  right: 72px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.video-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  letter-spacing: -0.3px;
-}
-
 .right-actions {
   position: absolute;
-  right: 10px;
-  bottom: 140px;
+  right: 8px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   z-index: 10;
   pointer-events: auto;
 }
@@ -472,33 +467,59 @@ onBeforeUnmount(() => {
 }
 
 .profile-btn {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   position: relative;
 }
 
+.profile-avatar-shell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .profile-btn :deep(.avatar) {
-  border: 2.5px solid #fff;
+  border: 1.5px solid #9c27b0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
-.action-count {
-  font-size: 12px;
+.subscribe-badge {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ff4aa2 0%, #ff2d55 100%);
+  color: #fff;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.action-count {
+  font-size: 11px;
+  font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .action-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .bottom-info {
   position: absolute;
-  bottom: 20px;
-  left: 14px;
-  right: 72px;
+  left: 16px;
+  right: 80px;
+  bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
   pointer-events: none;
 }
@@ -506,8 +527,9 @@ onBeforeUnmount(() => {
 .creator-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .creator-name {
@@ -517,27 +539,49 @@ onBeforeUnmount(() => {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
-.creator-dot {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  color: #ffd700;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.sub-badge {
-  font-size: 12px;
-  color: #4cd964;
-  font-weight: 600;
+.follow-label {
+  font-size: 14px;
+  color: #aaa;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .video-desc {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   line-height: 1.4;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-clamp: 3;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.video-topic {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #64b5f6;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-clamp: 2;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
@@ -545,20 +589,32 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.85);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.26);
   padding: 6px 12px;
   border-radius: 20px;
   width: fit-content;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  max-width: min(100%, 240px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .audio-text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .right-actions {
+    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-info {
+    right: 76px;
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .fade-enter-active,

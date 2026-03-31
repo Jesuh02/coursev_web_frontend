@@ -186,6 +186,7 @@ function logoutAndGoToLogin() {
 <style scoped>
 .video-home {
   flex: 1;
+  height: 100dvh;
   overflow-y: scroll;
   background: #000;
   scroll-snap-type: y mandatory;
@@ -199,7 +200,7 @@ function logoutAndGoToLogin() {
 
 .search-overlay {
   position: fixed;
-  top: 56px;
+  top: 78px;
   left: 0;
   right: 0;
   z-index: 60;
