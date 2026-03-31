@@ -313,7 +313,7 @@ const isCourseCreator = computed(() => {
 })
 const canEditCourseSettings = computed(() => authStore.isAdmin || isCourseCreator.value)
 const hasSubjectContentAccess = computed(() =>
-  canEditCourseSettings.value || Boolean(subjectId.value && collaboratorAccess.value && isSubjectCreator.value)
+  canEditCourseSettings.value || collaboratorAccess.value
 )
 
 // ── Enrollment flow ────────────────────────────────────────────────
@@ -742,21 +742,8 @@ onMounted(async () => {
     try {
       const access = await collaboratorAdapter.checkAccess(id)
       collaboratorAccess.value = Boolean(access?.hasAccess)
-
-      if (subjectId.value && collaboratorAccess.value && !isCourseCreator.value) {
-        const subject = await subjectAdapter.getSubjectById(subjectId.value)
-        const currentUserId = Number(authStore.user?.id ?? 0)
-        const createdBy = Number(subject?.createdBy ?? 0)
-        isSubjectCreator.value = createdBy > 0 && createdBy === currentUserId
-
-        if (subject?.createdBy != null && !isSubjectCreator.value) {
-          router.back()
-          return
-        }
-      }
     } catch {
       collaboratorAccess.value = false
-      isSubjectCreator.value = false
     }
   }
 
