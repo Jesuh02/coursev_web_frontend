@@ -1,40 +1,52 @@
 <template>
-  <div class="subject-selection">
-    <TopBar title="Seleccionar Materia" @back="$router.back()" />
-
-    <SearchBar v-model="search" placeholder="Buscar materia..." />
-
-    <!-- Skeleton -->
-    <div v-if="loading" class="list-wrap">
-      <div v-for="n in 5" :key="n" class="skeleton-row">
-        <div class="sk-icon" />
-        <div class="sk-line sk-title" />
-      </div>
+  <div class="ss-root">
+    <div class="particles" aria-hidden="true">
+      <span v-for="n in 12" :key="n" class="particle" :style="particleStyle(n)" />
     </div>
 
-    <template v-else>
-      <div v-if="filtered.length" class="list-header">
-        <span class="list-count">{{ filtered.length }} {{ filtered.length === 1 ? 'materia' : 'materias' }}</span>
+    <TopBar title="Seleccionar Materia" @back="$router.back()" />
+
+    <div class="ss-body">
+      <div class="ss-header">
+        <span class="ss-emoji">📖</span>
+        <h1 class="ss-title">Elige una materia</h1>
+        <p class="ss-subtitle">Selecciona la materia para practicar</p>
       </div>
 
-      <div class="list-wrap">
-        <button
-          v-for="(subject, i) in filtered"
-          :key="subject.id"
-          class="subject-option"
-          :style="{ animationDelay: `${i * 50}ms` }"
-          @click="select(subject)"
-        >
-          <div class="subject-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-          </div>
-          <span class="subject-name">{{ subject.name }}</span>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#484848" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
-        </button>
+      <div class="search-wrap">
+        <span class="search-icon">🔎</span>
+        <input v-model="search" class="search-input" placeholder="Buscar materia..." type="search" />
       </div>
 
-      <EmptyState v-if="!filtered.length" icon="book" message="Sin materias disponibles" />
-    </template>
+      <!-- Skeleton -->
+      <div v-if="loading" class="items-list">
+        <div v-for="n in 5" :key="n" class="sk-card" :style="{ animationDelay: `${n * 80}ms` }">
+          <div class="sk-icon" />
+          <div class="sk-lines"><div class="sk-line sk-long" /></div>
+        </div>
+      </div>
+
+      <template v-else>
+        <div v-if="filtered.length" class="items-list">
+          <button
+            v-for="(subject, i) in filtered"
+            :key="subject.id"
+            class="item-card"
+            :style="{ animationDelay: `${i * 50}ms` }"
+            @click="select(subject)"
+          >
+            <span class="item-icon">📚</span>
+            <span class="item-name">{{ subject.name }}</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+        </div>
+
+        <div v-else class="empty-state">
+          <span class="empty-emoji">🔍</span>
+          <p class="empty-msg">Sin materias disponibles</p>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -44,8 +56,6 @@ import { useRouter, useRoute } from 'vue-router'
 import type { Subject } from '@/domain/models'
 import { subjectAdapter } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import SearchBar from '@/ui/shared/components/SearchBar.vue'
-import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -60,6 +70,19 @@ const filtered = computed(() => {
   const q = search.value.toLowerCase()
   return subjects.value.filter(s => s.name.toLowerCase().includes(q))
 })
+
+function particleStyle(n: number) {
+  const pos = [
+    { top: '8%', left: '12%' }, { top: '15%', right: '10%' },
+    { top: '28%', left: '5%' }, { top: '40%', right: '6%' },
+    { top: '55%', left: '8%' }, { top: '65%', right: '12%' },
+    { top: '72%', left: '18%' }, { top: '85%', right: '8%' },
+    { top: '20%', left: '55%' }, { top: '48%', left: '75%' },
+    { top: '78%', left: '60%' }, { top: '90%', left: '35%' },
+  ]
+  const p = pos[(n - 1) % pos.length]
+  return { ...p, animationDelay: `${(n - 1) * 0.55}s`, animationDuration: `${3.5 + (n % 3)}s` }
+}
 
 onMounted(async () => {
   loading.value = true
@@ -79,114 +102,82 @@ function select(subject: Subject) {
 </script>
 
 <style scoped>
-.subject-selection { min-height: 100vh; background: var(--bg-primary); }
-
-.list-header { padding: 4px 20px 0; }
-
-.list-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: #48484A;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.list-wrap { padding: 4px 12px 40px; }
-
-.subject-option {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 12px 8px;
-  border-radius: 14px;
-  text-align: left;
+.ss-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 25% 0%, rgba(191, 90, 242, .16), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(0, 212, 255, .08), transparent 50%),
+    #0A0A0F;
+  overflow-x: hidden;
   position: relative;
-  transition: background 0.18s ease, transform 0.18s ease;
-  animation: fadeSlide 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.subject-option::after {
-  content: '';
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.particle {
   position: absolute;
-  bottom: 0;
-  left: 62px;
-  right: 8px;
-  height: 1px;
-  background: rgba(255,255,255,0.04);
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(191, 90, 242, .5);
+  animation: floatP var(--dur, 4s) ease-in-out infinite;
+  animation-delay: var(--del, 0s);
 }
+.particle:nth-child(odd) { background: rgba(0, 212, 255, .4); width: 2px; height: 2px; }
 
-.subject-option:last-child::after { display: none; }
+.ss-body { position: relative; z-index: 1; padding: 0 16px 48px; }
 
-.subject-option:active {
-  transform: scale(0.975);
-  background: rgba(255,255,255,0.04);
+.ss-header { text-align: center; padding: 28px 0 20px; }
+.ss-emoji { font-size: 52px; display: block; animation: bounce 2.4s ease-in-out infinite; }
+.ss-title { font-size: 22px; font-weight: 700; color: #F2F2F7; letter-spacing: -.02em; margin: 10px 0 6px; }
+.ss-subtitle { font-size: 13px; color: #8E8E93; }
+
+.search-wrap {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px; padding: 12px 16px; margin-bottom: 16px;
 }
+.search-icon { font-size: 16px; flex-shrink: 0; }
+.search-input { flex: 1; background: transparent; border: none; outline: none; color: #F2F2F7; font-size: 15px; }
+.search-input::placeholder { color: #636366; }
 
+.items-list { display: flex; flex-direction: column; gap: 10px; }
+
+.item-card {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 16px; border-radius: 18px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+  text-align: left;
+  transition: background .18s, border-color .18s, transform .18s;
+  animation: fadeUp .35s cubic-bezier(.22,1,.36,1) both;
+}
+.item-card:active { transform: scale(0.97); }
 @media (hover: hover) {
-  .subject-option:hover { background: rgba(255,255,255,0.04); }
-  .subject-option:hover .chevron { transform: translateX(3px); stroke: #BF5AF2; }
+  .item-card:hover { background: rgba(255,255,255,.08); border-color: rgba(191,90,242,.3); transform: translateX(3px); }
+  .item-card:hover .chevron { color: #BF5AF2; }
 }
 
-.chevron {
-  flex-shrink: 0;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.18s ease;
-}
+.item-icon { font-size: 26px; flex-shrink: 0; }
+.item-name { flex: 1; font-size: 15px; font-weight: 500; color: #F2F2F7; letter-spacing: -.015em; line-height: 1.3; }
+.chevron { flex-shrink: 0; color: #48484A; transition: color .18s; }
 
-.subject-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(191,90,242,0.08);
-  border: 1px solid rgba(191,90,242,0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.subject-name {
-  flex: 1;
-  font-size: 14.5px;
-  font-weight: 500;
-  color: #F2F2F7;
-  letter-spacing: -0.015em;
-  line-height: 1.3;
-}
-
-/* ── Skeleton ── */
-.skeleton-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 8px;
-}
-
-.sk-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #1c1c1e;
-  flex-shrink: 0;
+.sk-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 18px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
   animation: shimmer 1.4s ease infinite;
 }
+.sk-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.sk-lines { flex: 1; }
+.sk-line { height: 13px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.sk-long { width: 60%; }
 
-.sk-line {
-  border-radius: 6px;
-  background: #1c1c1e;
-  animation: shimmer 1.4s ease infinite;
-}
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+.empty-msg { font-size: 15px; color: #636366; }
 
-.sk-title { height: 13px; width: 55%; }
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0.5; }
-  50%       { opacity: 1; }
-}
-
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes floatP { 0%, 100% { transform: translateY(0) scale(1); opacity: .4; } 50% { transform: translateY(-14px) scale(1.3); opacity: .9; } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes shimmer { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 </style>
 

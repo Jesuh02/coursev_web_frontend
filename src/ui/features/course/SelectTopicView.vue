@@ -1,48 +1,59 @@
 <template>
-  <div class="select-topic">
+  <div class="st-root">
+    <div class="particles" aria-hidden="true">
+      <span v-for="n in 12" :key="n" class="particle" :style="particleStyle(n)" />
+    </div>
+
     <TopBar title="Seleccionar Tema" @back="$router.back()" />
 
-    <SearchBar v-model="search" placeholder="Buscar tema..." />
-
-    <!-- Skeleton -->
-    <div v-if="loading" class="list-wrap">
-      <div v-for="n in 5" :key="n" class="skeleton-row">
-        <div class="sk-icon" />
-        <div class="sk-line sk-title" />
+    <div class="st-body">
+      <div class="st-header">
+        <span class="st-emoji">📂</span>
+        <h1 class="st-title">Elige un tema</h1>
+        <p class="st-subtitle">Selecciona el tema de práctica</p>
       </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔎</span>
+        <input v-model="search" class="search-input" placeholder="Buscar tema..." type="search" />
+      </div>
+
+      <!-- Skeleton -->
+      <div v-if="loading" class="items-list">
+        <div v-for="n in 5" :key="n" class="sk-card" :style="{ animationDelay: `${n * 80}ms` }">
+          <div class="sk-icon" />
+          <div class="sk-lines"><div class="sk-line sk-long" /></div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div v-else-if="errorMsg" class="error-state">
+        <span class="error-emoji">⚠️</span>
+        <p class="error-msg">{{ errorMsg }}</p>
+        <button class="retry-btn" @click="loadTopics">Reintentar</button>
+      </div>
+
+      <template v-else>
+        <div v-if="filtered.length" class="items-list">
+          <button
+            v-for="(topic, i) in filtered"
+            :key="topic.id"
+            class="item-card"
+            :style="{ animationDelay: `${i * 50}ms` }"
+            @click="select(topic)"
+          >
+            <span class="item-icon">📁</span>
+            <span class="item-name">{{ topic.title }}</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+        </div>
+
+        <div v-else class="empty-state">
+          <span class="empty-emoji">🔍</span>
+          <p class="empty-msg">Sin temas disponibles</p>
+        </div>
+      </template>
     </div>
-
-    <div v-else-if="errorMsg" class="error-state">
-      <div class="error-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF453A" /></svg>
-      </div>
-      <p class="error-msg">{{ errorMsg }}</p>
-      <button class="retry-btn" @click="loadTopics">Reintentar</button>
-    </div>
-
-    <template v-else>
-      <div v-if="filtered.length" class="list-header">
-        <span class="list-count">{{ filtered.length }} {{ filtered.length === 1 ? 'tema' : 'temas' }}</span>
-      </div>
-
-      <div class="list-wrap">
-        <button
-          v-for="(topic, i) in filtered"
-          :key="topic.id"
-          class="topic-option"
-          :style="{ animationDelay: `${i * 50}ms` }"
-          @click="select(topic)"
-        >
-          <div class="topic-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
-          </div>
-          <span class="topic-name">{{ topic.title }}</span>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#484848" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
-        </button>
-      </div>
-
-      <EmptyState v-if="!filtered.length" icon="folder" message="Sin temas disponibles" />
-    </template>
   </div>
 </template>
 
@@ -52,8 +63,6 @@ import { useRouter, useRoute } from 'vue-router'
 import type { Topic } from '@/domain/models'
 import { topicAdapter } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import SearchBar from '@/ui/shared/components/SearchBar.vue'
-import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -74,6 +83,19 @@ const filtered = computed(() => {
   return topics.value.filter(t => t.title.toLowerCase().includes(q))
 })
 
+function particleStyle(n: number) {
+  const pos = [
+    { top: '8%', left: '12%' }, { top: '15%', right: '10%' },
+    { top: '28%', left: '5%' }, { top: '40%', right: '6%' },
+    { top: '55%', left: '8%' }, { top: '65%', right: '12%' },
+    { top: '72%', left: '18%' }, { top: '85%', right: '8%' },
+    { top: '20%', left: '55%' }, { top: '48%', left: '75%' },
+    { top: '78%', left: '60%' }, { top: '90%', left: '35%' },
+  ]
+  const p = pos[(n - 1) % pos.length]
+  return { ...p, animationDelay: `${(n - 1) * 0.55}s`, animationDuration: `${3.5 + (n % 3)}s` }
+}
+
 async function loadTopics() {
   loading.value = true
   errorMsg.value = ''
@@ -81,8 +103,6 @@ async function loadTopics() {
     if (subjectId.value) {
       topics.value = await topicAdapter.getTopicsBySubject(subjectId.value)
     } else {
-      // Fetch by course; if empty, fall back to treating courseId as a subjectId
-      // (handles cases where topics are stored directly under course ID)
       const byCourse = await topicAdapter.getTopicsByCourse(courseId.value)
       if (byCourse.length > 0) {
         topics.value = byCourse
@@ -91,8 +111,7 @@ async function loadTopics() {
       }
     }
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Error al cargar los temas'
-    errorMsg.value = msg
+    errorMsg.value = e instanceof Error ? e.message : 'Error al cargar los temas'
   } finally {
     loading.value = false
   }
@@ -102,7 +121,6 @@ onMounted(loadTopics)
 
 function select(topic: Topic) {
   if (isCreatingTask.value) {
-    // Admin/docente: go directly to task creation form for the selected topic
     router.push({
       path: `/course/${courseId.value}/task`,
       query: {
@@ -123,17 +141,92 @@ function select(topic: Topic) {
 </script>
 
 <style scoped>
-.select-topic { min-height: 100vh; background: var(--bg-primary); }
-
-.list-header { padding: 4px 20px 0; }
-
-.list-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: #48484A;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.st-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 25% 0%, rgba(0, 212, 255, .12), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(98, 0, 238, .10), transparent 50%),
+    #0A0A0F;
+  overflow-x: hidden;
+  position: relative;
 }
+
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.particle {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, .5);
+  animation: floatP 4s ease-in-out infinite;
+}
+.particle:nth-child(odd) { background: rgba(98, 0, 238, .4); width: 2px; height: 2px; }
+
+.st-body { position: relative; z-index: 1; padding: 0 16px 48px; }
+
+.st-header { text-align: center; padding: 28px 0 20px; }
+.st-emoji { font-size: 52px; display: block; animation: bounce 2.4s ease-in-out infinite; }
+.st-title { font-size: 22px; font-weight: 700; color: #F2F2F7; letter-spacing: -.02em; margin: 10px 0 6px; }
+.st-subtitle { font-size: 13px; color: #8E8E93; }
+
+.search-wrap {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px; padding: 12px 16px; margin-bottom: 16px;
+}
+.search-icon { font-size: 16px; flex-shrink: 0; }
+.search-input { flex: 1; background: transparent; border: none; outline: none; color: #F2F2F7; font-size: 15px; }
+.search-input::placeholder { color: #636366; }
+
+.items-list { display: flex; flex-direction: column; gap: 10px; }
+
+.item-card {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 16px; border-radius: 18px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+  text-align: left;
+  transition: background .18s, border-color .18s, transform .18s;
+  animation: fadeUp .35s cubic-bezier(.22,1,.36,1) both;
+}
+.item-card:active { transform: scale(0.97); }
+@media (hover: hover) {
+  .item-card:hover { background: rgba(255,255,255,.08); border-color: rgba(0,212,255,.3); transform: translateX(3px); }
+  .item-card:hover .chevron { color: #00D4FF; }
+}
+
+.item-icon { font-size: 26px; flex-shrink: 0; }
+.item-name { flex: 1; font-size: 15px; font-weight: 500; color: #F2F2F7; letter-spacing: -.015em; line-height: 1.3; }
+.chevron { flex-shrink: 0; color: #48484A; transition: color .18s; }
+
+.sk-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 18px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
+  animation: shimmer 1.4s ease infinite;
+}
+.sk-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.sk-lines { flex: 1; }
+.sk-line { height: 13px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.sk-long { width: 60%; }
+
+.error-state { text-align: center; padding: 60px 20px; }
+.error-emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+.error-msg { font-size: 14px; color: #8E8E93; margin-bottom: 16px; line-height: 1.5; }
+.retry-btn {
+  padding: 10px 28px; border-radius: 22px;
+  background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.18);
+  color: #00D4FF; font-size: 14px; font-weight: 600; transition: background .18s;
+}
+.retry-btn:active { background: rgba(0,212,255,.2); }
+
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+.empty-msg { font-size: 15px; color: #636366; }
+
+@keyframes floatP { 0%, 100% { transform: translateY(0) scale(1); opacity: .4; } 50% { transform: translateY(-14px) scale(1.3); opacity: .9; } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes shimmer { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+</style>
 
 .list-wrap { padding: 4px 12px 40px; }
 

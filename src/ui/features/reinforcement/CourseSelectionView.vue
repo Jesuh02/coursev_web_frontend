@@ -153,7 +153,10 @@ function select(course: Course) {
 
 <style scoped>
 .cs-root {
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background: radial-gradient(ellipse at 25% 0%, rgba(98,0,238,.16) 0%, transparent 55%),
               radial-gradient(ellipse at 85% 90%, rgba(0,212,255,.08) 0%, transparent 50%),
               #0A0A0F;
