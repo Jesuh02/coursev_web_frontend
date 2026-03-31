@@ -54,9 +54,12 @@
           <p class="row-title">{{ item.fileName || item.content || 'Archivo' }}</p>
           <p class="row-meta">{{ item.contentType }}</p>
         </div>
-        <a :href="getFileUrl(item)" target="_blank" rel="noopener" class="row-action">
+        <a :href="getFileUrl(item)" target="_blank" rel="noopener" class="row-action" style="margin-right:4px">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
+        <button class="row-action remove-btn" @click="deleteContentItem(item.id)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <!-- Pending files (not yet uploaded) -->
@@ -274,6 +277,13 @@ async function handleSave() {
   } finally {
     saving.value = false
   }
+}
+
+async function deleteContentItem(id: number) {
+  try {
+    await contentItemAdapter.delete(id)
+    contentItems.value = contentItems.value.filter(ci => ci.id !== id)
+  } catch { /* silent */ }
 }
 
 function getFileUrl(item: ContentItem): string {
