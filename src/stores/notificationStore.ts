@@ -30,19 +30,30 @@ function normalizeNotification(notification: Notification): Notification {
   }
 }
 
-/** Show a browser push notification (requires Notification API permission). */
-function showBrowserNotification(title: string, body: string, icon?: string) {
+/** Show a browser push notification via ServiceWorker (works in background). */
+async function showBrowserNotification(title: string, body: string, icon?: string, notifData?: Partial<Notification>) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-  try {
-    new Notification(title, {
-      body,
-      icon: icon ?? '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'coursev-notification',
-    })
-  } catch {
-    // Silently ignore – unsupported on some browsers in certain contexts
+
+  const options: NotificationOptions = {
+    body,
+    icon: icon ?? '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: notifData?.id ? `notif-${notifData.id}` : 'coursev-notification',
+    data: notifData,
   }
+
+  // Prefer SW showNotification – renders even when tab is in background
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready
+      await reg.showNotification(title, options)
+      return
+    } catch { /* fall through */ }
+  }
+
+  try {
+    new Notification(title, options)
+  } catch { /* Silently ignore – unsupported on some browsers */ }
 }
 
 export const useNotificationStore = defineStore('notifications', () => {
@@ -76,9 +87,11 @@ export const useNotificationStore = defineStore('notifications', () => {
         unreadCount.value = items.value.filter(i => !i.is_read).length
       }
       // Browser push notification
-      showBrowserNotification(
+      void showBrowserNotification(
         notif.title ?? 'Nueva notificación',
         notif.message ?? '',
+        notif.thumbnail_url ?? notif.thumbnailUrl ?? undefined,
+        notif,
       )
     })
   }

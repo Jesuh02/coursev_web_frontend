@@ -318,6 +318,7 @@ const difficultyOptions: Array<{ value: DifficultyLevel; label: string; emoji: s
 // ─── State ─────────────────────────────────────────────────────────────────────
 const selectedDifficulty = ref<DifficultyLevel>('HARD')
 const phase        = ref<Phase>('start')
+let   quizStartTime = 0
 const questions    = ref<QuizQuestion[]>([])
 const currentIdx   = ref(0)
 const answered     = ref(false)
@@ -584,6 +585,7 @@ async function startQuiz() {
     const qs = raw.filter(q => q.question)
     if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
     questions.value = qs
+    quizStartTime = Date.now()
     phase.value = 'quiz'
   } catch (e: unknown) {
     let msg = 'Error al generar preguntas'
@@ -616,8 +618,26 @@ function checkFill() {
   answered.value = true
 }
 
+async function saveReinforcementResult() {
+  const userId = tokenStorage.userId
+  if (!userId || !courseId.value || !questions.value.length) return
+  const durationSeconds = quizStartTime ? Math.round((Date.now() - quizStartTime) / 1000) : 0
+  try {
+    await api.post('/reinforcement-results', {
+      userId:         Number(userId),
+      courseId:       courseId.value,
+      topicId:        topicId.value ?? undefined,
+      taskId:         taskId.value  ?? undefined,
+      totalQuestions: questions.value.length,
+      correctAnswers: correctCount.value,
+      difficulty:     selectedDifficulty.value,
+      durationSeconds,
+    })
+  } catch { /* silent – results UI still shown */ }
+}
+
 function nextQ() {
-  if (isLastQ.value) { phase.value = 'results'; return }
+  if (isLastQ.value) { void saveReinforcementResult(); phase.value = 'results'; return }
   qTransition.value = 'slide-left'
   currentIdx.value++
   answered.value       = false

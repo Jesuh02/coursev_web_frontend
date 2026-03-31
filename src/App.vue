@@ -13,12 +13,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import BottomNavigation from '@/components/BottomNavigation.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const notifStore = useNotificationStore()
 const showNav = computed(() => !route.meta.hideNav)
@@ -30,6 +31,15 @@ onMounted(async () => {
   if (userId > 0) {
     notifStore.connectSocket(userId)
     notifStore.requestBrowserPermission()
+  }
+
+  // Handle notification clicks from the service worker → navigate inside the app
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'NAVIGATE' && event.data.url) {
+        router.push(event.data.url)
+      }
+    })
   }
 })
 
