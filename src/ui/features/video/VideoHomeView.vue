@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -90,8 +90,35 @@ const filteredVideos = computed(() => {
   ).map(stripFeedThumbnail)
 })
 
-onMounted(() => {
-  videoStore.fetchPublicFeed()
+async function focusVideoById(videoId: number) {
+  await videoStore.ensureVideoInFeed(videoId)
+  const targetIndex = filteredVideos.value.findIndex(video => video.id === videoId)
+  if (targetIndex < 0) return
+
+  activeIndex.value = targetIndex
+  await nextTick()
+
+  requestAnimationFrame(() => {
+    const cards = feedRef.value?.querySelectorAll<HTMLElement>('.video-card')
+    cards?.[targetIndex]?.scrollIntoView({ behavior: 'auto', block: 'start' })
+  })
+}
+
+async function initializeFeed() {
+  await videoStore.fetchPublicFeed()
+
+  const selectedVideoId = Number(route.query.videoId)
+  if (selectedVideoId > 0) {
+    await focusVideoById(selectedVideoId)
+    await router.replace({
+      name: 'videoHome',
+      query: {
+        ...route.query,
+        videoId: undefined,
+      },
+    })
+  }
+
   window.addEventListener('keydown', onKeydown)
 
   // Handle notification navigation: ?openComments=videoId&commentId=123&notifId=456
@@ -105,6 +132,10 @@ onMounted(() => {
     // Clean query params from URL without re-navigating
     router.replace({ name: 'videoHome' })
   }
+}
+
+onMounted(() => {
+  initializeFeed()
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))

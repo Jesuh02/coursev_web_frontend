@@ -324,8 +324,10 @@ const requestingEnrollment = ref(false)
 const requiresEnrollmentApproval = computed(() => {
   if (authStore.isAdmin) return false
   if (authStore.isDocente) return false
-  const roles = authStore.user?.roles ?? []
-  return roles.some((role: any) => role.id === 1)
+  // Cualquier usuario que no sea admin ni docente (incluye invitados sin rol definido)
+  // debe pasar por verificación de matrícula. El backend devuelve 'approved' para
+  // invitados directos del curso, estudiantes matriculados, etc.
+  return true
 })
 
 // Muestra el banner cuando la persona no es admin y aun no tiene matricula aprobada.

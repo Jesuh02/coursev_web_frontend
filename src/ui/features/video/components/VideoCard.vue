@@ -6,7 +6,6 @@
       :src="videoUrl ?? undefined"
       :poster="thumbUrl ?? undefined"
       loop
-      muted
       playsinline
       preload="auto"
       @loadeddata="loaded = true"
@@ -49,6 +48,10 @@
 
     <div class="overlay-gradient-top" />
     <div class="overlay-gradient-bottom" />
+
+    <div class="overlay-top">
+      <p class="video-title">{{ video.title }}</p>
+    </div>
 
     <div class="right-actions">
       <button class="action-btn profile-btn" @click.stop="$emit('profile')">
@@ -104,7 +107,7 @@ defineEmits<{ like: []; comment: []; share: []; profile: [] }>()
 const videoEl = ref<HTMLVideoElement | null>(null)
 const loaded = ref(false)
 const paused = ref(true)
-const muted = ref(true)
+const muted = ref(false)
 const videoError = ref(false)
 const showPauseIcon = ref(false)
 const showControls = ref(false)
@@ -153,7 +156,7 @@ function tryPlay() {
     requestAnimationFrame(() => tryPlay())
     return
   }
-  videoEl.value.muted = true
+  videoEl.value.muted = muted.value
   videoEl.value.play().then(() => { paused.value = false }).catch(() => {})
 }
 

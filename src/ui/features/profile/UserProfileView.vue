@@ -213,7 +213,10 @@ function navigateToCourse(course: Course) {
 }
 
 function navigateToVideo(video: Video) {
-  router.push(`/video/${video.id}`)
+  router.push({
+    name: 'videoHome',
+    query: { videoId: String(video.id) },
+  })
 }
 
 onMounted(async () => {
