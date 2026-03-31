@@ -105,7 +105,6 @@
         <span v-if="subscribed" class="follow-label">• Suscrito</span>
         <span v-if="isPremium" class="premium-badge">✦ PRO</span>
       </div>
-      <p v-if="displayDescription" class="video-desc">{{ displayDescription }}</p>
       <div class="audio-row">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
           <path d="M9 18V5l12-2v13" />
@@ -146,7 +145,13 @@ import { tokenStorage, resolveImageUrl, buildProxyFileUrl, extractR2Key } from '
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 
 const props = defineProps<{ video: Video; active: boolean }>()
-defineEmits<{ like: []; comment: []; share: []; profile: [] }>()
+const emit = defineEmits<{
+  like: []
+  comment: []
+  share: []
+  profile: []
+  playbackStateChange: [payload: { paused: boolean }]
+}>()
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 const loaded = ref(false)
@@ -168,21 +173,12 @@ const displayUsername = computed(() => {
   return raw && raw.length > 0 ? raw : 'coursev'
 })
 
-const displayTitle = computed(() => {
-  const raw = props.video.title?.trim()
-  return raw && raw.length > 0 ? raw : ''
-})
-
-const displayDescription = computed(() => {
-  const raw = props.video.description?.trim()
-  return raw && raw.length > 0 ? raw : ''
-})
-
 const isPremium = computed(() => props.video.is_paid || subscribed.value)
 
-const pipSupported = computed(() =>
-  typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
-)
+function setPausedState(value: boolean) {
+  paused.value = value
+  emit('playbackStateChange', { paused: value })
+}
 
 function formatCount(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -215,7 +211,10 @@ onMounted(() => {
   videoUrl.value = resolveVideoUrl(props.video)
   thumbUrl.value = resolveImageUrl(props.video.thumbnail_uri || props.video.thumbnailUri)
   loadCounts()
+  videoEl.value?.addEventListener('play', onVideoPlay)
+  videoEl.value?.addEventListener('pause', onVideoPause)
   if (props.active) tryPlay()
+  else setPausedState(true)
 })
 
 function tryPlay() {
@@ -224,7 +223,15 @@ function tryPlay() {
     return
   }
   videoEl.value.muted = muted.value
-  videoEl.value.play().then(() => { paused.value = false }).catch(() => {})
+  videoEl.value.play().then(() => { setPausedState(false) }).catch(() => { setPausedState(true) })
+}
+
+function onVideoPlay() {
+  setPausedState(false)
+}
+
+function onVideoPause() {
+  setPausedState(true)
 }
 
 async function loadCounts() {
@@ -253,11 +260,11 @@ watch(() => props.active, (isActive) => {
   if (!videoEl.value) return
   if (isActive) {
     videoEl.value.muted = muted.value
-    videoEl.value.play().then(() => { paused.value = false }).catch(() => {})
+    videoEl.value.play().then(() => { setPausedState(false) }).catch(() => { setPausedState(true) })
     showPauseIcon.value = false
   } else {
     videoEl.value.pause()
-    paused.value = true
+    setPausedState(true)
     showControls.value = false
   }
 })
@@ -284,11 +291,11 @@ function togglePause() {
   if (!videoEl.value) return
   if (videoEl.value.paused) {
     videoEl.value.play().catch(() => {})
-    paused.value = false
+    setPausedState(false)
     showPauseIcon.value = false
   } else {
     videoEl.value.pause()
-    paused.value = true
+    setPausedState(true)
     showPauseIcon.value = true
     clearTimeout(pauseTimeout)
     pauseTimeout = setTimeout(() => { showPauseIcon.value = false }, 1500)
@@ -334,6 +341,8 @@ async function handleLike() {
 onBeforeUnmount(() => {
   clearTimeout(pauseTimeout)
   clearTimeout(controlsTimeout)
+  videoEl.value?.removeEventListener('play', onVideoPlay)
+  videoEl.value?.removeEventListener('pause', onVideoPause)
   if (videoEl.value && !document.pictureInPictureElement) {
     videoEl.value.pause()
     videoEl.value.removeAttribute('src')
