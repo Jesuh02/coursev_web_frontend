@@ -575,12 +575,12 @@ function getContentTypeInfo(item: ContentItem): { icon: string; color: string; b
   return { icon: 'file', color: '#BF5AF2', bg: 'rgba(191,90,242,0.10)', label: 'Documento' }
 }
 
-function getContentThumbnailUrl(item: ContentItem): string | null {
+function getContentThumbnailUrl(item: ContentItem): string | undefined {
   const ext = (item.fileName || '').split('.').pop()?.toLowerCase() || ''
   if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) || item.contentType === 'image') {
     return getFileUrl(item)
   }
-  return null
+  return undefined
 }
 
 function getFileExtension(item: ContentItem): string {
