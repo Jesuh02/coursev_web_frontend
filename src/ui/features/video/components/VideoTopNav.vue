@@ -35,7 +35,7 @@
 
     <!-- Right side icons -->
     <div class="right-icons">
-      <button class="avatar-btn" @click="$router.push('/profile')">
+      <button class="avatar-btn" @click="emit('goLogin')">
         <AppAvatar :size="36" :alt="'U'" />
       </button>
       
@@ -50,15 +50,17 @@
 
         <transition name="menu-fade">
           <div v-if="showMenu" class="dropdown-menu" @click.stop>
-            <button class="menu-item" @click="navigate('/chatbot')">
+            <!-- LLM Refuerzo: visible para cualquier rol, incluso sin rol -->
+            <button class="menu-item" @click="navigate('/evaluative-reinforcement')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 16v-4M12 8h.01"/>
+                <path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-4 7.4V18a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.6C7.5 15 5 12.5 5 9a7 7 0 0 1 7-7z"/>
+                <path d="M9 21h6M10 17h4"/>
               </svg>
               <span>LLM Refuerzo</span>
             </button>
 
-            <button v-if="isAdminOrDocente" class="menu-item" @click="navigate('/admin')">
+            <!-- LLM Tareas: solo rol 2 (docente) y rol 3 (admin) -->
+            <button v-if="isAdminOrDocente" class="menu-item" @click="navigate('/chatbot')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 11l3 3L22 4"/>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -66,6 +68,7 @@
               <span>LLM Tareas</span>
             </button>
 
+            <!-- LLM DB: solo rol 3 (admin) -->
             <button v-if="isAdmin" class="menu-item" @click="navigate('/admin/database')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -90,16 +93,15 @@ import { useRouter } from 'vue-router'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 import { useAuthStore } from '@/stores/authStore'
 
-defineEmits<{ toggleSearch: []; goLogin: [] }>()
+const emit = defineEmits<{ toggleSearch: []; goLogin: [] }>()
 
 const router = useRouter()
 const authStore = useAuthStore()
 const showMenu = ref(false)
 
-// Computed para asegurar reactividad de los roles
-const isAdmin = computed(() => authStore.isAdmin)
-const isAdminOrDocente = computed(() => authStore.isAdminOrDocente)
-const hasAnyRole = computed(() => authStore.user?.roles && authStore.user.roles.length > 0)
+// Acceder directamente a user.roles (ref reactivo) para garantizar reactividad
+const isAdmin = computed(() => authStore.user?.roles?.some(r => r.id === 3) ?? false)
+const isAdminOrDocente = computed(() => authStore.user?.roles?.some(r => r.id === 2 || r.id === 3) ?? false)
 
 function navigate(path: string) {
   showMenu.value = false
