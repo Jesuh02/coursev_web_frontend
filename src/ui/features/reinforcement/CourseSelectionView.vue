@@ -153,7 +153,8 @@ function select(course: Course) {
 
 <style scoped>
 .cs-root {
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;

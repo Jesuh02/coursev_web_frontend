@@ -26,22 +26,7 @@
           <span v-if="taskName" class="ctx-pill task">📝 {{ taskName }}</span>
         </div>
 
-        <!-- Difficulty selector -->
-        <p class="diff-title">Selecciona dificultad</p>
-        <div class="diff-row">
-          <button
-            v-for="d in difficulties"
-            :key="d.value"
-            class="diff-btn"
-            :class="{ active: selectedDiff === d.value }"
-            @click="selectedDiff = d.value"
-          >
-            <span class="diff-emoji">{{ d.emoji }}</span>
-            <span class="diff-label">{{ d.label }}</span>
-          </button>
-        </div>
-
-        <AppButton full @click="startQuiz">
+        <AppButton variant="primary" full @click="startQuiz">
           ¡Comenzar Sesión! 🚀
         </AppButton>
       </div>
@@ -245,14 +230,6 @@ const topicName = computed(() => (route.query.topicName as string) || '')
 const taskName  = computed(() => (route.query.taskName  as string) || '')
 
 // ─── Config ────────────────────────────────────────────────────────────────────
-const difficulties = [
-  { value: 'EASY',         label: 'Básico',   emoji: '🌱' },
-  { value: 'INTERMEDIATE', label: 'Medio',    emoji: '⚡' },
-  { value: 'HARD',         label: 'Difícil',  emoji: '🔥' },
-] as const
-
-type Difficulty = typeof difficulties[number]['value']
-
 const letters = ['A', 'B', 'C', 'D']
 
 // ─── State ─────────────────────────────────────────────────────────────────────
@@ -263,7 +240,6 @@ const answered     = ref(false)
 const pickedIdx    = ref(-1)
 const correctCount = ref(0)
 const errorMsg     = ref('')
-const selectedDiff = ref<Difficulty>('HARD')
 const qTransition  = ref('slide-left')
 
 // Loading animation
@@ -458,7 +434,7 @@ async function startQuiz() {
     const userId = tokenStorage.userId
     const body: Record<string, unknown> = {
       courseId:    courseId.value,
-      difficulty:  selectedDiff.value,
+      difficulty:  'HARD',
       targetCount: 10,
     }
     if (topicId.value) body.topicId = topicId.value
@@ -471,10 +447,11 @@ async function startQuiz() {
     // Generate questions (may take 30–120 s)
     const data = await api.post<QuizQuestion[]>('/reinforcement/generate-questions', body)
 
-    const qs: QuizQuestion[] = Array.isArray(data)
+    const raw: QuizQuestion[] = Array.isArray(data)
       ? data
       : (data as { questions?: QuizQuestion[] })?.questions ?? []
 
+    const qs = raw.filter(q => Array.isArray(q.options) && q.options.length >= 2)
     if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
     questions.value = qs
     phase.value = 'quiz'
@@ -617,33 +594,6 @@ onUnmounted(() => {
 }
 .ctx-pill.topic { background: rgba(98,0,238,0.2); color: #BF5AF2; border: 1px solid rgba(191,90,242,0.3); }
 .ctx-pill.task  { background: rgba(0,212,255,0.12); color: #00D4FF; border: 1px solid rgba(0,212,255,0.3); }
-
-/* Difficulty */
-.diff-title { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 0; }
-.diff-row { display: flex; gap: 10px; width: 100%; }
-.diff-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 8px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.05);
-  border: 2px solid transparent;
-  transition: all 0.22s cubic-bezier(.34,1.56,.64,1);
-  cursor: pointer;
-}
-.diff-btn:hover { background: rgba(255,255,255,0.09); transform: translateY(-2px); }
-.diff-btn.active {
-  border-color: var(--purple-light);
-  background: rgba(139,92,246,0.15);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(139,92,246,0.3);
-}
-.diff-emoji { font-size: 26px; }
-.diff-label { font-size: 11px; font-weight: 700; color: #ccc; text-transform: uppercase; letter-spacing: 0.5px; }
-.diff-btn.active .diff-label { color: var(--purple-light); }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    LOADING SCREEN
