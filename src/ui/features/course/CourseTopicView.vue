@@ -54,12 +54,9 @@
           <p class="row-title">{{ item.fileName || item.content || 'Archivo' }}</p>
           <p class="row-meta">{{ item.contentType }}</p>
         </div>
-        <a :href="getFileUrl(item)" target="_blank" rel="noopener" class="row-action" style="margin-right:4px">
+        <a :href="getFileUrl(item)" target="_blank" rel="noopener" class="row-action">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
-        <button class="row-action remove-btn" @click="deleteContentItem(item.id)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
       </div>
 
       <!-- Pending files (not yet uploaded) -->
@@ -83,22 +80,23 @@
 
       <!-- Add content buttons -->
       <p class="field-label mt-16">Agregar Contenido al Tema</p>
+      <div class="content-buttons-grid">
+        <button class="add-row" @click="videoInputRef?.click()">
+          <div class="add-icon video-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <span class="add-label">Agregar Video</span>
+        </button>
+        <input ref="videoInputRef" type="file" accept="video/*" class="hidden-input" @change="onVideoSelected" />
 
-      <button class="add-row" @click="videoInputRef?.click()">
-        <div class="add-icon video-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-        </div>
-        <span class="add-label">Agregar Video desde Galería</span>
-      </button>
-      <input ref="videoInputRef" type="file" accept="video/*" class="hidden-input" @change="onVideoSelected" />
-
-      <button class="add-row" @click="docInputRef?.click()">
-        <div class="add-icon doc-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        </div>
-        <span class="add-label">Agregar Documento</span>
-      </button>
-      <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocSelected" />
+        <button class="add-row" @click="docInputRef?.click()">
+          <div class="add-icon doc-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <span class="add-label">Agregar Documento</span>
+        </button>
+        <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocSelected" />
+      </div>
 
       <!-- ── Tareas del Tema ── -->
       <p class="section-heading mt-24">Tareas del Tema</p>
@@ -248,12 +246,6 @@ async function handleSave() {
       if (pendingFiles.value.length && created?.id) {
         await uploadPendingFiles(created.id)
       }
-      // Navegar de vuelta con state para indicar creación de tema
-      router.push({
-        path: `/course/${courseId.value}`,
-        query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
-        state: { from: 'topicCreation' },
-      })
     } else {
       const id = topicId.value!
       await topicAdapter.updateTopic(id, {
@@ -265,25 +257,13 @@ async function handleSave() {
         contentItems.value = await contentItemAdapter.getByTopic(id)
       }
       pendingFiles.value = []
-      // Navegar de vuelta con state para indicar edición de tema
-      router.push({
-        path: `/course/${courseId.value}`,
-        query: subjectId.value ? { subjectId: String(subjectId.value) } : undefined,
-        state: { from: 'topicEdit' },
-      })
     }
+    router.back()
   } catch {
     errorMsg.value = 'Error al guardar el tema. Intenta de nuevo.'
   } finally {
     saving.value = false
   }
-}
-
-async function deleteContentItem(id: number) {
-  try {
-    await contentItemAdapter.delete(id)
-    contentItems.value = contentItems.value.filter(ci => ci.id !== id)
-  } catch { /* silent */ }
 }
 
 function getFileUrl(item: ContentItem): string {
@@ -324,7 +304,7 @@ onMounted(async () => {
 /* ── Base ── */
 .course-topic {
   min-height: 100vh;
-  background: #000;
+  background: #0A0E27;
   display: flex;
   flex-direction: column;
 }
@@ -335,7 +315,7 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 16px;
   gap: 8px;
-  background: #000;
+  background: #0A0E27;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -369,7 +349,7 @@ onMounted(async () => {
   border: none;
   font-size: 16px;
   font-weight: 600;
-  color: #BF5AF2;
+  color: #06B6D4;
   cursor: pointer;
   padding: 6px 4px;
   flex-shrink: 0;
@@ -383,8 +363,8 @@ onMounted(async () => {
 
 /* ── Loading ── */
 .loading-center { display: flex; justify-content: center; padding: 60px 0; }
-.spinner-lg { width: 32px; height: 32px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
-.spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(191,90,242,0.3); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner-lg { width: 32px; height: 32px; border: 3px solid rgba(6,182,212,0.2); border-top-color: #06B6D4; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(6,182,212,0.3); border-top-color: #06B6D4; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Scroll content ── */
@@ -401,32 +381,49 @@ onMounted(async () => {
 .field-label {
   font-size: 15px;
   font-weight: 500;
-  color: #fff;
+  color: #4FD4FF;
   margin-bottom: 8px;
+}
+
+/* ── Section container ── */
+.section-container {
+  background: #0F172A;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(6,182,212,0.1);
 }
 
 .section-heading {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
-  margin-bottom: 8px;
+  color: #70E8FB;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ── Inputs ── */
 .field-input {
   width: 100%;
-  background: #1A1A1A;
-  border: none;
-  border-radius: 8px;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(6,182,212,0.2);
+  border-radius: 10px;
   padding: 12px;
   font-size: 15px;
   color: #fff;
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
+  transition: all 0.2s;
 }
 .field-input::placeholder { color: #666; }
-.field-input:focus { background: #222; }
+.field-input:focus { 
+  background: rgba(15,23,42,0.95);
+  border-color: rgba(6,182,212,0.4);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+}
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 
 /* ── List rows (content items & tasks) ── */
@@ -435,15 +432,16 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #1A1A1A;
-  border-radius: 8px;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(6,182,212,0.08);
+  border-radius: 10px;
   margin-bottom: 8px;
 }
 
 .list-row.clickable { cursor: pointer; }
 .list-row.clickable:active { background: #222; }
 
-.pending-row { opacity: 0.85; border: 1px dashed rgba(191,90,242,0.3); }
+.pending-row { opacity: 0.85; border: 1px dashed rgba(6,182,212,0.3); }
 
 .row-icon {
   width: 40px;
@@ -458,12 +456,12 @@ onMounted(async () => {
 .row-icon.video { background: rgba(255,55,95,0.15); color: #FF375F; }
 .row-icon.document { background: rgba(0,122,255,0.15); color: #007AFF; }
 .row-icon.image { background: rgba(52,199,89,0.15); color: #34C759; }
-.task-icon { background: rgba(191,90,242,0.15); color: #BF5AF2; }
+.task-icon { background: rgba(6,182,212,0.15); color: #06B6D4; }
 
 .row-info { flex: 1; min-width: 0; }
 .row-title { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
-.pending-label { color: #BF5AF2; }
+.pending-label { color: #06B6D4; }
 
 .row-action { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 a.row-action { text-decoration: none; }
@@ -471,36 +469,45 @@ a.row-action { text-decoration: none; }
 .remove-btn { background: transparent; border: none; cursor: pointer; padding: 4px; }
 
 /* ── Add content buttons ── */
+.content-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .add-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  padding: 12px;
-  background: #1A1A1A;
+  padding: 16px 12px;
+  background: transparent;
   border: none;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
+  transition: all 0.2s;
 }
-.add-row:active { background: #222; }
+.add-row:active { opacity: 0.85; transform: scale(0.98); }
 
 .add-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.video-icon { background: rgba(255,55,95,0.15); color: #FF375F; }
-.doc-icon { background: rgba(0,122,255,0.15); color: #007AFF; }
-.task-add-icon { background: rgba(191,90,242,0.15); color: #BF5AF2; }
+.video-icon { background: #FFE5ED; color: #E91E63; }
+.doc-icon { background: #E3F2FD; color: #2196F3; }
+.task-add-icon { background: #E0F7F4; color: #00BCD4; }
 
-.add-label { font-size: 14px; color: #fff; }
+.add-label { font-size: 14px; color: #2C3E50; font-weight: 500; }
 
 /* ── Hidden file input ── */
 .hidden-input { display: none; }
