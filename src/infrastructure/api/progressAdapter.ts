@@ -81,6 +81,12 @@ export const progressAdapter: ProgressPort = {
   restoreEnrollment: (userId: number, courseId: number) =>
     api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/restore`, {}),
 
+  // ── Enrollment status toggle (activar / inactivar) ──
+  setCourseEnrollmentStatus: (userId: number, courseId: number, status: 'activo' | 'inactivo') =>
+    api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/enrollment-status`, { status }),
+  setSubjectEnrollmentStatus: (userId: number, courseId: number, subjectId: number, status: 'activo' | 'inactivo') =>
+    api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/subject/${subjectId}/enrollment-status`, { status }),
+
   // ── Subject access blocks ──
   blockSubjectAccess: (userId: number, courseId: number, subjectId: number, reason: string) =>
     api.post<Record<string, unknown>>('/progress/admin/subject-access-block', { userId, courseId, subjectId, reason }),

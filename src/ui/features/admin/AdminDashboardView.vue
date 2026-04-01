@@ -1154,16 +1154,41 @@
                 v-for="user in group.users"
                 :key="`${user.userId}-${group.courseId}`"
                 class="enroll-enrolled-row"
-                :class="{ 'has-blocked-subjects': hasAnyBlockedSubject(user.userId, group.courseId, group.subjects) }"
+                :class="{
+                  'has-blocked-subjects': hasAnyBlockedSubject(user.userId, group.courseId, group.subjects),
+                  'is-inactive-course': user.courseEnrollmentStatus === 'inactivo'
+                }"
               >
                 <div class="enroll-enrolled-left">
                   <img :src="user.avatar || '/default-avatar.png'" class="enroll-avatar enroll-avatar--sm" alt="" @error="onAvatarError" />
                   <div class="enroll-user-info">
                     <span class="enroll-user-name">{{ user.fullName || user.username || `Usuario #${user.userId}` }}</span>
                     <span class="enroll-user-handle">@{{ user.username }}</span>
+                    <span v-if="user.courseEnrollmentStatus === 'inactivo'" class="enroll-inactive-badge">⏸ Curso inactivo</span>
                   </div>
                 </div>
                 <div class="enroll-enrolled-right">
+                  <!-- Course activate/deactivate toggle -->
+                  <button
+                    v-if="user.courseEnrollmentStatus === 'inactivo'"
+                    class="enroll-activate-btn"
+                    :disabled="togglingEnrollStatus[`c-${user.userId}-${group.courseId}`]"
+                    @click="toggleCourseEnrollmentStatus(user.userId, group.courseId, 'activo')"
+                    title="Activar acceso al curso"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    {{ togglingEnrollStatus[`c-${user.userId}-${group.courseId}`] ? 'Activando...' : 'Activar curso' }}
+                  </button>
+                  <button
+                    v-else
+                    class="enroll-deactivate-btn"
+                    :disabled="togglingEnrollStatus[`c-${user.userId}-${group.courseId}`]"
+                    @click="toggleCourseEnrollmentStatus(user.userId, group.courseId, 'inactivo')"
+                    title="Inactivar acceso al curso"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    {{ togglingEnrollStatus[`c-${user.userId}-${group.courseId}`] ? 'Inactivando...' : 'Inactivar curso' }}
+                  </button>
                   <div v-if="group.subjects.length" class="enroll-block-chips">
                     <button
                       v-for="subj in group.subjects"
@@ -1171,17 +1196,33 @@
                       class="enroll-block-chip"
                       :class="{
                         'is-blocking': blockSubjectDialog.processing && blockSubjectDialog.userId === user.userId && blockSubjectDialog.selectedSubjectId === subj.id,
-                        'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id)
+                        'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id),
+                        'is-inactive-subject': subj.enrollmentStatus === 'inactivo'
                       }"
-                      @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.subjects, subj.id)"
-                      :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
+                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.subjects, subj.id)"
+                      :title="subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
+                      <!-- Pause icon when inactive -->
+                      <svg v-if="subj.enrollmentStatus === 'inactivo'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                       <!-- Lock icon when blocked -->
-                      <svg v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      <span :class="{ 'subj-blocked-text': isSubjectBlocked(user.userId, group.courseId, subj.id) }">{{ subj.name }}</span>
+                      <svg v-else-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <span :class="{ 'subj-blocked-text': isSubjectBlocked(user.userId, group.courseId, subj.id) || subj.enrollmentStatus === 'inactivo' }">{{ subj.name }}</span>
+                      <!-- Inactive badge -->
+                      <span v-if="subj.enrollmentStatus === 'inactivo'" class="enroll-blocked-badge">inactiva</span>
                       <!-- X icon when active, checkmark when blocked -->
-                      <svg v-if="!isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      <svg v-else-if="!isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                       <span v-else class="enroll-blocked-badge">bloqueada</span>
+                    </button>
+                    <!-- Inactivar materia button (only when not blocked or inactive) -->
+                    <button
+                      v-for="deactSubj in group.subjects.filter(s => s.enrollmentStatus !== 'inactivo' && !isSubjectBlocked(user.userId, group.courseId, s.id))"
+                      :key="`deact-${deactSubj.id}`"
+                      class="enroll-deactivate-subj-btn"
+                      :disabled="togglingEnrollStatus[`s-${user.userId}-${deactSubj.id}`]"
+                      @click.stop="toggleSubjectEnrollmentStatus(user.userId, group.courseId, deactSubj.id, 'inactivo')"
+                      :title="`Inactivar materia ${deactSubj.name}`"
+                    >
+                      ⏸ {{ deactSubj.name }}
                     </button>
                   </div>
                   <button
@@ -2173,8 +2214,9 @@ interface ApprovedEnrollmentItem {
   avatar: string | null
   identificacion: string | null
   courseName: string | null
-  subjects: { id: number; name: string }[]
+  subjects: { id: number; name: string; enrollmentStatus?: string }[]
   status: string
+  courseEnrollmentStatus: string
   revokeReason: string | null
 }
 
@@ -2186,6 +2228,7 @@ const approvedSubjectFilter = ref('')
 const revokingKeys = ref<Record<string, boolean>>({})
 const restoringKeys = ref<Record<string, boolean>>({})
 const blockedSubjectKeys = ref<Set<string>>(new Set())
+const togglingEnrollStatus = ref<Record<string, boolean>>({})
 let approvedLoaded = false
 
 const applyAdminQueryNavigation = async () => {
@@ -2242,7 +2285,7 @@ const activeEnrollments = computed(() => approvedEnrollments.value.filter(e => e
 interface ApprovedGrouped {
   courseId: number
   courseName: string
-  subjects: { id: number; name: string }[]
+  subjects: { id: number; name: string; enrollmentStatus?: string }[]
   users: ApprovedEnrollmentItem[]
 }
 
@@ -2301,8 +2344,13 @@ const loadApprovedEnrollments = async () => {
       avatar: toNonEmptyString(item.avatar),
       identificacion: toNonEmptyString(item.identificacion_original, item.identificacion, item.cedula),
       courseName: toNonEmptyString(item.courseName, item.course_name),
-      subjects: Array.isArray(item.subjects) ? item.subjects : [],
+      subjects: Array.isArray(item.subjects) ? item.subjects.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        enrollmentStatus: s.enrollmentStatus ?? s.enrollment_status ?? 'activo',
+      })) : [],
       status: String(item.status ?? item.enrollmentStatus ?? item.enrollment_status ?? 'approved'),
+      courseEnrollmentStatus: String(item.courseEnrollmentStatus ?? item.course_enrollment_status ?? 'activo'),
       revokeReason: toNonEmptyString(item.revokeReason, item.revoke_reason) ?? null,
     })).filter((item: any) => item.userId && item.courseId)
 
@@ -2339,6 +2387,7 @@ const loadApprovedEnrollments = async () => {
         courseName: item.courseName,
         subjects: item.subjects,
         status: item.status,
+        courseEnrollmentStatus: item.courseEnrollmentStatus,
         revokeReason: item.revokeReason,
       }
     })
@@ -2507,6 +2556,34 @@ const confirmRestoreEnrollment = async (userId: number, courseId: number) => {
     console.error('Error restoring enrollment:', e)
   } finally {
     delete restoringKeys.value[key]
+  }
+}
+
+const toggleCourseEnrollmentStatus = async (userId: number, courseId: number, status: 'activo' | 'inactivo') => {
+  const key = `c-${userId}-${courseId}`
+  togglingEnrollStatus.value[key] = true
+  try {
+    await progressAdapter.setCourseEnrollmentStatus(userId, courseId, status)
+    approvedLoaded = false
+    await loadApprovedEnrollments()
+  } catch (e) {
+    console.error('Error toggling course enrollment status:', e)
+  } finally {
+    delete togglingEnrollStatus.value[key]
+  }
+}
+
+const toggleSubjectEnrollmentStatus = async (userId: number, courseId: number, subjectId: number, status: 'activo' | 'inactivo') => {
+  const key = `s-${userId}-${subjectId}`
+  togglingEnrollStatus.value[key] = true
+  try {
+    await progressAdapter.setSubjectEnrollmentStatus(userId, courseId, subjectId, status)
+    approvedLoaded = false
+    await loadApprovedEnrollments()
+  } catch (e) {
+    console.error('Error toggling subject enrollment status:', e)
+  } finally {
+    delete togglingEnrollStatus.value[key]
   }
 }
 
@@ -5748,6 +5825,101 @@ watch(() => route.query, () => {
   box-shadow: 0 4px 14px rgba(48,209,88,0.16);
 }
 .enroll-restore-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ─── Inactive course/subject enrollment status (dimmed) ─── */
+
+.enroll-enrolled-row.is-inactive-course {
+  background: rgba(255,193,7,0.04);
+  border: 1px dashed rgba(255,193,7,0.25);
+  opacity: 0.6;
+}
+.enroll-enrolled-row.is-inactive-course .enroll-user-name { color: #A1A1AA; }
+.enroll-enrolled-row.is-inactive-course .enroll-user-handle { color: #71717A; }
+.enroll-enrolled-row.is-inactive-course .enroll-avatar { filter: grayscale(70%) opacity(0.6); }
+.enroll-enrolled-row.is-inactive-course:hover { opacity: 0.8; background: rgba(255,193,7,0.08); }
+
+.enroll-inactive-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #FBBF24;
+  background: rgba(251,191,36,0.12);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-top: 2px;
+  display: inline-block;
+}
+
+.enroll-activate-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34D399;
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.18);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.enroll-activate-btn:hover:not(:disabled) {
+  background: rgba(52,211,153,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(52,211,153,0.16);
+}
+.enroll-activate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.enroll-deactivate-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FBBF24;
+  background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.enroll-deactivate-btn:hover:not(:disabled) {
+  background: rgba(251,191,36,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(251,191,36,0.16);
+}
+.enroll-deactivate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.enroll-deactivate-subj-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #FBBF24;
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.14);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.enroll-deactivate-subj-btn:hover:not(:disabled) {
+  background: rgba(251,191,36,0.16);
+}
+.enroll-deactivate-subj-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.enroll-block-chip.is-inactive-subject {
+  color: #FBBF24;
+  background: rgba(251,191,36,0.06);
+  border-color: rgba(251,191,36,0.2);
+  opacity: 0.7;
+}
+.enroll-block-chip.is-inactive-subject svg { opacity: 0.7; color: #FBBF24; }
 
 .enroll-revoke-reason {
   font-size: 11px;
