@@ -80,22 +80,23 @@
 
       <!-- Add content buttons -->
       <p class="field-label mt-16">Agregar Contenido al Tema</p>
+      <div class="content-buttons-grid">
+        <button class="add-row" @click="videoInputRef?.click()">
+          <div class="add-icon video-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <span class="add-label">Agregar Video</span>
+        </button>
+        <input ref="videoInputRef" type="file" accept="video/*" class="hidden-input" @change="onVideoSelected" />
 
-      <button class="add-row" @click="videoInputRef?.click()">
-        <div class="add-icon video-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-        </div>
-        <span class="add-label">Agregar Video desde Galería</span>
-      </button>
-      <input ref="videoInputRef" type="file" accept="video/*" class="hidden-input" @change="onVideoSelected" />
-
-      <button class="add-row" @click="docInputRef?.click()">
-        <div class="add-icon doc-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        </div>
-        <span class="add-label">Agregar Documento</span>
-      </button>
-      <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocSelected" />
+        <button class="add-row" @click="docInputRef?.click()">
+          <div class="add-icon doc-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <span class="add-label">Agregar Documento</span>
+        </button>
+        <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocSelected" />
+      </div>
 
       <!-- ── Tareas del Tema ── -->
       <p class="section-heading mt-24">Tareas del Tema</p>
@@ -468,18 +469,26 @@ a.row-action { text-decoration: none; }
 .remove-btn { background: transparent; border: none; cursor: pointer; padding: 4px; }
 
 /* ── Add content buttons ── */
+.content-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .add-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  padding: 16px 18px;
+  padding: 16px 12px;
   background: transparent;
   border: none;
   border-radius: 12px;
-  margin-bottom: 12px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: all 0.2s;
 }
 .add-row:active { opacity: 0.85; transform: scale(0.98); }
