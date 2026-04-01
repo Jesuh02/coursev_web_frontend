@@ -188,12 +188,16 @@ onMounted(async () => {
     try {
       const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
       const status = extractEnrollmentStatus(data)
+      if (status === 'revoked') {
+        router.replace({ path: '/explore', query: { accessDenied: 'Tu acceso a este curso fue revocado por el administrador.' } })
+        return
+      }
       if (status !== 'approved') {
-        router.replace('/explore')
+        router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
         return
       }
     } catch {
-      router.replace('/explore')
+      router.replace({ path: '/explore', query: { accessDenied: 'No se pudo verificar tu acceso a este curso.' } })
       return
     }
   }

@@ -2286,10 +2286,10 @@ const loadApprovedEnrollments = async () => {
   }
 }
 
-const loadApprovedEnrollmentsIfNeeded = () => {
+const loadApprovedEnrollmentsIfNeeded = async () => {
   if (!approvedLoaded) {
     approvedLoaded = true
-    loadApprovedEnrollments()
+    await loadApprovedEnrollments()
   }
 }
 
@@ -2330,6 +2330,10 @@ const confirmRevokeEnrollment = async () => {
   revokingKeys.value[key] = true
   try {
     await progressAdapter.revokeEnrollment(userId, courseId, reason.trim())
+    // Optimistic local update: remove user from approved enrollments immediately
+    approvedEnrollments.value = approvedEnrollments.value.filter(
+      e => !(e.userId === userId && e.courseId === courseId)
+    )
     revokeDialog.value.visible = false
     // Reload from backend to ensure consistency with persisted state
     approvedLoaded = false
@@ -2348,7 +2352,12 @@ const confirmBlockSubjectAccess = async () => {
   blockSubjectDialog.value.processing = true
   try {
     await progressAdapter.blockSubjectAccess(userId, courseId, selectedSubjectId, reason.trim())
+    // Optimistic local update: mark the subject as blocked immediately
+    const newSet = new Set(blockedSubjectKeys.value)
+    newSet.add(`${userId}-${courseId}-${selectedSubjectId}`)
+    blockedSubjectKeys.value = newSet
     blockSubjectDialog.value.visible = false
+    // Reload from backend to ensure consistency
     approvedLoaded = false
     await loadApprovedEnrollments()
   } catch (e) {
@@ -2373,11 +2382,16 @@ const openUnblockSubjectDialog = (userId: number, courseId: number, subjectId: n
 }
 
 const confirmUnblockSubjectAccess = async () => {
-  const { userId, subjectId } = unblockSubjectDialog.value
+  const { userId, courseId, subjectId } = unblockSubjectDialog.value
   unblockSubjectDialog.value.processing = true
   try {
     await progressAdapter.unblockSubjectAccess(userId, subjectId)
+    // Optimistic local update: remove the subject from blocked keys immediately
+    const newSet = new Set(blockedSubjectKeys.value)
+    newSet.delete(`${userId}-${courseId}-${subjectId}`)
+    blockedSubjectKeys.value = newSet
     unblockSubjectDialog.value.visible = false
+    // Reload from backend to ensure consistency
     approvedLoaded = false
     await loadApprovedEnrollments()
   } catch (e) {

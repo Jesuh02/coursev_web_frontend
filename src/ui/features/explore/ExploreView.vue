@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useCourseStore } from '@/stores/courseStore'
 import { collaboratorAdapter, courseAdapter, userAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -93,6 +93,7 @@ import FilterBottomSheet from './components/FilterBottomSheet.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const searchQuery = ref('')
 const activeFilter = ref('all')
@@ -479,6 +480,13 @@ useCourseSocket({
 })
 
 onMounted(() => {
+  // Show access denied message from redirect (e.g., revoked enrollment)
+  const denied = route.query.accessDenied
+  if (denied && typeof denied === 'string') {
+    showAccessMessage(denied)
+    router.replace({ query: {} })
+  }
+
   courseStore.fetchCourses()
   courseStore.fetchFilterCounts(authStore.user?.id)
   observer = new IntersectionObserver(
