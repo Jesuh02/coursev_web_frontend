@@ -587,13 +587,25 @@ function computeExpectedAnswer(text: string): { value: number; steps: string[] }
       }
       // Rate/cost multiplier
       const rateM = text.match(/(?:multiplic[aá]r?|×)\s*(?:por)?\s*\$?([\d,.]+)/i)
-        || text.match(/(?:costo|precio|tarifa|tasa|factor)\s+(?:de\s+(?:\w+\s+)*)?(?:de\s*)?\$?([\d,.]+)/i)
+        || text.match(/(?:tasa|tarifa|factor|coeficiente)\s+(?:de\s+)?(?:[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+\s+)*(?:del?\s+)?\$?([\d,.]+)(?!\s*%)/i)
+        || text.match(/(?:se\s+)?aplic[aá]\s+(?:un\s+)?(?:[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+\s+)*(?:del?\s+)?\$?([\d,.]+)(?!\s*%)/i)
+        || text.match(/(?:costo|precio)\s+(?:de\s+(?:[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+\s+)*)?(?:de\s*)?\$?([\d,.]+)/i)
       if (rateM) {
         const rate = parseFloat(rateM[1].replace(/,/g, ''))
         if (Number.isFinite(rate) && rate > 0 && rate < result) {
           const prev = result
           result *= rate
           steps.push(`Multiplicación: ${prev} × ${rate} = ${result}`)
+        }
+      }
+      // Post-operation addition (e.g. "se agrega un tráfico de respaldo de 5,000,000.500")
+      const addM = text.match(/(?:se\s+)?(?:agrega[rn]?|añad[aeir]+|suma[rn]?|adiciona[rn]?|incorpora[rn]?)\s+(?:\S+\s+){0,8}?([\d,]+\.?\d*)/i)
+      if (addM) {
+        const addVal = parseFloat(addM[1].replace(/,/g, ''))
+        if (Number.isFinite(addVal) && addVal > 0 && !dataNumbers.includes(addVal)) {
+          const prev = result
+          result += addVal
+          steps.push(`Adición: ${prev} + ${addVal} = ${result}`)
         }
       }
       if (steps.length > 0) return { value: result, steps }
