@@ -79,7 +79,6 @@
       </div>
 
       <!-- Add content buttons -->
-      <p class="field-label mt-16">Agregar Contenido al Tema</p>
       <div class="content-buttons-grid">
         <button class="add-row" @click="videoInputRef?.click()">
           <div class="add-icon video-icon">
