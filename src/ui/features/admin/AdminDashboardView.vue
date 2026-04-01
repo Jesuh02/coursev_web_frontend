@@ -2404,8 +2404,7 @@ const confirmRevokeEnrollment = async () => {
     approvedLoaded = false
     await loadApprovedEnrollments()
   } catch (e) {
-    console.error('Error revoking enrollment:', e)
-    notifStore.show('Error al revocar matrícula', 'error')
+    console.error('Error al revocar matrícula:', e)
   } finally {
     delete revokingKeys.value[key]
     revokeDialog.value.processing = false
@@ -2435,8 +2434,7 @@ const confirmBlockSubjectAccess = async () => {
       blockedSubjectKeys.value = merged
     }
   } catch (e) {
-    console.error('Error blocking subject access:', e)
-    notifStore.show('Error al bloquear acceso a la materia', 'error')
+    console.error('Error al bloquear acceso a la materia:', e)
   } finally {
     blockSubjectDialog.value.processing = false
   }
@@ -2478,8 +2476,7 @@ const confirmUnblockSubjectAccess = async () => {
       blockedSubjectKeys.value = merged
     }
   } catch (e) {
-    console.error('Error unblocking subject access:', e)
-    notifStore.show('Error al restaurar acceso a la materia', 'error')
+    console.error('Error al restaurar acceso a la materia:', e)
   } finally {
     unblockSubjectDialog.value.processing = false
   }
