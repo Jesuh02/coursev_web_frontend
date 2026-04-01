@@ -2444,14 +2444,22 @@ const confirmRevokeEnrollment = async () => {
   revokingKeys.value[key] = true
   try {
     await progressAdapter.revokeEnrollment(userId, courseId, reason.trim())
-    // Optimistic local update: remove user from approved enrollments immediately
-    approvedEnrollments.value = approvedEnrollments.value.filter(
-      e => !(e.userId === userId && e.courseId === courseId)
+    // Optimistic local update: mark as revoked immediately
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId
+        ? { ...e, status: 'revoked', revokeReason: reason.trim() }
+        : e
     )
     revokeDialog.value.visible = false
     // Reload from backend to ensure consistency with persisted state
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Merge optimistic revoked status back in case server returned stale data
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId && e.status !== 'revoked'
+        ? { ...e, status: 'revoked', revokeReason: reason.trim() }
+        : e
+    )
   } catch (e) {
     console.error('Error al revocar matrícula:', e)
   } finally {
@@ -2550,8 +2558,20 @@ const confirmRestoreEnrollment = async (userId: number, courseId: number) => {
   restoringKeys.value[key] = true
   try {
     await progressAdapter.restoreEnrollment(userId, courseId)
+    // Optimistic local update: mark as approved immediately
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId
+        ? { ...e, status: 'approved', revokeReason: null }
+        : e
+    )
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Merge optimistic status back in case server returned stale data
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId && e.status === 'revoked'
+        ? { ...e, status: 'approved', revokeReason: null }
+        : e
+    )
   } catch (e) {
     console.error('Error restoring enrollment:', e)
   } finally {
@@ -2564,8 +2584,20 @@ const toggleCourseEnrollmentStatus = async (userId: number, courseId: number, st
   togglingEnrollStatus.value[key] = true
   try {
     await progressAdapter.setCourseEnrollmentStatus(userId, courseId, status)
+    // Optimistic local update: reflect new course enrollment status immediately
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId
+        ? { ...e, courseEnrollmentStatus: status }
+        : e
+    )
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Merge optimistic status back in case server returned stale data
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId && e.courseEnrollmentStatus !== status
+        ? { ...e, courseEnrollmentStatus: status }
+        : e
+    )
   } catch (e) {
     console.error('Error toggling course enrollment status:', e)
   } finally {
@@ -2578,8 +2610,20 @@ const toggleSubjectEnrollmentStatus = async (userId: number, courseId: number, s
   togglingEnrollStatus.value[key] = true
   try {
     await progressAdapter.setSubjectEnrollmentStatus(userId, courseId, subjectId, status)
+    // Optimistic local update: reflect new subject enrollment status immediately
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId
+        ? { ...e, subjects: e.subjects.map(s => s.id === subjectId ? { ...s, enrollmentStatus: status } : s) }
+        : e
+    )
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Merge optimistic status back in case server returned stale data
+    approvedEnrollments.value = approvedEnrollments.value.map(e =>
+      e.userId === userId && e.courseId === courseId
+        ? { ...e, subjects: e.subjects.map(s => s.id === subjectId && s.enrollmentStatus !== status ? { ...s, enrollmentStatus: status } : s) }
+        : e
+    )
   } catch (e) {
     console.error('Error toggling subject enrollment status:', e)
   } finally {
