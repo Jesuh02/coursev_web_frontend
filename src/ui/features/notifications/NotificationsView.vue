@@ -100,6 +100,7 @@ function handleClick(notification: Notification) {
       if (taskId) {
         const query: Record<string, string> = {}
         if (courseId) query.courseId = String(courseId)
+        if (notification.sender_username) query.fromUser = notification.sender_username
         router.push({ name: 'taskSubmission', params: { taskId }, query })
       }
       break

@@ -123,7 +123,9 @@
         <div
           v-for="(sub, idx) in filteredSubmissions"
           :key="sub.id"
+          :ref="el => { if (el) submissionCardRefs[sub.id] = el as HTMLElement }"
           class="student-submission-card card-enter"
+          :class="{ highlighted: highlightedSubmissionId === sub.id }"
           :style="{ animationDelay: `${0.2 + idx * 0.05}s` }"
         >
           <div class="student-header">
@@ -243,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
 import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl } from '@/infrastructure/api'
@@ -265,6 +267,8 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const isSubjectCreator = ref(false)
 const searchQuery = ref('')
 const chartAnimated = ref(false)
+const highlightedSubmissionId = ref<number | null>(null)
+const submissionCardRefs = reactive<Record<number, HTMLElement>>({})
 // Map studentId → persona full name (nombres + apellidos)
 const personaNameMap = ref(new Map<number, string>())
 
@@ -478,6 +482,24 @@ onMounted(async () => {
           }
           personaNameMap.value = map
         } catch { /* persona enrichment is best-effort */ }
+      }
+
+      // Auto-scroll a la entrega del estudiante indicado por la notificación (fromUser query param)
+      const fromUser = String(route.query.fromUser ?? '').trim().toLowerCase()
+      if (fromUser) {
+        const target = subs.find(s =>
+          (s.studentUsername ?? '').toLowerCase() === fromUser
+        )
+        if (target) {
+          highlightedSubmissionId.value = target.id
+          await nextTick()
+          const card = submissionCardRefs[target.id]
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            // Quitar el highlight después de 3 segundos
+            setTimeout(() => { highlightedSubmissionId.value = null }, 3000)
+          }
+        }
       }
     }
   } catch { /* empty */ }
@@ -795,4 +817,12 @@ onMounted(async () => {
 .submit-btn:disabled { opacity: 0.5; cursor: default; }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
+
+/* ── Submission highlight (desde notificación) ── */
+.student-submission-card.highlighted {
+  border: 1.5px solid rgba(0, 212, 255, 0.5);
+  background: rgba(0, 212, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+  transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+}
 </style>

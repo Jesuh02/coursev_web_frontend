@@ -233,7 +233,7 @@
               </div>
               <button
                 class="submissions-btn"
-                @click="$router.push(`/task-submission/${task.id}`)"
+                @click="$router.push({ path: `/task-submission/${task.id}`, query: { courseId: String(courseId) } })"
               >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
             </div>
           </div>
