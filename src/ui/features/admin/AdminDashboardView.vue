@@ -2307,10 +2307,10 @@ const confirmRevokeEnrollment = async () => {
   revokingKeys.value[key] = true
   try {
     await progressAdapter.revokeEnrollment(userId, courseId, reason.trim())
-    approvedEnrollments.value = approvedEnrollments.value.filter(
-      e => !(e.userId === userId && e.courseId === courseId)
-    )
     revokeDialog.value.visible = false
+    // Reload from backend to ensure consistency with persisted state
+    approvedLoaded = false
+    await loadApprovedEnrollments()
   } catch (e) {
     console.error('Error revoking enrollment:', e)
   } finally {
@@ -2339,9 +2339,9 @@ const revokeUserEnrollment = async (userId: number, courseId: number) => {
   revokingKeys.value[key] = true
   try {
     await progressAdapter.revokeEnrollment(userId, courseId)
-    approvedEnrollments.value = approvedEnrollments.value.filter(
-      e => !(e.userId === userId && e.courseId === courseId)
-    )
+    // Reload from backend to ensure consistency with persisted state
+    approvedLoaded = false
+    await loadApprovedEnrollments()
   } catch (e) {
     console.error('Error revoking enrollment:', e)
   } finally {

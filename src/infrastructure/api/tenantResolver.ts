@@ -102,8 +102,11 @@ async function probeAllServers(
       const err = result.reason instanceof Error ? result.reason : new Error(String(result.reason))
       if (err instanceof CedulaRequiredError) {
         cedulaRequired = true
-      } else if (!lastError || err.message === 'Failed to fetch') {
-        lastError = err
+      } else {
+        // Priorizar mensajes específicos (como "usuario desactivado") sobre "Failed to fetch"
+        if (!lastError || err.message === 'Failed to fetch' || lastError.message === 'Failed to fetch') {
+          lastError = err
+        }
       }
     }
   }
@@ -155,7 +158,9 @@ async function probeSingleServer(
 
   if (!res.ok || json.success === false) {
     const errData = json.error as Record<string, unknown> | undefined
-    throw new Error((errData?.message as string) || 'Credenciales inválidas')
+    // Extraer mensaje del error: intentar primero json.error.message, luego json.message, luego usar default
+    const errorMessage = (errData?.message as string) || (json.message as string) || 'Credenciales inválidas'
+    throw new Error(errorMessage)
   }
 
   const data = json.data as Record<string, unknown>
