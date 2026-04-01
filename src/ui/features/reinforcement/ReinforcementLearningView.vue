@@ -333,14 +333,18 @@ const orderingUserSeq = ref<number[]>([])
 // Loading animation
 const loadingTick    = ref(0)
 let   loadingTimer: ReturnType<typeof setInterval> | null = null
-let   pollTimer:    ReturnType<typeof setInterval> | null = null
 const loadingPhrases = [
   'Analizando el contenido del curso…',
   'Generando ejercicios personalizados…',
+  'Procesando archivos y contexto inicial…',
   'Aplicando inteligencia artificial…',
   'Casi listo, aguarda un momento…',
 ]
 const loadingMsg = computed(() => loadingPhrases[loadingTick.value % loadingPhrases.length])
+
+function wait(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 // ─── Particles (decorative) ────────────────────────────────────────────────────
 const particles = Array.from({ length: 18 }, (_, i) => ({
@@ -647,45 +651,48 @@ async function startQuiz() {
     const jobId = (startData as unknown as StartResp)?.jobId
     if (!jobId) throw new Error('No se pudo iniciar la generación. Intenta de nuevo.')
 
-    // Poll until done or error (max 10 minutes total)
-    const MAX_POLL_MS   = 10 * 60 * 1000
+    // Poll until done or error. First-time ingestion can be slow, so keep the UI waiting much longer.
+    const MAX_POLL_MS   = 110 * 60 * 1000
     const POLL_INTERVAL = 2500
     const pollStart     = Date.now()
 
     type PollResp = { status: 'pending' | 'done' | 'error'; questions?: QuizQuestion[]; error?: string }
 
-    await new Promise<void>((resolve, reject) => {
-      pollTimer = setInterval(async () => {
-        // If the user navigated away, stop silently
-        if (phase.value !== 'loading') {
-          clearInterval(pollTimer!); pollTimer = null; resolve(); return
+    while (phase.value === 'loading') {
+      if (Date.now() - pollStart > MAX_POLL_MS) {
+        throw new Error('La generación tardó demasiado. Intenta de nuevo o vuelve a abrir la sesión de refuerzo.')
+      }
+
+      try {
+        const s = await api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`) as unknown as PollResp
+
+        if (s?.status === 'done') {
+          const raw: QuizQuestion[] = Array.isArray(s.questions) ? s.questions : []
+          const qs = raw.filter(q => q.question).map(normalizeQuestionForDisplay)
+          if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
+          questions.value = qs
+          quizStartTime   = Date.now()
+          phase.value     = 'quiz'
+          break
         }
-        if (Date.now() - pollStart > MAX_POLL_MS) {
-          clearInterval(pollTimer!); pollTimer = null
-          reject(new Error('La generación tardó demasiado. Intenta de nuevo o selecciona una dificultad menor.'))
-          return
+
+        if (s?.status === 'error') {
+          throw new Error(s.error || 'Error al generar preguntas')
         }
-        try {
-          const s = await api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`) as unknown as PollResp
-          if (s?.status === 'done') {
-            clearInterval(pollTimer!); pollTimer = null
-            const raw: QuizQuestion[] = Array.isArray(s.questions) ? s.questions : []
-            const qs = raw.filter(q => q.question).map(normalizeQuestionForDisplay)
-            if (!qs.length) { reject(new Error('No se generaron preguntas. Intenta de nuevo.')); return }
-            questions.value = qs
-            quizStartTime   = Date.now()
-            phase.value     = 'quiz'
-            resolve()
-          } else if (s?.status === 'error') {
-            clearInterval(pollTimer!); pollTimer = null
-            reject(new Error(s.error || 'Error al generar preguntas'))
+      } catch (e: unknown) {
+        // Retry transient polling failures, but stop on explicit backend/job errors.
+        if (e instanceof Error) {
+          const msg = e.message || ''
+          if (
+            /expir[oó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)
+          ) {
+            throw e
           }
-          // status === 'pending': keep polling
-        } catch {
-          // Transient network error during poll — retry on next tick
         }
-      }, POLL_INTERVAL)
-    })
+      }
+
+      await wait(POLL_INTERVAL)
+    }
   } catch (e: unknown) {
     let msg = 'Error al generar preguntas'
     if (e instanceof Error) msg = e.message
@@ -693,7 +700,6 @@ async function startQuiz() {
     phase.value = 'start'
   } finally {
     if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null }
-    if (pollTimer)    { clearInterval(pollTimer);    pollTimer    = null }
   }
 }
 
@@ -762,7 +768,6 @@ function showError(msg: string) {
 
 onUnmounted(() => {
   if (loadingTimer)       clearInterval(loadingTimer)
-  if (pollTimer)          clearInterval(pollTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
 })
 </script>

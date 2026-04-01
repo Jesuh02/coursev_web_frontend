@@ -128,7 +128,10 @@
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
-            <span class="topic-name">{{ topic.title }}</span>
+            <div class="topic-info">
+              <span class="topic-name">{{ topic.title }}</span>
+              <p v-if="topic.description" class="topic-subtitle">{{ topic.description }}</p>
+            </div>
             <button v-if="hasSubjectContentAccess" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             </button>
@@ -138,7 +141,6 @@
             <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
-            <p v-if="topic.description" class="topic-desc-inline">{{ topic.description }}</p>
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
             <button
               v-for="item in topicContent[topic.id]"
@@ -188,13 +190,15 @@
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
-            <span class="topic-name">{{ topic.title }}</span>
+            <div class="topic-info">
+              <span class="topic-name">{{ topic.title }}</span>
+              <p v-if="topic.description" class="topic-subtitle">{{ topic.description }}</p>
+            </div>
             <span class="task-count-badge">{{ topicTasks[topic.id]?.length ?? 0 }} tareas</span>
             <span v-if="hasSubjectContentAccess && (pendingByTopic[topic.id] ?? 0) > 0" class="topic-pending-pill">⏳ {{ pendingByTopic[topic.id] }} sin revisar</span>
             <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
-            <p v-if="topic.description" class="topic-desc-inline">{{ topic.description }}</p>
             <div class="tasks-label">TAREAS DEL TEMA</div>
             <div v-if="!topicTasks[topic.id]?.length" class="empty-inline">Sin tareas</div>
             <div v-for="task in topicTasks[topic.id]" :key="task.id" class="task-card">
@@ -930,10 +934,11 @@ watch(() => authStore.user?.id, async (newId) => {
 .topic-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; }
 .topic-row:hover { background: rgba(255,255,255,0.03); }
 .topic-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(191,90,242,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.topic-name { flex: 1; font-size: 15px; font-weight: 600; color: #fff; }
+.topic-info { flex: 1; min-width: 0; }
+.topic-name { font-size: 15px; font-weight: 600; color: #fff; }
+.topic-subtitle { font-size: 12px; color: #8E8E93; margin-top: 3px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
 .topic-action:hover { background: rgba(255,255,255,0.08); }
-.topic-desc-inline { font-size: 13px; color: #8E8E93; line-height: 1.45; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .chevron { transition: transform 0.25s; flex-shrink: 0; }
 .chevron.open { transform: rotate(180deg); }
 

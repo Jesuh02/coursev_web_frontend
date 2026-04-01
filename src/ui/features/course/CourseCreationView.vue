@@ -64,7 +64,7 @@
 
         <!-- Colaboradores -->
         <div class="collaborator-section">
-          <label class="input-label">Colaboradores</label>
+          <label class="input-label">Colaboradores (Docentes)</label>
           <div v-if="selectedCollaborators.length" class="collab-chips">
             <span v-for="c in selectedCollaborators" :key="c.id" class="collab-chip">
               {{ c.username }}
@@ -95,7 +95,7 @@
         </div>
         <!-- Invitados -->
         <div class="collaborator-section">
-          <label class="input-label">Invitados (acceso inmediato)</label>
+          <label class="input-label">Invitados (Estudiantes)</label>
           <div v-if="selectedGuests.length" class="collab-chips">
             <span v-for="g in selectedGuests" :key="g.id" class="collab-chip guest-chip">
               {{ g.username }}
