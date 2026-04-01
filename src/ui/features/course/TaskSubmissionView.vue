@@ -246,7 +246,7 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, buildProxyFileUrl } from '@/infrastructure/api'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -423,6 +423,11 @@ onMounted(async () => {
             const course = courseId > 0 ? await courseAdapter.getCourseById(courseId).catch(() => null) : null
             const courseCreatorId = Number(course?.creatorUserId ?? course?.creator_user_id ?? 0)
             managerAccess = subjectCreatorId === currentUserId || courseCreatorId === currentUserId
+            // Verificar acceso de colaborador docente
+            if (!managerAccess && courseId > 0) {
+              const collab = await collaboratorAdapter.checkAccess(courseId).catch(() => null)
+              if (collab?.hasAccess) managerAccess = true
+            }
           }
         } catch {
           managerAccess = false
