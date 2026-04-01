@@ -278,6 +278,7 @@ const submission = ref<TaskSubmission | null>(null)
 const allSubmissions = ref<TaskSubmission[]>([])
 const loading = ref(true)
 const submitting = ref(false)
+const submitError = ref('')
 const textAnswer = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -428,8 +429,11 @@ async function submitWork() {
     if (textAnswer.value) payload.textContent = textAnswer.value
     if (fileKey) payload.fileUri = fileKey
     if (selectedFile.value) payload.fileName = selectedFile.value.name
+    submitError.value = ''
     submission.value = await submissionAdapter.submitWork(payload)
-  } catch { /* empty */ }
+  } catch {
+    submitError.value = 'Error al enviar la tarea. Intenta de nuevo.'
+  }
   submitting.value = false
 }
 
