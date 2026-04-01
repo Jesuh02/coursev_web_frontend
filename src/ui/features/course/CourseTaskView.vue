@@ -22,8 +22,11 @@
         <p class="field-label mt-16">Descripción</p>
         <textarea v-model="formDescription" class="field-input field-textarea" placeholder="Describe la tarea" rows="4" />
 
-        <p class="field-label mt-16">Fecha límite (opcional)</p>
-        <input v-model="formDueDate" type="date" class="field-input" />
+        <p class="field-label mt-16">Fecha y hora límite (opcional)</p>
+        <div class="datetime-row">
+          <input v-model="formDueDate" type="date" class="field-input datetime-date" />
+          <input v-model="formDueTime" type="time" class="field-input datetime-time" :disabled="!formDueDate" />
+        </div>
 
         <p class="field-label mt-16">Documentos adjuntos</p>
         <div v-if="existingContentItems.length" class="existing-attachments">
@@ -54,9 +57,15 @@
           <h2 class="task-title">{{ task.title }}</h2>
           <p class="task-desc">{{ task.description }}</p>
           <div class="task-meta-row">
-            <span class="meta-chip">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-              {{ task.dueDate ?? task.due_date ?? 'Sin fecha límite' }}
+            <span v-if="task.dueDate || task.due_date" class="meta-chip" :class="{ 'chip-overdue': isDueOverdue }">
+              <svg v-if="isDueOverdue" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              <span>{{ formatDueDate(task.dueDate ?? task.due_date) }}</span>
+              <span v-if="isDueOverdue" class="chip-badge">Vencida</span>
+            </span>
+            <span v-else class="meta-chip chip-no-date">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              Sin fecha límite
             </span>
           </div>
         </div>
@@ -71,6 +80,7 @@
             <div class="status-body">
               <p class="status-title" v-if="existingSubmission.grade !== null">Calificada: {{ existingSubmission.grade }} / 10</p>
               <p class="status-title" v-else>Enviada — Pendiente de revisión</p>
+              <p class="status-date">{{ formatSubmissionDate(existingSubmission.created_at) }}</p>
               <p v-if="existingSubmission.feedback" class="status-feedback">{{ existingSubmission.feedback }}</p>
             </div>
           </div>
@@ -131,12 +141,19 @@ const errorMsg = ref('')
 const formTitle = ref('')
 const formDescription = ref('')
 const formDueDate = ref('')
+const formDueTime = ref('23:59')
 const formFile = ref<File | null>(null)
 const formFileInputRef = ref<HTMLInputElement | null>(null)
 const existingContentItems = ref<ContentItem[]>([])
 
 function onFormFileSelected(e: Event) {
   formFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
+
+function buildDueDateIso(): string | null {
+  if (!formDueDate.value) return null
+  const time = formDueTime.value || '23:59'
+  return new Date(`${formDueDate.value}T${time}:00`).toISOString()
 }
 
 async function deleteContentItem(id: number) {
@@ -163,7 +180,7 @@ async function handleSave() {
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
         topicId,
-        dueDate: formDueDate.value || null,
+        dueDate: buildDueDateIso(),
       } as Partial<Task>)
       if (formFile.value && created?.id) {
         const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
@@ -185,7 +202,7 @@ async function handleSave() {
       await taskAdapter.updateTask(taskId.value!, {
         title: formTitle.value.trim(),
         description: formDescription.value.trim(),
-        dueDate: formDueDate.value || null,
+        dueDate: buildDueDateIso(),
       } as Partial<Task>)
       if (formFile.value) {
         const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
@@ -224,6 +241,31 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 function onFileSelected(e: Event) {
   selectedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
+
+const isDueOverdue = computed(() => {
+  const raw = task.value?.dueDate ?? (task.value as any)?.due_date
+  if (!raw) return false
+  return new Date(raw as string) < new Date()
+})
+
+function formatSubmissionDate(raw: string | null | undefined): string {
+  if (!raw) return ''
+  try {
+    const d = new Date(raw)
+    return d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })
+      + ' · ' + d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+  } catch { return '' }
+}
+
+function formatDueDate(raw: string | null | undefined): string {
+  if (!raw) return 'Sin fecha límite'
+  try {
+    const d = new Date(raw)
+    const date = d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })
+    const time = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    return `${date} · ${time}`
+  } catch { return raw }
 }
 
 async function submitTask() {
@@ -267,7 +309,18 @@ onMounted(async () => {
       ])
       formTitle.value = t.title ?? ''
       formDescription.value = t.description ?? ''
-      formDueDate.value = t.dueDate ?? t.due_date ?? ''
+      const rawDate = t.dueDate ?? t.due_date ?? ''
+      if (rawDate) {
+        const d = new Date(rawDate)
+        const yr = d.getFullYear()
+        const mo = String(d.getMonth() + 1).padStart(2, '0')
+        const dy = String(d.getDate()).padStart(2, '0')
+        formDueDate.value = `${yr}-${mo}-${dy}`
+        formDueTime.value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      } else {
+        formDueDate.value = ''
+        formDueTime.value = '23:59'
+      }
       existingContentItems.value = items
     } catch { /* empty */ }
     loading.value = false
@@ -321,6 +374,11 @@ onMounted(async () => {
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .error-msg { font-size: 13px; color: #FF453A; }
 
+.datetime-row { display: flex; gap: 8px; }
+.datetime-date { flex: 1.6; }
+.datetime-time { flex: 1; min-width: 0; }
+.datetime-time:disabled { opacity: 0.4; }
+
 .existing-attachments {
   display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
 }
@@ -350,9 +408,19 @@ onMounted(async () => {
 .task-desc { font-size: 14px; color: #8E8E93; margin-top: 6px; line-height: 1.5; }
 .task-meta-row { display: flex; gap: 8px; margin-top: 12px; }
 .meta-chip {
-  display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
-  border-radius: 12px; background: rgba(255,255,255,0.08); color: #8E8E93;
-  font-size: 12px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+  border-radius: 20px; background: rgba(255,255,255,0.06); color: #8E8E93;
+  font-size: 12px; font-weight: 500; border: 1px solid rgba(255,255,255,0.07);
+}
+.chip-overdue {
+  background: rgba(255,69,58,0.1); color: #FF453A;
+  border-color: rgba(255,69,58,0.2);
+}
+.chip-no-date { color: #555; border-color: rgba(255,255,255,0.04); }
+.chip-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 5px;
+  background: rgba(255,69,58,0.18); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-left: 2px;
 }
 .section-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 12px; }
 .submission-section { display: flex; flex-direction: column; gap: 12px; }
@@ -396,5 +464,6 @@ onMounted(async () => {
 .status-icon { flex-shrink: 0; margin-top: 1px; }
 .status-body { display: flex; flex-direction: column; gap: 4px; }
 .status-title { font-size: 15px; font-weight: 600; margin: 0; }
+.status-date { font-size: 11px; opacity: 0.6; margin: 0; letter-spacing: 0.1px; }
 .status-feedback { font-size: 13px; opacity: 0.85; margin: 0; line-height: 1.4; color: #fff; }
 </style>

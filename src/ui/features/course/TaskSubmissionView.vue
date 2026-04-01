@@ -191,9 +191,21 @@
         <div v-if="task" class="task-header-card card-enter">
           <h2 class="task-name">{{ task.title }}</h2>
           <p v-if="task.description" class="task-desc">{{ task.description }}</p>
-          <div v-if="task.dueDate || task.due_date" class="due-row">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-            <span>{{ task.dueDate ?? task.due_date }}</span>
+          <div v-if="task.dueDate || task.due_date" class="due-row" :class="{ 'due-overdue': isOverdue }">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="isOverdue ? '#FF453A' : '#FF9500'" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            <span>{{ formatDueDate(task.dueDate ?? task.due_date) }}</span>
+            <span v-if="isOverdue" class="overdue-chip">Vencida</span>
+          </div>
+        </div>
+
+        <!-- Banner fuera de plazo -->
+        <div v-if="isOverdue && status === 'not-submitted'" class="overdue-banner card-enter" style="animation-delay: 0.04s">
+          <div class="overdue-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div>
+            <p class="overdue-title">Plazo de entrega vencido</p>
+            <p class="overdue-sub">Ya no es posible enviar esta tarea</p>
           </div>
         </div>
 
@@ -231,12 +243,17 @@
           <h3 class="section-title">Enviar Tarea</h3>
           <div class="file-upload" @click="openFilePicker">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-            <span>{{ selectedFile?.name ?? 'Adjuntar archivo' }}</span>
+            <span class="file-upload-label">{{ selectedFile?.name ?? 'Adjuntar archivo' }}</span>
+            <button v-if="selectedFile" class="file-clear-btn" @click.stop="selectedFile = null">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
             <input ref="fileInput" type="file" hidden @change="onFileSelect" />
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
-          <button class="submit-btn" :disabled="submitting" @click="submitWork">
-            {{ submitting ? 'Enviando...' : 'Enviar Tarea' }}
+          <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
+          <button class="submit-btn" :disabled="submitting || (!selectedFile && !textAnswer.trim())" @click="submitWork">
+            <span v-if="submitting" class="btn-spinner" />
+            <span>{{ submitting ? 'Enviando...' : 'Enviar Tarea' }}</span>
           </button>
         </div>
       </div>
@@ -261,6 +278,7 @@ const submission = ref<TaskSubmission | null>(null)
 const allSubmissions = ref<TaskSubmission[]>([])
 const loading = ref(true)
 const submitting = ref(false)
+const submitError = ref('')
 const textAnswer = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -306,7 +324,23 @@ const statusLabel = computed(() => {
   return 'No entregada'
 })
 
-const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value)
+const isOverdue = computed(() => {
+  const due = task.value?.dueDate ?? (task.value as any)?.due_date
+  if (!due) return false
+  return new Date(due as string) < new Date()
+})
+
+const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value && !isOverdue.value)
+
+function formatDueDate(raw: string | null | undefined): string {
+  if (!raw) return 'Sin fecha límite'
+  try {
+    return new Date(raw).toLocaleString('es', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch { return raw }
+}
 
 // Donut chart — circumference of circle r=45
 const C = 2 * Math.PI * 45 // ≈ 282.74
@@ -395,8 +429,11 @@ async function submitWork() {
     if (textAnswer.value) payload.textContent = textAnswer.value
     if (fileKey) payload.fileUri = fileKey
     if (selectedFile.value) payload.fileName = selectedFile.value.name
+    submitError.value = ''
     submission.value = await submissionAdapter.submitWork(payload)
-  } catch { /* empty */ }
+  } catch {
+    submitError.value = 'Error al enviar la tarea. Intenta de nuevo.'
+  }
   submitting.value = false
 }
 
@@ -818,6 +855,45 @@ onMounted(async () => {
 }
 .submit-btn:hover { opacity: 0.9; }
 .submit-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Overdue banner ── */
+.due-overdue { color: #FF453A !important; }
+.due-overdue svg { stroke: #FF453A !important; }
+.overdue-chip {
+  display: inline-block; padding: 1px 7px; border-radius: 6px;
+  background: rgba(255,69,58,0.15); color: #FF453A;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  margin-left: 4px;
+}
+
+.overdue-banner {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,69,58,0.07);
+  border: 1px solid rgba(255,69,58,0.22);
+}
+.overdue-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(255,69,58,0.12);
+  display: flex; align-items: center; justify-content: center;
+}
+.overdue-title { font-size: 14px; font-weight: 700; color: #FF453A; margin: 0; }
+.overdue-sub  { font-size: 12px; color: rgba(255,69,58,0.7); margin: 2px 0 0; }
+
+/* ── Submit section improvements ── */
+.file-upload-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-clear-btn {
+  background: transparent; border: none; cursor: pointer; padding: 2px;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.file-clear-btn:hover svg { stroke: #FF453A; }
+.submit-error-msg { font-size: 13px; color: #FF453A; padding: 0 2px; }
+.submit-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-spinner {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
 
