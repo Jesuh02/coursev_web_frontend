@@ -85,6 +85,7 @@ import { collaboratorAdapter, courseAdapter, userAdapter } from '@/infrastructur
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import type { Course } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
+import { useCourseSocket } from '@/composables/useCourseSocket'
 import ExploreHeader from './components/ExploreHeader.vue'
 import ExploreSkeleton from './components/ExploreSkeleton.vue'
 import CourseCard from './components/CourseCard.vue'
@@ -458,6 +459,22 @@ watch(
   },
   { immediate: true },
 )
+
+// Real-time course updates via WebSocket — updates the catalogue without full refetch
+useCourseSocket({
+  onCreated(course) {
+    if (!courseStore.courses.find(c => c.id === course.id)) {
+      courseStore.courses = [course, ...courseStore.courses]
+    }
+  },
+  onUpdated(course) {
+    const idx = courseStore.courses.findIndex(c => c.id === course.id)
+    if (idx !== -1) courseStore.courses[idx] = course
+  },
+  onDeleted({ id }) {
+    courseStore.courses = courseStore.courses.filter(c => c.id !== id)
+  },
+})
 
 onMounted(() => {
   courseStore.fetchCourses()
