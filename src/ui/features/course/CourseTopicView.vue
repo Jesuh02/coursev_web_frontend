@@ -303,7 +303,7 @@ onMounted(async () => {
 /* ── Base ── */
 .course-topic {
   min-height: 100vh;
-  background: #000;
+  background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%);
   display: flex;
   flex-direction: column;
 }
@@ -314,7 +314,7 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 16px;
   gap: 8px;
-  background: #000;
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -380,7 +380,7 @@ onMounted(async () => {
 .field-label {
   font-size: 15px;
   font-weight: 500;
-  color: #fff;
+  color: #4FD4FF;
   margin-bottom: 8px;
 }
 
@@ -473,32 +473,32 @@ a.row-action { text-decoration: none; }
   align-items: center;
   gap: 16px;
   width: 100%;
-  padding: 14px;
-  background: rgba(6,182,212,0.08);
-  border: 1.5px solid rgba(6,182,212,0.2);
-  border-radius: 10px;
-  margin-bottom: 10px;
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  margin-bottom: 12px;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s;
 }
-.add-row:active { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); }
+.add-row:active { opacity: 0.85; transform: scale(0.98); }
 
 .add-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.video-icon { background: rgba(255,55,95,0.15); color: #FF375F; }
-.doc-icon { background: rgba(0,122,255,0.15); color: #007AFF; }
-.task-add-icon { background: rgba(6,182,212,0.15); color: #06B6D4; }
+.video-icon { background: #FFE5ED; color: #E91E63; }
+.doc-icon { background: #E3F2FD; color: #2196F3; }
+.task-add-icon { background: #E0F7F4; color: #00BCD4; }
 
-.add-label { font-size: 14px; color: #fff; font-weight: 500; }
+.add-label { font-size: 14px; color: #2C3E50; font-weight: 500; }
 
 /* ── Hidden file input ── */
 .hidden-input { display: none; }
