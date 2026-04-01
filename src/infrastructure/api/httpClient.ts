@@ -126,6 +126,21 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
     const res = await execFetch()
 
     if (res.status === 401 && !isPublic) {
+      // Read body first to detect INVALID_TOKEN_SIGNATURE (token from a different
+      // server/tenant): the refresh token is also invalid in that case, so skip the
+      // refresh round-trip and redirect to login immediately — mirrors Android logic.
+      let errCode: string | undefined
+      try {
+        const body = await res.clone().json() as { error?: { code?: string } }
+        errCode = body?.error?.code
+      } catch { /* ignore parse failures, fall through to normal refresh logic */ }
+
+      if (errCode === 'INVALID_TOKEN_SIGNATURE' || errCode === 'invalid signature') {
+        tokenStorage.clear()
+        _onUnauthorized?.()
+        throw new HttpError(401, 'INVALID_TOKEN_SIGNATURE', 'Token inválido: firma incorrecta, vuelve a iniciar sesión')
+      }
+
       const refreshed = await tryRefresh()
       if (refreshed) {
         const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
@@ -140,6 +155,12 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
       return await handler(res)
     } catch (error) {
       if (!isPublic && error instanceof HttpError && error.statusCode === 401) {
+        // INVALID_TOKEN_SIGNATURE propagated from handleResponse — skip refresh
+        if ((error as HttpError).errorCode === 'INVALID_TOKEN_SIGNATURE') {
+          tokenStorage.clear()
+          _onUnauthorized?.()
+          throw error
+        }
         const refreshed = await tryRefresh()
         if (refreshed) {
           const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
