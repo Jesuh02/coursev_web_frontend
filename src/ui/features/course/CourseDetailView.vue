@@ -138,6 +138,7 @@
             <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
+            <p v-if="topic.description" class="topic-desc-inline">{{ topic.description }}</p>
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
             <button
               v-for="item in topicContent[topic.id]"
@@ -193,6 +194,7 @@
             <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
+            <p v-if="topic.description" class="topic-desc-inline">{{ topic.description }}</p>
             <div class="tasks-label">TAREAS DEL TEMA</div>
             <div v-if="!topicTasks[topic.id]?.length" class="empty-inline">Sin tareas</div>
             <div v-for="task in topicTasks[topic.id]" :key="task.id" class="task-card">
@@ -931,6 +933,7 @@ watch(() => authStore.user?.id, async (newId) => {
 .topic-name { flex: 1; font-size: 15px; font-weight: 600; color: #fff; }
 .topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
 .topic-action:hover { background: rgba(255,255,255,0.08); }
+.topic-desc-inline { font-size: 13px; color: #8E8E93; line-height: 1.45; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .chevron { transition: transform 0.25s; flex-shrink: 0; }
 .chevron.open { transform: rotate(180deg); }
 
