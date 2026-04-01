@@ -303,7 +303,7 @@ onMounted(async () => {
 /* ── Base ── */
 .course-topic {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%);
+  background: #0A0E27;
   display: flex;
   flex-direction: column;
 }
@@ -314,7 +314,7 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 16px;
   gap: 8px;
-  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
+  background: #0A0E27;
   position: sticky;
   top: 0;
   z-index: 10;
