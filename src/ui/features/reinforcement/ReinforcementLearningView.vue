@@ -279,7 +279,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
-import { api, tokenStorage } from '@/infrastructure/api/httpClient'
+import { api, tokenStorage, HttpError } from '@/infrastructure/api/httpClient'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface QuizQuestion {
@@ -680,11 +680,14 @@ async function startQuiz() {
           throw new Error(s.error || 'Error al generar preguntas')
         }
       } catch (e: unknown) {
-        // Retry transient polling failures, but stop on explicit backend/job errors.
+        // HttpError = clean backend response already processed by the HTTP client
+        // (includes auth refresh attempts). Always propagate — do not swallow.
+        if (e instanceof HttpError) throw e
+        // Retry transient network failures, but stop on explicit backend/job errors.
         if (e instanceof Error) {
           const msg = e.message || ''
           if (
-            /expir[oó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)
+            /expir[aoó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)
           ) {
             throw e
           }
