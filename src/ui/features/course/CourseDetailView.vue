@@ -260,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -755,6 +755,25 @@ onMounted(async () => {
   }
   await progressPromise
   loading.value = false
+})
+
+// Re-verificar acceso de colaborador cuando authStore.user carga después del montaje
+// (ocurre al navegar desde notificación push que abre la app en página nueva)
+watch(() => authStore.user?.id, async (newId) => {
+  if (!newId) return
+  const id = Number(courseId.value)
+  if (!id) return
+  // Solo aplica a docentes (rol 2) que no son admin (rol 3)
+  if (!authStore.hasRole(2) || authStore.hasRole(3)) return
+  try {
+    const access = await collaboratorAdapter.checkAccess(id)
+    const hasAccess = Boolean(access?.hasAccess)
+    if (hasAccess && !collaboratorAccess.value) {
+      collaboratorAccess.value = true
+      // Recargar datos en modo docente para obtener entregas pendientes
+      await loadTopicsAndTasks(id)
+    }
+  } catch { /* silent */ }
 })
 </script>
 

@@ -248,7 +248,7 @@
 import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl } from '@/infrastructure/api'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl, tokenStorage } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -403,14 +403,17 @@ async function submitWork() {
 onMounted(async () => {
   const taskId = Number(route.params.taskId)
   try {
+    // Usar tokenStorage.userId como fallback cuando authStore.user aún no ha cargado
+    // (ej: navegación desde notificación push que abre la app en página nueva)
+    const currentUserId = Number(authStore.user?.id ?? tokenStorage.userId ?? 0)
+
     const [t, sub] = await Promise.all([
       taskAdapter.getTaskById(taskId),
-      submissionAdapter.getSubmissionByUserAndTask(taskId, authStore.user?.id).catch(() => null),
+      submissionAdapter.getSubmissionByUserAndTask(taskId, currentUserId || undefined).catch(() => null),
     ])
     task.value = t
     submission.value = sub
 
-    const currentUserId = Number(authStore.user?.id ?? 0)
     let managerAccess = authStore.isAdmin
 
     if (!managerAccess && currentUserId > 0) {
