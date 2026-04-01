@@ -167,6 +167,7 @@ export interface ProgressPort {
   // ── Matrícula aprobada (admin) ──
   getApprovedEnrollments(): Promise<Record<string, unknown>[]>
   revokeEnrollment(userId: number, courseId: number, reason?: string): Promise<Record<string, unknown>>
+  restoreEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
 
   // ── Subject access blocks ──
   blockSubjectAccess(userId: number, courseId: number, subjectId: number, reason: string): Promise<Record<string, unknown>>

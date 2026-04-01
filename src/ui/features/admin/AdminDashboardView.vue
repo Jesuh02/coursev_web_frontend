@@ -1200,6 +1200,56 @@
         </div>
       </div>
 
+      <!-- ══════════════ REVOCADOS (usuarios con acceso quitado) ══════════════ -->
+      <div v-if="enrollmentSubTab === 'matricula' && revokedEnrollments.length > 0" class="enroll-section" style="margin-top: 24px;">
+        <div class="enroll-hero">
+          <div class="enroll-hero-glow enroll-hero-glow--red"></div>
+          <div class="enroll-hero-top">
+            <div class="enroll-hero-icon-wrap enroll-hero-icon-wrap--red">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div class="enroll-hero-text">
+              <h3 class="enroll-hero-title">Accesos Revocados</h3>
+              <p class="enroll-hero-sub">Usuarios a los que se les quitó el acceso. Puedes restaurarlo.</p>
+            </div>
+          </div>
+          <div class="enroll-kpi-row">
+            <div class="enroll-kpi is-red">
+              <span class="enroll-kpi-num">{{ revokedEnrollments.length }}</span>
+              <span class="enroll-kpi-lbl">Revocados</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="enroll-user-rows" style="padding: 0 16px;">
+          <div
+            v-for="item in revokedEnrollments"
+            :key="`revoked-${item.userId}-${item.courseId}`"
+            class="enroll-enrolled-row has-blocked-subjects"
+          >
+            <div class="enroll-enrolled-left">
+              <img :src="item.avatar || '/default-avatar.png'" class="enroll-avatar enroll-avatar--sm" alt="" @error="onAvatarError" />
+              <div class="enroll-user-info">
+                <span class="enroll-user-name">{{ item.fullName || item.username || `Usuario #${item.userId}` }}</span>
+                <span class="enroll-user-handle">@{{ item.username }} · {{ item.courseName || `Curso #${item.courseId}` }}</span>
+                <span v-if="item.revokeReason" class="enroll-revoke-reason">Motivo: {{ item.revokeReason }}</span>
+              </div>
+            </div>
+            <div class="enroll-enrolled-right">
+              <button
+                class="enroll-restore-btn"
+                :disabled="restoringKeys[`${item.userId}-${item.courseId}`]"
+                @click="confirmRestoreEnrollment(item.userId, item.courseId)"
+                title="Restaurar acceso al curso"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                {{ restoringKeys[`${item.userId}-${item.courseId}`] ? 'Restaurando...' : 'Restaurar acceso' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Dialog: Revocar curso ── -->
       <Teleport to="body">
         <Transition name="dialog-fade">
@@ -2120,6 +2170,8 @@ interface ApprovedEnrollmentItem {
   identificacion: string | null
   courseName: string | null
   subjects: { id: number; name: string }[]
+  status: string
+  revokeReason: string | null
 }
 
 const approvedEnrollments = ref<ApprovedEnrollmentItem[]>([])
@@ -2128,6 +2180,7 @@ const approvedUserFilter = ref('')
 const approvedCourseFilter = ref('')
 const approvedSubjectFilter = ref('')
 const revokingKeys = ref<Record<string, boolean>>({})
+const restoringKeys = ref<Record<string, boolean>>({})
 const blockedSubjectKeys = ref<Set<string>>(new Set())
 let approvedLoaded = false
 
@@ -2175,9 +2228,12 @@ const hasAnyBlockedSubject = (userId: number, courseId: number, subjects: { id: 
   subjects.some(s => blockedSubjectKeys.value.has(`${userId}-${courseId}-${s.id}`))
 
 const approvedCoursesCount = computed(() => {
-  const ids = new Set(approvedEnrollments.value.map(e => e.courseId))
+  const ids = new Set(approvedEnrollments.value.filter(e => e.status !== 'revoked').map(e => e.courseId))
   return ids.size
 })
+
+const revokedEnrollments = computed(() => approvedEnrollments.value.filter(e => e.status === 'revoked'))
+const activeEnrollments = computed(() => approvedEnrollments.value.filter(e => e.status !== 'revoked'))
 
 interface ApprovedGrouped {
   courseId: number
@@ -2191,7 +2247,7 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
   const cq = approvedCourseFilter.value.toLowerCase()
   const sq = approvedSubjectFilter.value.toLowerCase()
 
-  const filtered = approvedEnrollments.value.filter(e => {
+  const filtered = activeEnrollments.value.filter(e => {
     const matchUser = matchesFlexibleUserSearch(uq, e.fullName, e.username, e.identificacion)
     const matchCourse = !cq
       || (e.courseName ?? '').toLowerCase().includes(cq)
@@ -2242,6 +2298,8 @@ const loadApprovedEnrollments = async () => {
       identificacion: toNonEmptyString(item.identificacion_original, item.identificacion, item.cedula),
       courseName: toNonEmptyString(item.courseName, item.course_name),
       subjects: Array.isArray(item.subjects) ? item.subjects : [],
+      status: String(item.status ?? item.enrollmentStatus ?? item.enrollment_status ?? 'approved'),
+      revokeReason: toNonEmptyString(item.revokeReason, item.revoke_reason) ?? null,
     })).filter((item: any) => item.userId && item.courseId)
 
     const missingProfileUserIds = [...new Set(
@@ -2276,6 +2334,8 @@ const loadApprovedEnrollments = async () => {
         identificacion: item.identificacion ?? toNonEmptyString(persona?.identificacion, persona?.cedula),
         courseName: item.courseName,
         subjects: item.subjects,
+        status: item.status,
+        revokeReason: item.revokeReason,
       }
     })
   } catch (e) {
@@ -2406,13 +2466,26 @@ const revokeUserEnrollment = async (userId: number, courseId: number) => {
   revokingKeys.value[key] = true
   try {
     await progressAdapter.revokeEnrollment(userId, courseId)
-    // Reload from backend to ensure consistency with persisted state
     approvedLoaded = false
     await loadApprovedEnrollments()
   } catch (e) {
     console.error('Error revoking enrollment:', e)
   } finally {
     delete revokingKeys.value[key]
+  }
+}
+
+const confirmRestoreEnrollment = async (userId: number, courseId: number) => {
+  const key = `${userId}-${courseId}`
+  restoringKeys.value[key] = true
+  try {
+    await progressAdapter.restoreEnrollment(userId, courseId)
+    approvedLoaded = false
+    await loadApprovedEnrollments()
+  } catch (e) {
+    console.error('Error restoring enrollment:', e)
+  } finally {
+    delete restoringKeys.value[key]
   }
 }
 
@@ -5632,6 +5705,40 @@ watch(() => route.query, () => {
 }
 
 .enroll-revoke-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.enroll-restore-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #68D391;
+  background: rgba(48,209,88,0.08);
+  border: 1px solid rgba(48,209,88,0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.enroll-restore-btn:hover:not(:disabled) {
+  background: rgba(48,209,88,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(48,209,88,0.16);
+}
+.enroll-restore-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.enroll-revoke-reason {
+  font-size: 11px;
+  color: #FC8181;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.enroll-hero-glow--red { background: radial-gradient(ellipse at 60% 0%, rgba(255,69,58,0.12), transparent 70%); }
+.enroll-hero-icon-wrap--red { background: rgba(255,69,58,0.12); }
+.enroll-kpi.is-red .enroll-kpi-num { color: #FF453A; }
+.enroll-kpi.is-red { background: rgba(255,69,58,0.06); border-color: rgba(255,69,58,0.12); }
 
 /* ─── Enrollment Dialogs ────────────────────────────────────────────── */
 

@@ -78,6 +78,8 @@ export const progressAdapter: ProgressPort = {
     api.get<Record<string, unknown>[]>('/progress/admin/approved-enrollments'),
   revokeEnrollment: (userId: number, courseId: number, reason?: string) =>
     api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/revoke`, { reason: reason || '' }),
+  restoreEnrollment: (userId: number, courseId: number) =>
+    api.post<Record<string, unknown>>(`/progress/admin/enrollments/${userId}/${courseId}/restore`, {}),
 
   // ── Subject access blocks ──
   blockSubjectAccess: (userId: number, courseId: number, subjectId: number, reason: string) =>
