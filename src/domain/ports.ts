@@ -169,6 +169,10 @@ export interface ProgressPort {
   revokeEnrollment(userId: number, courseId: number, reason?: string): Promise<Record<string, unknown>>
   restoreEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
 
+  // ── Enrollment status toggle (activar / inactivar) ──
+  setCourseEnrollmentStatus(userId: number, courseId: number, status: 'activo' | 'inactivo'): Promise<Record<string, unknown>>
+  setSubjectEnrollmentStatus(userId: number, courseId: number, subjectId: number, status: 'activo' | 'inactivo'): Promise<Record<string, unknown>>
+
   // ── Subject access blocks ──
   blockSubjectAccess(userId: number, courseId: number, subjectId: number, reason: string): Promise<Record<string, unknown>>
   unblockSubjectAccess(userId: number, subjectId: number): Promise<Record<string, unknown>>
