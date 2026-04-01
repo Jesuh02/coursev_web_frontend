@@ -432,6 +432,22 @@ function shuffleMultipleChoiceQuestion(question: QuizQuestion): QuizQuestion {
 
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
   if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
+    // Validate that all options are distinct; if not, keep the question but log
+    const uniqueOpts = new Set(question.options.map(o => o.toLowerCase().trim()))
+    if (uniqueOpts.size < question.options.length) {
+      // Deduplicate options by removing duplicates and regenerating distractors
+      const correctOpt = question.options[question.correctIndex]
+      const correctNum = Number(correctOpt?.replace(/[^0-9.\-]/g, '') ?? '')
+      if (Number.isFinite(correctNum)) {
+        // Generate new unique distractors based on plausible errors
+        const distractors = generatePlausibleDistractors(correctNum)
+        return shuffleMultipleChoiceQuestion({
+          ...question,
+          options: [formatMathOption(correctNum), ...distractors.map(formatMathOption)],
+          correctIndex: 0,
+        })
+      }
+    }
     return shuffleMultipleChoiceQuestion(question)
   }
 
@@ -442,19 +458,60 @@ function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
   const numericAnswer = Number(String(question.correctAnswer ?? '').trim().replace(/,/g, ''))
   if (!Number.isFinite(numericAnswer)) return question
 
-  const absValue = Math.abs(numericAnswer)
-  const step = absValue >= 1000 ? Math.max(1, Math.round(absValue * 0.05)) : absValue >= 100 ? 10 : absValue >= 20 ? 5 : 1
+  const distractors = generatePlausibleDistractors(numericAnswer)
   return shuffleMultipleChoiceQuestion({
     ...question,
     type: 'multiple_choice',
     options: [
       formatMathOption(numericAnswer),
-      formatMathOption(numericAnswer + step),
-      formatMathOption(numericAnswer - step),
-      formatMathOption(numericAnswer + (step * 2)),
+      ...distractors.map(formatMathOption),
     ],
     correctIndex: 0,
   })
+}
+
+/**
+ * Generate 3 plausible wrong answers for a numeric correct answer.
+ * Each represents a different type of common mistake.
+ */
+function generatePlausibleDistractors(correct: number): [number, number, number] {
+  const abs = Math.abs(correct)
+  const used = new Set<number>([correct])
+
+  function addUnique(val: number): number {
+    // Ensure the distractor is different from correct and other distractors
+    let v = Math.round(val * 100) / 100 // keep max 2 decimals
+    if (v === correct) v = correct + (abs >= 100 ? 10 : 1)
+    while (used.has(v)) v += (abs >= 100 ? 1 : 0.1)
+    v = Math.round(v * 100) / 100
+    used.add(v)
+    return v
+  }
+
+  let d1: number, d2: number, d3: number
+
+  if (Number.isInteger(correct) && abs >= 100) {
+    // Integer math: simulate carry errors, off-by-ten, off-by-one
+    d1 = addUnique(correct + 10)   // off-by-one-carry (forgot to carry)
+    d2 = addUnique(correct - 10)   // subtracted instead of adding carry
+    d3 = addUnique(correct + 100)  // carried one extra digit
+  } else if (Number.isInteger(correct) && abs >= 10) {
+    d1 = addUnique(correct + 1)
+    d2 = addUnique(correct - 1)
+    d3 = addUnique(correct + 10)
+  } else if (Number.isInteger(correct)) {
+    d1 = addUnique(correct + 1)
+    d2 = addUnique(correct - 1)
+    d3 = addUnique(correct + 2)
+  } else {
+    // Decimal answers: simulate rounding errors
+    const step = abs >= 100 ? 1 : abs >= 10 ? 0.5 : 0.1
+    d1 = addUnique(Math.ceil(correct * 10) / 10)     // rounded up
+    d2 = addUnique(Math.floor(correct * 10) / 10)    // rounded down
+    d3 = addUnique(correct + step)
+  }
+
+  return [d1, d2, d3]
 }
 
 // ─── Confetti ───────────────────────────────────────────────────────────────────
@@ -716,10 +773,46 @@ function pick(i: number) {
 function checkFill() {
   if (answered.value || !fillAnswer.value.trim()) return
   const q = currentQ.value
-  const expected = (q.correctAnswer ?? q.options?.[q.correctIndex] ?? '').toLowerCase().trim()
-  const given    = fillAnswer.value.toLowerCase().trim()
-  fillCorrect.value = given === expected || (expected !== '' && given.includes(expected.split(' ')[0]))
-  if (fillCorrect.value) correctCount.value++
+  const expected = (q.correctAnswer ?? q.options?.[q.correctIndex] ?? '').trim()
+  const given    = fillAnswer.value.trim()
+
+  // Normalize both for comparison
+  const normExpected = expected.toLowerCase()
+  const normGiven    = given.toLowerCase()
+
+  // 1. Exact match (case-insensitive)
+  if (normGiven === normExpected) {
+    fillCorrect.value = true
+    correctCount.value++
+    answered.value = true
+    return
+  }
+
+  // 2. Numeric comparison: strip thousand separators and compare values
+  const stripSeparators = (s: string) => s.replace(/[\s,._]/g, '').replace(/\u00a0/g, '')
+  const numExpected = Number(stripSeparators(expected))
+  const numGiven    = Number(stripSeparators(given))
+  if (Number.isFinite(numExpected) && Number.isFinite(numGiven)) {
+    // Allow tolerance for rounding: within 0.5% or absolute diff <= 1
+    const absDiff = Math.abs(numExpected - numGiven)
+    const relDiff = numExpected !== 0 ? absDiff / Math.abs(numExpected) : absDiff
+    if (absDiff <= 1 || relDiff <= 0.005) {
+      fillCorrect.value = true
+      correctCount.value++
+      answered.value = true
+      return
+    }
+  }
+
+  // 3. Fallback: partial text match (first word of expected)
+  if (normExpected !== '' && normGiven.includes(normExpected.split(' ')[0])) {
+    fillCorrect.value = true
+    correctCount.value++
+    answered.value = true
+    return
+  }
+
+  fillCorrect.value = false
   answered.value = true
 }
 
