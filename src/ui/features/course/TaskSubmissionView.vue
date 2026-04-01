@@ -409,28 +409,45 @@ onMounted(async () => {
     const currentUserId = Number(authStore.user?.id ?? 0)
     let managerAccess = authStore.isAdmin
 
-    if (!managerAccess) {
-      const topicId = Number(t.topicId ?? t.topic_id ?? 0)
-      if (currentUserId > 0 && topicId > 0) {
+    if (!managerAccess && currentUserId > 0) {
+      // Atajo: si la ruta trae courseId (ej: desde notificación), verificar colaborador directamente
+      const queryCourseId = Number(route.query.courseId ?? 0)
+      if (queryCourseId > 0) {
         try {
-          const topic = await topicAdapter.getTopicById(topicId)
-          const topicLookup = topic as TopicLookup
-          const subjectId = Number(topicLookup.subjectId ?? topicLookup.courseId ?? 0)
-          if (subjectId > 0) {
-            const subject = await subjectAdapter.getSubjectById(subjectId)
-            const subjectCreatorId = Number(subject?.createdBy ?? 0)
-            const courseId = Number(subject?.courseId ?? 0)
-            const course = courseId > 0 ? await courseAdapter.getCourseById(courseId).catch(() => null) : null
+          const collab = await collaboratorAdapter.checkAccess(queryCourseId).catch(() => null)
+          if (collab?.hasAccess) managerAccess = true
+          // También verificar si es creador del curso
+          if (!managerAccess) {
+            const course = await courseAdapter.getCourseById(queryCourseId).catch(() => null)
             const courseCreatorId = Number(course?.creatorUserId ?? course?.creator_user_id ?? 0)
-            managerAccess = subjectCreatorId === currentUserId || courseCreatorId === currentUserId
-            // Verificar acceso de colaborador docente
-            if (!managerAccess && courseId > 0) {
-              const collab = await collaboratorAdapter.checkAccess(courseId).catch(() => null)
-              if (collab?.hasAccess) managerAccess = true
-            }
+            if (courseCreatorId === currentUserId) managerAccess = true
           }
-        } catch {
-          managerAccess = false
+        } catch { /* silent */ }
+      }
+
+      if (!managerAccess) {
+        const topicId = Number(t.topicId ?? t.topic_id ?? 0)
+        if (topicId > 0) {
+          try {
+            const topic = await topicAdapter.getTopicById(topicId)
+            const topicLookup = topic as TopicLookup
+            const subjectId = Number(topicLookup.subjectId ?? topicLookup.courseId ?? 0)
+            if (subjectId > 0) {
+              const subject = await subjectAdapter.getSubjectById(subjectId)
+              const subjectCreatorId = Number(subject?.createdBy ?? 0)
+              const courseId = Number(subject?.courseId ?? 0)
+              const course = courseId > 0 ? await courseAdapter.getCourseById(courseId).catch(() => null) : null
+              const courseCreatorId = Number(course?.creatorUserId ?? course?.creator_user_id ?? 0)
+              managerAccess = subjectCreatorId === currentUserId || courseCreatorId === currentUserId
+              // Verificar acceso de colaborador docente
+              if (!managerAccess && courseId > 0) {
+                const collab = await collaboratorAdapter.checkAccess(courseId).catch(() => null)
+                if (collab?.hasAccess) managerAccess = true
+              }
+            }
+          } catch {
+            managerAccess = false
+          }
         }
       }
     }

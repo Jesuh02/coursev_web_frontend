@@ -96,7 +96,12 @@ function handleClick(notification: Notification) {
     case 'new_task':
     case 'task_submission': {
       const taskId = extractId(meta, 'task_id', 'taskId') ?? relatedId
-      if (taskId) router.push({ name: 'taskSubmission', params: { taskId } })
+      const courseId = extractId(meta, 'course_id', 'courseId')
+      if (taskId) {
+        const query: Record<string, string> = {}
+        if (courseId) query.courseId = String(courseId)
+        router.push({ name: 'taskSubmission', params: { taskId }, query })
+      }
       break
     }
 
