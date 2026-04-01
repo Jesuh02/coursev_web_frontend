@@ -430,37 +430,213 @@ function shuffleMultipleChoiceQuestion(question: QuizQuestion): QuizQuestion {
   }
 }
 
+/**
+ * Frontend math verification: recompute the answer from the question text
+ * and fix or reject the question if the claimed answer is wrong.
+ * Acts as a last line of defense against LLM arithmetic errors.
+ */
+function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
+  const text = question.question ?? ''
+  const lower = text.toLowerCase()
+
+  const mathSignals = /calcula|suma|total|multiplica|divide|resta|resultado|costo\s+total|precio\s+total|monto\s+total|redondea|¿cuánto|cuántos|cuántas|promedio|media|porcentaje/i
+  const hasSignificantNumbers = /\d{3,}/.test(text.replace(/,/g, ''))
+  if (!mathSignals.test(lower) && !hasSignificantNumbers) return question
+
+  const computed = computeExpectedAnswer(text)
+  if (computed === null) return question // Can't verify — pass through
+
+  let finalAnswer = computed.value
+  const decMatch = text.match(/redonde[ao].*?(\d+)\s*decimal/i)
+  const requestedDecimals = decMatch ? parseInt(decMatch[1]) : null
+  if (requestedDecimals !== null) {
+    finalAnswer = parseFloat(finalAnswer.toFixed(requestedDecimals))
+  } else if (!Number.isInteger(finalAnswer)) {
+    finalAnswer = parseFloat(finalAnswer.toFixed(2))
+  }
+
+  if (question.type === 'fill_in_blank') {
+    const currentAnswer = parseFloat(String(question.correctAnswer ?? '').replace(/,/g, ''))
+    if (!Number.isFinite(currentAnswer)) return question
+    const tolerance = Math.max(Math.abs(finalAnswer) * 0.001, 0.01)
+    if (Math.abs(currentAnswer - finalAnswer) > tolerance) {
+      console.warn(`[FE MathVerify] CORRECTED fill_in_blank: "${text.substring(0, 80)}..." LLM="${question.correctAnswer}" → Correct="${finalAnswer}"`)
+      return { ...question, correctAnswer: String(finalAnswer), explanation: `${computed.steps.join('. ')}. Resultado: ${finalAnswer}.` }
+    }
+  } else if (question.type === 'multiple_choice' && Array.isArray(question.options)) {
+    const optionValues = question.options.map(opt => {
+      const nums = opt.match(/[\d,]+\.?\d*/g)
+      if (!nums) return NaN
+      const parsed = nums.map((n: string) => parseFloat(n.replace(/,/g, ''))).filter(Number.isFinite)
+      return parsed.length > 0 ? parsed.reduce((a: number, b: number) => Math.abs(a) > Math.abs(b) ? a : b) : NaN
+    })
+    let closestIdx = -1
+    let closestDiff = Infinity
+    for (let i = 0; i < optionValues.length; i++) {
+      if (!Number.isFinite(optionValues[i])) continue
+      const diff = Math.abs(optionValues[i] - finalAnswer)
+      if (diff < closestDiff) { closestDiff = diff; closestIdx = i }
+    }
+    const tolerance = Math.max(Math.abs(finalAnswer) * 0.001, 0.01)
+    if (closestIdx >= 0 && closestDiff <= tolerance) {
+      if (closestIdx !== question.correctIndex) {
+        console.warn(`[FE MathVerify] CORRECTED MC: "${text.substring(0, 80)}..." index ${question.correctIndex}→${closestIdx} (computed=${finalAnswer})`)
+        return { ...question, correctIndex: closestIdx, explanation: `${computed.steps.join('. ')}. Resultado: ${finalAnswer}.` }
+      }
+    } else {
+      console.warn(`[FE MathVerify] REJECTED: "${text.substring(0, 80)}..." No option ≈ computed=${finalAnswer}`)
+      return null // Reject — no option matches
+    }
+  }
+  return question
+}
+
+function computeExpectedAnswer(text: string): { value: number; steps: string[] } | null {
+  // Strip currency symbols
+  const cleaned = text.replace(/[$€¥£₡₿]\s*/g, '')
+
+  // Strategy 1: Explicit inline arithmetic (e.g. "12,345 + 9,876 + ...")
+  const numberPat = '\\d[\\d,]*\\.?\\d*'
+  const opPat = '[+\\-×*÷/]'
+  const exprRegex = new RegExp(`(${numberPat})\\s*(${opPat})\\s*(${numberPat}(?:\\s*${opPat}\\s*${numberPat})*)`, 'g')
+  const exprMatch = exprRegex.exec(cleaned)
+  if (exprMatch) {
+    const tokens = exprMatch[0].split(/\s*([+\-×*÷/])\s*/).filter((t: string) => t.trim())
+    let result = parseFloat(tokens[0].replace(/,/g, ''))
+    if (Number.isFinite(result)) {
+      const steps: string[] = []
+      let valid = true
+      for (let i = 1; i < tokens.length; i += 2) {
+        const op = tokens[i]
+        const num = parseFloat((tokens[i + 1] || '').replace(/,/g, ''))
+        if (!Number.isFinite(num)) { valid = false; break }
+        const prev = result
+        switch (op) {
+          case '+': result += num; break
+          case '-': result -= num; break
+          case '×': case '*': result *= num; break
+          case '÷': case '/': if (num === 0) { valid = false } else { result /= num }; break
+          default: valid = false
+        }
+        if (!valid) break
+        steps.push(`${prev} ${op} ${num} = ${result}`)
+      }
+      if (valid && steps.length > 0) {
+        // Check for follow-up percentage
+        const after = cleaned.substring(cleaned.indexOf(exprMatch[0]) + exprMatch[0].length)
+        const pctM = after.match(/(?:impuesto|descuento|incremento|aumento|IVA)\s+(?:del?)?\s*([\d,.]+)\s*%/i)
+        if (pctM) {
+          const pct = parseFloat(pctM[1].replace(/,/g, ''))
+          if (Number.isFinite(pct) && pct > 0) {
+            const prev = result
+            const factor = /descuento/i.test(pctM[0]) ? (1 - pct / 100) : (1 + pct / 100)
+            result *= factor
+            steps.push(`${prev} × ${factor} = ${result}`)
+          }
+        }
+        return { value: result, steps }
+      }
+    }
+  }
+
+  // Strategy 2: Word problem — sum data numbers + rate/percentage
+  const lower = text.toLowerCase()
+  if (/total|suma|calcula|acumulad|promedio|media|¿cuánto|cuántos|monto|resultado|costo|precio|valor/i.test(lower)) {
+    // Extract percentages to exclude
+    const pctSet = new Set<number>()
+    const pctRe = /([\d,.]+)\s*%/g
+    let pm
+    while ((pm = pctRe.exec(text)) !== null) {
+      pctSet.add(parseFloat(pm[1].replace(/,/g, '')))
+    }
+    // Extract data numbers
+    const allMatches = cleaned.match(/\d[\d,]*\.?\d*/g) || []
+    const dataNumbers: number[] = []
+    for (const raw of allMatches) {
+      const num = parseFloat(raw.replace(/,/g, ''))
+      if (!Number.isFinite(num) || num < 10) continue
+      if (pctSet.has(num)) continue
+      if (num >= 1900 && num <= 2100 && Number.isInteger(num)) continue
+      dataNumbers.push(num)
+    }
+    if (dataNumbers.length >= 2) {
+      const steps: string[] = []
+      let result: number
+      if (/promedio|media\b/i.test(lower)) {
+        const sum = dataNumbers.reduce((a, b) => a + b, 0)
+        result = sum / dataNumbers.length
+        steps.push(`Suma: ${dataNumbers.join(' + ')} = ${sum}`)
+        steps.push(`Promedio: ${sum} / ${dataNumbers.length} = ${result}`)
+      } else {
+        result = dataNumbers.reduce((a, b) => a + b, 0)
+        steps.push(`Suma: ${dataNumbers.join(' + ')} = ${result}`)
+      }
+      // Percentage
+      if (pctSet.size > 0) {
+        const pct = [...pctSet][0]
+        if (Number.isFinite(pct) && pct > 0 && pct <= 200) {
+          const prev = result
+          if (/descuento/i.test(lower)) {
+            result *= (1 - pct / 100)
+            steps.push(`Descuento ${pct}%: ${prev} × ${(1 - pct / 100)} = ${result}`)
+          } else if (/impuesto|iva|incremento|aumento|interés|recargo/i.test(lower)) {
+            result *= (1 + pct / 100)
+            steps.push(`+ ${pct}%: ${prev} × ${(1 + pct / 100)} = ${result}`)
+          }
+        }
+      }
+      // Rate/cost multiplier
+      const rateM = text.match(/(?:multiplic[aá]r?|×)\s*(?:por)?\s*\$?([\d,.]+)/i)
+        || text.match(/(?:costo|precio|tarifa|tasa|factor)\s+(?:de\s+(?:\w+\s+)*)?(?:de\s*)?\$?([\d,.]+)/i)
+      if (rateM) {
+        const rate = parseFloat(rateM[1].replace(/,/g, ''))
+        if (Number.isFinite(rate) && rate > 0 && rate < result) {
+          const prev = result
+          result *= rate
+          steps.push(`Multiplicación: ${prev} × ${rate} = ${result}`)
+        }
+      }
+      if (steps.length > 0) return { value: result, steps }
+    }
+  }
+  return null
+}
+
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
-  if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
+  // First: verify math consistency — fix or reject wrong math answers
+  const verified = verifyMathConsistency(question)
+  if (!verified) return { ...question, _rejected: true } as QuizQuestion & { _rejected?: boolean }
+
+  if (verified.type === 'multiple_choice' && Array.isArray(verified.options) && verified.options.length >= 2) {
     // Validate that all options are distinct; if not, keep the question but log
-    const uniqueOpts = new Set(question.options.map(o => o.toLowerCase().trim()))
-    if (uniqueOpts.size < question.options.length) {
+    const uniqueOpts = new Set(verified.options.map(o => o.toLowerCase().trim()))
+    if (uniqueOpts.size < verified.options.length) {
       // Deduplicate options by removing duplicates and regenerating distractors
-      const correctOpt = question.options[question.correctIndex]
+      const correctOpt = verified.options[verified.correctIndex]
       const correctNum = Number(correctOpt?.replace(/[^0-9.\-]/g, '') ?? '')
       if (Number.isFinite(correctNum)) {
         // Generate new unique distractors based on plausible errors
         const distractors = generatePlausibleDistractors(correctNum)
         return shuffleMultipleChoiceQuestion({
-          ...question,
+          ...verified,
           options: [formatMathOption(correctNum), ...distractors.map(formatMathOption)],
           correctIndex: 0,
         })
       }
     }
-    return shuffleMultipleChoiceQuestion(question)
+    return shuffleMultipleChoiceQuestion(verified)
   }
 
-  if (question.type !== 'fill_in_blank' || !shouldConvertMathFillQuestion(question.question, question.correctAnswer)) {
-    return question
+  if (verified.type !== 'fill_in_blank' || !shouldConvertMathFillQuestion(verified.question, verified.correctAnswer)) {
+    return verified
   }
 
-  const numericAnswer = Number(String(question.correctAnswer ?? '').trim().replace(/,/g, ''))
-  if (!Number.isFinite(numericAnswer)) return question
+  const numericAnswer = Number(String(verified.correctAnswer ?? '').trim().replace(/,/g, ''))
+  if (!Number.isFinite(numericAnswer)) return verified
 
   const distractors = generatePlausibleDistractors(numericAnswer)
   return shuffleMultipleChoiceQuestion({
-    ...question,
+    ...verified,
     type: 'multiple_choice',
     options: [
       formatMathOption(numericAnswer),
@@ -725,7 +901,10 @@ async function startQuiz() {
 
         if (s?.status === 'done') {
           const raw: QuizQuestion[] = Array.isArray(s.questions) ? s.questions : []
-          const qs = raw.filter(q => q.question).map(normalizeQuestionForDisplay)
+          const qs = raw
+            .filter(q => q.question)
+            .map(normalizeQuestionForDisplay)
+            .filter(q => !(q as QuizQuestion & { _rejected?: boolean })._rejected)
           if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
           questions.value = qs
           quizStartTime   = Date.now()
