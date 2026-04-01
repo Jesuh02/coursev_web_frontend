@@ -80,6 +80,7 @@
             <div class="status-body">
               <p class="status-title" v-if="existingSubmission.grade !== null">Calificada: {{ existingSubmission.grade }} / 10</p>
               <p class="status-title" v-else>Enviada — Pendiente de revisión</p>
+              <p class="status-date">{{ formatSubmissionDate(existingSubmission.created_at) }}</p>
               <p v-if="existingSubmission.feedback" class="status-feedback">{{ existingSubmission.feedback }}</p>
             </div>
           </div>
@@ -247,6 +248,15 @@ const isDueOverdue = computed(() => {
   if (!raw) return false
   return new Date(raw as string) < new Date()
 })
+
+function formatSubmissionDate(raw: string | null | undefined): string {
+  if (!raw) return ''
+  try {
+    const d = new Date(raw)
+    return d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })
+      + ' · ' + d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+  } catch { return '' }
+}
 
 function formatDueDate(raw: string | null | undefined): string {
   if (!raw) return 'Sin fecha límite'
@@ -454,5 +464,6 @@ onMounted(async () => {
 .status-icon { flex-shrink: 0; margin-top: 1px; }
 .status-body { display: flex; flex-direction: column; gap: 4px; }
 .status-title { font-size: 15px; font-weight: 600; margin: 0; }
+.status-date { font-size: 11px; opacity: 0.6; margin: 0; letter-spacing: 0.1px; }
 .status-feedback { font-size: 13px; opacity: 0.85; margin: 0; line-height: 1.4; color: #fff; }
 </style>
