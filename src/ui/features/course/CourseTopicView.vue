@@ -506,7 +506,7 @@ a.row-action { text-decoration: none; }
 .doc-icon { background: #E3F2FD; color: #2196F3; }
 .task-add-icon { background: #E0F7F4; color: #00BCD4; }
 
-.add-label { font-size: 14px; color: #2C3E50; font-weight: 500; }
+.add-label { font-size: 14px; color: #fff; font-weight: 500; }
 
 /* ── Hidden file input ── */
 .hidden-input { display: none; }
