@@ -2383,6 +2383,7 @@ const openBlockSubjectDialog = (userId: number, courseId: number, userName: stri
 }
 
 const confirmRevokeEnrollment = async () => {
+  if (revokeDialog.value.processing) return
   const { userId, courseId, reason } = revokeDialog.value
   if (!reason.trim()) return
   revokeDialog.value.processing = true
@@ -2407,19 +2408,27 @@ const confirmRevokeEnrollment = async () => {
 }
 
 const confirmBlockSubjectAccess = async () => {
+  if (blockSubjectDialog.value.processing) return
   const { userId, courseId, selectedSubjectId, reason } = blockSubjectDialog.value
   if (!selectedSubjectId || !reason.trim()) return
   blockSubjectDialog.value.processing = true
   try {
     await progressAdapter.blockSubjectAccess(userId, courseId, selectedSubjectId, reason.trim())
     // Optimistic local update: mark the subject as blocked immediately
+    const optimisticKey = `${userId}-${courseId}-${selectedSubjectId}`
     const newSet = new Set(blockedSubjectKeys.value)
-    newSet.add(`${userId}-${courseId}-${selectedSubjectId}`)
+    newSet.add(optimisticKey)
     blockedSubjectKeys.value = newSet
     blockSubjectDialog.value.visible = false
     // Reload from backend to ensure consistency
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Merge optimistic key back in case server data hasn't replicated yet
+    if (!blockedSubjectKeys.value.has(optimisticKey)) {
+      const merged = new Set(blockedSubjectKeys.value)
+      merged.add(optimisticKey)
+      blockedSubjectKeys.value = merged
+    }
   } catch (e) {
     console.error('Error blocking subject access:', e)
   } finally {
@@ -2442,18 +2451,26 @@ const openUnblockSubjectDialog = (userId: number, courseId: number, subjectId: n
 }
 
 const confirmUnblockSubjectAccess = async () => {
+  if (unblockSubjectDialog.value.processing) return
   const { userId, courseId, subjectId } = unblockSubjectDialog.value
   unblockSubjectDialog.value.processing = true
   try {
     await progressAdapter.unblockSubjectAccess(userId, subjectId)
     // Optimistic local update: remove the subject from blocked keys immediately
+    const optimisticKey = `${userId}-${courseId}-${subjectId}`
     const newSet = new Set(blockedSubjectKeys.value)
-    newSet.delete(`${userId}-${courseId}-${subjectId}`)
+    newSet.delete(optimisticKey)
     blockedSubjectKeys.value = newSet
     unblockSubjectDialog.value.visible = false
     // Reload from backend to ensure consistency
     approvedLoaded = false
     await loadApprovedEnrollments()
+    // Ensure optimistic removal persists even if server data still shows it
+    if (blockedSubjectKeys.value.has(optimisticKey)) {
+      const merged = new Set(blockedSubjectKeys.value)
+      merged.delete(optimisticKey)
+      blockedSubjectKeys.value = merged
+    }
   } catch (e) {
     console.error('Error unblocking subject access:', e)
   } finally {
