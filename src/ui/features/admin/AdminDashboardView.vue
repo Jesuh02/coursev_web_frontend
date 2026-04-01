@@ -1673,8 +1673,12 @@ watch(activeTab, (tab) => {
     loadUsers()
   }
 
-  if (tab === 'enrollment' && enrollmentSubTab.value === 'matricula') {
-    loadApprovedEnrollmentsIfNeeded()
+  if (tab === 'enrollment') {
+    if (enrollmentSubTab.value === 'matricula') {
+      loadApprovedEnrollmentsIfNeeded()
+    } else if (pendingEnrollments.value.length === 0 && !loadingEnrollments.value) {
+      loadEnrollments()
+    }
   }
 })
 
