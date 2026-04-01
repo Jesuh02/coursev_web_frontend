@@ -335,6 +335,8 @@ async function navigateToCourse(course: Course) {
       router.push(`/subjects/${course.id}`)
     } else if (status === 'pending') {
       showAccessMessage('Tu solicitud de acceso está pendiente de aprobación.')
+    } else if (status === 'revoked') {
+      showAccessMessage('Tu acceso a este curso fue revocado por el administrador.')
     } else {
       await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
     }

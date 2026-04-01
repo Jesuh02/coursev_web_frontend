@@ -21,10 +21,10 @@
       <p class="empty-desc">No tienes notificaciones nuevas</p>
     </div>
 
-    <!-- subject_access_blocked dialog -->
+    <!-- subject_access_blocked / enrollment_revoked dialog -->
     <div v-if="blockAlert" class="block-alert-overlay" @click.self="blockAlert = null">
       <div class="block-alert-card">
-        <h2 class="block-alert-title">Acceso restringido</h2>
+        <h2 class="block-alert-title">{{ blockAlertTitle }}</h2>
         <p class="block-alert-msg">{{ blockAlert }}</p>
         <button class="block-alert-btn" @click="blockAlert = null">Entendido</button>
       </div>
@@ -44,6 +44,7 @@ import NotificationSkeleton from './components/NotificationSkeleton.vue'
 const notifStore = useNotificationStore()
 const router = useRouter()
 const blockAlert = ref<string | null>(null)
+const blockAlertTitle = ref('Acceso restringido')
 
 onMounted(() => {
   notifStore.fetchNotifications()
@@ -160,6 +161,14 @@ function handleClick(notification: Notification) {
 
     case 'subject_access_blocked': {
       const reason = (meta.reason as string) || notification.message || 'Sin motivo especificado'
+      blockAlertTitle.value = 'Acceso a materia restringido'
+      blockAlert.value = reason
+      break
+    }
+
+    case 'enrollment_revoked': {
+      const reason = (meta.reason as string) || notification.message || 'Sin motivo especificado'
+      blockAlertTitle.value = 'Acceso al curso revocado'
       blockAlert.value = reason
       break
     }

@@ -1173,8 +1173,8 @@
                         'is-blocking': blockSubjectDialog.processing && blockSubjectDialog.userId === user.userId && blockSubjectDialog.selectedSubjectId === subj.id,
                         'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id)
                       }"
-                      @click="!isSubjectBlocked(user.userId, group.courseId, subj.id) && openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.subjects, subj.id)"
-                      :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Acceso bloqueado — ${subj.name}` : `Quitar acceso a ${subj.name}`"
+                      @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.subjects, subj.id)"
+                      :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
                       <!-- Lock icon when blocked -->
                       <svg v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -1256,6 +1256,29 @@
                   :disabled="!blockSubjectDialog.selectedSubjectId || !blockSubjectDialog.reason.trim() || blockSubjectDialog.processing"
                   @click="confirmBlockSubjectAccess"
                 >{{ blockSubjectDialog.processing ? 'Bloqueando...' : 'Quitar acceso' }}</button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+
+      <!-- ── Dialog: Restaurar acceso a materia ── -->
+      <Teleport to="body">
+        <Transition name="dialog-fade">
+          <div v-if="unblockSubjectDialog.visible" class="enroll-dialog-overlay" @click="unblockSubjectDialog.visible = false">
+            <div class="enroll-dialog" @click.stop>
+              <div class="enroll-dialog-icon-wrap is-green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+              </div>
+              <h3 class="enroll-dialog-title">Restaurar acceso a materia</h3>
+              <p class="enroll-dialog-desc">¿Desea restaurar el acceso de <strong>{{ unblockSubjectDialog.userName }}</strong> a la materia <strong>{{ unblockSubjectDialog.subjectName }}</strong>?</p>
+              <div class="enroll-dialog-actions">
+                <button class="enroll-dialog-cancel" @click="unblockSubjectDialog.visible = false">Cancelar</button>
+                <button
+                  class="enroll-dialog-confirm is-green"
+                  :disabled="unblockSubjectDialog.processing"
+                  @click="confirmUnblockSubjectAccess"
+                >{{ unblockSubjectDialog.processing ? 'Restaurando...' : 'Restaurar acceso' }}</button>
               </div>
             </div>
           </div>
@@ -2208,7 +2231,7 @@ const loadApprovedEnrollments = async () => {
         newBlockedKeys.add(`${uid}-${cid}-${sid}`)
       }
     }
-    blockedSubjectKeys.value = new Set([...blockedSubjectKeys.value, ...newBlockedKeys])
+    blockedSubjectKeys.value = newBlockedKeys
 
     const rows = rawRows.map((item: any) => ({
       userId: Number(item.userId ?? item.user_id) || 0,
@@ -2325,12 +2348,42 @@ const confirmBlockSubjectAccess = async () => {
   blockSubjectDialog.value.processing = true
   try {
     await progressAdapter.blockSubjectAccess(userId, courseId, selectedSubjectId, reason.trim())
-    blockedSubjectKeys.value = new Set([...blockedSubjectKeys.value, `${userId}-${courseId}-${selectedSubjectId}`])
     blockSubjectDialog.value.visible = false
+    approvedLoaded = false
+    await loadApprovedEnrollments()
   } catch (e) {
     console.error('Error blocking subject access:', e)
   } finally {
     blockSubjectDialog.value.processing = false
+  }
+}
+
+const unblockSubjectDialog = ref({
+  visible: false,
+  userId: 0,
+  courseId: 0,
+  subjectId: 0,
+  userName: '',
+  subjectName: '',
+  processing: false,
+})
+
+const openUnblockSubjectDialog = (userId: number, courseId: number, subjectId: number, userName: string, subjectName: string) => {
+  unblockSubjectDialog.value = { visible: true, userId, courseId, subjectId, userName, subjectName, processing: false }
+}
+
+const confirmUnblockSubjectAccess = async () => {
+  const { userId, subjectId } = unblockSubjectDialog.value
+  unblockSubjectDialog.value.processing = true
+  try {
+    await progressAdapter.unblockSubjectAccess(userId, subjectId)
+    unblockSubjectDialog.value.visible = false
+    approvedLoaded = false
+    await loadApprovedEnrollments()
+  } catch (e) {
+    console.error('Error unblocking subject access:', e)
+  } finally {
+    unblockSubjectDialog.value.processing = false
   }
 }
 
@@ -5605,6 +5658,7 @@ watch(() => route.query, () => {
 
 .enroll-dialog-icon-wrap.is-red   { background: rgba(255,69,58,0.12);  border: 1px solid rgba(255,69,58,0.22);  }
 .enroll-dialog-icon-wrap.is-amber { background: rgba(255,149,0,0.12);  border: 1px solid rgba(255,149,0,0.22);  }
+.enroll-dialog-icon-wrap.is-green { background: rgba(48,209,88,0.12);  border: 1px solid rgba(48,209,88,0.22);  }
 
 .enroll-dialog-title {
   text-align: center;
@@ -5731,6 +5785,17 @@ watch(() => route.query, () => {
 .enroll-dialog-confirm.is-amber:hover:not(:disabled) {
   background: rgba(255,149,0,0.28);
   box-shadow: 0 4px 20px rgba(255,149,0,0.2);
+}
+
+.enroll-dialog-confirm.is-green {
+  background: rgba(48,209,88,0.14);
+  border: 1px solid rgba(48,209,88,0.3);
+  color: #34D399;
+}
+
+.enroll-dialog-confirm.is-green:hover:not(:disabled) {
+  background: rgba(48,209,88,0.28);
+  box-shadow: 0 4px 20px rgba(48,209,88,0.2);
 }
 
 .enroll-dialog-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
