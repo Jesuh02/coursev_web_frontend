@@ -1160,7 +1160,19 @@
                 <span class="enroll-course-group-badge">{{ group.users.length }} usuario{{ group.users.length !== 1 ? 's' : '' }}</span>
               </div>
               <div v-if="group.subjects.length" class="enroll-course-group-subjects">
-                <span v-for="subj in group.subjects" :key="subj.id" class="enroll-subj-tag">{{ subj.name }}</span>
+                <div v-for="subj in group.subjects" :key="subj.id" class="enroll-subj-card">
+                  <img
+                    v-if="subj.thumbnailUrl"
+                    :src="resolveThumbnail(subj.thumbnailUrl)"
+                    class="enroll-subj-card-thumb"
+                    alt=""
+                    @error="onCourseThumbError"
+                  />
+                  <div v-else class="enroll-subj-card-thumb enroll-subj-card-thumb--placeholder">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  </div>
+                  <span class="enroll-subj-card-name">{{ subj.name }}</span>
+                </div>
               </div>
             </div>
 
@@ -1217,14 +1229,24 @@
                       @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? quickUnblockSubject(user.userId, group.courseId, subj.id) : subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
                       :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
-                      <!-- Lock icon when blocked (check first — blocked subjects also have enrollmentStatus='inactivo') -->
-                      <svg v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <img
+                        v-if="subj.thumbnailUrl"
+                        :src="resolveThumbnail(subj.thumbnailUrl)"
+                        class="enroll-block-chip-thumb"
+                        alt=""
+                        @error="onCourseThumbError"
+                      />
+                      <div v-else class="enroll-block-chip-thumb enroll-block-chip-thumb--placeholder">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      </div>
+                      <!-- Lock icon when blocked -->
+                      <svg v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" class="enroll-block-chip-icon" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                       <!-- Pause icon when inactive (not blocked) -->
-                      <svg v-else-if="subj.enrollmentStatus === 'inactivo'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                      <svg v-else-if="subj.enrollmentStatus === 'inactivo'" class="enroll-block-chip-icon" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                       <span :class="{ 'subj-blocked-text': isSubjectBlocked(user.userId, group.courseId, subj.id) || subj.enrollmentStatus === 'inactivo' }">{{ subj.name }}</span>
-                      <!-- Blocked badge (check first) -->
+                      <!-- Blocked badge -->
                       <span v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" class="enroll-blocked-badge">bloqueada</span>
-                      <!-- Inactive badge (only when not blocked) -->
+                      <!-- Inactive badge -->
                       <span v-else-if="subj.enrollmentStatus === 'inactivo'" class="enroll-blocked-badge">inactiva</span>
                       <!-- X icon when active -->
                       <svg v-else width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2235,7 +2257,7 @@ interface ApprovedEnrollmentItem {
   avatar: string | null
   identificacion: string | null
   courseName: string | null
-  subjects: { id: number; name: string; enrollmentStatus?: string }[]
+  subjects: { id: number; name: string; thumbnailUrl?: string | null; enrollmentStatus?: string }[]
   status: string
   courseEnrollmentStatus: string
   revokeReason: string | null
@@ -2326,7 +2348,7 @@ const activeEnrollments = computed(() => approvedEnrollments.value.filter(e => e
 interface ApprovedGrouped {
   courseId: number
   courseName: string
-  subjects: { id: number; name: string; enrollmentStatus?: string }[]
+  subjects: { id: number; name: string; thumbnailUrl?: string | null; enrollmentStatus?: string }[]
   users: ApprovedEnrollmentItem[]
 }
 
@@ -2358,7 +2380,7 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
     // Merge unique subjects (by id) for the course header — no per-user state
     for (const subj of e.subjects) {
       if (!group.subjects.some(s => s.id === subj.id)) {
-        group.subjects.push({ id: subj.id, name: subj.name })
+        group.subjects.push({ id: subj.id, name: subj.name, thumbnailUrl: subj.thumbnailUrl })
       }
     }
     // Guard: skip duplicate userId entries to prevent identical v-for keys
@@ -2428,6 +2450,7 @@ const loadApprovedEnrollments = async () => {
       subjects: Array.isArray(item.subjects) ? item.subjects.map((s: any) => ({
         id: s.id,
         name: s.name,
+        thumbnailUrl: s.thumbnailUrl ?? s.thumbnail_url ?? null,
         enrollmentStatus: s.enrollmentStatus ?? s.enrollment_status ?? 'activo',
       })) : [],
       status: String(item.status ?? item.enrollmentStatus ?? item.enrollment_status ?? 'approved'),
@@ -5838,21 +5861,48 @@ watch(() => route.query, () => {
   flex-shrink: 0;
 }
 
-.enroll-course-group-subjects { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; padding-bottom: 4px; scrollbar-width: none; }
-.enroll-course-group-subjects::-webkit-scrollbar { display: none; }
+.enroll-course-group-subjects { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
-.enroll-subj-tag {
-  display: inline-flex;
+.enroll-subj-card {
+  display: flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #818CF8;
-  background: rgba(99,102,241,0.09);
-  border: 1px solid rgba(99,102,241,0.16);
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 12px;
+  background: rgba(99,102,241,0.06);
+  border: 1px solid rgba(99,102,241,0.12);
+  transition: all 0.2s ease;
+  max-width: 200px;
+}
+
+.enroll-subj-card:hover {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.22);
+}
+
+.enroll-subj-card-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
   flex-shrink: 0;
+}
+
+.enroll-subj-card-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99,102,241,0.1);
+}
+
+.enroll-subj-card-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #A5B4FC;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .enroll-user-rows {
@@ -5906,15 +5956,14 @@ watch(() => route.query, () => {
   align-items: flex-end;
 }
 
-.enroll-block-chips { display: flex; gap: 5px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; justify-content: flex-start; padding-bottom: 4px; scrollbar-width: none; max-width: 220px; }
-.enroll-block-chips::-webkit-scrollbar { display: none; }
+.enroll-block-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 320px; }
 
 .enroll-block-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px 4px 11px;
-  border-radius: 999px;
+  padding: 4px 9px 4px 4px;
+  border-radius: 10px;
   font-size: 11.5px;
   font-weight: 600;
   color: #818CF8;
@@ -5922,9 +5971,25 @@ watch(() => route.query, () => {
   border: 1px solid rgba(99,102,241,0.16);
   cursor: pointer;
   transition: all 0.2s ease;
-  flex-shrink: 0;
   white-space: nowrap;
 }
+
+.enroll-block-chip-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.enroll-block-chip-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99,102,241,0.12);
+}
+
+.enroll-block-chip-icon { flex-shrink: 0; }
 
 .enroll-block-chip svg { opacity: 0.4; transition: opacity 0.15s, color 0.15s; }
 
