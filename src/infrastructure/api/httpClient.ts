@@ -144,6 +144,11 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
       const refreshed = await tryRefresh()
       if (refreshed) {
         const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
+        if (retryRes.status === 401) {
+          tokenStorage.clear()
+          _onUnauthorized?.()
+          throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
+        }
         return handler(retryRes)
       }
       tokenStorage.clear()
@@ -164,6 +169,11 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
         const refreshed = await tryRefresh()
         if (refreshed) {
           const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
+          if (retryRes.status === 401) {
+            tokenStorage.clear()
+            _onUnauthorized?.()
+            throw new HttpError(401, 'UNAUTHORIZED', 'Sesión expirada')
+          }
           return handler(retryRes)
         }
         tokenStorage.clear()

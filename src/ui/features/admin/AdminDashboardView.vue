@@ -2596,8 +2596,8 @@ const toggleCourseEnrollmentStatus = async (userId: number, courseId: number, st
         ? { ...e, courseEnrollmentStatus: status }
         : e
     )
-  } catch (e) {
-    console.error('Error toggling course enrollment status:', e)
+  } catch (e: any) {
+    if (e?.statusCode !== 401) console.error('Error toggling course enrollment status:', e)
   } finally {
     delete togglingEnrollStatus.value[key]
   }
@@ -2613,8 +2613,8 @@ const toggleSubjectEnrollmentStatus = async (userId: number, courseId: number, s
         ? { ...e, subjects: e.subjects.map(s => s.id === subjectId ? { ...s, enrollmentStatus: status } : s) }
         : e
     )
-  } catch (e) {
-    console.error('Error toggling subject enrollment status:', e)
+  } catch (e: any) {
+    if (e?.statusCode !== 401) console.error('Error toggling subject enrollment status:', e)
   } finally {
     delete togglingEnrollStatus.value[key]
   }
@@ -3134,9 +3134,8 @@ const toggleSpEnrollmentStatus = async (row: SubjectProgressItem) => {
   try {
     await progressAdapter.setSubjectEnrollmentStatus(row.userId, row.courseId, row.subjectId!, newStatus)
     row.enrollmentStatus = newStatus
-    console.log(`Materia ${newStatus === 'activo' ? 'activada' : 'inactivada'} correctamente`)
-  } catch (e) {
-    console.error('Error toggling subject enrollment status:', e)
+  } catch (e: any) {
+    if (e?.statusCode !== 401) console.error('Error toggling subject enrollment status:', e)
   } finally {
     delete togglingSpEnrollStatus.value[key]
   }
