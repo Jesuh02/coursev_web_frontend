@@ -1212,21 +1212,22 @@
                       :class="{
                         'is-blocking': blockSubjectDialog.processing && blockSubjectDialog.userId === user.userId && blockSubjectDialog.selectedSubjectId === subj.id,
                         'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id),
-                        'is-inactive-subject': subj.enrollmentStatus === 'inactivo'
+                        'is-inactive-subject': !isSubjectBlocked(user.userId, group.courseId, subj.id) && subj.enrollmentStatus === 'inactivo'
                       }"
-                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
-                      :title="subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
+                      @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
+                      :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
-                      <!-- Pause icon when inactive -->
-                      <svg v-if="subj.enrollmentStatus === 'inactivo'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                      <!-- Lock icon when blocked -->
-                      <svg v-else-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <!-- Lock icon when blocked (check first — blocked subjects also have enrollmentStatus='inactivo') -->
+                      <svg v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <!-- Pause icon when inactive (not blocked) -->
+                      <svg v-else-if="subj.enrollmentStatus === 'inactivo'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                       <span :class="{ 'subj-blocked-text': isSubjectBlocked(user.userId, group.courseId, subj.id) || subj.enrollmentStatus === 'inactivo' }">{{ subj.name }}</span>
-                      <!-- Inactive badge -->
-                      <span v-if="subj.enrollmentStatus === 'inactivo'" class="enroll-blocked-badge">inactiva</span>
-                      <!-- X icon when active, checkmark when blocked -->
-                      <svg v-else-if="!isSubjectBlocked(user.userId, group.courseId, subj.id)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      <span v-else class="enroll-blocked-badge">bloqueada</span>
+                      <!-- Blocked badge (check first) -->
+                      <span v-if="isSubjectBlocked(user.userId, group.courseId, subj.id)" class="enroll-blocked-badge">bloqueada</span>
+                      <!-- Inactive badge (only when not blocked) -->
+                      <span v-else-if="subj.enrollmentStatus === 'inactivo'" class="enroll-blocked-badge">inactiva</span>
+                      <!-- X icon when active -->
+                      <svg v-else width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
 

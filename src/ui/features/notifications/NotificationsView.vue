@@ -166,10 +166,29 @@ function handleClick(notification: Notification) {
       break
     }
 
+    case 'subject_access_unblocked': {
+      const subjectName = String(meta.subjectName ?? meta.subject_name ?? 'una materia').trim()
+      const courseName = String(meta.courseName ?? meta.course_name ?? 'un curso').trim()
+      blockAlertTitle.value = '✅ Acceso a materia restaurado'
+      blockAlert.value = `Tu acceso a la materia "${subjectName}" del curso "${courseName}" ha sido restaurado. ¡Ya puedes acceder nuevamente!`
+      break
+    }
+
     case 'enrollment_revoked': {
       const reason = (meta.reason as string) || notification.message || 'Sin motivo especificado'
       blockAlertTitle.value = 'Acceso al curso revocado'
       blockAlert.value = reason
+      break
+    }
+
+    case 'enrollment_restored': {
+      const courseName = String(meta.courseName ?? meta.course_name ?? 'un curso').trim()
+      const courseId = extractId(meta, 'course_id', 'courseId') ?? relatedId
+      blockAlertTitle.value = '✅ Acceso al curso restaurado'
+      blockAlert.value = `Tu acceso al curso "${courseName}" ha sido restaurado. ¡Ya puedes acceder nuevamente!`
+      if (courseId) {
+        router.push({ name: 'subjectsList', params: { courseId } })
+      }
       break
     }
   }
