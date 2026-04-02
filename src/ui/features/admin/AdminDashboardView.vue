@@ -1183,6 +1183,16 @@
                   </div>
                 </div>
                 <div class="enroll-enrolled-right">
+                  <!-- Revoke enrollment (quitar acceso con razón) -->
+                  <button
+                    class="enroll-revoke-btn"
+                    :disabled="revokingKeys[`${user.userId}-${group.courseId}`]"
+                    @click="openRevokeDialog(user.userId, group.courseId, user.fullName || user.username || `Usuario #${user.userId}`, group.courseName)"
+                    title="Quitar acceso al curso"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Quitar acceso
+                  </button>
                   <!-- Course activate/deactivate toggle -->
                   <button
                     v-if="user.courseEnrollmentStatus === 'inactivo'"
@@ -5952,6 +5962,28 @@ watch(() => route.query, () => {
   box-shadow: 0 4px 14px rgba(251,191,36,0.16);
 }
 .enroll-deactivate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.enroll-revoke-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF453A;
+  background: rgba(255,69,58,0.08);
+  border: 1px solid rgba(255,69,58,0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.enroll-revoke-btn:hover:not(:disabled) {
+  background: rgba(255,69,58,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255,69,58,0.16);
+}
+.enroll-revoke-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .enroll-deactivate-subj-btn {
   display: inline-flex;
