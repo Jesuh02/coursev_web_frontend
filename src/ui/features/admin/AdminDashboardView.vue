@@ -1240,6 +1240,29 @@
                     </button>
                   </div>
 
+                  <!-- Block details: show reason, date and who blocked for each blocked subject -->
+                  <div v-if="hasAnyBlockedSubject(user.userId, group.courseId, user.subjects)" class="enroll-block-details">
+                    <div
+                      v-for="subj in user.subjects.filter(s => isSubjectBlocked(user.userId, group.courseId, s.id))"
+                      :key="`block-detail-${subj.id}`"
+                      class="enroll-block-detail-row"
+                    >
+                      <div class="enroll-block-detail-header">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span class="enroll-block-detail-subj">{{ subj.name }}</span>
+                      </div>
+                      <div v-if="getBlockDetail(user.userId, group.courseId, subj.id)" class="enroll-block-detail-info">
+                        <span class="enroll-block-detail-reason">{{ getBlockDetail(user.userId, group.courseId, subj.id)?.reason || 'Sin razón especificada' }}</span>
+                        <span v-if="getBlockDetail(user.userId, group.courseId, subj.id)?.blockedAt" class="enroll-block-detail-date">
+                          {{ formatDate(getBlockDetail(user.userId, group.courseId, subj.id)?.blockedAt) }}
+                        </span>
+                        <span v-if="getBlockDetail(user.userId, group.courseId, subj.id)?.blockedByUsername" class="enroll-block-detail-by">
+                          por @{{ getBlockDetail(user.userId, group.courseId, subj.id)?.blockedByUsername }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -2237,6 +2260,26 @@ const blockedSubjectKeys = ref<Set<string>>(new Set())
 const togglingEnrollStatus = ref<Record<string, boolean>>({})
 let approvedLoaded = false
 
+interface SubjectAccessBlockDetail {
+  userId: number
+  courseId: number
+  subjectId: number
+  reason: string | null
+  blockedAt: string | null
+  blockedBy: number | null
+  blockedByUsername: string | null
+  username: string | null
+  fullName: string | null
+  subjectName: string | null
+  courseName: string | null
+}
+
+const subjectBlockDetails = ref<Map<string, SubjectAccessBlockDetail>>(new Map())
+
+const getBlockDetail = (userId: number, courseId: number, subjectId: number): SubjectAccessBlockDetail | null => {
+  return subjectBlockDetails.value.get(`${userId}-${courseId}-${subjectId}`) ?? null
+}
+
 const applyAdminQueryNavigation = async () => {
   const tab = String(route.query.tab ?? '').trim()
   const subtab = String(route.query.subtab ?? '').trim()
@@ -2337,6 +2380,36 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
 const loadApprovedEnrollments = async () => {
   loadingApproved.value = true
   try {
+    // Load block details in parallel with approved enrollments
+    const blockDetailsPromise = (async () => {
+      try {
+        const blocks = await progressAdapter.getAllSubjectAccessBlocks()
+        const arr = Array.isArray(blocks) ? blocks : []
+        const detailMap = new Map<string, SubjectAccessBlockDetail>()
+        for (const b of arr) {
+          const detail: SubjectAccessBlockDetail = {
+            userId: Number(b.userId ?? b.user_id) || 0,
+            courseId: Number(b.courseId ?? b.course_id) || 0,
+            subjectId: Number(b.subjectId ?? b.subject_id) || 0,
+            reason: (b.reason as string) || null,
+            blockedAt: (b.blockedAt as string) ?? (b.blocked_at as string) ?? null,
+            blockedBy: Number(b.blockedBy ?? b.blocked_by) || null,
+            blockedByUsername: (b.blockedByUsername as string) ?? (b.blocked_by_username as string) ?? null,
+            username: (b.username as string) || null,
+            fullName: (b.fullName as string) ?? (b.full_name as string) ?? null,
+            subjectName: (b.subjectName as string) ?? (b.subject_name as string) ?? null,
+            courseName: (b.courseName as string) ?? (b.course_name as string) ?? null,
+          }
+          if (detail.userId && detail.courseId && detail.subjectId) {
+            detailMap.set(`${detail.userId}-${detail.courseId}-${detail.subjectId}`, detail)
+          }
+        }
+        subjectBlockDetails.value = detailMap
+      } catch (e) {
+        console.error('Error loading subject block details:', e)
+      }
+    })()
+
     const data = await progressAdapter.getApprovedEnrollments()
     const rawRows = Array.isArray(data) ? data : []
 
@@ -2417,6 +2490,7 @@ const loadApprovedEnrollments = async () => {
       seenKeys.add(key)
       return true
     })
+    await blockDetailsPromise
   } catch (e) {
     console.error('Error loading approved enrollments:', e)
     approvedEnrollments.value = []
@@ -6918,5 +6992,53 @@ watch(() => route.query, () => {
   .certificates-admin-section .items-list {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* ─── Block detail rows ─── */
+.enroll-block-details {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 69, 58, 0.06);
+  border: 1px solid rgba(255, 69, 58, 0.15);
+  border-radius: 10px;
+}
+.enroll-block-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 0;
+}
+.enroll-block-detail-row + .enroll-block-detail-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.enroll-block-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.enroll-block-detail-subj {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF453A;
+}
+.enroll-block-detail-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-left: 15px;
+}
+.enroll-block-detail-reason {
+  font-size: 11px;
+  color: #e5e7eb;
+  font-style: italic;
+}
+.enroll-block-detail-date {
+  font-size: 10px;
+  color: #6b7280;
+}
+.enroll-block-detail-by {
+  font-size: 10px;
+  color: #818CF8;
 }
 </style>

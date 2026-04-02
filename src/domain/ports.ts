@@ -178,6 +178,7 @@ export interface ProgressPort {
   unblockSubjectAccess(userId: number, subjectId: number, courseId?: number): Promise<Record<string, unknown>>
   checkSubjectAccessBlock(subjectId: number): Promise<Record<string, unknown>>
   getMySubjectAccessBlocks(courseId: number): Promise<Record<string, unknown>[]>
+  getAllSubjectAccessBlocks(): Promise<Record<string, unknown>[]>
 }
 
 export interface NotificationPort {

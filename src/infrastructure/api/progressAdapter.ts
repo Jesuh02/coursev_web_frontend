@@ -98,4 +98,6 @@ export const progressAdapter: ProgressPort = {
     api.get<Record<string, unknown>>(`/progress/subject/${subjectId}/access-block`),
   getMySubjectAccessBlocks: (courseId: number) =>
     api.get<Record<string, unknown>[]>(`/progress/course/${courseId}/subject-access-blocks`),
+  getAllSubjectAccessBlocks: () =>
+    api.get<Record<string, unknown>[]>('/progress/admin/subject-access-blocks'),
 }
