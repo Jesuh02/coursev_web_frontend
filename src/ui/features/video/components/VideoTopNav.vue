@@ -22,9 +22,9 @@
       </div>
 
       <div class="pill-wrapper">
-        <!-- Courses with purple glow -->
+        <!-- Cerrar sesión with purple glow -->
         <div class="glow-effect purple-glow" />
-        <button class="pill-btn courses-btn" @click="$router.push('/explore')" title="Cursos">
+        <button class="pill-btn courses-btn" @click="emit('go-login')" title="Cerrar sesión">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
