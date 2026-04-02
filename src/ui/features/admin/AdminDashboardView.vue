@@ -3160,10 +3160,9 @@ const toggleSpEnrollmentStatus = async (row: SubjectProgressItem) => {
   try {
     await progressAdapter.setSubjectEnrollmentStatus(row.userId, row.courseId, row.subjectId!, newStatus)
     row.enrollmentStatus = newStatus
-    notifStore.show(`Materia ${newStatus === 'activo' ? 'activada' : 'inactivada'} correctamente`, 'success')
+    console.log(`Materia ${newStatus === 'activo' ? 'activada' : 'inactivada'} correctamente`)
   } catch (e) {
     console.error('Error toggling subject enrollment status:', e)
-    notifStore.show('Error al cambiar estado de la materia', 'error')
   } finally {
     delete togglingSpEnrollStatus.value[key]
   }
