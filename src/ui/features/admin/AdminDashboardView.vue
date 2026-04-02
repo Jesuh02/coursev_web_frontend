@@ -1214,7 +1214,7 @@
                         'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id),
                         'is-inactive-subject': !isSubjectBlocked(user.userId, group.courseId, subj.id) && subj.enrollmentStatus === 'inactivo'
                       }"
-                      @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
+                      @click="isSubjectBlocked(user.userId, group.courseId, subj.id) ? quickUnblockSubject(user.userId, group.courseId, subj.id) : subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
                       :title="isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
                       <!-- Lock icon when blocked (check first — blocked subjects also have enrollmentStatus='inactivo') -->
@@ -1360,6 +1360,7 @@
               </div>
               <div class="enroll-dialog-section-label">Razón del bloqueo</div>
               <textarea v-model="blockSubjectDialog.reason" class="enroll-dialog-textarea" placeholder="Ej: No cumplió con los requisitos previos..." rows="3" />
+              <p v-if="blockSubjectDialog.errorMsg" class="enroll-dialog-error">{{ blockSubjectDialog.errorMsg }}</p>
               <div class="enroll-dialog-actions">
                 <button class="enroll-dialog-cancel" @click="blockSubjectDialog.visible = false">Cancelar</button>
                 <button
@@ -2516,6 +2517,7 @@ const blockSubjectDialog = ref({
   selectedSubjectId: 0,
   reason: '',
   processing: false,
+  errorMsg: '',
 })
 
 const openRevokeDialog = (userId: number, courseId: number, userName: string, courseName: string) => {
@@ -2523,7 +2525,7 @@ const openRevokeDialog = (userId: number, courseId: number, userName: string, co
 }
 
 const openBlockSubjectDialog = (userId: number, courseId: number, userName: string, subjects: { id: number; name: string }[], preSelectedId: number = 0) => {
-  blockSubjectDialog.value = { visible: true, userId, courseId, userName, subjects, selectedSubjectId: preSelectedId, reason: '', processing: false }
+  blockSubjectDialog.value = { visible: true, userId, courseId, userName, subjects, selectedSubjectId: preSelectedId, reason: '', processing: false, errorMsg: '' }
 }
 
 const confirmRevokeEnrollment = async () => {
@@ -2583,6 +2585,7 @@ const confirmBlockSubjectAccess = async () => {
     }
   } catch (e) {
     console.error('Error al bloquear acceso a la materia:', e)
+    blockSubjectDialog.value.errorMsg = e instanceof HttpError ? e.message : 'Error al bloquear acceso. Intenta de nuevo.'
   } finally {
     blockSubjectDialog.value.processing = false
   }
@@ -2627,6 +2630,30 @@ const confirmUnblockSubjectAccess = async () => {
     console.error('Error al restaurar acceso a la materia:', e)
   } finally {
     unblockSubjectDialog.value.processing = false
+  }
+}
+
+const quickUnblockSubject = async (userId: number, courseId: number, subjectId: number) => {
+  const optimisticKey = `${userId}-${courseId}-${subjectId}`
+  // Optimistic local update: remove blocked state immediately
+  const newSet = new Set(blockedSubjectKeys.value)
+  newSet.delete(optimisticKey)
+  blockedSubjectKeys.value = newSet
+  try {
+    await progressAdapter.unblockSubjectAccess(userId, subjectId, courseId)
+    approvedLoaded = false
+    await loadApprovedEnrollments()
+    if (blockedSubjectKeys.value.has(optimisticKey)) {
+      const merged = new Set(blockedSubjectKeys.value)
+      merged.delete(optimisticKey)
+      blockedSubjectKeys.value = merged
+    }
+  } catch (e) {
+    console.error('Error al restaurar acceso a la materia:', e)
+    // Revert optimistic update on error
+    const revert = new Set(blockedSubjectKeys.value)
+    revert.add(optimisticKey)
+    blockedSubjectKeys.value = revert
   }
 }
 
@@ -6228,6 +6255,16 @@ watch(() => route.query, () => {
 }
 
 .enroll-dialog-cancel:hover { background: rgba(255,255,255,0.1); color: #E5E7EB; }
+
+.enroll-dialog-error {
+  font-size: 0.78rem;
+  color: #FC8181;
+  background: rgba(255,69,58,0.1);
+  border: 1px solid rgba(255,69,58,0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 0 8px;
+}
 
 .enroll-dialog-confirm {
   display: flex;
