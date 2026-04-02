@@ -1170,7 +1170,7 @@
                 :key="`${user.userId}-${group.courseId}`"
                 class="enroll-enrolled-row"
                 :class="{
-                  'has-blocked-subjects': hasAnyBlockedSubject(user.userId, group.courseId, group.subjects),
+                  'has-blocked-subjects': hasAnyBlockedSubject(user.userId, group.courseId, user.subjects),
                   'is-inactive-course': user.courseEnrollmentStatus === 'inactivo'
                 }"
               >
@@ -1204,9 +1204,9 @@
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                     {{ togglingEnrollStatus[`c-${user.userId}-${group.courseId}`] ? 'Inactivando...' : 'Inactivar curso' }}
                   </button>
-                  <div v-if="group.subjects.length" class="enroll-block-chips">
+                  <div v-if="user.subjects.length" class="enroll-block-chips">
                     <button
-                      v-for="subj in group.subjects"
+                      v-for="subj in user.subjects"
                       :key="subj.id"
                       class="enroll-block-chip"
                       :class="{
@@ -1214,7 +1214,7 @@
                         'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id),
                         'is-inactive-subject': subj.enrollmentStatus === 'inactivo'
                       }"
-                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.subjects, subj.id)"
+                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
                       :title="subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
                       <!-- Pause icon when inactive -->
@@ -1230,7 +1230,7 @@
                     </button>
                     <!-- Inactivar materia button (only when not blocked or inactive) -->
                     <button
-                      v-for="deactSubj in group.subjects.filter(s => s.enrollmentStatus !== 'inactivo' && !isSubjectBlocked(user.userId, group.courseId, s.id))"
+                      v-for="deactSubj in user.subjects.filter(s => s.enrollmentStatus !== 'inactivo' && !isSubjectBlocked(user.userId, group.courseId, s.id))"
                       :key="`deact-${deactSubj.id}`"
                       class="enroll-deactivate-subj-btn"
                       :disabled="togglingEnrollStatus[`s-${user.userId}-${deactSubj.id}`]"
@@ -2316,11 +2316,18 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
       grouped.set(e.courseId, {
         courseId: e.courseId,
         courseName: e.courseName || `Curso #${e.courseId}`,
-        subjects: e.subjects,
+        subjects: [],
         users: [],
       })
     }
-    grouped.get(e.courseId)!.users.push(e)
+    const group = grouped.get(e.courseId)!
+    // Merge unique subjects (by id) for the course header — no per-user state
+    for (const subj of e.subjects) {
+      if (!group.subjects.some(s => s.id === subj.id)) {
+        group.subjects.push({ id: subj.id, name: subj.name })
+      }
+    }
+    group.users.push(e)
   }
   return Array.from(grouped.values())
 })
@@ -6588,4 +6595,294 @@ watch(() => route.query, () => {
 .sp-page-btn:disabled { opacity: 0.35; cursor: default; }
 
 .sp-page-info { color: #9ca3af; font-size: 13px; }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — TABLET 768px+
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .tabs-container {
+    padding: 12px 24px;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .tab-btn {
+    padding: 9px 22px;
+    font-size: 14px;
+  }
+
+  .tab-content {
+    padding: 20px 32px 48px;
+  }
+
+  .moderation-tab {
+    padding-top: 12px;
+  }
+
+  .a-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .moderation-summary-grid {
+    gap: 12px;
+  }
+
+  .a-gauges-row {
+    gap: 32px;
+    justify-content: center;
+  }
+
+  .a-gauge-ring {
+    width: 88px;
+    height: 88px;
+  }
+
+  .a-gauge-val {
+    font-size: 18px;
+  }
+
+  .a-gauge-lbl {
+    font-size: 13px;
+  }
+
+  .a-card {
+    padding: 20px;
+  }
+
+  .a-grouped-bars {
+    gap: 12px;
+  }
+
+  .sp-filter-wrap {
+    min-width: 200px;
+  }
+
+  .enroll-filter-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .enroll-actions-col {
+    flex-shrink: 0;
+  }
+
+  .activation-user-card {
+    padding: 16px 20px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — DESKTOP 1024px+
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .admin-dashboard {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* TopBar spans both columns */
+  .admin-dashboard :deep(header.top-bar) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  /* Sidebar nav */
+  .tabs-container {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 16px 10px;
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: static;
+    height: auto;
+    scrollbar-width: thin;
+  }
+
+  .tab-btn {
+    width: 100%;
+    text-align: left;
+    border-radius: 12px;
+    padding: 11px 18px;
+    font-size: 14px;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+
+  .tab-btn.active {
+    box-shadow: 0 2px 12px rgba(108, 99, 255, 0.35);
+  }
+
+  /* Content area */
+  .tab-content {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 28px 48px 40px;
+    overflow-y: auto;
+    max-width: none;
+  }
+
+  .moderation-tab {
+    padding-top: 16px;
+  }
+
+  /* Stats: 4 columns */
+  .a-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .a-stat-value {
+    font-size: 30px;
+  }
+
+  .a-card {
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+
+  .a-card-header h3 {
+    font-size: 16px;
+  }
+
+  /* Rank lists: wider */
+  .a-rank-list {
+    gap: 10px;
+  }
+
+  .a-rank-row {
+    padding: 12px 16px;
+  }
+
+  /* Moderation grid: 4 cols, more space */
+  .moderation-summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .moderation-stat-card {
+    padding: 20px 12px;
+    border-radius: 24px;
+  }
+
+  .moderation-stat-value {
+    font-size: 30px;
+  }
+
+  .moderation-stack {
+    gap: 16px;
+  }
+
+  .section-header {
+    padding: 18px 20px;
+  }
+
+  .section-content {
+    padding: 16px 20px;
+  }
+
+  /* Enrollment: better desktop layout */
+  .enroll-hero {
+    padding: 24px;
+    border-radius: 20px;
+  }
+
+  .enroll-kpi-row {
+    gap: 16px;
+  }
+
+  .enroll-kpi {
+    min-width: 100px;
+    padding: 14px 20px;
+  }
+
+  .enroll-list {
+    gap: 12px;
+  }
+
+  .enroll-card {
+    padding: 20px;
+  }
+
+  .enroll-course-groups {
+    gap: 16px;
+  }
+
+  /* Activation */
+  .activation-user-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .activation-user-card {
+    padding: 18px 22px;
+  }
+
+  .activation-header-card {
+    padding: 24px;
+  }
+
+  /* Certificates */
+  .certificates-admin-section .items-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .cert-card {
+    margin-bottom: 0;
+  }
+
+  /* Filters: side by side */
+  .pending-filters {
+    display: flex;
+    gap: 12px;
+  }
+
+  .pending-filters .filter-input {
+    flex: 1;
+  }
+
+  .reinforcement-filters {
+    gap: 12px;
+  }
+
+  /* Progress by subject table: more padding */
+  .sp-table td,
+  .sp-table thead th {
+    padding: 12px 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — LARGE DESKTOP 1400px+
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 1400px) {
+  .admin-dashboard {
+    grid-template-columns: 250px 1fr;
+  }
+
+  .tab-content {
+    padding: 32px 64px 48px;
+  }
+
+  .activation-user-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .certificates-admin-section .items-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 </style>
