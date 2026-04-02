@@ -204,11 +204,13 @@ import { videoAdapter } from '@/infrastructure/api'
 import { uploadFileDirect } from '@/infrastructure/api/storageAdapter'
 import { buildProxyFileUrl } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
+import { useVideoStore } from '@/stores/videoStore'
 
 // ── Props (pasados por el router con props: true) ──────────────────
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
 const authStore = useAuthStore()
+const videoStore = useVideoStore()
 
 // ── Modo ──────────────────────────────────────────────────────────
 const isUploadMode = computed(() => !props.id || isNaN(Number(props.id)))
@@ -303,6 +305,9 @@ async function submit() {
 
     uploadProgress.value = 100
     uploadStatus.value   = '¡Video subido exitosamente!'
+
+    // Invalidate the feed cache so VideoHomeView fetches fresh data
+    videoStore.invalidateCache()
 
     await new Promise(r => setTimeout(r, 900))
     router.push('/video')

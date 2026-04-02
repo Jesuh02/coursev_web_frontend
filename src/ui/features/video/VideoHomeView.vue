@@ -56,6 +56,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
+import { useVideoSocket } from '@/composables/useVideoSocket'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { likeAdapter } from '@/infrastructure/api'
@@ -75,6 +76,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 const videoStore = useVideoStore()
 const notifStore = useNotificationStore()
+
+// Real-time video feed updates via Socket.io
+useVideoSocket({
+  onCreated: (video) => videoStore.prependVideo(video),
+  onUpdated: (video) => videoStore.replaceVideo(video),
+  onDeleted: ({ id })  => videoStore.removeVideo(id),
+})
+
 const feedRef = ref<HTMLElement | null>(null)
 const showSearch = ref(false)
 const searchQuery = ref('')

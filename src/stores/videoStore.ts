@@ -103,5 +103,28 @@ export const useVideoStore = defineStore('videos', () => {
   return {
     videos, current, loading, page, lastFetched,
     fetchFeed, fetchPublicFeed, fetchVideoById, ensureVideoInFeed, searchVideos,
+    /** Force the next fetchPublicFeed to hit the network (bypass cache). */
+    invalidateCache() {
+      lastFetched.value = 0
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(STORAGE_TS_KEY)
+      } catch { /* ignore */ }
+    },
+    /** Prepend a video to the feed without a full refetch. */
+    prependVideo(video: Video) {
+      if (!videos.value.find(v => v.id === video.id)) {
+        videos.value = [video, ...videos.value]
+      }
+    },
+    /** Replace a video in the feed by id. */
+    replaceVideo(video: Video) {
+      const idx = videos.value.findIndex(v => v.id === video.id)
+      if (idx >= 0) videos.value[idx] = video
+    },
+    /** Remove a video from the feed by id. */
+    removeVideo(id: number) {
+      videos.value = videos.value.filter(v => v.id !== id)
+    },
   }
 })
