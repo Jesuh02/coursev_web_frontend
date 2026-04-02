@@ -1240,15 +1240,7 @@
                       ⏸ {{ deactSubj.name }}
                     </button>
                   </div>
-                  <button
-                    class="enroll-revoke-btn"
-                    :disabled="revokingKeys[`${user.userId}-${group.courseId}`]"
-                    @click="openRevokeDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', group.courseName)"
-                    title="Quitar acceso al curso"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    {{ revokingKeys[`${user.userId}-${group.courseId}`] ? 'Quitando...' : 'Quitar curso' }}
-                  </button>
+
                 </div>
               </div>
             </div>
@@ -2599,17 +2591,8 @@ const toggleCourseEnrollmentStatus = async (userId: number, courseId: number, st
   togglingEnrollStatus.value[key] = true
   try {
     await progressAdapter.setCourseEnrollmentStatus(userId, courseId, status)
-    // Optimistic local update: reflect new course enrollment status immediately
     approvedEnrollments.value = approvedEnrollments.value.map(e =>
       e.userId === userId && e.courseId === courseId
-        ? { ...e, courseEnrollmentStatus: status }
-        : e
-    )
-    approvedLoaded = false
-    await loadApprovedEnrollments()
-    // Merge optimistic status back in case server returned stale data
-    approvedEnrollments.value = approvedEnrollments.value.map(e =>
-      e.userId === userId && e.courseId === courseId && e.courseEnrollmentStatus !== status
         ? { ...e, courseEnrollmentStatus: status }
         : e
     )
@@ -2625,18 +2608,9 @@ const toggleSubjectEnrollmentStatus = async (userId: number, courseId: number, s
   togglingEnrollStatus.value[key] = true
   try {
     await progressAdapter.setSubjectEnrollmentStatus(userId, courseId, subjectId, status)
-    // Optimistic local update: reflect new subject enrollment status immediately
     approvedEnrollments.value = approvedEnrollments.value.map(e =>
       e.userId === userId && e.courseId === courseId
         ? { ...e, subjects: e.subjects.map(s => s.id === subjectId ? { ...s, enrollmentStatus: status } : s) }
-        : e
-    )
-    approvedLoaded = false
-    await loadApprovedEnrollments()
-    // Merge optimistic status back in case server returned stale data
-    approvedEnrollments.value = approvedEnrollments.value.map(e =>
-      e.userId === userId && e.courseId === courseId
-        ? { ...e, subjects: e.subjects.map(s => s.id === subjectId && s.enrollmentStatus !== status ? { ...s, enrollmentStatus: status } : s) }
         : e
     )
   } catch (e) {
