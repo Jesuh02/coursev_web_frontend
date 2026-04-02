@@ -197,13 +197,13 @@ onUnmounted(() => {
 
 async function loadHistory() {
   try {
-    const data = await chatAdapter.getMyMessagesByOrigin('db_query') as any[]
+    const data = await chatAdapter.getMyMessagesByOrigin('db_query')
     if (Array.isArray(data) && data.length > 0) {
-      messages.value = data.map((m: any) => ({
-        id: String(m.id ?? crypto.randomUUID()),
-        role: (m.isFromUser ?? m.is_from_user) ? 'user' as const : 'assistant' as const,
-        content: m.message ?? m.content ?? '',
-        excelUrl: m.excelUrl ?? m.excel_url ?? null,
+      messages.value = data.map((m) => ({
+        id: m.id || crypto.randomUUID(),
+        role: m.role,
+        content: m.content,
+        excelUrl: m.excelUrl ?? null,
       }))
       scrollToBottom()
     }

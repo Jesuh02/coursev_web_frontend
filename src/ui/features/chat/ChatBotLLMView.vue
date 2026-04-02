@@ -624,17 +624,15 @@ async function loadHistoryFromBackend() {
     }
     if (!Array.isArray(data) || data.length === 0) return
     messages.value = data.map((m: any) => ({
-      id: String(m.id ?? crypto.randomUUID()),
-      role: (m.isFromUser ?? m.is_from_user) ? 'user' as const : 'assistant' as const,
-      content: m.message ?? m.content ?? '',
-      createdAt: m.timestamp
-        ? new Date(typeof m.timestamp === 'number' ? m.timestamp : m.timestamp).toISOString()
-        : (m.createdAt ?? m.created_at ?? new Date().toISOString()),
-      esCalificacion: m.hasCalification ?? m.has_calification ?? false,
+      id: m.id || crypto.randomUUID(),
+      role: m.role,
+      content: m.content,
+      createdAt: m.createdAt ?? new Date().toISOString(),
+      esCalificacion: m.hasCalification ?? false,
       nota: m.calificationValue != null ? parseFloat(m.calificationValue) : null,
-      calificationAdded: m.calificationAdded ?? m.calification_added ?? false,
-      excelUrl: m.excelUrl ?? m.excel_url ?? null,
-      submissionId: m.submissionId ?? m.submission_id ?? null,
+      calificationAdded: m.calificationAdded ?? false,
+      excelUrl: m.excelUrl ?? null,
+      submissionId: m.submissionId ?? null,
     }))
     scrollToBottom()
   } catch (e) {

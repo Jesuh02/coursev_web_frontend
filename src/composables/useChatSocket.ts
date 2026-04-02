@@ -60,22 +60,25 @@ export function useChatSocket(
   onMessage: (msg: ChatSocketMessage) => void,
 ) {
   let s: Socket | null = null
-  const room = userId ? `chat:${origin}:${userId}` : null
+  // Room must match backend format: chat:{userId}:{origin}
+  const hasRoom = userId != null && userId > 0
 
   onMounted(() => {
-    if (!room) return
+    if (!hasRoom) return
     s = getSocket()
     if (!s) return
     refCount++
 
-    s.emit('join:chat', room)
-    s.on('chat:message', onMessage)
+    // Backend expects an object { userId, origin } for join/leave
+    s.emit('join:chat', { userId, origin })
+    // Backend emits 'chat:new-message'
+    s.on('chat:new-message', onMessage)
   })
 
   onUnmounted(() => {
-    if (!room || !s) return
-    s.emit('leave:chat', room)
-    s.off('chat:message', onMessage)
+    if (!hasRoom || !s) return
+    s.emit('leave:chat', { userId, origin })
+    s.off('chat:new-message', onMessage)
     refCount--
     if (refCount <= 0 && socket) {
       socket.disconnect()
