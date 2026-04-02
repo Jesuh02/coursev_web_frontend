@@ -1183,16 +1183,6 @@
                   </div>
                 </div>
                 <div class="enroll-enrolled-right">
-                  <!-- Revoke enrollment (quitar acceso con razón) -->
-                  <button
-                    class="enroll-revoke-btn"
-                    :disabled="revokingKeys[`${user.userId}-${group.courseId}`]"
-                    @click="openRevokeDialog(user.userId, group.courseId, user.fullName || user.username || `Usuario #${user.userId}`, group.courseName)"
-                    title="Quitar acceso al curso"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    Quitar acceso
-                  </button>
                   <!-- Course activate/deactivate toggle -->
                   <button
                     v-if="user.courseEnrollmentStatus === 'inactivo'"
@@ -1224,8 +1214,8 @@
                         'is-blocked': isSubjectBlocked(user.userId, group.courseId, subj.id),
                         'is-inactive-subject': subj.enrollmentStatus === 'inactivo'
                       }"
-                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'inactivo')"
-                      :title="subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Inactivar materia ${subj.name}`"
+                      @click="subj.enrollmentStatus === 'inactivo' ? toggleSubjectEnrollmentStatus(user.userId, group.courseId, subj.id, 'activo') : isSubjectBlocked(user.userId, group.courseId, subj.id) ? openUnblockSubjectDialog(user.userId, group.courseId, subj.id, user.fullName || user.username || 'Usuario', subj.name) : openBlockSubjectDialog(user.userId, group.courseId, user.fullName || user.username || 'Usuario', user.subjects, subj.id)"
+                      :title="subj.enrollmentStatus === 'inactivo' ? `Activar materia ${subj.name}` : isSubjectBlocked(user.userId, group.courseId, subj.id) ? `Restaurar acceso a ${subj.name}` : `Quitar acceso a ${subj.name}`"
                     >
                       <!-- Pause icon when inactive -->
                       <svg v-if="subj.enrollmentStatus === 'inactivo'" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
