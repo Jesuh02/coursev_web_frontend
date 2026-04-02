@@ -275,6 +275,8 @@ function normalizeSubject(s: any): Subject {
     isActive: s.isActive ?? s.is_active ?? true,
     createdAt: s.createdAt ?? s.created_at ?? null,
     createdBy: s.createdBy ?? s.created_by ?? null,
+    blocked: s.blocked ?? false,
+    blockReason: s.blockReason ?? s.block_reason ?? null,
   }
 }
 
@@ -316,9 +318,20 @@ async function loadSubjectStats() {
 
 async function loadSubjectBlocks() {
   if (authStore.isAdmin || !courseId.value) return
+  // Use block info already annotated by backend on each subject
+  const map: Record<number, string> = {}
+  for (const s of allSubjects.value) {
+    if ((s as any).blocked) {
+      map[s.id] = (s as any).blockReason || 'Sin motivo especificado'
+    }
+  }
+  if (Object.keys(map).length) {
+    subjectBlocks.value = map
+    return
+  }
+  // Fallback: fetch blocks separately
   try {
     const blocks: any[] = await progressAdapter.getMySubjectAccessBlocks(courseId.value)
-    const map: Record<number, string> = {}
     for (const b of blocks) {
       map[b.subject_id] = b.reason || 'Sin motivo especificado'
     }
