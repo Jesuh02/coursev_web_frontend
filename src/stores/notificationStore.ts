@@ -144,9 +144,20 @@ export const useNotificationStore = defineStore('notifications', () => {
     unreadCount.value = 0
   }
 
+  /** Register a custom event listener on the shared user socket. */
+  function onSocketEvent(event: string, handler: (...args: any[]) => void) {
+    socket?.on(event, handler)
+  }
+
+  /** Remove a custom event listener from the shared user socket. */
+  function offSocketEvent(event: string, handler: (...args: any[]) => void) {
+    socket?.off(event, handler)
+  }
+
   return {
     items, unreadCount, loading,
     fetchNotifications, fetchUnreadCount, markRead, markAllRead,
     connectSocket, disconnectSocket, requestBrowserPermission,
+    onSocketEvent, offSocketEvent,
   }
 })

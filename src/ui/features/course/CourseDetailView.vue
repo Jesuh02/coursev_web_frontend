@@ -266,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -277,6 +277,7 @@ import {
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { useNotificationStore } from '@/stores/notificationStore'
 
 defineOptions({ name: 'CourseDetailView' })
 
@@ -289,6 +290,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
+const notifStore = useNotificationStore()
 
 const courseId = computed(() => route.params.id as string)
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
@@ -761,6 +763,18 @@ onMounted(async () => {
   }
   await progressPromise
   loading.value = false
+})
+
+// ── Real-time: if admin blocks this subject, kick user out immediately ──
+function handleAccessBlockedInDetail(data: { subjectId: number; courseId: number; reason: string }) {
+  if (!subjectId.value || data.subjectId !== subjectId.value) return
+  router.back()
+}
+
+notifStore.onSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
+
+onUnmounted(() => {
+  notifStore.offSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
 })
 
 // Re-verificar acceso de colaborador cuando authStore.user carga después del montaje

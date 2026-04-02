@@ -122,9 +122,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated } from 'vue'
+import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import type { Subject } from '@/domain/models'
 import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -134,6 +135,7 @@ import { useSubjectSocket } from '@/composables/useSubjectSocket'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 
 const courseId = computed(() => Number(route.params.courseId) || 0)
 const allSubjects = ref<Subject[]>([])
@@ -204,6 +206,32 @@ onMounted(async () => {
   await loadSubjects()
   await checkCourseDeadline()
   await loadSubjectBlocks()
+})
+
+// ── Real-time subject access block / unblock via socket ──
+function handleAccessBlocked(data: { subjectId: number; courseId: number; reason: string }) {
+  if (data.courseId !== courseId.value) return
+  subjectBlocks.value = { ...subjectBlocks.value, [data.subjectId]: data.reason || 'Sin motivo especificado' }
+  const subject = allSubjects.value.find(s => s.id === data.subjectId)
+  blockAlert.value = {
+    show: true,
+    reason: `Tu acceso a la materia "${subject?.name || 'materia'}" fue revocado. Motivo: ${data.reason || 'Sin motivo especificado'}`,
+  }
+}
+
+function handleAccessUnblocked(data: { subjectId: number; courseId: number | null }) {
+  if (data.courseId && data.courseId !== courseId.value) return
+  const updated = { ...subjectBlocks.value }
+  delete updated[data.subjectId]
+  subjectBlocks.value = updated
+}
+
+notifStore.onSocketEvent('subject:access-blocked', handleAccessBlocked)
+notifStore.onSocketEvent('subject:access-unblocked', handleAccessUnblocked)
+
+onUnmounted(() => {
+  notifStore.offSocketEvent('subject:access-blocked', handleAccessBlocked)
+  notifStore.offSocketEvent('subject:access-unblocked', handleAccessUnblocked)
 })
 
 async function checkCourseDeadline() {
