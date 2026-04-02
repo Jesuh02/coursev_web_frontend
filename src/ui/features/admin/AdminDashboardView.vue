@@ -518,6 +518,7 @@
                       <th>Identificación</th>
                       <th>Curso</th>
                       <th>Materia</th>
+                      <th>Estado</th>
                       <th>Tareas</th>
                       <th>Nota</th>
                       <th>Progreso</th>
@@ -528,6 +529,7 @@
                       v-for="row in spPaged"
                       :key="`${row.userId}-${row.subjectId}`"
                       class="sp-row"
+                      :class="{ 'sp-row-inactive': row.enrollmentStatus === 'inactivo' }"
                     >
                       <td class="sp-student-cell">
                         <img :src="row.avatar || '/default-avatar.png'" class="sp-avatar" alt="" @error="onAvatarError" />
@@ -542,7 +544,20 @@
                       </td>
                       <td class="sp-course-cell">{{ row.courseName }}</td>
                       <td class="sp-subject-cell">
-                        <span class="sp-subject-pill">{{ row.subjectName }}</span>
+                        <span class="sp-subject-pill" :class="{ 'sp-subject-inactive': row.enrollmentStatus === 'inactivo' }">{{ row.subjectName }}</span>
+                      </td>
+                      <td class="sp-status-cell">
+                        <button
+                          class="sp-status-btn"
+                          :class="row.enrollmentStatus === 'activo' ? 'sp-status-active' : 'sp-status-inactive'"
+                          :disabled="togglingSpEnrollStatus[`${row.userId}-${row.courseId}-${row.subjectId}`]"
+                          @click="toggleSpEnrollmentStatus(row)"
+                        >
+                          <span v-if="togglingSpEnrollStatus[`${row.userId}-${row.courseId}-${row.subjectId}`]" class="sp-status-spinner"></span>
+                          <template v-else>
+                            {{ row.enrollmentStatus === 'activo' ? '✓ Activo' : '⏸ Inactivo' }}
+                          </template>
+                        </button>
                       </td>
                       <td class="sp-tasks-cell">
                         <span class="sp-tasks">{{ row.completedTasks }}/{{ row.totalTasks }}</span>
@@ -3054,6 +3069,7 @@ interface SubjectProgressItem {
   averageGrade: number | null
   progressPercentage: number
   lastActivityAt: string | null
+  enrollmentStatus: string
 }
 
 const allSubjectProgress = ref<SubjectProgressItem[]>([])
@@ -3126,11 +3142,30 @@ const loadSubjectProgress = async () => {
       averageGrade: item.averageGrade !== null && item.averageGrade !== undefined ? Number(item.averageGrade) : null,
       progressPercentage: Number(item.progressPercentage ?? 0),
       lastActivityAt: item.lastActivityAt || null,
+      enrollmentStatus: item.enrollmentStatus ?? item.enrollment_status ?? 'activo',
     }))
   } catch (e) {
     console.error('Error loading subject progress:', e)
   } finally {
     loadingSubjectProgress.value = false
+  }
+}
+
+const togglingSpEnrollStatus = ref<Record<string, boolean>>({})
+
+const toggleSpEnrollmentStatus = async (row: SubjectProgressItem) => {
+  const newStatus = row.enrollmentStatus === 'activo' ? 'inactivo' : 'activo'
+  const key = `${row.userId}-${row.courseId}-${row.subjectId}`
+  togglingSpEnrollStatus.value[key] = true
+  try {
+    await progressAdapter.setSubjectEnrollmentStatus(row.userId, row.courseId, row.subjectId!, newStatus)
+    row.enrollmentStatus = newStatus
+    notifStore.show(`Materia ${newStatus === 'activo' ? 'activada' : 'inactivada'} correctamente`, 'success')
+  } catch (e) {
+    console.error('Error toggling subject enrollment status:', e)
+    notifStore.show('Error al cambiar estado de la materia', 'error')
+  } finally {
+    delete togglingSpEnrollStatus.value[key]
   }
 }
 
@@ -6468,6 +6503,57 @@ watch(() => route.query, () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sp-subject-pill.sp-subject-inactive {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.sp-status-cell { white-space: nowrap; }
+.sp-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 90px;
+  justify-content: center;
+}
+.sp-status-btn:disabled { opacity: 0.5; cursor: wait; }
+.sp-status-active {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+.sp-status-active:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.sp-status-inactive {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.sp-status-inactive:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+.sp-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.sp-row.sp-row-inactive {
+  opacity: 0.55;
 }
 
 .sp-tasks-cell { color: inherit; }
