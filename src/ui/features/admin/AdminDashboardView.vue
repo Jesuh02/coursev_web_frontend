@@ -2316,7 +2316,10 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
         group.subjects.push({ id: subj.id, name: subj.name })
       }
     }
-    group.users.push(e)
+    // Guard: skip duplicate userId entries to prevent identical v-for keys
+    if (!group.users.some(u => u.userId === e.userId)) {
+      group.users.push(e)
+    }
   }
   return Array.from(grouped.values())
 })
@@ -2373,7 +2376,7 @@ const loadApprovedEnrollments = async () => {
       }
     }))
 
-    approvedEnrollments.value = rows.map((item: any) => {
+    const enriched = rows.map((item: any) => {
       const profile = profileMap.get(item.userId) ?? null
       const persona = profile?.persona ?? profile?.personas ?? null
       const fullName = item.fullName ?? toNonEmptyString(
@@ -2393,6 +2396,16 @@ const loadApprovedEnrollments = async () => {
         courseEnrollmentStatus: item.courseEnrollmentStatus,
         revokeReason: item.revokeReason,
       }
+    })
+
+    // Deduplicate by userId+courseId: keep the first occurrence (backend should already deduplicate,
+    // but guard here against stale data causing duplicate v-for keys that break Vue reconciliation).
+    const seenKeys = new Set<string>()
+    approvedEnrollments.value = enriched.filter(item => {
+      const key = `${item.userId}-${item.courseId}`
+      if (seenKeys.has(key)) return false
+      seenKeys.add(key)
+      return true
     })
   } catch (e) {
     console.error('Error loading approved enrollments:', e)
