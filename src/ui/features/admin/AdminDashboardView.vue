@@ -3740,7 +3740,14 @@ const loadPendingTasksWithSubjects = async (myProgress: any[], prefetchedSubmiss
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Ensure user profile (with roles) is loaded before role-gated loads.
+  // In Vue, child onMounted fires before parent (App.vue), so authStore.user
+  // may still be null on page refresh when App.vue hasn't called fetchProfile() yet.
+  if (tokenStorage.isAuthenticated && !authStore.user?.id) {
+    await authStore.fetchProfile()
+  }
+
   // Launch all independent loads in parallel
   const promises: Promise<any>[] = [loadData(), loadAnalyticsData()]
   if (canViewActivation.value) promises.push(loadUsers())
