@@ -5941,8 +5941,7 @@ watch(() => route.query, () => {
   background: rgba(142,142,147,0.07);
   border-color: rgba(142,142,147,0.22);
   opacity: 0.75;
-  cursor: default;
-  pointer-events: none;
+  cursor: pointer;
 }
 .enroll-block-chip.is-blocked svg { opacity: 0.6; color: #8E8E93; }
 .subj-blocked-text { text-decoration: line-through; opacity: 0.7; }
@@ -6685,6 +6684,9 @@ watch(() => route.query, () => {
 
 .sp-row.sp-row-inactive {
   opacity: 0.55;
+}
+.sp-row.sp-row-inactive .sp-status-btn {
+  opacity: 1;
 }
 
 .sp-tasks-cell { color: inherit; }
