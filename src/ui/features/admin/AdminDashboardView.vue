@@ -2719,6 +2719,22 @@ const toggleSubjectEnrollmentStatus = async (userId: number, courseId: number, s
   togglingEnrollStatus.value[key] = true
   try {
     await progressAdapter.setSubjectEnrollmentStatus(userId, courseId, subjectId, status)
+    // When giving access (activo), also clear any active block in subject_access_blocks.
+    // This handles the case where a block forced enrollment_status='inactivo' via the
+    // "congruencia" override in findApprovedEnrollments — without clearing the block,
+    // the next reload would revert enrollment_status back to 'inactivo'.
+    if (status === 'activo') {
+      try {
+        await progressAdapter.unblockSubjectAccess(userId, subjectId, courseId)
+        const blockKey = `${userId}-${courseId}-${subjectId}`
+        const newSet = new Set(blockedSubjectKeys.value)
+        newSet.delete(blockKey)
+        blockedSubjectKeys.value = newSet
+      } catch (blockErr: any) {
+        // Non-fatal: block may not exist, log only unexpected errors
+        if (blockErr?.statusCode !== 404) console.error('Error clearing subject block on activate:', blockErr)
+      }
+    }
     approvedEnrollments.value = approvedEnrollments.value.map(e =>
       e.userId === userId && e.courseId === courseId
         ? { ...e, subjects: e.subjects.map(s => s.id === subjectId ? { ...s, enrollmentStatus: status } : s) }

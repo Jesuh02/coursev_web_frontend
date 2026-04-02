@@ -106,8 +106,13 @@ export const useAuthStore = defineStore('auth', () => {
     if (!tokenStorage.isAuthenticated) return
     try {
       user.value = await userAdapter.getMyProfile()
-    } catch {
-      logout()
+    } catch (e) {
+      // Si el httpClient ya llamó _onUnauthorized (logout) para un 401 irrecuperable,
+      // no llamamos logout de nuevo para evitar doble-navegación.
+      // Para cualquier otro error (red, 5xx) también limpiamos la sesión por seguridad.
+      if (!(e instanceof HttpError && e.statusCode === 401)) {
+        logout()
+      }
     }
   }
 
