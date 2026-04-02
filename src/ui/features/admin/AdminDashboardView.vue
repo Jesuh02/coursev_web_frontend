@@ -1644,7 +1644,7 @@ const normalizeCertificate = (item: Record<string, any>): AdminCertificateItem =
   progressPercentage: Number(item.progressPercentage ?? item.progress_percentage ?? 0) || 0,
 })
 
-const formatDate = (dateStr?: string) => {
+const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return 'Fecha no disponible'
   const d = new Date(dateStr)
   return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
