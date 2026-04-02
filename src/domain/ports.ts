@@ -175,7 +175,7 @@ export interface ProgressPort {
 
   // ── Subject access blocks ──
   blockSubjectAccess(userId: number, courseId: number, subjectId: number, reason: string): Promise<Record<string, unknown>>
-  unblockSubjectAccess(userId: number, subjectId: number): Promise<Record<string, unknown>>
+  unblockSubjectAccess(userId: number, subjectId: number, courseId?: number): Promise<Record<string, unknown>>
   checkSubjectAccessBlock(subjectId: number): Promise<Record<string, unknown>>
   getMySubjectAccessBlocks(courseId: number): Promise<Record<string, unknown>[]>
 }

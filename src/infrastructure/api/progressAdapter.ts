@@ -90,8 +90,10 @@ export const progressAdapter: ProgressPort = {
   // ── Subject access blocks ──
   blockSubjectAccess: (userId: number, courseId: number, subjectId: number, reason: string) =>
     api.post<Record<string, unknown>>('/progress/admin/subject-access-block', { userId, courseId, subjectId, reason }),
-  unblockSubjectAccess: (userId: number, subjectId: number) =>
-    api.delete<Record<string, unknown>>(`/progress/admin/subject-access-block/${userId}/${subjectId}`),
+  unblockSubjectAccess: (userId: number, subjectId: number, courseId?: number) => {
+    const query = courseId ? `?courseId=${courseId}` : ''
+    return api.delete<Record<string, unknown>>(`/progress/admin/subject-access-block/${userId}/${subjectId}${query}`)
+  },
   checkSubjectAccessBlock: (subjectId: number) =>
     api.get<Record<string, unknown>>(`/progress/subject/${subjectId}/access-block`),
   getMySubjectAccessBlocks: (courseId: number) =>

@@ -2531,7 +2531,7 @@ const confirmUnblockSubjectAccess = async () => {
   const { userId, courseId, subjectId } = unblockSubjectDialog.value
   unblockSubjectDialog.value.processing = true
   try {
-    await progressAdapter.unblockSubjectAccess(userId, subjectId)
+    await progressAdapter.unblockSubjectAccess(userId, subjectId, courseId)
     // Optimistic local update: remove the subject from blocked keys immediately
     const optimisticKey = `${userId}-${courseId}-${subjectId}`
     const newSet = new Set(blockedSubjectKeys.value)
