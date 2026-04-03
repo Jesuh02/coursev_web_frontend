@@ -758,6 +758,13 @@ onMounted(async () => {
   const progressPromise = loadStudentProgress(id)
 
   await checkEnrollmentStatus(id)
+
+  // Guard: if user requires enrollment and it's not approved, redirect back
+  if (requiresEnrollmentApproval.value && enrollmentStatus.value !== 'approved') {
+    router.back()
+    return
+  }
+
   if (course.value) {
     await loadTopicsAndTasks(id)
   }
