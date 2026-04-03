@@ -260,8 +260,12 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   publicGet: <T>(path: string) => request<T>(path, undefined, true),
   upload: <T>(path: string, formData: FormData) => {
+    // Don't set Content-Type – the browser sets it automatically with the correct
+    // multipart boundary. Include Authorization + X-Tenant-ID (multi-tenant).
     const headers: Record<string, string> = {}
     if (tokenStorage.token) headers['Authorization'] = `Bearer ${tokenStorage.token}`
+    const selectedTenantId = localStorage.getItem('selected_tenant_id')
+    if (selectedTenantId) headers['X-Tenant-ID'] = selectedTenantId
     return fetch(`${API_V1}${path}`, { method: 'POST', headers, body: formData })
       .then(r => r.json())
       .then((json: ApiResponse<T>) => {
