@@ -1835,7 +1835,7 @@ const formatRoles = (roles: any[]) => {
 }
 
 const availableRoles = [
-  { id: 1, label: 'Usuario' },
+  { id: 1, label: 'Estudiante' },
   { id: 2, label: 'Docente' },
   { id: 3, label: 'Admin' }
 ]
