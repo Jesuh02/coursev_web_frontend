@@ -13,8 +13,7 @@ export const useCourseStore = defineStore('courses', () => {
   const filterCounts = ref<Record<string, number>>({})
   const activeFilter = ref('all')
 
-  const freeCourses = computed(() => courses.value.filter(c => c.isFree))
-  const premiumCourses = computed(() => courses.value.filter(c => c.is_premium))
+  const freeCourses = computed(() => courses.value.filter(c => !c.is_premium))
 
   async function fetchCourses(pageNum = 1, limit = 20) {
     if (pageNum === 1) loading.value = true
@@ -39,12 +38,6 @@ export const useCourseStore = defineStore('courses', () => {
     try {
       const userId = tokenStorage.userId ?? undefined
       switch (filter) {
-        case 'free':
-          courses.value = await courseAdapter.getFreeCourses()
-          break
-        case 'premium':
-          courses.value = await courseAdapter.getPremiumCourses()
-          break
         case 'created':
           if (userId) courses.value = await courseAdapter.getCoursesByCreatorId(userId)
           break
@@ -58,9 +51,6 @@ export const useCourseStore = defineStore('courses', () => {
           courses.value = res.data ?? (res as unknown as Course[])
           break
         }
-        case 'purchased':
-          courses.value = await courseAdapter.getPurchasedCourses(userId)
-          break
         default:
           await fetchCourses()
           return
@@ -115,7 +105,7 @@ export const useCourseStore = defineStore('courses', () => {
 
   return {
     courses, current, loading, loadingMore, page, hasMore, filterCounts, activeFilter,
-    freeCourses, premiumCourses,
+    freeCourses,
     fetchCourses, fetchByFilter, fetchCourseById, fetchFilterCounts,
     searchCourses, createCourse, updateCourse, deleteCourse,
   }

@@ -12,11 +12,6 @@ export const courseAdapter: CoursePort = {
     return api.getRaw<PaginatedResponse<Course>>(`/courses?page=${page}&pageSize=${limit}${exclude}`)
   },
 
-  getFreeCourses: () => api.get<Course[]>('/courses/free'),
-
-  getPremiumCourses: (page = 1, limit = 50) =>
-    api.get<Course[]>(`/courses/premium?page=${page}&pageSize=${limit}`),
-
   getPopularCourses: (page = 1, limit = 5) =>
     api.get<Course[]>(`/courses/popular?page=${page}&pageSize=${limit}`),
 

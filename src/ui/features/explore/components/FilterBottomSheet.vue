@@ -39,11 +39,8 @@ const emit = defineEmits<{ 'update:modelValue': [v: boolean]; select: [key: stri
 const filters = [
   { key: 'all',       icon: '📚', label: 'Todos los cursos' },
   { key: 'enrolled',  icon: '🎓', label: 'Mis inscripciones' },
-  { key: 'purchased', icon: '🛒', label: 'Cursos comprados' },
-  { key: 'created',   icon: '✏️', label: 'Mis cursos (Creados)' },
+  { key: 'created',   icon: '✏️', label: 'Mis Cursos' },
   { key: 'others',    icon: '⭐', label: 'Cursos de otros' },
-  { key: 'premium',   icon: '💰', label: 'Cursos premium' },
-  { key: 'free',      icon: '🆓', label: 'Cursos gratuitos' },
 ]
 
 const touchStartY = ref(0)

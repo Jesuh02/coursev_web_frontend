@@ -15,20 +15,18 @@
 
         <AppInput v-model="form.title" label="Título del curso" />
         <AppInput v-model="form.description" label="Descripción" />
-        <AppInput v-model="form.category" label="Categoría" />
-
-        <div class="price-section">
-          <label class="toggle-row">
-            <span class="toggle-label">Curso Premium</span>
-            <input v-model="form.isPremium" type="checkbox" class="toggle" />
-          </label>
-          <AppInput
-            v-if="form.isPremium"
-            v-model="form.price"
-            label="Precio"
-            type="number"
-          />
+        <div class="category-select-wrapper">
+          <label class="input-label">Categoría</label>
+          <select v-model="form.category" class="category-select">
+            <option value="" disabled>Selecciona una categoría</option>
+            <option value="Matemáticas">Matemáticas</option>
+            <option value="Informática">Informática</option>
+            <option value="Ciencias naturales">Ciencias naturales</option>
+            <option value="Ciencias Sociales">Ciencias Sociales</option>
+          </select>
         </div>
+
+        <!-- Curso Premium: oculto del UI, lógica conservada para uso futuro -->
 
         <!-- Fecha límite del curso -->
         <div class="deadline-section">
@@ -550,7 +548,7 @@ async function submitCourse() {
 
 .thumb-upload {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 140px;
   border-radius: 16px;
   background: #1C1C1E;
   border: 2px dashed rgba(255,255,255,0.1);
@@ -655,6 +653,38 @@ async function submitCourse() {
   font-size: 12px;
   color: #8E8E93;
   line-height: 1.4;
+}
+
+.category-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-select {
+  background: var(--bg-input, #1C1C1E);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 16px;
+  color: var(--text-primary, #fff);
+  font-size: 15px;
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: var(--purple-primary, #BF5AF2);
+}
+
+.category-select option {
+  background: #1C1C1E;
+  color: #fff;
 }
 
 /* Collaborator section */

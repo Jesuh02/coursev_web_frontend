@@ -32,8 +32,6 @@ export interface UserPort {
 export interface CoursePort {
   getCourses(page?: number, limit?: number): Promise<Course[]>
   getCoursesPaginated(page?: number, limit?: number, excludeUserId?: number): Promise<PaginatedResponse<Course>>
-  getFreeCourses(): Promise<Course[]>
-  getPremiumCourses(page?: number, limit?: number): Promise<Course[]>
   getPopularCourses(page?: number, limit?: number): Promise<Course[]>
   searchCourses(query: string, page?: number, limit?: number): Promise<PaginatedResponse<Course>>
   getCourseById(id: number): Promise<Course>

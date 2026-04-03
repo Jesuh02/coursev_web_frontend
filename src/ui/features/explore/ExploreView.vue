@@ -4,10 +4,11 @@
       v-model:search="searchQuery"
       :collapsed="isHeaderCollapsed"
       :active-filter-name="activeFilterLabel"
+      :active-filter="activeFilter"
+      :user-role="userRole"
       :total-courses="totalCoursesStat"
       :popular-courses="popularCoursesStat"
       :new-courses="newCoursesStat"
-      @open-filter="showFilter = true"
       @clear-filter="clearFilter"
       @toggle-collapse="isHeaderCollapsed = !isHeaderCollapsed"
       @quick-filter="applyQuickFilter"
@@ -108,15 +109,18 @@ const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 
 const canManageCourses = computed(() => authStore.isAdmin)
+const userRole = computed(() => {
+  const roles = authStore.user?.roles ?? []
+  if (roles.some(r => r.id === 3)) return 3
+  if (roles.some(r => r.id === 2)) return 2
+  return 1
+})
 const activeFilterLabel = computed(() => {
   const labels: Record<string, string> = {
     all: '',
     enrolled: 'Mis inscripciones',
-    purchased: 'Cursos comprados',
-    created: 'Mis cursos',
+    created: 'Mis Cursos',
     others: 'Cursos de otros',
-    premium: 'Premium',
-    free: 'Gratuitos',
     popular: 'Mas populares',
     new: 'Nuevos',
   }

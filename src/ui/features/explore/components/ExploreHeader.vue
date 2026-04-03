@@ -30,14 +30,6 @@
         @input="onSearchInput"
       />
 
-      <button class="icon-btn" @click="$emit('open-filter')" aria-label="Abrir filtros">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <line x1="4" y1="6" x2="20" y2="6" />
-          <line x1="8" y1="12" x2="16" y2="12" />
-          <line x1="11" y1="18" x2="13" y2="18" />
-        </svg>
-      </button>
-
       <button class="icon-btn eye-btn" @click="$emit('toggle-collapse')" aria-label="Mostrar u ocultar resumen">
         <svg v-if="collapsed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -49,6 +41,17 @@
           <circle cx="12" cy="12" r="3" />
         </svg>
       </button>
+    </div>
+
+    <!-- Filtros estilo YouTube (visibles según rol) -->
+    <div class="filter-chips-row">
+      <button
+        v-for="f in visibleFilters"
+        :key="f.key"
+        class="filter-chip"
+        :class="{ active: activeFilter === f.key }"
+        @click="$emit('quick-filter', f.key)"
+      >{{ f.label }}</button>
     </div>
 
     <Transition name="header-fade">
@@ -73,22 +76,39 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const emit = defineEmits<{
   'update:search': [value: string]
-  'open-filter': []
   'clear-filter': []
   'toggle-collapse': []
   'quick-filter': [key: string]
 }>()
 
-defineProps<{
+const props = defineProps<{
   search: string
   collapsed: boolean
   activeFilterName: string | null
+  activeFilter: string
+  userRole: number
   totalCourses: number
   popularCourses: number
   newCourses: number
 }>()
+
+const BASE_FILTERS = [
+  { key: 'all', label: 'Todos los cursos' },
+  { key: 'enrolled', label: 'Mis inscripciones' },
+]
+
+const ADMIN_FILTERS = [
+  { key: 'created', label: 'Mis Cursos' },
+  { key: 'others', label: 'Cursos de otros' },
+]
+
+const visibleFilters = computed(() =>
+  props.userRole === 3 ? [...BASE_FILTERS, ...ADMIN_FILTERS] : BASE_FILTERS,
+)
 
 function onSearchInput(event: Event) {
   const target = event.target as HTMLInputElement | null
@@ -288,6 +308,43 @@ function onSearchInput(event: Event) {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8b95ae;
+}
+
+.filter-chips-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+
+.filter-chips-row::-webkit-scrollbar { display: none; }
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c8d0e6;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.filter-chip.active {
+  background: #fff;
+  border-color: #fff;
+  color: #0a0a0a;
+  font-weight: 700;
 }
 
 .header-fade-enter-active,
