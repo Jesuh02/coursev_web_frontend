@@ -4,6 +4,13 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
+  define: {
+    // Fallback para cuando las variables de entorno no están disponibles en el build
+    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(
+      process.env.VITE_GOOGLE_CLIENT_ID ||
+      '650106105156-2pc3eojksd6ino17oghdouncb25ub75h.apps.googleusercontent.com'
+    ),
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
