@@ -10,8 +10,8 @@ export const authAdapter: AuthPort = {
     api.post<AuthResponse>('/auth/register', { username, password, email, personaId, persona: personaData, ...(tenantIds?.length ? { tenantIds } : {}) }),
 
 
-  loginWithGoogle: (email, displayName, avatarUrl, username) =>
-    api.post<AuthResponse>('/auth/google', { email, displayName, avatarUrl, username }),
+  loginWithGoogle: (idToken, displayName, avatarUrl, username) =>
+    api.post<AuthResponse>('/auth/google', { idToken, displayName, avatarUrl, username }),
 
   refreshToken: (refreshToken) =>
     api.post('/auth/refresh-token', { refreshToken }),

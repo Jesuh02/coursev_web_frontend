@@ -7,7 +7,7 @@ import type {
 export interface AuthPort {
   login(username: string, password: string): Promise<AuthResponse>
   register(username: string, password: string, email: string, personaId?: number, personaData?: Record<string, unknown>, tenantIds?: string[]): Promise<AuthResponse>
-  loginWithGoogle(email: string, displayName?: string, avatarUrl?: string, username?: string): Promise<AuthResponse>
+  loginWithGoogle(idToken: string, displayName?: string, avatarUrl?: string, username?: string): Promise<AuthResponse>
   refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>
   changePassword(currentPassword: string, newPassword: string): Promise<void>
 }

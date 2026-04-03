@@ -83,13 +83,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginWithGoogle(email: string, displayName?: string, avatarUrl?: string, usernameHint?: string) {
+  async function loginWithGoogle(idToken: string, displayName?: string, avatarUrl?: string, usernameHint?: string) {
     loading.value = true
     error.value = ''
     try {
       _resetUserStores()
       tokenStorage.clear()
-      const res = await authAdapter.loginWithGoogle(email, displayName, avatarUrl, usernameHint)
+      const res = await authAdapter.loginWithGoogle(idToken, displayName, avatarUrl, usernameHint)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id

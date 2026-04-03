@@ -151,10 +151,9 @@ async function handleGoogleCredential(response: { credential: string }) {
   error.value = ''
   try {
     const payload = decodeJwtPayload(response.credential)
-    const email = payload.email
-    const displayName = payload.name || email.split('@')[0]
+    const displayName = payload.name || payload.email?.split('@')[0]
     const avatarUrl = payload.picture || undefined
-    await authStore.loginWithGoogle(email, displayName, avatarUrl)
+    await authStore.loginWithGoogle(response.credential, displayName, avatarUrl)
     router.push('/video')
   } catch {
     error.value = authStore.error || 'Error con Google'
