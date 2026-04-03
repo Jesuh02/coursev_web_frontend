@@ -30,46 +30,17 @@
       <div class="spinner-lg" />
     </div>
 
-    <div v-else-if="filtered.length" class="subjects-recycler">
-      <div
+    <div v-else-if="filtered.length" class="subjects-grid">
+      <SubjectCard
         v-for="subject in filtered"
         :key="subject.id"
-        class="subject-card"
-        :class="{ 'subject-blocked': !!subjectBlocks[subject.id] }"
+        :subject="subject"
+        :stats="getStats(subject.id)"
+        :is-blocked="!!subjectBlocks[subject.id]"
+        :can-modify="canModifySubject(subject)"
         @click="navigateToDetail(subject)"
-        @contextmenu.prevent="canModifySubject(subject) ? openOptions(subject) : undefined"
-      >
-        <div class="subject-thumb">
-          <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl) || ''" alt="" />
-          <div v-else class="thumb-placeholder">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-          </div>
-          <div v-if="subjectBlocks[subject.id]" class="blocked-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
-          </div>
-        </div>
-        <div class="subject-body">
-          <div class="subject-title-row">
-            <h3 class="subject-name">{{ subject.name }}</h3>
-            <button v-if="canModifySubject(subject)" class="options-btn" @click.stop="openOptions(subject)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-            </button>
-          </div>
-          <p v-if="subject.description" class="subject-desc">{{ subject.description }}</p>
-          <div class="subject-stats">
-            <div class="stats-left">
-              <div class="progress-bar-mini">
-                <div class="progress-fill" :style="{ width: getStats(subject.id).progress + '%' }" />
-              </div>
-              <span class="stat-progress">{{ getStats(subject.id).progress }}%</span>
-            </div>
-            <span class="stat-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-              {{ getStats(subject.id).taskCount }} tarea{{ getStats(subject.id).taskCount !== 1 ? 's' : '' }}
-            </span>
-          </div>
-        </div>
-      </div>
+        @options="openOptions"
+      />
     </div>
 
     <div v-else class="empty-state">
@@ -127,10 +98,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import type { Subject } from '@/domain/models'
-import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
+import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 import { useSubjectSocket } from '@/composables/useSubjectSocket'
+import SubjectCard from './components/SubjectCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -513,33 +485,20 @@ useSubjectSocket(courseId.value, {
 .spinner-lg { width: 32px; height: 32px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.subjects-recycler { padding: 0 16px; display: flex; flex-direction: column; gap: 16px; }
-
-.subject-card {
-  display: flex; flex-direction: column;
-  background: #1C1C1E; border-radius: 20px;
-  cursor: pointer; transition: background 0.15s; overflow: hidden;
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 16px;
 }
-.subject-card:hover { background: #2C2C2E; }
 
-.subject-thumb { position: relative; width: 100%; aspect-ratio: 16 / 9; background: rgba(191,90,242,0.08); overflow: hidden; }
-.subject-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a2e, #2a1a3e); }
+@media (max-width: 900px) {
+  .subjects-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
-.subject-body { padding: 16px; }
-.subject-title-row { display: flex; align-items: center; gap: 8px; }
-.subject-name { flex: 1; font-size: 18px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.subject-desc { font-size: 13px; color: #8E8E93; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-.subject-stats { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-.stats-left { display: flex; align-items: center; gap: 8px; flex: 1; }
-.stat-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #BF5AF2; background: rgba(191,90,242,0.12); padding: 4px 10px; border-radius: 10px; flex-shrink: 0; }
-.progress-bar-mini { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; max-width: 120px; }
-.progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #BF5AF2, #00D4FF); transition: width 0.3s; }
-.stat-progress { font-size: 13px; font-weight: 600; color: #BF5AF2; }
-
-.options-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; }
-.options-btn:hover { background: rgba(255,255,255,0.08); }
+@media (max-width: 560px) {
+  .subjects-grid { grid-template-columns: 1fr; }
+}
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 40px; text-align: center; }
 .empty-text { font-size: 15px; color: #8E8E93; }
@@ -571,13 +530,7 @@ useSubjectSocket(courseId.value, {
 .cancel-btn { padding: 10px 20px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 15px; }
 .delete-btn { padding: 10px 20px; border-radius: 10px; background: #FF453A; color: #fff; font-size: 15px; font-weight: 600; }
 
-.subject-blocked { opacity: 0.5; }
-.subject-blocked:hover { background: #1C1C1E; }
-.blocked-badge {
-  position: absolute; top: 8px; right: 8px;
-  width: 28px; height: 28px; border-radius: 50%;
-  background: #FF453A; display: flex; align-items: center; justify-content: center;
-}
+
 
 .block-alert-dialog { text-align: center; }
 .block-alert-dialog svg { margin: 0 auto 12px; }
