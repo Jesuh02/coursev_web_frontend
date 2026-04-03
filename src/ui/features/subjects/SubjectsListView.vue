@@ -167,6 +167,10 @@ onMounted(async () => {
         router.replace({ path: '/explore', query: { accessDenied: 'Tu acceso a este curso fue revocado por el administrador.' } })
         return
       }
+      if (status === 'inactivo') {
+        router.replace({ path: '/explore', query: { accessDenied: 'Tu acceso a este curso fue desactivado por el administrador.' } })
+        return
+      }
       if (status !== 'approved') {
         router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
         return
@@ -414,6 +418,11 @@ onActivated(async () => {
     try {
       const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
       const status = extractEnrollmentStatus(data)
+      if (status === 'inactivo') {
+        enrollmentApproved.value = false
+        router.replace({ path: '/explore', query: { accessDenied: 'Tu acceso a este curso fue desactivado por el administrador.' } })
+        return
+      }
       if (status !== 'approved') {
         enrollmentApproved.value = false
         router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })

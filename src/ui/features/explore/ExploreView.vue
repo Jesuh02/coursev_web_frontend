@@ -334,6 +334,8 @@ async function navigateToCourse(course: Course) {
 
     if (status === 'approved') {
       router.push(`/subjects/${course.id}`)
+    } else if (status === 'inactivo') {
+      showAccessMessage('Tu acceso a este curso fue desactivado por el administrador.')
     } else if (status === 'pending') {
       showAccessMessage('Tu solicitud de acceso está pendiente de aprobación.')
     } else if (status === 'revoked') {
