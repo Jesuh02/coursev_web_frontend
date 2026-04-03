@@ -154,7 +154,7 @@ async function handleGoogleCredential(response: { credential: string }) {
     const displayName = payload.name || payload.email?.split('@')[0]
     const avatarUrl = payload.picture || undefined
     const result = await resolveGoogleLogin(response.credential, displayName, avatarUrl)
-    await authStore.commitAuth(result, { username: payload.email || '' })
+    await authStore.commitAuth(result)
     router.push('/video')
   } catch (e) {
     if (e instanceof MultipleTenantError) {
