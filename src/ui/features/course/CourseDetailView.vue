@@ -707,6 +707,19 @@ async function loadPendingSubmissions(courseIdNum: number) {
 onActivated(async () => {
   const courseIdNum = Number(courseId.value)
   if (!courseIdNum) return
+
+  // Re-verificar bloqueo de materia al reactivar (keep-alive omite onMounted)
+  if (!authStore.hasRole(3) && subjectId.value) {
+    try {
+      const blockData: any = await progressAdapter.checkSubjectAccessBlock(subjectId.value)
+      if (blockData?.blocked === true) {
+        const reason = blockData?.reason || 'Sin motivo especificado'
+        alert(`Has sido bloqueado debido a: ${reason}`)
+        router.back()
+        return
+      }
+    } catch { /* silent */ }
+  }
   
   // Detectar si regresamos de crear/editar tema o tarea
   const fromState = history.state?.from
