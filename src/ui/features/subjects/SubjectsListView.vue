@@ -377,6 +377,10 @@ function navigateToDetail(subject: Subject) {
     blockAlert.value = { show: true, reason: subjectBlocks.value[subject.id] }
     return
   }
+  // Prevent access when course is expired/inactive for non-admin users
+  if (courseExpired.value && !authStore.isAdmin) {
+    return
+  }
   router.push({
     path: `/course/${courseId.value}`,
     query: {

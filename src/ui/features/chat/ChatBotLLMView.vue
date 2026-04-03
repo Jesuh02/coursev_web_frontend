@@ -235,19 +235,27 @@
         v-if="inputText.trim() && !isTyping"
         class="send-btn send-btn--active"
         @click="sendMessage"
+        title="Enviar mensaje"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/>
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
       </button>
-      <button v-else class="send-btn send-btn--wave" :disabled="isTyping">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="2" y="10" width="2.5" height="4" rx="1.25"/>
-          <rect x="6.5" y="6" width="2.5" height="12" rx="1.25"/>
-          <rect x="11" y="3" width="2.5" height="18" rx="1.25"/>
-          <rect x="15.5" y="6" width="2.5" height="12" rx="1.25"/>
-          <rect x="20" y="10" width="2.5" height="4" rx="1.25"/>
+      <button
+        v-else
+        class="send-btn"
+        :class="isRecording ? 'send-btn--recording' : 'send-btn--mic'"
+        :disabled="isTyping"
+        :title="isRecording ? 'Detener grabación' : 'Hablar al chat'"
+        @click="toggleRecording"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path v-if="!isRecording" d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
+          <path v-if="!isRecording" d="M19 11a7 7 0 0 1-14 0"/>
+          <line v-if="!isRecording" x1="12" y1="18" x2="12" y2="21"/>
+          <line v-if="!isRecording" x1="8" y1="21" x2="16" y2="21"/>
+          <rect v-else x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none"/>
         </svg>
       </button>
     </div>
@@ -535,6 +543,7 @@ const inputRef = ref<HTMLTextAreaElement>()
 const messages = ref<ChatMsg[]>([])
 const inputText = ref('')
 const isTyping = ref(false)
+const isRecording = ref(false)
 const showScrollBtn = ref(false)
 const sessionId = computed(() => `chatbot_llm_${tokenStorage.userId ?? 'anon'}`)
 
@@ -568,6 +577,9 @@ const copiedMsgId = ref<string | null>(null)
 const likedMsgId = ref<string | null>(null)
 const dislikedMsgId = ref<string | null>(null)
 
+let recognition: any = null
+let voiceBaseText = ''
+
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
 const filteredOverlayItems = computed(() => {
@@ -588,6 +600,7 @@ onMounted(async () => {
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  stopRecording()
 })
 
 // ─── Real-time sync via Socket.io ─────────────────────────────────────────────
@@ -725,7 +738,79 @@ function applyHashtagHighlight() {
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && showTaskOverlay.value) {
     closeTaskOverlay()
+    return
   }
+
+  if (e.key === 'Escape' && isRecording.value) {
+    stopRecording()
+  }
+}
+
+function toggleRecording() {
+  if (isRecording.value) {
+    stopRecording()
+    return
+  }
+  startRecording()
+}
+
+function startRecording() {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    messages.value.push({
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '⚠️ Tu navegador no soporta reconocimiento de voz. Intenta con Chrome o Edge.',
+      createdAt: new Date().toISOString(),
+    })
+    scrollToBottom()
+    return
+  }
+
+  recognition = new SpeechRecognition()
+  recognition.lang = 'es-ES'
+  recognition.interimResults = true
+  recognition.maxAlternatives = 1
+  recognition.continuous = true
+  voiceBaseText = inputText.value.trimEnd()
+
+  recognition.onresult = (event: any) => {
+    const transcript = Array.from(event.results)
+      .slice(event.resultIndex)
+      .map((result: any) => result[0]?.transcript ?? '')
+      .join(' ')
+      .trim()
+
+    inputText.value = voiceBaseText && transcript
+      ? `${voiceBaseText} ${transcript}`
+      : voiceBaseText || transcript
+
+    nextTick(() => {
+      autoResizeTextarea()
+      inputRef.value?.focus()
+    })
+  }
+
+  recognition.onerror = () => {
+    isRecording.value = false
+    recognition = null
+  }
+
+  recognition.onend = () => {
+    isRecording.value = false
+    recognition = null
+    voiceBaseText = inputText.value.trimEnd()
+  }
+
+  recognition.start()
+  isRecording.value = true
+}
+
+function stopRecording() {
+  if (recognition) {
+    recognition.stop()
+  }
+  isRecording.value = false
 }
 
 // ─── Task overlay ─────────────────────────────────────────────────────────────
@@ -897,6 +982,10 @@ function clearContext() {
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
+
+  if (isRecording.value) {
+    stopRecording()
+  }
 
   const ctx = selectedTask.value
   const userMsg: ChatMsg = {
@@ -1917,11 +2006,27 @@ function renderMarkdown(text: string): string {
 .send-btn--active:hover  { background: #02C78C; }
 .send-btn--active:active { transform: scale(0.93); }
 
-.send-btn--wave {
-  background: #1F2C34;
-  color: rgba(255,255,255,0.6);
+.send-btn--mic {
+  background: #2A3942;
+  color: rgba(255,255,255,0.72);
 }
-.send-btn--wave:disabled { opacity: 0.4; }
+.send-btn--mic:hover {
+  background: #354752;
+}
+
+.send-btn--recording {
+  background: rgba(255, 69, 58, 0.16);
+  color: #FF6B62;
+  box-shadow: 0 0 0 6px rgba(255, 69, 58, 0.08);
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+
+.send-btn:disabled { opacity: 0.4; }
+
+@keyframes micPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
 
 /* ─── Message action bar ────────────────────────── */
 .msg-actions {
