@@ -23,7 +23,7 @@ function mapContentItem(raw: RawContentItem): ContentItem {
     topicId: raw.topic_id,
     contentType: raw.content_type ?? 'document',
     content: raw.title || raw.content || '',
-    fileUri: raw.file_uri,
+    fileUri: raw.file_uri || raw.body || null,
     fileName: raw.file_name,
     orderIndex: raw.order_index ?? 0,
     createdAt: raw.created_at,

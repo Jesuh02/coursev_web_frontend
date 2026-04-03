@@ -20,13 +20,13 @@ export async function uploadFileDirect(
   file: File,
   prefix: 'videos' | 'content' | 'submissions' | 'courses',
   onProgress?: (pct: number) => void,
-): Promise<{ key: string }> {
+): Promise<{ key: string; publicUrl: string }> {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
   const key = `${Date.now()}_${safeName}`
   const contentType = file.type || 'application/octet-stream'
 
   // 1. Obtener URL pre-firmada del backend
-  const { uploadUrl, key: fullKey } = await api.post<{ uploadUrl: string; key: string; publicUrl: string }>(
+  const { uploadUrl, key: fullKey, publicUrl } = await api.post<{ uploadUrl: string; key: string; publicUrl: string }>(
     '/storage/upload-url',
     { key, contentType, prefix },
   )
@@ -49,5 +49,5 @@ export async function uploadFileDirect(
     xhr.send(file)
   })
 
-  return { key: fullKey }
+  return { key: fullKey, publicUrl }
 }

@@ -18,6 +18,7 @@ export function setApiBase(url: string): void {
 const TOKEN_KEY = 'auth_token'
 const REFRESH_KEY = 'refresh_token'
 const USER_ID_KEY = 'user_id'
+const USERNAME_KEY = 'username'
 
 const MAX_RETRIES = 2
 const INITIAL_BACKOFF_MS = 1000
@@ -57,12 +58,16 @@ export const tokenStorage = {
   get userId(): number { return Number(localStorage.getItem(USER_ID_KEY)) || 0 },
   set userId(v: number) { v ? localStorage.setItem(USER_ID_KEY, String(v)) : localStorage.removeItem(USER_ID_KEY) },
 
+  get username(): string | null { return localStorage.getItem(USERNAME_KEY) },
+  set username(v: string | null) { v ? localStorage.setItem(USERNAME_KEY, v) : localStorage.removeItem(USERNAME_KEY) },
+
   get isAuthenticated() { return !!this.token },
 
   clear() {
     this.token = null
     this.refreshToken = null
     this.userId = 0
+    this.username = null
   },
 }
 

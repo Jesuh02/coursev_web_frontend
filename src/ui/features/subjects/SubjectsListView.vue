@@ -122,9 +122,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated } from 'vue'
+import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import type { Subject } from '@/domain/models'
 import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, resolveImageUrl } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -134,6 +135,7 @@ import { useSubjectSocket } from '@/composables/useSubjectSocket'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 
 const courseId = computed(() => Number(route.params.courseId) || 0)
 const allSubjects = ref<Subject[]>([])
@@ -149,6 +151,7 @@ const showDeleteConfirm = ref(false)
 const courseExpired = ref(false)
 const subjectBlocks = ref<Record<number, string>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
+const enrollmentApproved = ref(false)
 
 interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
@@ -196,14 +199,43 @@ onMounted(async () => {
         router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
         return
       }
+      enrollmentApproved.value = true
     } catch {
       router.replace({ path: '/explore', query: { accessDenied: 'No se pudo verificar tu acceso a este curso.' } })
       return
     }
+  } else {
+    enrollmentApproved.value = true
   }
   await loadSubjects()
   await checkCourseDeadline()
   await loadSubjectBlocks()
+})
+
+// ── Real-time subject access block / unblock via socket ──
+function handleAccessBlocked(data: { subjectId: number; courseId: number; reason: string }) {
+  if (data.courseId !== courseId.value) return
+  subjectBlocks.value = { ...subjectBlocks.value, [data.subjectId]: data.reason || 'Sin motivo especificado' }
+  const subject = allSubjects.value.find(s => s.id === data.subjectId)
+  blockAlert.value = {
+    show: true,
+    reason: `Tu acceso a la materia "${subject?.name || 'materia'}" fue revocado. Motivo: ${data.reason || 'Sin motivo especificado'}`,
+  }
+}
+
+function handleAccessUnblocked(data: { subjectId: number; courseId: number | null }) {
+  if (data.courseId && data.courseId !== courseId.value) return
+  const updated = { ...subjectBlocks.value }
+  delete updated[data.subjectId]
+  subjectBlocks.value = updated
+}
+
+notifStore.onSocketEvent('subject:access-blocked', handleAccessBlocked)
+notifStore.onSocketEvent('subject:access-unblocked', handleAccessUnblocked)
+
+onUnmounted(() => {
+  notifStore.offSocketEvent('subject:access-blocked', handleAccessBlocked)
+  notifStore.offSocketEvent('subject:access-unblocked', handleAccessUnblocked)
 })
 
 async function checkCourseDeadline() {
@@ -349,6 +381,15 @@ function navigateToDetail(subject: Subject) {
     blockAlert.value = { show: true, reason: subjectBlocks.value[subject.id] }
     return
   }
+  // Prevent access when course is expired/inactive for non-admin users
+  if (courseExpired.value && !authStore.isAdmin) {
+    return
+  }
+  // Prevent navigation if enrollment is not approved
+  if (!enrollmentApproved.value) {
+    blockAlert.value = { show: true, reason: 'No tienes acceso a esta materia. Tu matrícula no ha sido aprobada.' }
+    return
+  }
   router.push({
     path: `/course/${courseId.value}`,
     query: {
@@ -396,7 +437,20 @@ async function deleteSubj() {
 }
 
 onActivated(async () => {
+  // Re-verify enrollment on reactivation (e.g. enrollment revoked while away)
+  if (requiresEnrollmentApproval.value) {
+    try {
+      const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
+      const status = extractEnrollmentStatus(data)
+      if (status !== 'approved') {
+        enrollmentApproved.value = false
+        router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
+        return
+      }
+    } catch { /* silent */ }
+  }
   await loadSubjects()
+  await loadSubjectBlocks()
 })
 
 useSubjectSocket(courseId.value, {

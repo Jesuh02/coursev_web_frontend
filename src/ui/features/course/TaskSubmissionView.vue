@@ -151,8 +151,22 @@
           </div>
 
           <div v-if="sub.feedback" class="existing-feedback">
-            <p class="feedback-label">Retroalimentación anterior:</p>
-            <p class="feedback-text">{{ sub.feedback }}</p>
+            <div class="feedback-header-inline">
+              <p class="feedback-label">Retroalimentación anterior</p>
+              <button
+                v-if="shouldShowFeedbackToggle(sub.feedback)"
+                class="feedback-toggle-btn"
+                @click="toggleFeedbackExpansion(`teacher-${sub.id}`)"
+              >
+                {{ isFeedbackExpanded(`teacher-${sub.id}`) ? 'Ver menos' : 'Ver completa' }}
+              </button>
+            </div>
+            <div
+              class="feedback-body"
+              :class="{ 'feedback-body--collapsed': shouldShowFeedbackToggle(sub.feedback) && !isFeedbackExpanded(`teacher-${sub.id}`) }"
+            >
+              <p class="feedback-text">{{ sub.feedback }}</p>
+            </div>
           </div>
 
           <div class="grade-form">
@@ -223,8 +237,28 @@
 
         <div v-if="submission?.feedback" class="feedback-section card-enter" style="animation-delay: 0.1s">
           <h3 class="section-title">Retroalimentación</h3>
-          <div class="feedback-card">
-            <p>{{ submission.feedback }}</p>
+          <div class="feedback-card" :class="{ expanded: isFeedbackExpanded('student-feedback') }">
+            <div class="feedback-card-head">
+              <div class="feedback-card-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Comentario del profesor
+              </div>
+              <button
+                v-if="shouldShowFeedbackToggle(submission.feedback)"
+                class="feedback-toggle-btn feedback-toggle-btn--card"
+                @click="toggleFeedbackExpansion('student-feedback')"
+              >
+                {{ isFeedbackExpanded('student-feedback') ? 'Ver menos' : 'Expandir' }}
+              </button>
+            </div>
+            <div
+              class="feedback-body feedback-body--card"
+              :class="{ 'feedback-body--collapsed': shouldShowFeedbackToggle(submission.feedback) && !isFeedbackExpanded('student-feedback') }"
+            >
+              <p class="feedback-card-text">{{ submission.feedback }}</p>
+            </div>
           </div>
         </div>
 
@@ -289,6 +323,7 @@ const highlightedSubmissionId = ref<number | null>(null)
 const submissionCardRefs = reactive<Record<number, HTMLElement>>({})
 // Map studentId → persona full name (nombres + apellidos)
 const personaNameMap = ref(new Map<number, string>())
+const expandedFeedbackMap = reactive<Record<string, boolean>>({})
 
 interface GradingState { grade: number | null; feedback: string; saving: boolean; saved: boolean }
 const gradingMap = reactive<Record<number, GradingState>>({})
@@ -389,6 +424,18 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr
   }
+}
+
+function shouldShowFeedbackToggle(feedback: string | null | undefined): boolean {
+  return (feedback?.trim().length ?? 0) > 180
+}
+
+function isFeedbackExpanded(key: string): boolean {
+  return expandedFeedbackMap[key] === true
+}
+
+function toggleFeedbackExpansion(key: string) {
+  expandedFeedbackMap[key] = !expandedFeedbackMap[key]
 }
 
 function onFileSelect(e: Event) {
@@ -779,9 +826,70 @@ onMounted(async () => {
 .file-link { color: #00D4FF; text-decoration: none; }
 .file-link:hover { text-decoration: underline; }
 
-.existing-feedback { padding: 10px 12px; background: rgba(48,209,88,0.06); border-radius: 10px; }
-.feedback-label { font-size: 11px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
-.feedback-text { font-size: 13px; color: #ccc; line-height: 1.4; }
+.existing-feedback {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(48,209,88,0.09), rgba(48,209,88,0.04));
+  border-radius: 14px;
+  border: 1px solid rgba(48,209,88,0.14);
+}
+.feedback-header-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.feedback-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #93a0ae;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+.feedback-body {
+  position: relative;
+}
+.feedback-body--collapsed {
+  max-height: 74px;
+  overflow: hidden;
+}
+.feedback-body--collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(17,20,40,0), rgba(17,20,40,0.9));
+  pointer-events: none;
+}
+.feedback-text {
+  font-size: 13px;
+  color: #d7dde7;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-line;
+}
+.feedback-toggle-btn {
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: #9adfff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.feedback-toggle-btn:hover {
+  background: rgba(0,212,255,0.12);
+  color: #c9f2ff;
+}
+.feedback-toggle-btn--card {
+  background: rgba(255,255,255,0.08);
+}
 
 .grade-form { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); }
 .form-label { font-size: 12px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -820,7 +928,46 @@ onMounted(async () => {
 .section-title { font-size: 13px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 
 .feedback-section { display: flex; flex-direction: column; gap: 8px; }
-.feedback-card { padding: 14px; border-radius: 12px; background: rgba(48,209,88,0.08); color: #ccc; font-size: 14px; line-height: 1.5; }
+.feedback-card {
+  padding: 16px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(48,209,88,0.13), transparent 36%),
+    linear-gradient(180deg, rgba(48,209,88,0.1), rgba(255,255,255,0.03));
+  border: 1px solid rgba(48,209,88,0.18);
+  color: #ccc;
+}
+.feedback-card.expanded {
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
+.feedback-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.feedback-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #dfffea;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(48,209,88,0.12);
+}
+.feedback-body--card.feedback-body--collapsed::after {
+  background: linear-gradient(180deg, rgba(17,20,40,0), rgba(25,31,34,0.96));
+}
+.feedback-card-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #eef6f1;
+  white-space: pre-line;
+}
 
 .submission-detail { display: flex; flex-direction: column; gap: 8px; }
 .detail-card { padding: 14px; border-radius: 12px; background: #1C1C1E; }
@@ -903,5 +1050,17 @@ onMounted(async () => {
   background: rgba(0, 212, 255, 0.06);
   box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
   transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+}
+
+@media (max-width: 640px) {
+  .feedback-header-inline,
+  .feedback-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .feedback-toggle-btn {
+    align-self: flex-start;
+  }
 }
 </style>

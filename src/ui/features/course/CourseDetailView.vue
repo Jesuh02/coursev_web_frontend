@@ -266,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -277,6 +277,7 @@ import {
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { useNotificationStore } from '@/stores/notificationStore'
 
 defineOptions({ name: 'CourseDetailView' })
 
@@ -289,6 +290,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
+const notifStore = useNotificationStore()
 
 const courseId = computed(() => route.params.id as string)
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
@@ -705,6 +707,19 @@ async function loadPendingSubmissions(courseIdNum: number) {
 onActivated(async () => {
   const courseIdNum = Number(courseId.value)
   if (!courseIdNum) return
+
+  // Re-verificar bloqueo de materia al reactivar (keep-alive omite onMounted)
+  if (!authStore.hasRole(3) && subjectId.value) {
+    try {
+      const blockData: any = await progressAdapter.checkSubjectAccessBlock(subjectId.value)
+      if (blockData?.blocked === true) {
+        const reason = blockData?.reason || 'Sin motivo especificado'
+        alert(`Has sido bloqueado debido a: ${reason}`)
+        router.back()
+        return
+      }
+    } catch { /* silent */ }
+  }
   
   // Detectar si regresamos de crear/editar tema o tarea
   const fromState = history.state?.from
@@ -756,11 +771,32 @@ onMounted(async () => {
   const progressPromise = loadStudentProgress(id)
 
   await checkEnrollmentStatus(id)
+
+  // Guard: if user requires enrollment and it's not approved, redirect back
+  if (requiresEnrollmentApproval.value && enrollmentStatus.value !== 'approved') {
+    // Esperar a que la promesa pendiente se resuelva antes de salir
+    await progressPromise.catch(() => {})
+    router.back()
+    return
+  }
+
   if (course.value) {
     await loadTopicsAndTasks(id)
   }
   await progressPromise
   loading.value = false
+})
+
+// ── Real-time: if admin blocks this subject, kick user out immediately ──
+function handleAccessBlockedInDetail(data: { subjectId: number; courseId: number; reason: string }) {
+  if (!subjectId.value || data.subjectId !== subjectId.value) return
+  router.back()
+}
+
+notifStore.onSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
+
+onUnmounted(() => {
+  notifStore.offSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
 })
 
 // Re-verificar acceso de colaborador cuando authStore.user carga después del montaje
