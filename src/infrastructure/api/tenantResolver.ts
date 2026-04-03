@@ -55,15 +55,16 @@ export async function resolveLogin(username: string, password: string, cedula?: 
 
 /**
  * Attempts Google login by probing ALL configured backend servers in parallel.
+ * Sends the raw Google idToken so the backend can verify it server-side.
  */
 export async function resolveGoogleLogin(
-  email: string,
+  idToken: string,
   displayName?: string,
   avatarUrl?: string,
   usernameHint?: string,
 ): Promise<TenantLoginResult> {
   return probeAllServers('/auth/cross-tenant-google', {
-    email,
+    idToken,
     displayName,
     avatarUrl,
     username: usernameHint,

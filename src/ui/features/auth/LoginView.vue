@@ -72,7 +72,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { resolveLogin, CedulaRequiredError, MultipleTenantError } from '@/infrastructure/api/tenantResolver'
+import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError } from '@/infrastructure/api/tenantResolver'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
@@ -153,10 +153,15 @@ async function handleGoogleCredential(response: { credential: string }) {
     const payload = decodeJwtPayload(response.credential)
     const displayName = payload.name || payload.email?.split('@')[0]
     const avatarUrl = payload.picture || undefined
-    await authStore.loginWithGoogle(response.credential, displayName, avatarUrl)
+    const result = await resolveGoogleLogin(response.credential, displayName, avatarUrl)
+    await authStore.commitAuth(result, { username: payload.email || '' })
     router.push('/video')
-  } catch {
-    error.value = authStore.error || 'Error con Google'
+  } catch (e) {
+    if (e instanceof MultipleTenantError) {
+      pendingMatches.value = e.matches
+    } else {
+      error.value = e instanceof Error ? e.message : 'Error con Google'
+    }
   } finally {
     loading.value = false
   }
