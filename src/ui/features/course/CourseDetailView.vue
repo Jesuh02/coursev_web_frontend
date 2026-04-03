@@ -822,6 +822,10 @@ watch(() => authStore.user?.id, async (newId) => {
 <style scoped>
 .course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
+@media (min-width: 769px) {
+  .course-detail { left: 100px; }
+}
+
 .hero-section { position: relative; height: 280px; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
