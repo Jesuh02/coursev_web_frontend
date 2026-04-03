@@ -205,7 +205,7 @@ async function uploadPendingFiles(resolvedTopicId: number) {
     pendingFiles.value.map(async (pf) => {
       try {
         const prefix = pf.type === 'video' ? 'videos' : 'content'
-        const { key } = await uploadFileDirect(
+        const { publicUrl } = await uploadFileDirect(
           pf.file,
           prefix,
           (pct) => {
@@ -217,7 +217,7 @@ async function uploadPendingFiles(resolvedTopicId: number) {
           topicId: resolvedTopicId,
           contentType: pf.type,
           content: pf.file.name,
-          fileUri: key,
+          fileUri: publicUrl,
           fileName: pf.file.name,
           orderIndex: 0,
         } as Partial<ContentItem>)

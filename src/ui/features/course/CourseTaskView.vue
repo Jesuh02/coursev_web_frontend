@@ -183,11 +183,12 @@ async function handleSave() {
         dueDate: buildDueDateIso(),
       } as Partial<Task>)
       if (formFile.value && created?.id) {
-        const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
+        const { publicUrl } = await uploadFileDirect(formFile.value, 'content', () => {})
         await contentItemAdapter.create({
           taskId: created.id,
           fileName: formFile.value.name,
-          content: key,
+          fileUri: publicUrl,
+          content: formFile.value.name,
           contentType: getContentType(formFile.value),
         })
       }
@@ -205,11 +206,12 @@ async function handleSave() {
         dueDate: buildDueDateIso(),
       } as Partial<Task>)
       if (formFile.value) {
-        const { key } = await uploadFileDirect(formFile.value, 'content', () => {})
+        const { publicUrl } = await uploadFileDirect(formFile.value, 'content', () => {})
         await contentItemAdapter.create({
           taskId: taskId.value!,
           fileName: formFile.value.name,
-          content: key,
+          fileUri: publicUrl,
+          content: formFile.value.name,
           contentType: getContentType(formFile.value),
         })
       }
