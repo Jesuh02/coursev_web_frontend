@@ -378,6 +378,7 @@ async function sendQuery() {
       prompt: text,
       sessionId: sessionId.value,
       userId: tokenStorage.userId,
+      username: tokenStorage.username,
       forceMCPTools: true,
     })
 

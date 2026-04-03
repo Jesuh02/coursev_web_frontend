@@ -931,6 +931,7 @@ async function sendMessage() {
       prompt: text,
       sessionId: sessionId.value,
       userId: tokenStorage.userId,
+      username: tokenStorage.username,
       ...(ctx && {
         taskDescription,
         submissionId: ctx.submissionId,

@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       user.value = fallbackUser
     }
+    tokenStorage.username = user.value?.username ?? null
   }
 
   const isAdmin = computed(() => hasRole(3))
