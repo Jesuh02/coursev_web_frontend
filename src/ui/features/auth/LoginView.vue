@@ -4,6 +4,7 @@
       <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
     </div>
 
+    <div class="login-wrapper">
     <div class="login-header">
       <div class="header-content">
         <h1 class="brand">CourseV <span class="brand-emoji">📋</span></h1>
@@ -63,6 +64,7 @@
     />
 
     <ForgotPasswordDialog v-if="showForgotPassword" @close="showForgotPassword = false" />
+    </div><!-- /login-wrapper -->
   </div>
 </template>
 
@@ -256,6 +258,16 @@ function particleStyle(i: number) {
   background: var(--bg-secondary);
   overflow-y: auto;
   position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.login-wrapper {
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
 }
 
 /* ── Partículas flotantes ── */
