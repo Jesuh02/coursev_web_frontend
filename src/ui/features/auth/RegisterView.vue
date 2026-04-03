@@ -69,8 +69,39 @@
       <section class="form-section">
         <h3 class="section-title">Credenciales</h3>
         <AppInput v-model="form.username" label="Usuario" placeholder="Nombre de usuario" :error="fieldErrors.username" />
-        <AppInput v-model="form.password" type="password" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password" />
-        <AppInput v-model="confirmPassword" type="password" label="Confirmar contraseña" placeholder="Repite la contraseña" :error="passwordError" />
+        <AppInput v-model="form.password" :type="showPassword ? 'text' : 'password'" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password">
+          <template #suffix>
+            <button type="button" class="eye-btn" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <svg v-if="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </template>
+        </AppInput>
+        <div class="password-hint">
+          <div class="hint-item" :class="{ ok: passwordChecks.length, fail: form.password && !passwordChecks.length }">
+            <span class="hint-dot"></span> Al menos 6 caracteres
+          </div>
+          <div class="hint-item" :class="{ ok: passwordChecks.number, fail: form.password && !passwordChecks.number }">
+            <span class="hint-dot"></span> 1 número
+          </div>
+          <div class="hint-item" :class="{ ok: passwordChecks.upper, fail: form.password && !passwordChecks.upper }">
+            <span class="hint-dot"></span> 1 letra mayúscula
+          </div>
+          <div class="hint-item" :class="{ ok: passwordChecks.lower, fail: form.password && !passwordChecks.lower }">
+            <span class="hint-dot"></span> 1 letra minúscula
+          </div>
+          <div class="hint-item" :class="{ ok: passwordChecks.symbol, fail: form.password && !passwordChecks.symbol }">
+            <span class="hint-dot"></span> 1 símbolo (ej. !@#$%)
+          </div>
+        </div>
+        <AppInput v-model="confirmPassword" :type="showConfirm ? 'text' : 'password'" label="Confirmar contraseña" placeholder="Repite la contraseña" :error="passwordError">
+          <template #suffix>
+            <button type="button" class="eye-btn" @click="showConfirm = !showConfirm" :aria-label="showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <svg v-if="!showConfirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </template>
+        </AppInput>
       </section>
 
       <p v-if="submitError" class="submit-error">{{ submitError }}</p>
@@ -101,6 +132,8 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const avatarPreview = ref<string | null>(null)
 const confirmPassword = ref('')
+const showPassword = ref(false)
+const showConfirm = ref(false)
 const submitError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 
@@ -149,6 +182,14 @@ const form = ref({
   password: '',
 })
 
+const passwordChecks = computed(() => ({
+  length: form.value.password.length >= 6,
+  number: /[0-9]/.test(form.value.password),
+  upper: /[A-Z]/.test(form.value.password),
+  lower: /[a-z]/.test(form.value.password),
+  symbol: /[^A-Za-z0-9]/.test(form.value.password),
+}))
+
 const passwordError = computed(() => {
   if (confirmPassword.value && confirmPassword.value !== form.value.password) return 'Las contraseñas no coinciden'
   return ''
@@ -169,7 +210,11 @@ function validateForm() {
   if (!form.value.username.trim()) errors.username = 'Campo requerido'
   if (form.value.username.trim().length < 4) errors.username = 'Mínimo 4 caracteres'
   if (!form.value.password) errors.password = 'Campo requerido'
-  else if (form.value.password.length < 6) errors.password = 'Mínimo 6 caracteres'
+  else if (!passwordChecks.value.length) errors.password = 'Mínimo 6 caracteres'
+  else if (!passwordChecks.value.number) errors.password = 'Debe incluir al menos 1 número'
+  else if (!passwordChecks.value.upper) errors.password = 'Debe incluir al menos 1 mayúscula'
+  else if (!passwordChecks.value.lower) errors.password = 'Debe incluir al menos 1 minúscula'
+  else if (!passwordChecks.value.symbol) errors.password = 'Debe incluir al menos 1 símbolo'
 
   fieldErrors.value = errors
   return Object.keys(errors).length === 0
@@ -447,5 +492,65 @@ async function handleRegister() {
 .inst-city {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* ── Password hint box ── */
+.password-hint {
+  background: rgba(139, 92, 246, 0.07);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.hint-item .hint-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.hint-item.ok {
+  color: #4ade80;
+}
+.hint-item.ok .hint-dot {
+  background: #4ade80;
+}
+
+.hint-item.fail {
+  color: var(--red-netflix);
+}
+.hint-item.fail .hint-dot {
+  background: var(--red-netflix);
+}
+
+.eye-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  height: 100%;
+  transition: color 0.2s;
+}
+
+.eye-btn:hover {
+  color: var(--purple-light);
 }
 </style>
