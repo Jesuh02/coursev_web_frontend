@@ -15,6 +15,11 @@ export function setApiBase(url: string): void {
   API_V1 = `${_apiBase}/api/v1`
 }
 
+/** Returns the current API v1 base URL (e.g. for XHR-based uploads). */
+export function getApiV1(): string {
+  return API_V1
+}
+
 const TOKEN_KEY = 'auth_token'
 const REFRESH_KEY = 'refresh_token'
 const USER_ID_KEY = 'user_id'

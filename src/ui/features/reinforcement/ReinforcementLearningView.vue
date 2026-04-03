@@ -131,7 +131,18 @@
         <!-- Question card -->
         <Transition :name="qTransition" mode="out-in">
           <div :key="currentIdx" class="q-card">
-            <div class="q-tag">Pregunta {{ currentIdx + 1 }}</div>
+            <div class="q-header">
+              <div class="q-tag">Pregunta {{ currentIdx + 1 }}</div>
+              <button
+                class="tts-btn"
+                :class="{ 'tts-active': isSpeaking }"
+                :title="isSpeaking ? 'Detener lectura' : 'Leer en voz alta'"
+                @click="speakQuestion"
+              >
+                <span v-if="!isSpeaking" class="tts-icon">🔊</span>
+                <span v-else class="tts-icon tts-pulse">🔇</span>
+              </button>
+            </div>
             <p class="q-text">{{ currentQ.question }}</p>
 
             <!-- Multiple choice options -->
@@ -329,6 +340,69 @@ const qTransition  = ref('slide-left')
 const fillAnswer      = ref('')
 const fillCorrect     = ref(false)
 const orderingUserSeq = ref<number[]>([])
+
+// ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
+const isSpeaking = ref(false)
+
+function speakQuestion() {
+  const synth = window.speechSynthesis
+  if (!synth) return
+
+  // If already speaking, stop
+  if (synth.speaking || synth.pending) {
+    synth.cancel()
+    isSpeaking.value = false
+    return
+  }
+
+  const q = currentQ.value
+  const parts: string[] = []
+
+  // Question
+  if (q.question) parts.push(`Pregunta: ${q.question}`)
+
+  // Options (multiple choice)
+  if (q.options && q.options.length >= 2) {
+    q.options.forEach((opt, i) => {
+      parts.push(`Opción ${letters[i]}: ${opt}`)
+    })
+  }
+
+  // Ordering items
+  if (q.type === 'ordering' && q.items?.length) {
+    parts.push('Pasos a ordenar:')
+    q.items.forEach((item, i) => {
+      parts.push(`${i + 1}. ${item}`)
+    })
+  }
+
+  // Explanation (only if answered and visible)
+  if (answered.value && q.explanation) {
+    parts.push(`Explicación: ${q.explanation}`)
+  }
+
+  if (!parts.length) return
+
+  const utterance = new SpeechSynthesisUtterance(parts.join('. '))
+  utterance.lang = 'es-ES'
+  utterance.rate = 0.95
+
+  // Try to pick a Spanish voice
+  const voices = synth.getVoices()
+  const esVoice = voices.find(v => v.lang.startsWith('es'))
+  if (esVoice) utterance.voice = esVoice
+
+  utterance.onstart = () => { isSpeaking.value = true }
+  utterance.onend   = () => { isSpeaking.value = false }
+  utterance.onerror = () => { isSpeaking.value = false }
+
+  synth.speak(utterance)
+}
+
+function stopSpeaking() {
+  window.speechSynthesis?.cancel()
+  isSpeaking.value = false
+}
 
 // Loading animation
 const loadingTick    = ref(0)
@@ -1026,7 +1100,8 @@ async function saveReinforcementResult() {
 }
 
 function nextQ() {
-  if (isLastQ.value) { void saveReinforcementResult(); phase.value = 'results'; return }
+  if (isLastQ.value) { void saveReinforcementResult(); phase.value = 'results'; stopSpeaking(); return }
+  stopSpeaking()
   qTransition.value = 'slide-left'
   currentIdx.value++
   answered.value       = false
@@ -1056,6 +1131,7 @@ function showError(msg: string) {
 onUnmounted(() => {
   if (loadingTimer)       clearInterval(loadingTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
+  stopSpeaking()
 })
 </script>
 
@@ -1407,6 +1483,44 @@ onUnmounted(() => {
   letter-spacing: 1px;
   margin-bottom: 10px;
 }
+.q-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.q-header .q-tag { margin-bottom: 0; }
+.tts-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.tts-btn:hover {
+  background: rgba(139,92,246,0.18);
+  border-color: rgba(139,92,246,0.5);
+  transform: scale(1.08);
+}
+.tts-btn.tts-active {
+  background: rgba(139,92,246,0.22);
+  border-color: var(--purple-light);
+  box-shadow: 0 0 12px rgba(139,92,246,0.35);
+}
+.tts-icon {
+  font-size: 17px;
+  line-height: 1;
+  user-select: none;
+}
+.tts-pulse {
+  animation: ttsPulse 1s ease-in-out infinite;
+}
 .q-text {
   font-size: 17px;
   font-weight: 700;
@@ -1724,6 +1838,10 @@ onUnmounted(() => {
   from { opacity: 0; transform: scale(0.3) rotate(-15deg); }
   80%  { transform: scale(1.12) rotate(5deg); }
   to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes ttsPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.15); opacity: 0.7; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

@@ -40,7 +40,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
           <span>{{ formFile ? formFile.name : 'Agregar nuevo archivo' }}</span>
           <button v-if="formFile" class="file-clear" @click.stop="formFile = null">✕</button>
-          <input ref="formFileInputRef" type="file" accept="*/*" hidden @change="onFormFileSelected" />
+          <input ref="formFileInputRef" type="file" hidden @change="onFormFileSelected" />
         </div>
 
         <p v-if="errorMsg" class="error-msg mt-16">{{ errorMsg }}</p>
@@ -95,7 +95,7 @@
           <div class="file-upload" @click="fileInputRef?.click()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
             <span>{{ selectedFile ? selectedFile.name : 'Adjuntar archivo' }}</span>
-            <input ref="fileInputRef" type="file" accept="*/*" hidden @change="onFileSelected" />
+            <input ref="fileInputRef" type="file" hidden @change="onFileSelected" />
           </div>
           <div v-if="uploading && selectedFile" class="upload-progress">
             <div class="progress-bar" :style="{ width: uploadProgress + '%' }" />
@@ -278,12 +278,18 @@ async function submitTask() {
   try {
     let fileKey: string | undefined
     if (selectedFile.value) {
-      const { key } = await uploadFileDirect(
-        selectedFile.value,
-        'submissions',
-        (pct) => { uploadProgress.value = pct },
-      )
-      fileKey = key
+      try {
+        const { key } = await uploadFileDirect(
+          selectedFile.value,
+          'submissions',
+          (pct) => { uploadProgress.value = pct },
+        )
+        fileKey = key
+      } catch {
+        submitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+        uploading.value = false
+        return
+      }
     }
     const result = await submissionAdapter.submitWork({
       task_id: task.value.id,
