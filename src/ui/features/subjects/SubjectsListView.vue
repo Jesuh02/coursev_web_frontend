@@ -151,6 +151,7 @@ const showDeleteConfirm = ref(false)
 const courseExpired = ref(false)
 const subjectBlocks = ref<Record<number, string>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
+const enrollmentApproved = ref(false)
 
 interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
@@ -198,10 +199,13 @@ onMounted(async () => {
         router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
         return
       }
+      enrollmentApproved.value = true
     } catch {
       router.replace({ path: '/explore', query: { accessDenied: 'No se pudo verificar tu acceso a este curso.' } })
       return
     }
+  } else {
+    enrollmentApproved.value = true
   }
   await loadSubjects()
   await checkCourseDeadline()
@@ -381,6 +385,11 @@ function navigateToDetail(subject: Subject) {
   if (courseExpired.value && !authStore.isAdmin) {
     return
   }
+  // Prevent navigation if enrollment is not approved
+  if (!enrollmentApproved.value) {
+    blockAlert.value = { show: true, reason: 'No tienes acceso a esta materia. Tu matrícula no ha sido aprobada.' }
+    return
+  }
   router.push({
     path: `/course/${courseId.value}`,
     query: {
@@ -428,7 +437,20 @@ async function deleteSubj() {
 }
 
 onActivated(async () => {
+  // Re-verify enrollment on reactivation (e.g. enrollment revoked while away)
+  if (requiresEnrollmentApproval.value) {
+    try {
+      const data: any = await progressAdapter.getEnrollmentStatus(courseId.value)
+      const status = extractEnrollmentStatus(data)
+      if (status !== 'approved') {
+        enrollmentApproved.value = false
+        router.replace({ path: '/explore', query: { accessDenied: 'No tienes acceso a este curso.' } })
+        return
+      }
+    } catch { /* silent */ }
+  }
   await loadSubjects()
+  await loadSubjectBlocks()
 })
 
 useSubjectSocket(courseId.value, {
