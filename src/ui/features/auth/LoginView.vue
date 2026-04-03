@@ -107,6 +107,11 @@ const pendingMatches = ref<TenantLoginResult[]>([])
 const pendingUsername = ref('')
 const pendingPassword = ref('')
 
+// Datos de Google pendientes para re-autenticación tras selección de tenant
+let pendingGoogleIdToken = ''
+let pendingGoogleDisplayName = ''
+let pendingGoogleAvatarUrl: string | undefined
+
 function loadGoogleScript(): Promise<void> {
   return new Promise((resolve) => {
     if (window.google?.accounts) { resolve(); return }
@@ -154,10 +159,15 @@ async function handleGoogleCredential(response: { credential: string }) {
     const displayName = payload.name || payload.email?.split('@')[0]
     const avatarUrl = payload.picture || undefined
     const result = await resolveGoogleLogin(response.credential, displayName, avatarUrl)
-    await authStore.commitAuth(result)
+    await authStore.commitAuth(result, undefined, { idToken: response.credential, displayName, avatarUrl })
     router.push('/video')
   } catch (e) {
     if (e instanceof MultipleTenantError) {
+      // Guardar datos de Google para re-autenticación tras selección de tenant
+      pendingGoogleIdToken = response.credential
+      const payload = decodeJwtPayload(response.credential)
+      pendingGoogleDisplayName = payload.name || payload.email?.split('@')[0]
+      pendingGoogleAvatarUrl = payload.picture || undefined
       pendingMatches.value = e.matches
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
@@ -218,7 +228,19 @@ async function handleTenantSelect(match: TenantLoginResult) {
   loading.value = true
   error.value = ''
   try {
-    await authStore.commitAuth(match, { username: pendingUsername.value, password: pendingPassword.value })
+    const hasCredentials = pendingUsername.value && pendingPassword.value
+    const googleData = pendingGoogleIdToken
+      ? { idToken: pendingGoogleIdToken, displayName: pendingGoogleDisplayName, avatarUrl: pendingGoogleAvatarUrl }
+      : undefined
+    await authStore.commitAuth(
+      match,
+      hasCredentials ? { username: pendingUsername.value, password: pendingPassword.value } : undefined,
+      googleData,
+    )
+    // Limpiar datos pendientes de Google
+    pendingGoogleIdToken = ''
+    pendingGoogleDisplayName = ''
+    pendingGoogleAvatarUrl = undefined
     router.push('/video')
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Error al iniciar sesión'

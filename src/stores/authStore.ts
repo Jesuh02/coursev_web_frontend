@@ -153,6 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function commitAuth(
     result: TenantLoginResult,
     credentials?: { username: string; password: string },
+    google?: { idToken: string; displayName?: string; avatarUrl?: string },
   ) {
     loading.value = true
     error.value = ''
@@ -161,9 +162,17 @@ export const useAuthStore = defineStore('auth', () => {
       tokenStorage.clear()
       setSelectedTenant(result.tenant.id)
 
-      if (credentials) {
+      if (credentials?.username && credentials?.password) {
         // Re-login on the target server to get a token signed by the correct secret
         const res = await authAdapter.login(credentials.username, credentials.password)
+        tokenStorage.token = res.accessToken
+        tokenStorage.refreshToken = res.refreshToken
+        tokenStorage.userId = (res.user as User).id
+        isAuthenticated.value = true
+        await hydrateAuthoritativeUser(res.user as User)
+      } else if (google?.idToken) {
+        // Re-login via Google on the target server
+        const res = await authAdapter.loginWithGoogle(google.idToken, google.displayName, google.avatarUrl)
         tokenStorage.token = res.accessToken
         tokenStorage.refreshToken = res.refreshToken
         tokenStorage.userId = (res.user as User).id
