@@ -281,7 +281,7 @@
             <button v-if="selectedFile" class="file-clear-btn" @click.stop="selectedFile = null">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <input ref="fileInput" type="file" hidden @change="onFileSelect" />
+            <input ref="fileInput" type="file" accept="*/*" hidden @change="onFileSelect" />
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
           <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
