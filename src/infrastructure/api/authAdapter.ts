@@ -6,8 +6,8 @@ export const authAdapter: AuthPort = {
   login: (username, password) =>
     api.post<AuthResponse>('/auth/login', { username, password }),
 
-  register: (username, password, email, personaId, personaData) =>
-    api.post<AuthResponse>('/auth/register', { username, password, email, personaId, persona: personaData }),
+  register: (username, password, email, personaId, personaData, tenantIds) =>
+    api.post<AuthResponse>('/auth/register', { username, password, email, personaId, persona: personaData, ...(tenantIds?.length ? { tenantIds } : {}) }),
 
 
   loginWithGoogle: (email, displayName, avatarUrl, username) =>

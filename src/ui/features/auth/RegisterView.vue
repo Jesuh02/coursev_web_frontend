@@ -51,14 +51,40 @@
       <section class="form-section">
         <h3 class="section-title">Información de Contacto</h3>
         <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" :error="fieldErrors.email" />
-        <div class="autocomplete-wrapper">
-          <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." :error="fieldErrors.institucion" @update:modelValue="onInstitucionInput" @focus="showInstitucionList = true" @blur="onInstitucionBlur" />
-          <ul v-if="showInstitucionList && filteredInstituciones.length" class="autocomplete-list">
-            <li v-for="inst in filteredInstituciones" :key="inst.id" @mousedown.prevent="selectInstitucion(inst)">
-              <span class="inst-name">{{ inst.nombre }}</span>
-              <span v-if="inst.ciudad" class="inst-city">{{ inst.ciudad }}</span>
-            </li>
-          </ul>
+        <div class="institucion-selector">
+          <label class="select-label">Institución(es)</label>
+          <button type="button" class="institucion-trigger" :class="{ error: !!fieldErrors.institucion }" @click="showInstitucionDialog = true">
+            <span v-if="selectedInstituciones.length === 0" class="placeholder-text">Seleccionar institución(es)...</span>
+            <span v-else-if="selectedInstituciones.length === 1">{{ selectedInstituciones[0].nombre }}</span>
+            <span v-else>{{ selectedInstituciones.length }} instituciones seleccionadas</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <span v-if="fieldErrors.institucion" class="select-error">{{ fieldErrors.institucion }}</span>
+
+          <!-- Multi-select dialog -->
+          <Teleport to="body">
+            <div v-if="showInstitucionDialog" class="dialog-overlay" @click.self="showInstitucionDialog = false">
+              <div class="dialog-card">
+                <h3 class="dialog-title">Seleccionar institución(es)</h3>
+                <p class="dialog-sub">Selecciona una o más instituciones donde quieres crear tu cuenta</p>
+                <input v-model="institucionSearch" type="text" class="dialog-search" placeholder="Buscar institución..." />
+                <div class="dialog-list">
+                  <label v-for="inst in filteredInstituciones" :key="instKey(inst)" class="dialog-option" :class="{ selected: isInstSelected(inst) }">
+                    <input type="checkbox" :checked="isInstSelected(inst)" @change="toggleInstitucion(inst)" />
+                    <div class="option-info">
+                      <span class="inst-name">{{ inst.nombre }}</span>
+                      <span v-if="inst.tenantId" class="inst-tenant">{{ tenantLabel(inst.tenantId) }}</span>
+                    </div>
+                  </label>
+                  <p v-if="filteredInstituciones.length === 0" class="dialog-empty">No se encontraron instituciones</p>
+                </div>
+                <div class="dialog-actions">
+                  <button type="button" class="dialog-btn cancel" @click="showInstitucionDialog = false">Cancelar</button>
+                  <button type="button" class="dialog-btn accept" @click="showInstitucionDialog = false">Aceptar ({{ selectedInstituciones.length }})</button>
+                </div>
+              </div>
+            </div>
+          </Teleport>
         </div>
         <div class="row">
           <AppInput v-model="form.telefono" type="tel" label="Teléfono" placeholder="+57" :error="fieldErrors.telefono" />
@@ -69,39 +95,8 @@
       <section class="form-section">
         <h3 class="section-title">Credenciales</h3>
         <AppInput v-model="form.username" label="Usuario" placeholder="Nombre de usuario" :error="fieldErrors.username" />
-        <AppInput v-model="form.password" :type="showPassword ? 'text' : 'password'" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password">
-          <template #suffix>
-            <button type="button" class="eye-btn" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
-              <svg v-if="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            </button>
-          </template>
-        </AppInput>
-        <div class="password-hint">
-          <div class="hint-item" :class="{ ok: passwordChecks.length, fail: form.password && !passwordChecks.length }">
-            <span class="hint-dot"></span> Al menos 6 caracteres
-          </div>
-          <div class="hint-item" :class="{ ok: passwordChecks.number, fail: form.password && !passwordChecks.number }">
-            <span class="hint-dot"></span> 1 número
-          </div>
-          <div class="hint-item" :class="{ ok: passwordChecks.upper, fail: form.password && !passwordChecks.upper }">
-            <span class="hint-dot"></span> 1 letra mayúscula
-          </div>
-          <div class="hint-item" :class="{ ok: passwordChecks.lower, fail: form.password && !passwordChecks.lower }">
-            <span class="hint-dot"></span> 1 letra minúscula
-          </div>
-          <div class="hint-item" :class="{ ok: passwordChecks.symbol, fail: form.password && !passwordChecks.symbol }">
-            <span class="hint-dot"></span> 1 símbolo (ej. !@#$%)
-          </div>
-        </div>
-        <AppInput v-model="confirmPassword" :type="showConfirm ? 'text' : 'password'" label="Confirmar contraseña" placeholder="Repite la contraseña" :error="passwordError">
-          <template #suffix>
-            <button type="button" class="eye-btn" @click="showConfirm = !showConfirm" :aria-label="showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'">
-              <svg v-if="!showConfirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            </button>
-          </template>
-        </AppInput>
+        <AppInput v-model="form.password" type="password" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password" />
+        <AppInput v-model="confirmPassword" type="password" label="Confirmar contraseña" placeholder="Repite la contraseña" :error="passwordError" />
       </section>
 
       <p v-if="submitError" class="submit-error">{{ submitError }}</p>
@@ -122,8 +117,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { HttpError, institucionAdapter } from '@/infrastructure/api'
-import type { Institucion } from '@/domain/models'
+import { HttpError, institucionAdapter, tokenStorage } from '@/infrastructure/api'
+import type { Institucion, AuthResponse } from '@/domain/models'
+import { TENANTS, setSelectedTenant } from '@/config/tenants'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
@@ -132,41 +128,52 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const avatarPreview = ref<string | null>(null)
 const confirmPassword = ref('')
-const showPassword = ref(false)
-const showConfirm = ref(false)
 const submitError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 
 const instituciones = ref<Institucion[]>([])
-const institucionQuery = ref('')
-const showInstitucionList = ref(false)
-const selectedInstitucionId = ref<number | null>(null)
+const selectedInstituciones = ref<Institucion[]>([])
+const showInstitucionDialog = ref(false)
+const institucionSearch = ref('')
 
 const filteredInstituciones = computed(() => {
-  const q = institucionQuery.value.toLowerCase()
+  const q = institucionSearch.value.toLowerCase()
   if (!q) return instituciones.value
   return instituciones.value.filter(i => i.nombre.toLowerCase().includes(q))
 })
 
-function onInstitucionInput() {
-  selectedInstitucionId.value = null
-  showInstitucionList.value = true
+function instKey(inst: Institucion) {
+  return `${inst.tenantId ?? '_'}:${inst.id}`
 }
 
-function onInstitucionBlur() {
-  setTimeout(() => { showInstitucionList.value = false }, 150)
+function isInstSelected(inst: Institucion) {
+  const key = instKey(inst)
+  return selectedInstituciones.value.some(s => instKey(s) === key)
 }
 
-function selectInstitucion(inst: Institucion) {
-  institucionQuery.value = inst.nombre
-  selectedInstitucionId.value = inst.id
-  showInstitucionList.value = false
+function toggleInstitucion(inst: Institucion) {
+  const key = instKey(inst)
+  const idx = selectedInstituciones.value.findIndex(s => instKey(s) === key)
+  if (idx >= 0) {
+    selectedInstituciones.value.splice(idx, 1)
+  } else {
+    selectedInstituciones.value.push(inst)
+  }
+}
+
+function tenantLabel(tenantId: string): string {
+  const t = TENANTS.find(t => t.id === tenantId)
+  return t ? t.name : tenantId
 }
 
 onMounted(async () => {
   try {
-    instituciones.value = await institucionAdapter.getAll()
-  } catch { /* silent */ }
+    instituciones.value = await institucionAdapter.getAllCrossTenant()
+  } catch {
+    try {
+      instituciones.value = await institucionAdapter.getAll()
+    } catch { /* silent */ }
+  }
 })
 
 const form = ref({
@@ -182,14 +189,6 @@ const form = ref({
   password: '',
 })
 
-const passwordChecks = computed(() => ({
-  length: form.value.password.length >= 6,
-  number: /[0-9]/.test(form.value.password),
-  upper: /[A-Z]/.test(form.value.password),
-  lower: /[a-z]/.test(form.value.password),
-  symbol: /[^A-Za-z0-9]/.test(form.value.password),
-}))
-
 const passwordError = computed(() => {
   if (confirmPassword.value && confirmPassword.value !== form.value.password) return 'Las contraseñas no coinciden'
   return ''
@@ -204,17 +203,13 @@ function validateForm() {
   if (!form.value.genero) errors.genero = 'Selecciona un género'
   if (!form.value.email.trim()) errors.email = 'Campo requerido'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())) errors.email = 'Correo inválido'
-  if (!selectedInstitucionId.value) errors.institucion = 'Selecciona una institución'
+  if (selectedInstituciones.value.length === 0) errors.institucion = 'Selecciona al menos una institución'
   if (!form.value.telefono.trim()) errors.telefono = 'Campo requerido'
   if (!form.value.fecha_nacimiento) errors.fecha_nacimiento = 'Campo requerido'
   if (!form.value.username.trim()) errors.username = 'Campo requerido'
   if (form.value.username.trim().length < 4) errors.username = 'Mínimo 4 caracteres'
   if (!form.value.password) errors.password = 'Campo requerido'
-  else if (!passwordChecks.value.length) errors.password = 'Mínimo 6 caracteres'
-  else if (!passwordChecks.value.number) errors.password = 'Debe incluir al menos 1 número'
-  else if (!passwordChecks.value.upper) errors.password = 'Debe incluir al menos 1 mayúscula'
-  else if (!passwordChecks.value.lower) errors.password = 'Debe incluir al menos 1 minúscula'
-  else if (!passwordChecks.value.symbol) errors.password = 'Debe incluir al menos 1 símbolo'
+  else if (form.value.password.length < 6) errors.password = 'Mínimo 6 caracteres'
 
   fieldErrors.value = errors
   return Object.keys(errors).length === 0
@@ -232,24 +227,83 @@ async function handleRegister() {
   if (!validateForm() || passwordError.value) return
   loading.value = true
   try {
-    await authStore.register(
-      form.value.username.trim(),
-      form.value.password,
-      form.value.email.trim(),
-      undefined,
-      {
-        nombres: form.value.nombres.trim(),
-        apellidos: form.value.apellidos.trim(),
-        cedula: form.value.cedula.trim(),
-        genero: form.value.genero,
-        telefono: form.value.telefono.trim(),
-        fecha_nacimiento: form.value.fecha_nacimiento,
-        institucion_id: selectedInstitucionId.value,
-      },
+    // Group selected institutions by server URL (like RegisterFragment.kt cross-tenant approach)
+    const serverGroups = new Map<string, { tenantId: string; serverUrl: string; instIds: number[] }>()
+
+    for (const inst of selectedInstituciones.value) {
+      if (!inst.tenantId) continue
+      const tenant = TENANTS.find(t => t.id === inst.tenantId)
+      if (!tenant) continue
+      const url = tenant.serverUrl.replace(/\/+$/, '')
+      const existing = serverGroups.get(url)
+      if (existing) {
+        if (!existing.instIds.includes(inst.id)) existing.instIds.push(inst.id)
+      } else {
+        serverGroups.set(url, { tenantId: tenant.id, serverUrl: url, instIds: [inst.id] })
+      }
+    }
+
+    if (serverGroups.size === 0) {
+      submitError.value = 'No se pudo determinar la institución. Intenta de nuevo.'
+      return
+    }
+
+    const servers = [...serverGroups.values()]
+    const personaData = {
+      nombres: form.value.nombres.trim(),
+      apellidos: form.value.apellidos.trim(),
+      cedula: form.value.cedula.trim(),
+      genero: form.value.genero,
+      telefono: form.value.telefono.trim(),
+      fecha_nacimiento: form.value.fecha_nacimiento,
+    }
+
+    // Build the registration payload for each server
+    const registerPayload = (group: typeof servers[0]) => ({
+      username: form.value.username.trim(),
+      password: form.value.password,
+      email: form.value.email.trim(),
+      persona: { ...personaData, institucion_id: group.instIds[0] },
+      tenantIds: [group.tenantId],
+    })
+
+    // Register on ALL servers in parallel (like RegisterFragment.kt → getInstitucionesCrossTenant)
+    const results = await Promise.allSettled(
+      servers.map(async (group) => {
+        const res = await fetch(`${group.serverUrl}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registerPayload(group)),
+        })
+        const json = await res.json()
+        if (!res.ok || json.success === false) {
+          throw new Error(json.error?.message || `Error ${res.status}`)
+        }
+        return { data: json.data as AuthResponse, tenantId: group.tenantId, serverUrl: group.serverUrl }
+      }),
     )
+
+    // Find the first successful response to use for authentication
+    const fulfilled = results.filter(
+      (r): r is PromiseFulfilledResult<{ data: AuthResponse; tenantId: string; serverUrl: string }> =>
+        r.status === 'fulfilled',
+    )
+
+    if (fulfilled.length === 0) {
+      const firstError = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+      throw new Error(firstError?.reason?.message || 'No se pudo completar el registro')
+    }
+
+    // Use the first successful server's response for auth session
+    const primary = fulfilled[0].value
+    setSelectedTenant(primary.tenantId)
+    tokenStorage.token = primary.data.accessToken
+    tokenStorage.refreshToken = primary.data.refreshToken
+    tokenStorage.userId = primary.data.user.id
+
     router.push('/video')
   } catch (error) {
-    submitError.value = error instanceof HttpError ? error.message : 'No se pudo completar el registro'
+    submitError.value = error instanceof Error ? error.message : 'No se pudo completar el registro'
   } finally {
     loading.value = false
   }
@@ -451,37 +505,133 @@ async function handleRegister() {
   font-weight: 600;
 }
 
-.autocomplete-wrapper {
-  position: relative;
+/* Institution selector */
+.institucion-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.autocomplete-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background: var(--bg-card-hover);
+.institucion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  z-index: 10;
+  color: var(--text-primary);
+  padding: 0 16px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color 0.2s;
 }
 
-.autocomplete-list li {
-  padding: 10px 12px;
-  cursor: pointer;
+.institucion-trigger:hover {
+  border-color: var(--purple-light);
+}
+
+.institucion-trigger.error {
+  border-color: var(--red-netflix);
+}
+
+.placeholder-text {
+  color: var(--text-muted);
+}
+
+/* Multi-select dialog */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.dialog-card {
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dialog-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: -8px 0 0;
+}
+
+.dialog-search {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.dialog-search:focus {
+  border-color: var(--purple-light);
+}
+
+.dialog-list {
+  overflow-y: auto;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
   transition: background 0.15s;
 }
 
-.autocomplete-list li:hover {
+.dialog-option:hover {
   background: var(--bg-surface);
+}
+
+.dialog-option.selected {
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.dialog-option input[type="checkbox"] {
+  accent-color: var(--purple-light);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .inst-name {
@@ -489,68 +639,47 @@ async function handleRegister() {
   color: var(--text-primary);
 }
 
-.inst-city {
-  font-size: 12px;
+.inst-tenant {
+  font-size: 11px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ── Password hint box ── */
-.password-hint {
-  background: rgba(139, 92, 246, 0.07);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+.dialog-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.dialog-btn {
+  padding: 8px 20px;
   border-radius: var(--radius-md);
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.hint-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-  transition: color 0.2s;
-}
-
-.hint-item .hint-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  flex-shrink: 0;
-  transition: background 0.2s;
-}
-
-.hint-item.ok {
-  color: #4ade80;
-}
-.hint-item.ok .hint-dot {
-  background: #4ade80;
-}
-
-.hint-item.fail {
-  color: var(--red-netflix);
-}
-.hint-item.fail .hint-dot {
-  background: var(--red-netflix);
-}
-
-.eye-btn {
-  background: transparent;
-  border: none;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  height: 100%;
-  transition: color 0.2s;
+  border: none;
 }
 
-.eye-btn:hover {
-  color: var(--purple-light);
+.dialog-btn.cancel {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.dialog-btn.accept {
+  background: var(--purple-primary);
+  color: #fff;
+}
+
+.dialog-btn.accept:hover {
+  opacity: 0.9;
 }
 </style>

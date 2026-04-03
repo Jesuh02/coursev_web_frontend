@@ -65,11 +65,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(username: string, password: string, email: string, personaId?: number, personaData?: Record<string, unknown>) {
+  async function register(username: string, password: string, email: string, personaId?: number, personaData?: Record<string, unknown>, tenantIds?: string[]) {
     loading.value = true
     error.value = ''
     try {
-      const res = await authAdapter.register(username, password, email, personaId, personaData)
+      const res = await authAdapter.register(username, password, email, personaId, personaData, tenantIds)
       tokenStorage.token = res.accessToken
       tokenStorage.refreshToken = res.refreshToken
       tokenStorage.userId = res.user.id

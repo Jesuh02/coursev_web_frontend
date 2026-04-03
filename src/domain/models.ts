@@ -224,6 +224,8 @@ export interface Institucion {
   codigo: string | null
   ciudad: string | null
   departamento: string | null
+  /** Which tenant this institution belongs to (only populated by cross-tenant responses) */
+  tenantId?: string | null
 }
 
 export interface PaginatedResponse<T> {
