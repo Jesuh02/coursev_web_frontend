@@ -130,3 +130,5 @@ const { navItems, isActive, navigate, canCreateContent } = useNavigation()
   }
 }
 </style>
+
+/* Mostrar solo en mobile */
