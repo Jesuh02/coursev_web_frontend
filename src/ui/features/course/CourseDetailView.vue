@@ -774,6 +774,8 @@ onMounted(async () => {
 
   // Guard: if user requires enrollment and it's not approved, redirect back
   if (requiresEnrollmentApproval.value && enrollmentStatus.value !== 'approved') {
+    // Esperar a que la promesa pendiente se resuelva antes de salir
+    await progressPromise.catch(() => {})
     router.back()
     return
   }
