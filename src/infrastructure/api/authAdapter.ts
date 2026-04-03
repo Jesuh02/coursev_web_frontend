@@ -18,4 +18,13 @@ export const authAdapter: AuthPort = {
 
   changePassword: (currentPassword, newPassword) =>
     api.post('/auth/change-password', { currentPassword, newPassword }),
+
+  forgotPassword: (email) =>
+    api.post<{ sent: boolean }>('/auth/forgot-password', { email }),
+
+  verifyResetCode: (email, code) =>
+    api.post<{ valid: boolean }>('/auth/verify-reset-code', { email, code }),
+
+  resetPassword: (email, code, newPassword) =>
+    api.post<{ message: string }>('/auth/reset-password', { email, code, newPassword }),
 }

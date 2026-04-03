@@ -10,6 +10,9 @@ export interface AuthPort {
   loginWithGoogle(idToken: string, displayName?: string, avatarUrl?: string, username?: string): Promise<AuthResponse>
   refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>
   changePassword(currentPassword: string, newPassword: string): Promise<void>
+  forgotPassword(email: string): Promise<{ sent: boolean }>
+  verifyResetCode(email: string, code: string): Promise<{ valid: boolean }>
+  resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }>
 }
 
 export interface UserPort {
