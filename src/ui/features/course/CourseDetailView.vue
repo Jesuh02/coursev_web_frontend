@@ -96,6 +96,20 @@
             <p class="enroll-desc">Tu solicitud fue rechazada. Contacta al administrador para más información.</p>
           </div>
         </div>
+        <div v-else-if="enrollmentStatus === 'inactivo'" class="enrollment-rejected">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <div>
+            <p class="enroll-title">Acceso desactivado</p>
+            <p class="enroll-desc">Tu acceso a este curso fue desactivado por el administrador.</p>
+          </div>
+        </div>
+        <div v-else-if="enrollmentStatus === 'revoked'" class="enrollment-rejected">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <div>
+            <p class="enroll-title">Acceso revocado</p>
+            <p class="enroll-desc">Tu acceso a este curso fue revocado por el administrador.</p>
+          </div>
+        </div>
         <div v-else class="enrollment-request">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6C63FF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
           <div>
@@ -330,10 +344,8 @@ const requestingEnrollment = ref(false)
 
 const requiresEnrollmentApproval = computed(() => {
   if (authStore.isAdmin) return false
-  if (authStore.isDocente) return false
-  // Cualquier usuario que no sea admin ni docente (incluye invitados sin rol definido)
-  // debe pasar por verificación de matrícula. El backend devuelve 'approved' para
-  // invitados directos del curso, estudiantes matriculados, etc.
+  // Colaboradores y creadores del curso tienen acceso directo
+  if (hasSubjectContentAccess.value) return false
   return true
 })
 
@@ -772,9 +784,18 @@ onMounted(async () => {
 
   await checkEnrollmentStatus(id)
 
+  // Guard: block inactivo/revoked users regardless of role (except admin/collaborator)
+  if (enrollmentStatus.value === 'inactivo' || enrollmentStatus.value === 'revoked') {
+    await progressPromise.catch(() => {})
+    const msg = enrollmentStatus.value === 'inactivo'
+      ? 'Tu acceso a este curso fue desactivado por el administrador.'
+      : 'Tu acceso a este curso fue revocado por el administrador.'
+    router.replace({ path: '/explore', query: { accessDenied: msg } })
+    return
+  }
+
   // Guard: if user requires enrollment and it's not approved, redirect back
   if (requiresEnrollmentApproval.value && enrollmentStatus.value !== 'approved') {
-    // Esperar a que la promesa pendiente se resuelva antes de salir
     await progressPromise.catch(() => {})
     router.back()
     return

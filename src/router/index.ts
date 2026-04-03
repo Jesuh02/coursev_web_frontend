@@ -1,7 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
+import type { RouteRecordRaw, NavigationGuardWithThis } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useVideoStore } from '@/stores/videoStore'
+import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
+import { collaboratorAdapter } from '@/infrastructure/api'
+
+/**
+ * Route-level guard: blocks navigation to course-related pages when
+ * the user's enrollment_status is 'inactivo' or 'revoked'.
+ */
+const enrollmentGuard: NavigationGuardWithThis<undefined> = async (to) => {
+  const authStore = useAuthStore()
+  if (authStore.isAdmin) return true
+
+  const courseId = Number(to.params.courseId ?? to.params.id)
+  if (!courseId || courseId <= 0) return true
+
+  // Collaborators bypass enrollment check
+  try {
+    const access = await collaboratorAdapter.checkAccess(courseId)
+    if (access?.hasAccess) return true
+  } catch { /* continue to enrollment check */ }
+
+  try {
+    const data: any = await progressAdapter.getEnrollmentStatus(courseId)
+    const status = extractEnrollmentStatus(data)
+    if (status === 'inactivo' || status === 'revoked') {
+      const msg = status === 'inactivo'
+        ? 'Tu acceso a este curso fue desactivado por el administrador.'
+        : 'Tu acceso a este curso fue revocado por el administrador.'
+      return { path: '/explore', query: { accessDenied: msg } }
+    }
+  } catch { /* on error let the component handle it */ }
+
+  return true
+}
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/login' },
@@ -27,7 +60,7 @@ const routes: RouteRecordRaw[] = [
   // Course
   { path: '/course/create', name: 'courseCreation', component: () => import('@/ui/features/course/CourseCreationView.vue'), meta: { hideNav: true } },
   { path: '/course/:id/edit', name: 'courseEdit', component: () => import('@/ui/features/course/CourseCreationView.vue'), props: true, meta: { hideNav: true } },
-  { path: '/course/:id', name: 'courseDetail', component: () => import('@/ui/features/course/CourseDetailView.vue'), props: true },
+  { path: '/course/:id', name: 'courseDetail', component: () => import('@/ui/features/course/CourseDetailView.vue'), props: true, beforeEnter: enrollmentGuard },
   { path: '/course/:courseId/topic/:topicId?', name: 'courseTopic', component: () => import('@/ui/features/course/CourseTopicView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:courseId/task/:taskId?', name: 'courseTask', component: () => import('@/ui/features/course/CourseTaskView.vue'), props: true, meta: { hideNav: true } },
   { path: '/course/:courseId/select-topic', name: 'selectTopic', component: () => import('@/ui/features/course/SelectTopicView.vue'), props: true, meta: { hideNav: true } },
@@ -56,7 +89,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/payment/:courseId', name: 'paymentForm', component: () => import('@/ui/features/payment/PaymentFormView.vue'), props: true, meta: { hideNav: true } },
 
   // Subjects
-  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true },
+  { path: '/subjects/:courseId', name: 'subjectsList', component: () => import('@/ui/features/subjects/SubjectsListView.vue'), props: true, beforeEnter: enrollmentGuard },
   { path: '/subjects/create', name: 'subjectCreation', component: () => import('@/ui/features/subjects/SubjectCreationView.vue'), meta: { hideNav: true, requiresHigherRole: true } },
 
   // Misc
