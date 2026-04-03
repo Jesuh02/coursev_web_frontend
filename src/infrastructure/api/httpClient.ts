@@ -253,7 +253,12 @@ export const api = {
   },
   put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-  publicGet: <T>(path: string) => request<T>(path, undefined, true),
+  publicGet: <T>(path: string) => {
+    const tenantId = localStorage.getItem('selected_tenant_id')
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (tenantId) headers['X-Tenant-ID'] = tenantId
+    return request<T>(path, { headers }, true)
+  },
   upload: <T>(path: string, formData: FormData) => {
     const headers: Record<string, string> = {}
     if (tokenStorage.token) headers['Authorization'] = `Bearer ${tokenStorage.token}`

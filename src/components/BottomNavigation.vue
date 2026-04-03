@@ -12,7 +12,7 @@
         <span class="nav-label">{{ item.label }}</span>
       </button>
       <button
-        v-if="i === 1 && authStore.isCreator"
+        v-if="i === 1 && canCreateContent"
         class="nav-item create-btn"
         @click="navigate('/upload')"
       >
@@ -23,34 +23,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useNotificationStore } from '@/stores/notificationStore'
-import { useAuthStore } from '@/stores/authStore'
-import IconHome from '@/ui/shared/icons/IconHome.vue'
-import IconExplore from '@/ui/shared/icons/IconExplore.vue'
-import IconActivity from '@/ui/shared/icons/IconActivity.vue'
-import IconProfile from '@/ui/shared/icons/IconProfile.vue'
+import { useNavigation } from '@/composables/useNavigation'
 
-const router = useRouter()
-const route = useRoute()
-const notificationStore = useNotificationStore()
-const authStore = useAuthStore()
-
-const navItems = computed(() => [
-  { route: '/video', label: 'Inicio', icon: IconHome, badge: 0 },
-  { route: '/explore', label: 'Explorar', icon: IconExplore, badge: 0 },
-  { route: '/notifications', label: 'Actividad', icon: IconActivity, badge: notificationStore.unreadCount },
-  { route: '/profile', label: 'Perfil', icon: IconProfile, badge: 0 },
-])
-
-function isActive(path: string) {
-  return route.path === path
-}
-
-function navigate(path: string) {
-  router.push(path)
-}
+const { navItems, isActive, navigate, canCreateContent } = useNavigation()
 </script>
 
 <style scoped>
@@ -146,5 +121,12 @@ function navigate(path: string) {
   font-weight: 300;
   color: #fff;
   line-height: 1;
+}
+
+/* Mostrar solo en mobile */
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none;
+  }
 }
 </style>

@@ -1,13 +1,16 @@
 <template>
   <div class="app-shell">
-    <router-view v-slot="{ Component, route }">
-      <transition name="fade" mode="out-in">
-        <keep-alive :include="['CourseDetailView']" :max="10">
-          <component :is="Component" :key="route.path" />
-        </keep-alive>
-      </transition>
-    </router-view>
-    <BottomNavigation v-if="showNav" />
+    <SideNavigation v-if="showNav" />
+    <div :class="['app-content', { 'with-sidebar': showNav }]">
+      <router-view v-slot="{ Component, route }">
+        <transition name="fade" mode="out-in">
+          <keep-alive :include="['CourseDetailView']" :max="10">
+            <component :is="Component" :key="route.path" />
+          </keep-alive>
+        </transition>
+      </router-view>
+      <BottomNavigation v-if="showNav" />
+    </div>
   </div>
 </template>
 
@@ -16,6 +19,7 @@ import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import SideNavigation from '@/components/SideNavigation.vue'
 import BottomNavigation from '@/components/BottomNavigation.vue'
 
 const route = useRoute()
@@ -59,7 +63,30 @@ watch(() => authStore.user?.id, (newId) => {
 .app-shell {
   height: 100%;
   display: flex;
-  flex-direction: column;
   background: var(--bg-primary);
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-left: 0;
+  transition: margin-left 0.2s ease;
+}
+
+.app-content.with-sidebar {
+  margin-left: 100px;
+}
+
+/* Responsividad: En mobile, la sidebar se oculta */
+@media (max-width: 768px) {
+  .app-content {
+    margin-left: 0;
+  }
+  
+  .app-content.with-sidebar {
+    margin-left: 0;
+  }
 }
 </style>
