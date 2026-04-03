@@ -281,7 +281,7 @@
             <button v-if="selectedFile" class="file-clear-btn" @click.stop="selectedFile = null">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <input ref="fileInput" type="file" hidden @change="onFileSelect" />
+            <input ref="fileInput" type="file" accept="*/*" hidden @change="onFileSelect" />
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
           <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
@@ -299,7 +299,7 @@
 import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl, tokenStorage } from '@/infrastructure/api'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -464,13 +464,22 @@ async function gradeSubmission(sub: TaskSubmission) {
 async function submitWork() {
   if (!task.value) return
   submitting.value = true
+  submitError.value = ''
   try {
     let fileKey: string | undefined
     if (selectedFile.value) {
-      const fd = new FormData()
-      fd.append('file', selectedFile.value)
-      const res = await submissionAdapter.uploadSubmissionFile(fd, `submissions/${task.value.id}`)
-      fileKey = res.key
+      try {
+        const { key } = await uploadFileDirect(
+          selectedFile.value,
+          'submissions',
+          () => {},
+        )
+        fileKey = key
+      } catch {
+        submitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+        submitting.value = false
+        return
+      }
     }
     const payload: Record<string, unknown> = { taskId: task.value.id }
     if (textAnswer.value) payload.textContent = textAnswer.value

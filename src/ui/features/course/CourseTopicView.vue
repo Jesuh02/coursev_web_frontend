@@ -94,7 +94,7 @@
           </div>
           <span class="add-label">Agregar Documento</span>
         </button>
-        <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocSelected" />
+        <input ref="docInputRef" type="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx,.csv,.md,.json,.xml,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.*,text/*" class="hidden-input" @change="onDocSelected" />
       </div>
 
       <!-- ── Tareas del Tema ── -->
