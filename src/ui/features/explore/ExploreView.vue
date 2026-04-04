@@ -295,8 +295,13 @@ async function requestEnrollmentOnAccessAttempt(course: Course, isRetry = false)
         ? 'Se envio una nueva solicitud. Un administrador debe aprobar tu acceso al curso.'
         : 'Solicitud enviada. Un administrador debe aprobar tu acceso al curso.',
     )
-  } catch {
-    showAccessMessage('Error al solicitar acceso. Intenta de nuevo.')
+  } catch (err: any) {
+    const msg = err?.message || ''
+    if (msg.toLowerCase().includes('desactivado') || msg.toLowerCase().includes('inactivo')) {
+      showAccessMessage('Tu acceso a este curso fue desactivado por el administrador.')
+    } else {
+      showAccessMessage('Error al solicitar acceso. Intenta de nuevo.')
+    }
   } finally {
     requestingEnrollment.value = false
   }
@@ -344,6 +349,9 @@ async function navigateToCourse(course: Course) {
       showAccessMessage('Tu solicitud de acceso está pendiente de aprobación.')
     } else if (status === 'revoked') {
       showAccessMessage('Tu acceso a este curso fue revocado por el administrador.')
+    } else if (data?.enrolled === false) {
+      // enrolled es explícitamente false — no permitir acceso aunque el status sea desconocido
+      showAccessMessage('No tienes acceso a este curso.')
     } else {
       await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
     }
