@@ -13,58 +13,65 @@
 
     <!-- Video Feed Wrapper (centered on desktop) -->
     <div class="video-feed-wrapper">
-      <div class="video-home" ref="feedRef" @scroll="onScroll">
-        <!-- Skeleton Loading -->
-        <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
-          <VideoSkeleton v-for="i in 2" :key="i" />
+      <div class="video-feed-stage">
+        <div class="video-stage-glow video-stage-glow-left" aria-hidden="true"></div>
+        <div class="video-stage-glow video-stage-glow-right" aria-hidden="true"></div>
+
+        <div class="video-feed-shell">
+          <div class="video-home" ref="feedRef" @scroll="onScroll">
+            <!-- Skeleton Loading -->
+            <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
+              <VideoSkeleton v-for="i in 2" :key="i" />
+            </div>
+
+            <!-- Video Cards -->
+            <template v-else>
+              <VideoCard
+                v-for="(video, idx) in filteredVideos"
+                :key="video.id"
+                :ref="(el) => setCardRef(el, idx)"
+                :video="video"
+                :active="idx === activeIndex"
+                :preload-hint="getPreloadHint(idx)"
+                @playback-state-change="onPlaybackStateChange(idx, $event)"
+                @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
+                @like="onLike(video)"
+                @comment="openComments(video.id)"
+                @share="onShare(video)"
+                @profile="goToProfile(video.userId)"
+              />
+              <EmptyState 
+                v-if="!filteredVideos.length" 
+                title="No hay videos" 
+                description="Aún no hay contenido disponible" 
+              />
+            </template>
+          </div>
         </div>
 
-        <!-- Video Cards -->
-        <template v-else>
-          <VideoCard
-            v-for="(video, idx) in filteredVideos"
-            :key="video.id"
-            :ref="(el) => setCardRef(el, idx)"
-            :video="video"
-            :active="idx === activeIndex"
-            :preload-hint="getPreloadHint(idx)"
-            @playback-state-change="onPlaybackStateChange(idx, $event)"
-            @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
-            @like="onLike(video)"
-            @comment="openComments(video.id)"
-            @share="onShare(video)"
-            @profile="goToProfile(video.userId)"
-          />
-          <EmptyState 
-            v-if="!filteredVideos.length" 
-            title="No hay videos" 
-            description="Aún no hay contenido disponible" 
-          />
-        </template>
-      </div>
-
-      <!-- Desktop Navigation Arrows -->
-      <div class="desktop-nav-arrows">
-        <button
-          class="nav-arrow nav-arrow-up"
-          :disabled="activeIndex <= 0"
-          @click="navigateVideo(-1)"
-          aria-label="Video anterior"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-        </button>
-        <button
-          class="nav-arrow nav-arrow-down"
-          :disabled="activeIndex >= filteredVideos.length - 1"
-          @click="navigateVideo(1)"
-          aria-label="Siguiente video"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+        <!-- Desktop Navigation Arrows -->
+        <div class="desktop-nav-arrows">
+          <button
+            class="nav-arrow nav-arrow-up"
+            :disabled="activeIndex <= 0"
+            @click="navigateVideo(-1)"
+            aria-label="Video anterior"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+          <button
+            class="nav-arrow nav-arrow-down"
+            :disabled="activeIndex >= filteredVideos.length - 1"
+            @click="navigateVideo(1)"
+            aria-label="Siguiente video"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -133,6 +140,14 @@ function updateAmbilight() {
     mirror.src = vid.src
     mirror.currentTime = vid.currentTime
   }
+  mirror.playbackRate = vid.playbackRate || 1
+  if (Math.abs(mirror.currentTime - vid.currentTime) > 0.35) {
+    mirror.currentTime = vid.currentTime
+  }
+  if (vid.paused) {
+    mirror.pause()
+    return
+  }
   mirror.play().catch(() => {})
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,6 +187,7 @@ function syncActiveVideoPauseState() {
 function onPlaybackStateChange(index: number, payload: { paused: boolean }) {
   if (index !== activeIndex.value) return
   activeVideoPaused.value = payload.paused
+  updateAmbilight()
 }
 
 function onControlsVisibilityChange(index: number, payload: { visible: boolean }) {
@@ -328,6 +344,26 @@ function logoutAndGoToLogin() {
   z-index: 1;
 }
 
+.video-feed-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-feed-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.video-stage-glow {
+  display: none;
+}
+
 .video-home {
   height: 100dvh;
   width: 100%;
@@ -350,38 +386,38 @@ function logoutAndGoToLogin() {
 /* Desktop layout: centered video with arrows */
 @media (min-width: 768px) {
   .video-feed-wrapper {
-    gap: 16px;
+    padding: 20px 0;
+  }
+
+  .video-feed-stage {
+    width: min(100vw - 64px, 760px);
+  }
+
+  .video-feed-shell {
+    width: 560px;
+    height: calc(100dvh - 40px);
+    border-radius: 20px;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+
+  .video-stage-glow {
+    display: none;
   }
 
   .video-home {
-    max-width: 560px;
-    height: calc(100dvh - 40px);
-    border-radius: 16px;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
     scroll-snap-type: none;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-right: 80px;
+    padding-right: 88px;
     position: relative;
     z-index: 1;
-  }
-
-  /* Ambient glow behind the video feed */
-  .video-feed-wrapper::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(calc(-50% - 20px), -50%);
-    width: 500px;
-    height: calc(100dvh - 20px);
-    z-index: 0;
-    border-radius: 28px;
-    background:
-      radial-gradient(ellipse at 30% 20%, rgba(180, 160, 220, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 80%, rgba(160, 180, 220, 0.07) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(200, 200, 220, 0.03) 40%, transparent 70%);
-    filter: blur(40px);
-    pointer-events: none;
+    background: transparent;
   }
 
   .desktop-nav-arrows {
@@ -389,29 +425,31 @@ function logoutAndGoToLogin() {
     flex-direction: column;
     gap: 12px;
     position: absolute;
-    right: calc(50% - 330px);
+    left: calc(50% + 286px);
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
   }
 
   .nav-arrow {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(14, 21, 31, 0.7);
     color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.2s, opacity 0.2s, transform 0.15s;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
   }
 
   .nav-arrow:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(26, 38, 55, 0.88);
     transform: scale(1.05);
   }
 
@@ -428,7 +466,7 @@ function logoutAndGoToLogin() {
 /* Larger desktops: reposition arrows further out */
 @media (min-width: 1200px) {
   .desktop-nav-arrows {
-    right: calc(50% - 360px);
+    left: calc(50% + 300px);
   }
 }
 
@@ -457,10 +495,24 @@ function logoutAndGoToLogin() {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(90px) saturate(4) brightness(0.5);
-  opacity: 0.85;
+  filter: blur(80px) saturate(2.5) brightness(0.45);
+  opacity: 0.7;
   z-index: 0;
   pointer-events: none;
   transform: scale(1.15);
+}
+
+@media (min-width: 768px) {
+  .ambilight-video {
+    top: 50%;
+    left: 50%;
+    inset: auto;
+    width: 620px;
+    height: calc(100dvh - 40px);
+    transform: translate(calc(-50% - 20px), -50%) scale(1.18);
+    border-radius: 30px;
+    opacity: 0.55;
+    filter: blur(90px) saturate(2.8) brightness(0.4);
+  }
 }
 </style>

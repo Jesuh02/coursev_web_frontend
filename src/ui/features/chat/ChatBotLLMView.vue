@@ -543,6 +543,7 @@ const inputRef = ref<HTMLTextAreaElement>()
 const messages = ref<ChatMsg[]>([])
 const inputText = ref('')
 const isTyping = ref(false)
+const isSending = ref(false)
 const isRecording = ref(false)
 const showScrollBtn = ref(false)
 const sessionId = computed(() => `chatbot_llm_${tokenStorage.userId ?? 'anon'}`)
@@ -997,7 +998,8 @@ function clearContext() {
 
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || isTyping.value) return
+  if (!text || isTyping.value || isSending.value) return
+  isSending.value = true
 
   if (isRecording.value) {
     stopRecording()
