@@ -123,32 +123,17 @@ const activeVideoControlsVisible = ref(false)
 const cardRefs = ref<(VideoCardInstance | null)[]>([])
 
 // ── Ambilight ────────────────────────────────────────────────────────────────
-let _ambilightRaf = 0
-let _lastAmbilightTs = 0
-
-function _drawAmbilight(ts: number) {
-  _ambilightRaf = requestAnimationFrame(_drawAmbilight)
-  if (ts - _lastAmbilightTs < 66) return   // ~15 fps cap
-  _lastAmbilightTs = ts
-
-  const canvas = ambilightCanvas.value
-  if (!canvas) return
-
+function updateAmbilight() {
+  const mirror = ambilightVideo.value
+  if (!mirror) return
   const card = cardRefs.value[activeIndex.value]
   const vid = (card as any)?.videoEl as HTMLVideoElement | null
-  if (!vid || vid.readyState < 2) return
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  if (canvas.width !== 128 || canvas.height !== 228) {
-    canvas.width = 128
-    canvas.height = 228
+  if (!vid?.src) { mirror.src = ''; return }
+  if (mirror.src !== vid.src) {
+    mirror.src = vid.src
+    mirror.currentTime = vid.currentTime
   }
-
-  try {
-    ctx.drawImage(vid, 0, 0, 128, 228)
-  } catch { /* CORS taint – silently skip */ }
+  mirror.play().catch(() => {})
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -258,18 +243,18 @@ async function initializeFeed() {
 
 onMounted(() => {
   initializeFeed()
-  _ambilightRaf = requestAnimationFrame(_drawAmbilight)
+  updateAmbilight()
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
-  cancelAnimationFrame(_ambilightRaf)
 })
 
 watch(activeIndex, async (newIdx) => {
   await nextTick()
   requestAnimationFrame(() => {
     syncActiveVideoPauseState()
+    updateAmbilight()
   })
   // Proactively prebuffer the next 2 videos so playback starts instantly.
   // The preloadHint prop already switches to 'metadata' reactively;
@@ -466,15 +451,16 @@ function logoutAndGoToLogin() {
 }
 
 /* ── Ambilight ──────────────────────────────────────────────────────────────── */
-.ambilight-canvas {
+.ambilight-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  filter: blur(90px) saturate(3) brightness(0.55);
-  opacity: 0.7;
+  object-fit: cover;
+  filter: blur(90px) saturate(4) brightness(0.5);
+  opacity: 0.85;
   z-index: 0;
   pointer-events: none;
-  transform: scale(1.08);
+  transform: scale(1.15);
 }
 </style>
