@@ -350,7 +350,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Task, TaskSubmission } from '@/domain/models'
 import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
@@ -380,6 +380,8 @@ const submissionCardRefs = reactive<Record<number, HTMLElement>>({})
 // Map studentId → persona full name (nombres + apellidos)
 const personaNameMap = ref(new Map<number, string>())
 const expandedFeedbackMap = reactive<Record<string, boolean>>({})
+const currentTimestamp = ref(Date.now())
+let overdueTimer: ReturnType<typeof setInterval> | null = null
 
 interface GradingState { grade: number | null; feedback: string; saving: boolean; saved: boolean }
 const gradingMap = reactive<Record<number, GradingState>>({})
@@ -418,7 +420,7 @@ const statusLabel = computed(() => {
 const isOverdue = computed(() => {
   const due = task.value?.dueDate ?? (task.value as any)?.due_date
   if (!due) return false
-  return new Date(due as string) < new Date()
+  return new Date(due as string).getTime() <= currentTimestamp.value
 })
 
 const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value && !isOverdue.value)
@@ -469,6 +471,14 @@ watch(loading, (isLoading) => {
   if (!isLoading && isSubjectCreator.value) {
     setTimeout(() => { chartAnimated.value = true }, 200)
   }
+})
+
+watch(isOverdue, (overdue) => {
+  if (!overdue) return
+
+  isEditingSubmission.value = false
+  resubmitFile.value = null
+  resubmitError.value = ''
 })
 
 type TopicLookup = {
@@ -622,6 +632,10 @@ async function submitWork() {
 }
 
 onMounted(async () => {
+  overdueTimer = setInterval(() => {
+    currentTimestamp.value = Date.now()
+  }, 1000)
+
   const taskId = Number(route.params.taskId)
   try {
     // Usar tokenStorage.userId como fallback cuando authStore.user aún no ha cargado
@@ -636,7 +650,6 @@ onMounted(async () => {
     submission.value = sub
 
     let managerAccess = authStore.isAdmin
-
     if (!managerAccess && currentUserId > 0) {
       // Atajo: si la ruta trae courseId (ej: desde notificación), verificar colaborador directamente
       const queryCourseId = Number(route.query.courseId ?? 0)
@@ -655,6 +668,10 @@ onMounted(async () => {
 
       if (!managerAccess) {
         const topicId = Number(t.topicId ?? t.topic_id ?? 0)
+
+onUnmounted(() => {
+  if (overdueTimer) clearInterval(overdueTimer)
+})
         if (topicId > 0) {
           try {
             const topic = await topicAdapter.getTopicById(topicId)
