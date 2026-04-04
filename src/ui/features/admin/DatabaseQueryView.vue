@@ -343,6 +343,7 @@ function persistMessage(content: string, isFromUser: boolean, excelUrl: string |
     sessionId: sessionId.value,
     origin: 'db_query',
     excelUrl,
+    username: tokenStorage.username ?? null,
   } as any).catch(() => { /* silent – does not disrupt UX */ })
 }
 
@@ -364,16 +365,9 @@ async function sendQuery() {
 
   isTyping.value = true
   try {
-    const wantsExcel = /excel|exportar|descargar|csv/i.test(text)
-    let excelUrl: string | null = null
-
-    if (wantsExcel) {
-      try {
-        const d = await api.post<{ url: string; rows: number }>('/excel/generate-excel', { query: text, userId: tokenStorage.userId })
-        excelUrl = d.url
-      } catch { /* fallthrough */ }
-    }
-
+    // Excel generation is now handled server-side by /llm/process.
+    // A single LLM call generates BOTH the text AND the Excel from the same data,
+    // ensuring consistency between what the LLM says and what the Excel contains.
     const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt: text,
       sessionId: sessionId.value,
@@ -383,7 +377,7 @@ async function sendQuery() {
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
-    const finalExcelUrl = excelUrl || data.excelUrl || null
+    const finalExcelUrl = data.excelUrl || null
 
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl: finalExcelUrl })
 

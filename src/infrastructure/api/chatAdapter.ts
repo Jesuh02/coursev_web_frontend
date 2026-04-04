@@ -31,7 +31,7 @@ function toBackendPayload(message: Partial<ChatMessage> & { sessionId: string; o
     isFromUser: message.role === 'user',
     sessionId: message.sessionId,
     usuarioId: tokenStorage.userId || null,
-    username: extra.username ?? null,
+    username: extra.username ?? tokenStorage.username ?? null,
     origin: message.origin ?? 'chatbot',
     hasCalification: extra.hasCalification ?? false,
     calificationValue: extra.calificationValue ?? null,
@@ -39,6 +39,12 @@ function toBackendPayload(message: Partial<ChatMessage> & { sessionId: string; o
     excelUrl: message.excelUrl ?? null,
     submissionId: extra.submissionId ?? null,
     timestamp: Date.now(),
+    senderAvatar: extra.senderAvatar ?? null,
+    attachedFileUrl: extra.attachedFileUrl ?? null,
+    attachedFileName: extra.attachedFileName ?? null,
+    attachedFileType: extra.attachedFileType ?? null,
+    isError: extra.isError ?? false,
+    isGraphResponse: extra.isGraphResponse ?? false,
   }
 }
 
