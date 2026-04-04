@@ -175,30 +175,6 @@ function decodeJwtPayload(token: string): Record<string, string> {
   return JSON.parse(atob(base64))
 }
 
-function splitDisplayName(displayName: string | undefined, email: string | undefined) {
-  const fallback = email?.split('@')[0] || ''
-  const normalized = (displayName || fallback).trim()
-  const [nombres = fallback, ...rest] = normalized.split(/\s+/).filter(Boolean)
-  return {
-    nombres,
-    apellidos: rest.join(' '),
-  }
-}
-
-function redirectToGoogleRegister(email: string, displayName?: string, avatarUrl?: string) {
-  const { nombres, apellidos } = splitDisplayName(displayName, email)
-  router.push({
-    name: 'register',
-    query: {
-      googleEmail: email,
-      googleNombres: nombres,
-      googleApellidos: apellidos,
-      ...(avatarUrl ? { googleAvatar: avatarUrl } : {}),
-      isGoogleSignIn: '1',
-    },
-  })
-}
-
 async function initializeGoogle(): Promise<void> {
   if (!GOOGLE_CLIENT_ID) {
     return
@@ -316,8 +292,7 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
       pendingGoogleAvatarUrl = payload.picture || undefined
       pendingMatches.value = e.matches
     } else if (e instanceof GoogleAccountNotFoundError) {
-      const payload = decodeJwtPayload(response.credential)
-      redirectToGoogleRegister(payload.email || '', payload.name, payload.picture || undefined)
+      error.value = 'Usuario no encontrado'
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
     }
