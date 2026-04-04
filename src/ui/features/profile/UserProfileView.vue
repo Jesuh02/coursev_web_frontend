@@ -182,7 +182,9 @@
               @click="navigateToVideo(video)"
             >
               <div class="upv-video-thumb">
-                <img v-if="resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri)" :src="resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri) ?? ''" alt="" />
+                <img v-if="resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri) || videoFrameThumbnails.get(video.id)"
+                     :src="resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri) ?? videoFrameThumbnails.get(video.id) ?? ''"
+                     alt="" />
                 <div v-else class="upv-thumb-placeholder">
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                 </div>
