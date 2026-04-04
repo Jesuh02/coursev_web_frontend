@@ -153,7 +153,10 @@ function onFormFileSelected(e: Event) {
 function buildDueDateIso(): string | null {
   if (!formDueDate.value) return null
   const time = formDueTime.value || '23:59'
-  return new Date(`${formDueDate.value}T${time}:00`).toISOString()
+  const [year, month, day] = formDueDate.value.split('-').map(Number)
+  const [hours, minutes] = time.split(':').map(Number)
+  // Use numeric constructor to guarantee local time regardless of browser/engine quirks
+  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
 }
 
 async function deleteContentItem(id: number) {
