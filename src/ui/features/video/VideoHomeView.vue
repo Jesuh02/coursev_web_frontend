@@ -1,7 +1,7 @@
 <template>
   <div class="video-home-container">
-    <!-- Ambilight canvas – draws blurred video frames behind the feed -->
-    <canvas ref="ambilightCanvas" class="ambilight-canvas" aria-hidden="true" />
+    <!-- Ambilight mirror video – blurred copy of the active video, avoids CORS -->
+    <video ref="ambilightVideo" class="ambilight-video" muted loop playsinline tabindex="-1" aria-hidden="true" />
 
     <!-- Top Navigation -->
     <VideoTopNav @toggle-search="showSearch = !showSearch" @go-login="logoutAndGoToLogin" />
@@ -114,7 +114,7 @@ useVideoSocket({
 })
 
 const feedRef = ref<HTMLElement | null>(null)
-const ambilightCanvas = ref<HTMLCanvasElement | null>(null)
+const ambilightVideo = ref<HTMLVideoElement | null>(null)
 const showSearch = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
