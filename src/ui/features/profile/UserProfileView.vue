@@ -22,16 +22,18 @@
           <h2 class="upv-username">{{ user?.username ?? 'Usuario' }}</h2>
           <!-- Stats -->
           <div class="upv-stats-row">
-            <div class="upv-stat-card">
+            <div v-if="!isRole2Only" class="upv-stat-card">
               <span class="upv-stat-count">{{ allCourses.length }}</span>
               <span class="upv-stat-label">Cursos</span>
             </div>
-            <div class="upv-stat-divider" />
+            <div v-if="isRole2Only || isRole3" class="upv-stat-card">
+              <span class="upv-stat-count">{{ allSubjects.length }}</span>
+              <span class="upv-stat-label">Materias</span>
+            </div>
             <div class="upv-stat-card">
               <span class="upv-stat-count">{{ allVideos.length }}</span>
               <span class="upv-stat-label">Videos</span>
             </div>
-            <div class="upv-stat-divider" />
             <div class="upv-stat-card">
               <span class="upv-stat-count">{{ subscribersCount }}</span>
               <span class="upv-stat-label">Suscriptores</span>
@@ -63,6 +65,7 @@
         <!-- Filter tabs -->
         <div class="upv-filter-tabs">
           <button
+            v-if="availableTabs.includes('courses')"
             :class="['upv-filter-tab', { 'active': currentFilter === 'courses' }]"
             @click="setFilter('courses')"
           >
@@ -73,6 +76,18 @@
             <span :class="['upv-tab-badge', { 'active': currentFilter === 'courses' }]">{{ allCourses.length }}</span>
           </button>
           <button
+            v-if="availableTabs.includes('subjects')"
+            :class="['upv-filter-tab', { 'active': currentFilter === 'subjects' }]"
+            @click="setFilter('subjects')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="currentFilter === 'subjects' ? '#1A1A1A' : '#fff'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Materias</span>
+            <span :class="['upv-tab-badge', { 'active': currentFilter === 'subjects' }]">{{ allSubjects.length }}</span>
+          </button>
+          <button
+            v-if="availableTabs.includes('videos')"
             :class="['upv-filter-tab', { 'active': currentFilter === 'videos' }]"
             @click="setFilter('videos')"
           >
@@ -127,6 +142,36 @@
           </div>
         </template>
 
+        <!-- Subjects (Materias) -->
+        <template v-else-if="currentFilter === 'subjects'">
+          <template v-if="filteredSubjects.length > 0">
+            <div
+              v-for="subject in filteredSubjects"
+              :key="subject.id"
+              class="upv-course-card"
+              @click="navigateToSubject(subject)"
+            >
+              <div class="upv-course-thumb">
+                <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl) ?? ''" alt="" />
+                <div v-else class="upv-thumb-placeholder">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                </div>
+              </div>
+              <div class="upv-course-info">
+                <h3 class="upv-course-title">{{ subject.name }}</h3>
+                <p v-if="subject.description" class="upv-course-desc">{{ subject.description }}</p>
+                <div class="upv-course-meta">
+                  <span v-if="subject.code" class="upv-category">{{ subject.code }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="upv-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <p>No hay materias disponibles</p>
+          </div>
+        </template>
+
         <!-- Videos -->
         <template v-else>
           <template v-if="filteredVideos.length > 0">
@@ -172,27 +217,55 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Course, Video, User } from '@/domain/models'
-import { userAdapter, courseAdapter, videoAdapter, subscriptionAdapter, resolveImageUrl } from '@/infrastructure/api'
+import type { Course, Video, User, Subject } from '@/domain/models'
+import { userAdapter, courseAdapter, videoAdapter, subjectAdapter, subscriptionAdapter, resolveImageUrl } from '@/infrastructure/api'
 
 const route = useRoute()
 const router = useRouter()
 
+type FilterType = 'courses' | 'subjects' | 'videos'
+
 const user = ref<User | null>(null)
 const allCourses = ref<Course[]>([])
+const allSubjects = ref<Subject[]>([])
 const allVideos = ref<Video[]>([])
 const subscribersCount = ref(0)
 const loading = ref(true)
 const searchQuery = ref('')
-const currentFilter = ref<'courses' | 'videos'>('courses')
+const currentFilter = ref<FilterType>('courses')
 
 const avatarUrl = computed(() => resolveImageUrl(user.value?.avatar ?? null))
+
+// Role detection for the viewed user
+const isRole2Only = computed(() => {
+  const roles = user.value?.roles ?? []
+  return roles.some(r => r.id === 2) && !roles.some(r => r.id === 3)
+})
+const isRole3 = computed(() => {
+  const roles = user.value?.roles ?? []
+  return roles.some(r => r.id === 3)
+})
+
+// Available tabs depend on the viewed user's role
+const availableTabs = computed<FilterType[]>(() => {
+  if (isRole3.value) return ['courses', 'subjects', 'videos']
+  if (isRole2Only.value) return ['subjects', 'videos']
+  return ['courses', 'videos']
+})
 
 const filteredCourses = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return allCourses.value
   return allCourses.value.filter(c =>
     c.title.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q)
+  )
+})
+
+const filteredSubjects = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return allSubjects.value
+  return allSubjects.value.filter(s =>
+    s.name.toLowerCase().includes(q) || (s.description ?? '').toLowerCase().includes(q)
   )
 })
 
@@ -204,12 +277,16 @@ const filteredVideos = computed(() => {
   )
 })
 
-function setFilter(f: 'courses' | 'videos') {
+function setFilter(f: FilterType) {
   currentFilter.value = f
 }
 
 function navigateToCourse(course: Course) {
   router.push(`/courses/${course.id}`)
+}
+
+function navigateToSubject(subject: Subject) {
+  router.push(`/subjects/${subject.courseId}`)
 }
 
 function navigateToVideo(video: Video) {
@@ -237,6 +314,22 @@ onMounted(async () => {
     ])
     allCourses.value = fetchedCourses
     allVideos.value = fetchedVideos
+
+    // Load subjects for role 2 and role 3 users
+    const hasRole2or3 = fetchedUser.roles?.some(r => r.id === 2 || r.id === 3)
+    if (hasRole2or3 && fetchedCourses.length > 0) {
+      const subjectPromises = fetchedCourses.map(c =>
+        subjectAdapter.getSubjectsByCourse(c.id).catch(() => [] as Subject[])
+      )
+      const subjectsByC = await Promise.all(subjectPromises)
+      allSubjects.value = subjectsByC.flat()
+    }
+
+    // Set default tab based on role
+    const isR2Only = fetchedUser.roles?.some(r => r.id === 2) && !fetchedUser.roles?.some(r => r.id === 3)
+    if (isR2Only) {
+      currentFilter.value = 'subjects'
+    }
   } finally {
     loading.value = false
   }
