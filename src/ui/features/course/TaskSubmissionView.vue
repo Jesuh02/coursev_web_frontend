@@ -643,6 +643,10 @@ async function submitWork() {
   submitting.value = false
 }
 
+onUnmounted(() => {
+  if (overdueTimer) clearInterval(overdueTimer)
+})
+
 onMounted(async () => {
   overdueTimer = setInterval(() => {
     currentTimestamp.value = Date.now()
@@ -650,8 +654,12 @@ onMounted(async () => {
 
   const taskId = Number(route.params.taskId)
   try {
-    // Usar tokenStorage.userId como fallback cuando authStore.user aún no ha cargado
-    // (ej: navegación desde notificación push que abre la app en página nueva)
+    // Garantizar que el perfil del usuario esté cargado (puede no estarlo si
+    // App.vue aún no terminó fetchProfile, ej: navegación desde notificación push)
+    if (!authStore.user) {
+      await authStore.fetchProfile()
+    }
+
     const currentUserId = Number(authStore.user?.id ?? tokenStorage.userId ?? 0)
 
     const [t, sub] = await Promise.all([
@@ -662,28 +670,30 @@ onMounted(async () => {
     submission.value = sub
 
     let managerAccess = authStore.isAdmin
-    if (!managerAccess && currentUserId > 0) {
-      // Atajo: si la ruta trae courseId (ej: desde notificación), verificar colaborador directamente
+
+    // --- Verificar acceso de profesor/creador ---
+    if (!managerAccess) {
+      // 1. Atajo: si la ruta trae courseId (ej: desde notificación), verificar directamente
       const queryCourseId = Number(route.query.courseId ?? 0)
       if (queryCourseId > 0) {
         try {
           const collab = await collaboratorAdapter.checkAccess(queryCourseId).catch(() => null)
           if (collab?.hasAccess) managerAccess = true
-          // También verificar si es creador del curso
-          if (!managerAccess) {
+        } catch { /* silent */ }
+
+        // Fallback: verificar si es creador del curso directamente
+        if (!managerAccess) {
+          try {
             const course = await courseAdapter.getCourseById(queryCourseId).catch(() => null)
             const courseCreatorId = Number(course?.creatorUserId ?? course?.creator_user_id ?? 0)
-            if (courseCreatorId === currentUserId) managerAccess = true
-          }
-        } catch { /* silent */ }
+            if (courseCreatorId > 0 && courseCreatorId === currentUserId) managerAccess = true
+          } catch { /* silent */ }
+        }
       }
 
+      // 2. Si aún no tiene acceso, intentar resolver vía topic → subject → course
       if (!managerAccess) {
         const topicId = Number(t.topicId ?? t.topic_id ?? 0)
-
-onUnmounted(() => {
-  if (overdueTimer) clearInterval(overdueTimer)
-})
         if (topicId > 0) {
           try {
             const topic = await topicAdapter.getTopicById(topicId)
@@ -703,7 +713,7 @@ onUnmounted(() => {
               }
             }
           } catch {
-            managerAccess = false
+            // topic/subject resolution failed – keep managerAccess as-is
           }
         }
       }
@@ -749,13 +759,14 @@ onUnmounted(() => {
           const card = submissionCardRefs[target.id]
           if (card) {
             card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            // Quitar el highlight después de 3 segundos
             setTimeout(() => { highlightedSubmissionId.value = null }, 3000)
           }
         }
       }
     }
-  } catch { /* empty */ }
+  } catch (err) {
+    console.warn('[TaskSubmissionView] Error loading task submission:', err)
+  }
   loading.value = false
 })
 </script>
