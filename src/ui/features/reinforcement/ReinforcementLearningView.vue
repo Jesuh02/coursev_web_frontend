@@ -288,6 +288,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { api, tokenStorage, HttpError } from '@/infrastructure/api/httpClient'
@@ -504,11 +505,16 @@ function shuffleMultipleChoiceQuestion(question: QuizQuestion): QuizQuestion {
   }
 }
 
-/**
- * Frontend math verification: recompute the answer from the question text
- * and fix or reject the question if the claimed answer is wrong.
- * Acts as a last line of defense against LLM arithmetic errors.
- */
+Decimal.set({ precision: 64 })
+
+function parseDecimal(str: string): Decimal | null {
+  if (!str) return null
+  try {
+    const d = new Decimal(String(str).replace(/,/g, ''))
+    return d.isFinite() ? d : null
+  } catch { return null }
+}
+
 function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   const text = question.question ?? ''
   const lower = text.toLowerCase()
@@ -518,97 +524,97 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   if (!mathSignals.test(lower) && !hasSignificantNumbers) return question
 
   const computed = computeExpectedAnswer(text)
-  if (computed === null) return question // Can't verify — pass through
+  if (computed === null) return question
 
   let finalAnswer = computed.value
   const decMatch = text.match(/redonde[ao].*?(\d+)\s*decimal/i)
   const requestedDecimals = decMatch ? parseInt(decMatch[1]) : null
   if (requestedDecimals !== null) {
-    finalAnswer = parseFloat(finalAnswer.toFixed(requestedDecimals))
-  } else if (!Number.isInteger(finalAnswer)) {
-    finalAnswer = parseFloat(finalAnswer.toFixed(2))
+    finalAnswer = finalAnswer.toDecimalPlaces(requestedDecimals)
+  } else if (!finalAnswer.isInteger()) {
+    finalAnswer = finalAnswer.toDecimalPlaces(2)
   }
 
   if (question.type === 'fill_in_blank') {
-    const currentAnswer = parseFloat(String(question.correctAnswer ?? '').replace(/,/g, ''))
-    if (!Number.isFinite(currentAnswer)) return question
-    const tolerance = Math.max(Math.abs(finalAnswer) * 0.001, 0.01)
-    if (Math.abs(currentAnswer - finalAnswer) > tolerance) {
-      console.warn(`[FE MathVerify] CORRECTED fill_in_blank: "${text.substring(0, 80)}..." LLM="${question.correctAnswer}" → Correct="${finalAnswer}"`)
-      return { ...question, correctAnswer: String(finalAnswer), explanation: `${computed.steps.join('. ')}. Resultado: ${finalAnswer}.` }
+    const currentAnswer = parseDecimal(String(question.correctAnswer ?? ''))
+    if (!currentAnswer) return question
+    const tolerance = Decimal.max(finalAnswer.abs().times('0.001'), '0.01')
+    if (currentAnswer.minus(finalAnswer).abs().gt(tolerance)) {
+      console.warn(`[FE MathVerify] CORRECTED fill_in_blank: LLM="${question.correctAnswer}" → Correct="${finalAnswer}"`)
+      return { ...question, correctAnswer: finalAnswer.toFixed(), explanation: `${computed.steps.join('. ')}. Resultado: ${finalAnswer}.` }
     }
   } else if (question.type === 'multiple_choice' && Array.isArray(question.options)) {
     const optionValues = question.options.map(opt => {
       const nums = opt.match(/[\d,]+\.?\d*/g)
-      if (!nums) return NaN
-      const parsed = nums.map((n: string) => parseFloat(n.replace(/,/g, ''))).filter(Number.isFinite)
-      return parsed.length > 0 ? parsed.reduce((a: number, b: number) => Math.abs(a) > Math.abs(b) ? a : b) : NaN
+      if (!nums) return null
+      const parsed = nums.map((n: string) => parseDecimal(n)).filter(Boolean) as Decimal[]
+      return parsed.length > 0 ? parsed.reduce((a, b) => a.abs().gt(b.abs()) ? a : b) : null
     })
     let closestIdx = -1
-    let closestDiff = Infinity
+    let closestDiff = new Decimal(Infinity)
     for (let i = 0; i < optionValues.length; i++) {
-      if (!Number.isFinite(optionValues[i])) continue
-      const diff = Math.abs(optionValues[i] - finalAnswer)
-      if (diff < closestDiff) { closestDiff = diff; closestIdx = i }
+      if (!optionValues[i]) continue
+      const diff = optionValues[i]!.minus(finalAnswer).abs()
+      if (diff.lt(closestDiff)) { closestDiff = diff; closestIdx = i }
     }
-    const tolerance = Math.max(Math.abs(finalAnswer) * 0.001, 0.01)
-    if (closestIdx >= 0 && closestDiff <= tolerance) {
+    const tolerance = Decimal.max(finalAnswer.abs().times('0.001'), '0.01')
+    if (closestIdx >= 0 && closestDiff.lte(tolerance)) {
       if (closestIdx !== question.correctIndex) {
-        console.warn(`[FE MathVerify] CORRECTED MC: "${text.substring(0, 80)}..." index ${question.correctIndex}→${closestIdx} (computed=${finalAnswer})`)
+        console.warn(`[FE MathVerify] CORRECTED MC: index ${question.correctIndex}→${closestIdx} (computed=${finalAnswer})`)
         return { ...question, correctIndex: closestIdx, explanation: `${computed.steps.join('. ')}. Resultado: ${finalAnswer}.` }
       }
     } else {
-      console.warn(`[FE MathVerify] REJECTED: "${text.substring(0, 80)}..." No option ≈ computed=${finalAnswer}`)
-      return null // Reject — no option matches
+      console.warn(`[FE MathVerify] REJECTED: No option ≈ computed=${finalAnswer}`)
+      return null
     }
   }
   return question
 }
 
-function computeExpectedAnswer(text: string): { value: number; steps: string[] } | null {
-  // Strip currency symbols
+function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] } | null {
   const cleaned = text.replace(/[$€¥£₡₿]\s*/g, '')
 
-  // Strategy 1: Explicit inline arithmetic (e.g. "12,345 + 9,876 + ...")
+  // Strategy 1: Explicit inline arithmetic
   const numberPat = '\\d[\\d,]*\\.?\\d*'
   const opPat = '[+\\-×*÷/]'
   const exprRegex = new RegExp(`(${numberPat})\\s*(${opPat})\\s*(${numberPat}(?:\\s*${opPat}\\s*${numberPat})*)`, 'g')
   const exprMatch = exprRegex.exec(cleaned)
   if (exprMatch) {
     const tokens = exprMatch[0].split(/\s*([+\-×*÷/])\s*/).filter((t: string) => t.trim())
-    let result = parseFloat(tokens[0].replace(/,/g, ''))
-    if (Number.isFinite(result)) {
+    let result = parseDecimal(tokens[0])
+    if (result) {
       const steps: string[] = []
       let valid = true
       for (let i = 1; i < tokens.length; i += 2) {
         const op = tokens[i]
-        const num = parseFloat((tokens[i + 1] || '').replace(/,/g, ''))
-        if (!Number.isFinite(num)) { valid = false; break }
-        const prev = result
+        const num = parseDecimal(tokens[i + 1] || '')
+        if (!num) { valid = false; break }
+        const prev = result!
         switch (op) {
-          case '+': result += num; break
-          case '-': result -= num; break
-          case '×': case '*': result *= num; break
-          case '÷': case '/': if (num === 0) { valid = false } else { result /= num }; break
+          case '+': result = result!.plus(num); break
+          case '-': result = result!.minus(num); break
+          case '×': case '*': result = result!.times(num); break
+          case '÷': case '/': if (num.isZero()) { valid = false } else { result = result!.div(num) }; break
           default: valid = false
         }
         if (!valid) break
         steps.push(`${prev} ${op} ${num} = ${result}`)
       }
       if (valid && steps.length > 0) {
-        // Check for follow-up percentage
         const after = cleaned.substring(cleaned.indexOf(exprMatch[0]) + exprMatch[0].length)
         const pctM = after.match(/(?:impuesto|descuento|incremento|aumento|IVA)\s+(?:del?)?\s*([\d,.]+)\s*%/i)
         if (pctM) {
-          const pct = parseFloat(pctM[1].replace(/,/g, ''))
-          if (Number.isFinite(pct) && pct > 0) {
-            const prev = result
-            const factor = /descuento/i.test(pctM[0]) ? (1 - pct / 100) : (1 + pct / 100)
-            result *= factor
+          const pct = parseDecimal(pctM[1])
+          if (pct && pct.gt(0)) {
+            const prev = result!
+            const factor = /descuento/i.test(pctM[0])
+              ? new Decimal(1).minus(pct.div(100))
+              : new Decimal(1).plus(pct.div(100))
+            result = result!.times(factor)
             steps.push(`${prev} × ${factor} = ${result}`)
           }
         }
-        return { value: result, steps }
+        return { value: result!, steps }
       }
     }
   }
@@ -616,46 +622,48 @@ function computeExpectedAnswer(text: string): { value: number; steps: string[] }
   // Strategy 2: Word problem — sum data numbers + rate/percentage
   const lower = text.toLowerCase()
   if (/total|suma|calcula|acumulad|promedio|media|¿cuánto|cuántos|monto|resultado|costo|precio|valor/i.test(lower)) {
-    // Extract percentages to exclude
-    const pctSet = new Set<number>()
+    const pctSet = new Set<string>()
     const pctRe = /([\d,.]+)\s*%/g
     let pm
     while ((pm = pctRe.exec(text)) !== null) {
-      pctSet.add(parseFloat(pm[1].replace(/,/g, '')))
+      const d = parseDecimal(pm[1])
+      if (d) pctSet.add(d.toString())
     }
-    // Extract data numbers
     const allMatches = cleaned.match(/\d[\d,]*\.?\d*/g) || []
-    const dataNumbers: number[] = []
+    const dataNumbers: Decimal[] = []
     for (const raw of allMatches) {
-      const num = parseFloat(raw.replace(/,/g, ''))
-      if (!Number.isFinite(num) || num < 10) continue
-      if (pctSet.has(num)) continue
-      if (num >= 1900 && num <= 2100 && Number.isInteger(num)) continue
+      const num = parseDecimal(raw)
+      if (!num || num.lt(10)) continue
+      if (pctSet.has(num.toString())) continue
+      const n = num.toNumber()
+      if (n >= 1900 && n <= 2100 && num.isInteger()) continue
       dataNumbers.push(num)
     }
     if (dataNumbers.length >= 2) {
       const steps: string[] = []
-      let result: number
+      let result: Decimal
       if (/promedio|media\b/i.test(lower)) {
-        const sum = dataNumbers.reduce((a, b) => a + b, 0)
-        result = sum / dataNumbers.length
+        const sum = dataNumbers.reduce((a, b) => a.plus(b), new Decimal(0))
+        result = sum.div(dataNumbers.length)
         steps.push(`Suma: ${dataNumbers.join(' + ')} = ${sum}`)
         steps.push(`Promedio: ${sum} / ${dataNumbers.length} = ${result}`)
       } else {
-        result = dataNumbers.reduce((a, b) => a + b, 0)
+        result = dataNumbers.reduce((a, b) => a.plus(b), new Decimal(0))
         steps.push(`Suma: ${dataNumbers.join(' + ')} = ${result}`)
       }
       // Percentage
       if (pctSet.size > 0) {
-        const pct = [...pctSet][0]
-        if (Number.isFinite(pct) && pct > 0 && pct <= 200) {
+        const pct = parseDecimal([...pctSet][0])
+        if (pct && pct.gt(0) && pct.lte(200)) {
           const prev = result
           if (/descuento/i.test(lower)) {
-            result *= (1 - pct / 100)
-            steps.push(`Descuento ${pct}%: ${prev} × ${(1 - pct / 100)} = ${result}`)
+            const factor = new Decimal(1).minus(pct.div(100))
+            result = result.times(factor)
+            steps.push(`Descuento ${pct}%: ${prev} × ${factor} = ${result}`)
           } else if (/impuesto|iva|incremento|aumento|interés|recargo/i.test(lower)) {
-            result *= (1 + pct / 100)
-            steps.push(`+ ${pct}%: ${prev} × ${(1 + pct / 100)} = ${result}`)
+            const factor = new Decimal(1).plus(pct.div(100))
+            result = result.times(factor)
+            steps.push(`+ ${pct}%: ${prev} × ${factor} = ${result}`)
           }
         }
       }
@@ -665,20 +673,20 @@ function computeExpectedAnswer(text: string): { value: number; steps: string[] }
         || text.match(/(?:se\s+)?aplic[aá]\s+(?:un\s+)?(?:[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+\s+)*(?:del?\s+)?\$?([\d,.]+)(?!\s*%)/i)
         || text.match(/(?:costo|precio)\s+(?:de\s+(?:[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+\s+)*)?(?:de\s*)?\$?([\d,.]+)/i)
       if (rateM) {
-        const rate = parseFloat(rateM[1].replace(/,/g, ''))
-        if (Number.isFinite(rate) && rate > 0 && rate < result) {
+        const rate = parseDecimal(rateM[1])
+        if (rate && rate.gt(0) && rate.lt(result)) {
           const prev = result
-          result *= rate
+          result = result.times(rate)
           steps.push(`Multiplicación: ${prev} × ${rate} = ${result}`)
         }
       }
-      // Post-operation addition (e.g. "se agrega un tráfico de respaldo de 5,000,000.500")
+      // Post-operation addition
       const addM = text.match(/(?:se\s+)?(?:agrega[rn]?|añad[aeir]+|suma[rn]?|adiciona[rn]?|incorpora[rn]?)\s+(?:\S+\s+){0,8}?([\d,]+\.?\d*)/i)
       if (addM) {
-        const addVal = parseFloat(addM[1].replace(/,/g, ''))
-        if (Number.isFinite(addVal) && addVal > 0 && !dataNumbers.includes(addVal)) {
+        const addVal = parseDecimal(addM[1])
+        if (addVal && addVal.gt(0) && !dataNumbers.some(d => d.equals(addVal))) {
           const prev = result
-          result += addVal
+          result = result.plus(addVal)
           steps.push(`Adición: ${prev} + ${addVal} = ${result}`)
         }
       }
