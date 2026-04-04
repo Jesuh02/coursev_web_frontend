@@ -270,6 +270,30 @@
               <span v-else>{{ submission.file_name }}</span>
             </p>
             <p v-else class="detail-text">Entrega enviada</p>
+            <button v-if="canResubmit && !isEditingSubmission" class="resubmit-toggle-btn" @click="isEditingSubmission = true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Cambiar archivo
+            </button>
+          </div>
+
+          <!-- Formulario de re-envío -->
+          <div v-if="canResubmit && isEditingSubmission" class="resubmit-section">
+            <div class="file-upload" @click="openResubmitFilePicker">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <span class="file-upload-label">{{ resubmitFile?.name ?? 'Seleccionar nuevo archivo' }}</span>
+              <button v-if="resubmitFile" class="file-clear-btn" @click.stop="resubmitFile = null">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+              <input ref="resubmitFileInput" type="file" hidden @change="onResubmitFileSelect" />
+            </div>
+            <div v-if="resubmitError" class="submit-error-msg">{{ resubmitError }}</div>
+            <div class="resubmit-actions">
+              <button class="resubmit-cancel-btn" :disabled="resubmitting" @click="cancelResubmit">Cancelar</button>
+              <button class="submit-btn resubmit-btn" :disabled="resubmitting || !resubmitFile" @click="resubmitWork">
+                <span v-if="resubmitting" class="btn-spinner" />
+                <span>{{ resubmitting ? 'Actualizando...' : 'Actualizar Archivo' }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -366,6 +390,12 @@ const isOverdue = computed(() => {
 })
 
 const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value && !isOverdue.value)
+const canResubmit = computed(() => status.value === 'pending' && !isSubjectCreator.value && !isOverdue.value)
+const isEditingSubmission = ref(false)
+const resubmitFile = ref<File | null>(null)
+const resubmitFileInput = ref<HTMLInputElement | null>(null)
+const resubmitting = ref(false)
+const resubmitError = ref('')
 
 function formatDueDate(raw: string | null | undefined): string {
   if (!raw) return 'Sin fecha límite'
@@ -444,6 +474,46 @@ function onFileSelect(e: Event) {
 
 function openFilePicker() {
   fileInput.value?.click()
+}
+
+function openResubmitFilePicker() {
+  resubmitFileInput.value?.click()
+}
+
+function onResubmitFileSelect(e: Event) {
+  resubmitFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
+
+function cancelResubmit() {
+  isEditingSubmission.value = false
+  resubmitFile.value = null
+  resubmitError.value = ''
+}
+
+async function resubmitWork() {
+  if (!task.value || !resubmitFile.value) return
+  resubmitting.value = true
+  resubmitError.value = ''
+  try {
+    let fileKey: string | undefined
+    try {
+      const { key } = await uploadFileDirect(resubmitFile.value, 'submissions', () => {})
+      fileKey = key
+    } catch {
+      resubmitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+      resubmitting.value = false
+      return
+    }
+    const payload: Record<string, unknown> = { taskId: task.value.id }
+    if (fileKey) payload.fileUri = fileKey
+    payload.fileName = resubmitFile.value.name
+    submission.value = await submissionAdapter.submitWork(payload)
+    isEditingSubmission.value = false
+    resubmitFile.value = null
+  } catch {
+    resubmitError.value = 'Error al actualizar la tarea. Intenta de nuevo.'
+  }
+  resubmitting.value = false
 }
 
 async function gradeSubmission(sub: TaskSubmission) {
@@ -1052,6 +1122,25 @@ onMounted(async () => {
 }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
+
+/* ── Resubmit section ── */
+.resubmit-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  color: #BF5AF2; background: rgba(191,90,242,0.1); border: 1px solid rgba(191,90,242,0.25);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.resubmit-toggle-btn:hover { background: rgba(191,90,242,0.18); border-color: rgba(191,90,242,0.4); }
+.resubmit-section { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.resubmit-actions { display: flex; gap: 10px; }
+.resubmit-cancel-btn {
+  flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600;
+  color: #8E8E93; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; transition: background 0.15s;
+}
+.resubmit-cancel-btn:hover { background: rgba(255,255,255,0.1); }
+.resubmit-cancel-btn:disabled { opacity: 0.5; cursor: default; }
+.resubmit-btn { flex: 2; }
 
 /* ── Submission highlight (desde notificación) ── */
 .student-submission-card.highlighted {
