@@ -234,6 +234,41 @@ const loading = ref(true)
 const searchQuery = ref('')
 const currentFilter = ref<FilterType>('courses')
 
+// Generated frame thumbnails for videos that lack a stored thumbnail
+const videoFrameThumbnails = ref<Map<number, string>>(new Map())
+
+function extractVideoFrame(videoUrl: string, videoId: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const video = document.createElement('video')
+    video.crossOrigin = 'anonymous'
+    video.preload = 'metadata'
+    video.muted = true
+    const tid = setTimeout(() => { video.src = ''; resolve() }, 10000)
+    const done = () => { clearTimeout(tid); video.src = '' }
+    video.addEventListener('loadedmetadata', () => {
+      video.currentTime = Math.min(2, video.duration > 0 ? video.duration * 0.1 : 2)
+    }, { once: true })
+    video.addEventListener('seeked', () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth || 320
+        canvas.height = video.videoHeight || 180
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75)
+          videoFrameThumbnails.value = new Map(videoFrameThumbnails.value.set(videoId, dataUrl))
+        }
+      } catch { /* CORS or security error – ignore */ }
+      done()
+      resolve()
+    }, { once: true })
+    video.addEventListener('error', () => { done(); resolve() }, { once: true })
+    video.src = videoUrl
+    video.load()
+  })
+}
+
 const avatarUrl = computed(() => resolveImageUrl(user.value?.avatar ?? null))
 
 // Role detection for the viewed user
@@ -329,6 +364,16 @@ onMounted(async () => {
     const isR2Only = fetchedUser.roles?.some(r => r.id === 2) && !fetchedUser.roles?.some(r => r.id === 3)
     if (isR2Only) {
       currentFilter.value = 'subjects'
+    }
+
+    // Generate frame thumbnails for videos that have no stored thumbnail
+    for (const video of fetchedVideos) {
+      if (!resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri)) {
+        const videoUrl = resolveImageUrl(video.video_uri_string ?? video.videoUriString)
+        if (videoUrl) {
+          extractVideoFrame(videoUrl, video.id).catch(() => {})
+        }
+      }
     }
   } finally {
     loading.value = false

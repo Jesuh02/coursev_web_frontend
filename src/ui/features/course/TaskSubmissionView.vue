@@ -492,6 +492,10 @@ function cancelResubmit() {
 
 async function resubmitWork() {
   if (!task.value || !resubmitFile.value) return
+  if (isOverdue.value) {
+    resubmitError.value = 'No es posible actualizar la tarea. El plazo de entrega ha vencido.'
+    return
+  }
   resubmitting.value = true
   resubmitError.value = ''
   try {
@@ -533,6 +537,10 @@ async function gradeSubmission(sub: TaskSubmission) {
 
 async function submitWork() {
   if (!task.value) return
+  if (isOverdue.value) {
+    submitError.value = 'No es posible enviar la tarea. El plazo de entrega ha vencido.'
+    return
+  }
   submitting.value = true
   submitError.value = ''
   try {
