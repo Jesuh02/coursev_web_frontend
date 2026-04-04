@@ -43,6 +43,17 @@ export class CedulaRequiredError extends Error {
 }
 
 /**
+ * Thrown when a Google account does not exist in any configured tenant.
+ * The UI can redirect the user to the registration flow with prefilled data.
+ */
+export class GoogleAccountNotFoundError extends Error {
+  constructor() {
+    super('Usuario no encontrado en ninguna institución')
+    this.name = 'GoogleAccountNotFoundError'
+  }
+}
+
+/**
  * Attempts login by probing ALL configured backend servers in parallel.
  * Each server searches its own registered tenant databases via cross-tenant-login.
  * If a user is found on more than one server/tenant, throws MultipleTenantError.
@@ -85,6 +96,10 @@ function getDistinctServerUrls(): string[] {
   return [...new Set(TENANTS.map(t => t.serverUrl.replace(/\/+$/, '')))]
 }
 
+function isGoogleAccountNotFoundError(err: Error): boolean {
+  return /usuario no encontrado en ninguna instituci[oó]n/i.test(err.message)
+}
+
 async function probeAllServers(
   path: string,
   body: Record<string, unknown>,
@@ -95,6 +110,7 @@ async function probeAllServers(
   const allMatches: TenantLoginResult[] = []
   let lastError: Error | null = null
   let cedulaRequired = false
+  let googleNotFoundCount = 0
 
   for (const result of settled) {
     if (result.status === 'fulfilled') {
@@ -103,6 +119,8 @@ async function probeAllServers(
       const err = result.reason instanceof Error ? result.reason : new Error(String(result.reason))
       if (err instanceof CedulaRequiredError) {
         cedulaRequired = true
+      } else if (path === '/auth/cross-tenant-google' && isGoogleAccountNotFoundError(err)) {
+        googleNotFoundCount++
       } else {
         // Priorizar mensajes específicos (como "usuario desactivado") sobre "Failed to fetch"
         if (!lastError || err.message === 'Failed to fetch' || lastError.message === 'Failed to fetch') {
@@ -114,6 +132,9 @@ async function probeAllServers(
 
   if (allMatches.length === 0) {
     if (cedulaRequired) throw new CedulaRequiredError()
+    if (path === '/auth/cross-tenant-google' && googleNotFoundCount === settled.length) {
+      throw new GoogleAccountNotFoundError()
+    }
     throw lastError ?? new Error('Credenciales inválidas')
   }
 

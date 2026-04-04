@@ -82,7 +82,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError } from '@/infrastructure/api/tenantResolver'
+import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError } from '@/infrastructure/api/tenantResolver'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
@@ -173,6 +173,30 @@ function loadGoogleScript(): Promise<void> {
 function decodeJwtPayload(token: string): Record<string, string> {
   const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
   return JSON.parse(atob(base64))
+}
+
+function splitDisplayName(displayName: string | undefined, email: string | undefined) {
+  const fallback = email?.split('@')[0] || ''
+  const normalized = (displayName || fallback).trim()
+  const [nombres = fallback, ...rest] = normalized.split(/\s+/).filter(Boolean)
+  return {
+    nombres,
+    apellidos: rest.join(' '),
+  }
+}
+
+function redirectToGoogleRegister(email: string, displayName?: string, avatarUrl?: string) {
+  const { nombres, apellidos } = splitDisplayName(displayName, email)
+  router.push({
+    name: 'register',
+    query: {
+      googleEmail: email,
+      googleNombres: nombres,
+      googleApellidos: apellidos,
+      ...(avatarUrl ? { googleAvatar: avatarUrl } : {}),
+      isGoogleSignIn: '1',
+    },
+  })
 }
 
 async function initializeGoogle(): Promise<void> {
@@ -277,7 +301,8 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
   error.value = ''
   try {
     const payload = decodeJwtPayload(response.credential)
-    const displayName = payload.name || payload.email?.split('@')[0]
+    const email = payload.email || ''
+    const displayName = payload.name || email.split('@')[0]
     const avatarUrl = payload.picture || undefined
     const result = await resolveGoogleLogin(response.credential, displayName, avatarUrl)
     await authStore.commitAuth(result, undefined, { idToken: response.credential, displayName, avatarUrl })
@@ -290,6 +315,9 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
       pendingGoogleDisplayName = payload.name || payload.email?.split('@')[0]
       pendingGoogleAvatarUrl = payload.picture || undefined
       pendingMatches.value = e.matches
+    } else if (e instanceof GoogleAccountNotFoundError) {
+      const payload = decodeJwtPayload(response.credential)
+      redirectToGoogleRegister(payload.email || '', payload.name, payload.picture || undefined)
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
     }

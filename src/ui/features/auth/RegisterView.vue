@@ -50,7 +50,7 @@
 
       <section class="form-section">
         <h3 class="section-title">Información de Contacto</h3>
-        <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" :error="fieldErrors.email" />
+        <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" :error="fieldErrors.email" :disabled="isGoogleSignIn" />
         <div class="autocomplete-wrapper">
           <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." :error="fieldErrors.institucion" @update:modelValue="onInstitucionInput" @focus="showInstitucionList = true" @blur="onInstitucionBlur" />
           <ul v-if="showInstitucionList && filteredInstituciones.length" class="autocomplete-list">
@@ -68,6 +68,7 @@
 
       <section class="form-section">
         <h3 class="section-title">Credenciales</h3>
+        <p v-if="isGoogleSignIn" class="google-prefill-note">Tu correo de Google fue precargado. Completa el resto de tu perfil para continuar.</p>
         <AppInput v-model="form.username" label="Usuario" placeholder="Nombre de usuario" :error="fieldErrors.username" />
         <AppInput v-model="form.password" :type="showPassword ? 'text' : 'password'" label="Contraseña" placeholder="Contraseña segura" :error="fieldErrors.password">
           <template #suffix>
@@ -107,7 +108,7 @@
       <p v-if="submitError" class="submit-error">{{ submitError }}</p>
 
       <AppButton variant="primary" block :loading="loading" @click="handleRegister">
-        Crear Cuenta
+        {{ isGoogleSignIn ? 'Completar registro' : 'Crear Cuenta' }}
       </AppButton>
 
       <p class="login-link">
@@ -120,13 +121,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { HttpError, institucionAdapter } from '@/infrastructure/api'
 import type { Institucion } from '@/domain/models'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -141,6 +143,11 @@ const instituciones = ref<Institucion[]>([])
 const institucionQuery = ref('')
 const showInstitucionList = ref(false)
 const selectedInstitucionId = ref<number | null>(null)
+const isGoogleSignIn = computed(() => route.query.isGoogleSignIn === '1')
+
+function getSingleQueryValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
 
 const filteredInstituciones = computed(() => {
   const q = institucionQuery.value.toLowerCase()
@@ -167,6 +174,18 @@ onMounted(async () => {
   try {
     instituciones.value = await institucionAdapter.getAll()
   } catch { /* silent */ }
+
+  const googleEmail = getSingleQueryValue(route.query.googleEmail).trim()
+  if (!googleEmail) return
+
+  form.value.email = googleEmail
+  form.value.nombres = getSingleQueryValue(route.query.googleNombres).trim()
+  form.value.apellidos = getSingleQueryValue(route.query.googleApellidos).trim()
+
+  const googleAvatar = getSingleQueryValue(route.query.googleAvatar).trim()
+  if (googleAvatar) {
+    avatarPreview.value = googleAvatar
+  }
 })
 
 const form = ref({
@@ -316,6 +335,13 @@ async function handleRegister() {
   color: var(--text-muted);
   font-size: 14px;
   margin-top: 4px;
+}
+
+.google-prefill-note {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .register-card {
