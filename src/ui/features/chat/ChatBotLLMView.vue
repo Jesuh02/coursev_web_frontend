@@ -638,12 +638,18 @@ useChatSocket(tokenStorage.userId || null, 'chatbot_llm', (msg: ChatSocketMessag
 
 async function loadHistoryFromBackend() {
   try {
-    // Load by origin (per-account) first; fallback to session
+    // Load by origin (per-account) first; fallback to session, then legacy "app" origin
     let data: any[]
     try {
       data = await chatAdapter.getMyMessagesByOrigin('chatbot_llm') as any[]
     } catch {
       data = await chatAdapter.getMessagesBySession(sessionId.value) as any[]
+    }
+    // Fallback: try legacy "app" origin (old Android builds saved with this origin)
+    if (!Array.isArray(data) || data.length === 0) {
+      try {
+        data = await chatAdapter.getMyMessagesByOrigin('app') as any[]
+      } catch { data = [] }
     }
     if (!Array.isArray(data) || data.length === 0) return
     messages.value = data.map((m: any) => ({
