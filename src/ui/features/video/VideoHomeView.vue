@@ -4,7 +4,7 @@
     <video ref="ambilightVideo" class="ambilight-video" muted loop playsinline tabindex="-1" aria-hidden="true" />
 
     <!-- Top Navigation -->
-    <VideoTopNav @toggle-search="showSearch = !showSearch" @go-login="logoutAndGoToLogin" />
+    <VideoTopNav @toggle-search="showSearch = !showSearch" />
 
     <!-- Search Overlay -->
     <div v-if="showSearch" class="search-overlay">
