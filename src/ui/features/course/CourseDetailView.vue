@@ -341,11 +341,14 @@ const hasSubjectContentAccess = computed(() =>
 // ── Enrollment flow ────────────────────────────────────────────────
 const enrollmentStatus = ref<string | null>(null) // 'approved' | 'pending' | 'rejected' | null
 const requestingEnrollment = ref(false)
+const isGuestOrEnrolled = ref(false) // true when user is an invited guest or already enrolled
 
 const requiresEnrollmentApproval = computed(() => {
   if (authStore.isAdmin) return false
   // Colaboradores y creadores del curso tienen acceso directo
   if (hasSubjectContentAccess.value) return false
+  // Invitados (guests) y usuarios ya matriculados no necesitan aprobación
+  if (isGuestOrEnrolled.value) return false
   return true
 })
 
@@ -781,6 +784,14 @@ onMounted(async () => {
   }
 
   const progressPromise = loadStudentProgress(id)
+
+  // Check if user is an invited guest or already enrolled (bypasses enrollment approval)
+  try {
+    const enrolledData: any = await progressAdapter.isEnrolled(id)
+    if (enrolledData === true || enrolledData?.isEnrolled === true) {
+      isGuestOrEnrolled.value = true
+    }
+  } catch { /* silent */ }
 
   await checkEnrollmentStatus(id)
 
