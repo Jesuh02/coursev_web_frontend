@@ -16,6 +16,7 @@
           </div>
         </div>
 
+        <template v-if="allSubmissions.length > 0">
         <div class="teacher-stats-row card-enter" style="animation-delay: 0.05s">
           <span class="stats-chip">{{ allSubmissions.length }} entregas</span>
           <span class="stats-chip graded">{{ gradedCount }} calificadas</span>
@@ -115,9 +116,20 @@
           <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
         </div>
 
-        <div v-if="filteredSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.2s">
+        <div v-if="filteredSubmissions.length === 0 && searchQuery" class="empty-state card-enter" style="animation-delay: 0.2s">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-          <p>{{ searchQuery ? 'No se encontraron entregas' : 'No hay entregas enviadas' }}</p>
+          <p>No se encontraron entregas</p>
+        </div>
+        </template>
+
+        <div v-if="allSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.1s">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+          <p class="empty-title-msg">No hay entregas enviadas</p>
+          <p class="empty-sub-msg">Aún ningún estudiante ha enviado esta tarea</p>
         </div>
 
         <div
@@ -1216,6 +1228,8 @@ onUnmounted(() => {
 }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
+.empty-title-msg { font-size: 16px; font-weight: 600; color: #ccc; margin: 0; }
+.empty-sub-msg { font-size: 13px; color: #636366; margin: 0; }
 
 /* ── Resubmit section ── */
 .resubmit-toggle-btn {
