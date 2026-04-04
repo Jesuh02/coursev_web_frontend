@@ -606,9 +606,19 @@ onUnmounted(() => {
 // ─── Real-time sync via Socket.io ─────────────────────────────────────────────
 
 useChatSocket(tokenStorage.userId || null, 'chatbot_llm', (msg: ChatSocketMessage) => {
-  // Avoid duplicates: skip if already in messages array
-  const existing = messages.value.find(m => m.id === String(msg.id))
-  if (existing) return
+  const incomingRole = msg.isFromUser ? 'user' : 'assistant'
+  const incomingContent = msg.message ?? ''
+  // Avoid duplicates: match by backend id OR by role+content (optimistic local messages use
+  // crypto.randomUUID() which never equals the backend integer id, so the content+role check
+  // is necessary to prevent the socket from adding a second copy of every sent message).
+  const existing = messages.value.find(
+    m => m.id === String(msg.id) || (m.role === incomingRole && m.content === incomingContent)
+  )
+  if (existing) {
+    // Upgrade the local UUID to the real backend id so future lookups succeed
+    if (existing.id !== String(msg.id)) existing.id = String(msg.id)
+    return
+  }
   messages.value.push({
     id: String(msg.id),
     role: msg.isFromUser ? 'user' : 'assistant',

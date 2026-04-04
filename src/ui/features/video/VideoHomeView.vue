@@ -1,5 +1,8 @@
 <template>
   <div class="video-home-container">
+    <!-- Ambilight canvas – draws blurred video frames behind the feed -->
+    <canvas ref="ambilightCanvas" class="ambilight-canvas" aria-hidden="true" />
+
     <!-- Top Navigation -->
     <VideoTopNav @toggle-search="showSearch = !showSearch" @go-login="logoutAndGoToLogin" />
 
@@ -111,12 +114,43 @@ useVideoSocket({
 })
 
 const feedRef = ref<HTMLElement | null>(null)
+const ambilightCanvas = ref<HTMLCanvasElement | null>(null)
 const showSearch = ref(false)
 const searchQuery = ref('')
 const activeIndex = ref(0)
 const activeVideoPaused = ref(false)
 const activeVideoControlsVisible = ref(false)
 const cardRefs = ref<(VideoCardInstance | null)[]>([])
+
+// ── Ambilight ────────────────────────────────────────────────────────────────
+let _ambilightRaf = 0
+let _lastAmbilightTs = 0
+
+function _drawAmbilight(ts: number) {
+  _ambilightRaf = requestAnimationFrame(_drawAmbilight)
+  if (ts - _lastAmbilightTs < 66) return   // ~15 fps cap
+  _lastAmbilightTs = ts
+
+  const canvas = ambilightCanvas.value
+  if (!canvas) return
+
+  const card = cardRefs.value[activeIndex.value]
+  const vid = (card as any)?.videoEl as HTMLVideoElement | null
+  if (!vid || vid.readyState < 2) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  if (canvas.width !== 128 || canvas.height !== 228) {
+    canvas.width = 128
+    canvas.height = 228
+  }
+
+  try {
+    ctx.drawImage(vid, 0, 0, 128, 228)
+  } catch { /* CORS taint – silently skip */ }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function setCardRef(el: unknown, idx: number) {
   cardRefs.value[idx] = (el as VideoCardInstance | null)
@@ -224,10 +258,12 @@ async function initializeFeed() {
 
 onMounted(() => {
   initializeFeed()
+  _ambilightRaf = requestAnimationFrame(_drawAmbilight)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  cancelAnimationFrame(_ambilightRaf)
 })
 
 watch(activeIndex, async (newIdx) => {
@@ -304,6 +340,7 @@ function logoutAndGoToLogin() {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1;
 }
 
 .video-home {
@@ -426,5 +463,18 @@ function logoutAndGoToLogin() {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+/* ── Ambilight ──────────────────────────────────────────────────────────────── */
+.ambilight-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: blur(90px) saturate(3) brightness(0.55);
+  opacity: 0.7;
+  z-index: 0;
+  pointer-events: none;
+  transform: scale(1.08);
 }
 </style>

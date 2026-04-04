@@ -406,7 +406,7 @@ function startPreload() {
   if (videoEl.value.readyState === 0) videoEl.value.load()
 }
 
-defineExpose({ startPreload })
+defineExpose({ startPreload, videoEl })
 </script>
 
 <style scoped>

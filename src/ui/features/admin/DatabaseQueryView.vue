@@ -119,7 +119,7 @@
           placeholder="Preguntar al LLM Database"
           rows="1"
           @input="autoResize"
-          @keydown.enter.exact="sendQuery"
+          @keydown.enter.exact.prevent="sendQuery"
         />
 
         <!-- Voice / Send toggle -->
