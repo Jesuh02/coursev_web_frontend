@@ -16,6 +16,7 @@
           </div>
         </div>
 
+        <template v-if="allSubmissions.length > 0">
         <div class="teacher-stats-row card-enter" style="animation-delay: 0.05s">
           <span class="stats-chip">{{ allSubmissions.length }} entregas</span>
           <span class="stats-chip graded">{{ gradedCount }} calificadas</span>
@@ -115,9 +116,20 @@
           <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
         </div>
 
-        <div v-if="filteredSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.2s">
+        <div v-if="filteredSubmissions.length === 0 && searchQuery" class="empty-state card-enter" style="animation-delay: 0.2s">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-          <p>{{ searchQuery ? 'No se encontraron entregas' : 'No hay entregas enviadas' }}</p>
+          <p>No se encontraron entregas</p>
+        </div>
+        </template>
+
+        <div v-if="allSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.1s">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+          <p class="empty-title-msg">No hay entregas enviadas</p>
+          <p class="empty-sub-msg">Aún ningún estudiante ha enviado esta tarea</p>
         </div>
 
         <div
@@ -631,6 +643,10 @@ async function submitWork() {
   submitting.value = false
 }
 
+onUnmounted(() => {
+  if (overdueTimer) clearInterval(overdueTimer)
+})
+
 onMounted(async () => {
   overdueTimer = setInterval(() => {
     currentTimestamp.value = Date.now()
@@ -638,8 +654,12 @@ onMounted(async () => {
 
   const taskId = Number(route.params.taskId)
   try {
-    // Usar tokenStorage.userId como fallback cuando authStore.user aún no ha cargado
-    // (ej: navegación desde notificación push que abre la app en página nueva)
+    // Garantizar que el perfil del usuario esté cargado (puede no estarlo si
+    // App.vue aún no terminó fetchProfile, ej: navegación desde notificación push)
+    if (!authStore.user) {
+      await authStore.fetchProfile()
+    }
+
     const currentUserId = Number(authStore.user?.id ?? tokenStorage.userId ?? 0)
 
     const [t, sub] = await Promise.all([
@@ -650,28 +670,30 @@ onMounted(async () => {
     submission.value = sub
 
     let managerAccess = authStore.isAdmin
-    if (!managerAccess && currentUserId > 0) {
-      // Atajo: si la ruta trae courseId (ej: desde notificación), verificar colaborador directamente
+
+    // --- Verificar acceso de profesor/creador ---
+    if (!managerAccess) {
+      // 1. Atajo: si la ruta trae courseId (ej: desde notificación), verificar directamente
       const queryCourseId = Number(route.query.courseId ?? 0)
       if (queryCourseId > 0) {
         try {
           const collab = await collaboratorAdapter.checkAccess(queryCourseId).catch(() => null)
           if (collab?.hasAccess) managerAccess = true
-          // También verificar si es creador del curso
-          if (!managerAccess) {
+        } catch { /* silent */ }
+
+        // Fallback: verificar si es creador del curso directamente
+        if (!managerAccess) {
+          try {
             const course = await courseAdapter.getCourseById(queryCourseId).catch(() => null)
             const courseCreatorId = Number(course?.creatorUserId ?? course?.creator_user_id ?? 0)
-            if (courseCreatorId === currentUserId) managerAccess = true
-          }
-        } catch { /* silent */ }
+            if (courseCreatorId > 0 && courseCreatorId === currentUserId) managerAccess = true
+          } catch { /* silent */ }
+        }
       }
 
+      // 2. Si aún no tiene acceso, intentar resolver vía topic → subject → course
       if (!managerAccess) {
         const topicId = Number(t.topicId ?? t.topic_id ?? 0)
-
-onUnmounted(() => {
-  if (overdueTimer) clearInterval(overdueTimer)
-})
         if (topicId > 0) {
           try {
             const topic = await topicAdapter.getTopicById(topicId)
@@ -691,7 +713,7 @@ onUnmounted(() => {
               }
             }
           } catch {
-            managerAccess = false
+            // topic/subject resolution failed – keep managerAccess as-is
           }
         }
       }
@@ -737,13 +759,14 @@ onUnmounted(() => {
           const card = submissionCardRefs[target.id]
           if (card) {
             card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            // Quitar el highlight después de 3 segundos
             setTimeout(() => { highlightedSubmissionId.value = null }, 3000)
           }
         }
       }
     }
-  } catch { /* empty */ }
+  } catch (err) {
+    console.warn('[TaskSubmissionView] Error loading task submission:', err)
+  }
   loading.value = false
 })
 </script>
@@ -1216,6 +1239,8 @@ onUnmounted(() => {
 }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
+.empty-title-msg { font-size: 16px; font-weight: 600; color: #ccc; margin: 0; }
+.empty-sub-msg { font-size: 13px; color: #636366; margin: 0; }
 
 /* ── Resubmit section ── */
 .resubmit-toggle-btn {
