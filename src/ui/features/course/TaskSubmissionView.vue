@@ -278,13 +278,28 @@
 
           <!-- Formulario de re-envío -->
           <div v-if="canResubmit && isEditingSubmission" class="resubmit-section">
-            <div class="file-upload" @click="openResubmitFilePicker">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-              <span class="file-upload-label">{{ resubmitFile?.name ?? 'Seleccionar nuevo archivo' }}</span>
-              <button v-if="resubmitFile" class="file-clear-btn" @click.stop="resubmitFile = null">
+            <div class="attach-options-row">
+              <div class="file-upload attach-option" @click="openResubmitFilePicker">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                <span class="file-upload-label">Archivo</span>
+                <input ref="resubmitFileInput" type="file" hidden @change="onResubmitFileSelect" />
+              </div>
+              <div class="file-upload attach-option" @click="openResubmitImagePicker">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span class="file-upload-label">Imagen</span>
+                <input ref="resubmitImageInput" type="file" accept="image/*" hidden @change="onResubmitFileSelect" />
+              </div>
+              <div class="file-upload attach-option" @click="openResubmitCamera">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span class="file-upload-label">Cámara</span>
+                <input ref="resubmitCameraInput" type="file" accept="image/*" capture="environment" hidden @change="onResubmitFileSelect" />
+              </div>
+            </div>
+            <div v-if="resubmitFile" class="selected-file-row">
+              <span class="selected-file-name">📎 {{ resubmitFile.name }}</span>
+              <button class="file-clear-btn" @click="resubmitFile = null">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
-              <input ref="resubmitFileInput" type="file" hidden @change="onResubmitFileSelect" />
             </div>
             <div v-if="resubmitError" class="submit-error-msg">{{ resubmitError }}</div>
             <div class="resubmit-actions">
@@ -299,13 +314,28 @@
 
         <div v-if="canSubmit" class="submit-section card-enter" style="animation-delay: 0.2s">
           <h3 class="section-title">Enviar Tarea</h3>
-          <div class="file-upload" @click="openFilePicker">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-            <span class="file-upload-label">{{ selectedFile?.name ?? 'Adjuntar archivo' }}</span>
-            <button v-if="selectedFile" class="file-clear-btn" @click.stop="selectedFile = null">
+          <div class="attach-options-row">
+            <div class="file-upload attach-option" @click="openFilePicker">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <span class="file-upload-label">Archivo</span>
+              <input ref="fileInput" type="file" hidden @change="onFileSelect" />
+            </div>
+            <div class="file-upload attach-option" @click="openImagePicker">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span class="file-upload-label">Imagen</span>
+              <input ref="imageInput" type="file" accept="image/*" hidden @change="onFileSelect" />
+            </div>
+            <div class="file-upload attach-option" @click="openCameraCapture">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span class="file-upload-label">Cámara</span>
+              <input ref="cameraInput" type="file" accept="image/*" capture="environment" hidden @change="onFileSelect" />
+            </div>
+          </div>
+          <div v-if="selectedFile" class="selected-file-row">
+            <span class="selected-file-name">📎 {{ selectedFile.name }}</span>
+            <button class="file-clear-btn" @click="selectedFile = null">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <input ref="fileInput" type="file" hidden @change="onFileSelect" />
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
           <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
@@ -340,6 +370,8 @@ const submitError = ref('')
 const textAnswer = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
+const cameraInput = ref<HTMLInputElement | null>(null)
 const isSubjectCreator = ref(false)
 const searchQuery = ref('')
 const chartAnimated = ref(false)
@@ -394,6 +426,8 @@ const canResubmit = computed(() => status.value === 'pending' && !isSubjectCreat
 const isEditingSubmission = ref(false)
 const resubmitFile = ref<File | null>(null)
 const resubmitFileInput = ref<HTMLInputElement | null>(null)
+const resubmitImageInput = ref<HTMLInputElement | null>(null)
+const resubmitCameraInput = ref<HTMLInputElement | null>(null)
 const resubmitting = ref(false)
 const resubmitError = ref('')
 
@@ -476,8 +510,24 @@ function openFilePicker() {
   fileInput.value?.click()
 }
 
+function openImagePicker() {
+  imageInput.value?.click()
+}
+
+function openCameraCapture() {
+  cameraInput.value?.click()
+}
+
 function openResubmitFilePicker() {
   resubmitFileInput.value?.click()
+}
+
+function openResubmitImagePicker() {
+  resubmitImageInput.value?.click()
+}
+
+function openResubmitCamera() {
+  resubmitCameraInput.value?.click()
 }
 
 function onResubmitFileSelect(e: Event) {
@@ -1065,6 +1115,12 @@ onMounted(async () => {
 
 .submit-section { display: flex; flex-direction: column; gap: 12px; }
 
+.attach-options-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
 .file-upload {
   display: flex; align-items: center; gap: 10px; padding: 14px;
   border-radius: 12px; background: #1C1C1E; cursor: pointer;
@@ -1072,6 +1128,19 @@ onMounted(async () => {
   font-size: 14px; color: #8E8E93;
 }
 .file-upload:hover { background: rgba(191,90,242,0.05); }
+.file-upload.attach-option {
+  flex-direction: column; gap: 6px; padding: 12px 8px;
+  justify-content: center; align-items: center; text-align: center;
+  border-radius: 10px; font-size: 12px;
+}
+.file-upload-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.selected-file-row {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(191,90,242,0.08);
+  border: 1px solid rgba(191,90,242,0.2); font-size: 13px; color: #ccc;
+}
+.selected-file-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .text-input {
   width: 100%; padding: 14px; border-radius: 12px; background: #1C1C1E;

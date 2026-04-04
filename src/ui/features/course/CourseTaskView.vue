@@ -240,6 +240,8 @@ const uploading = ref(false)
 const uploadProgress = ref(0)
 const submitError = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
+const cameraInputRef = ref<HTMLInputElement | null>(null)
 
 function onFileSelected(e: Event) {
   selectedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
@@ -407,6 +409,27 @@ onMounted(async () => {
   background: transparent; border: none; color: #666; cursor: pointer;
   font-size: 14px; padding: 0 2px; flex-shrink: 0; line-height: 1;
 }
+.file-clear:hover { color: #FF453A; }
+
+.task-attach-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.task-attach-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 12px 6px; border-radius: 10px; background: #1C1C1E;
+  cursor: pointer; font-size: 12px; color: #8E8E93; transition: background 0.15s;
+  border: 1px dashed rgba(255,255,255,0.1);
+}
+.task-attach-btn:active { background: #2A2A2A; }
+.task-file-selected {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(142,142,147,0.1);
+  font-size: 13px; color: #ccc;
+}
+.task-file-selected span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-clear { background: transparent; border: none; color: #666; cursor: pointer; font-size: 18px; padding: 0 2px; }
 .file-clear:hover { color: #FF453A; }
 
 /* ── Student mode ── */

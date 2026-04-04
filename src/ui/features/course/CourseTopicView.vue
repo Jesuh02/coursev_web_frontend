@@ -95,6 +95,22 @@
           <span class="add-label">Agregar Documento</span>
         </button>
         <input ref="docInputRef" type="file" class="hidden-input" @change="onDocSelected" />
+
+        <button class="add-row" @click="imgInputRef?.click()">
+          <div class="add-icon img-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <span class="add-label">Agregar Imagen</span>
+        </button>
+        <input ref="imgInputRef" type="file" accept="image/*" class="hidden-input" @change="onImgSelected" />
+
+        <button class="add-row" @click="cameraInputRef?.click()">
+          <div class="add-icon camera-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <span class="add-label">Tomar Foto</span>
+        </button>
+        <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" class="hidden-input" @change="onImgSelected" />
       </div>
 
       <!-- ── Tareas del Tema ── -->
@@ -153,11 +169,13 @@ const saving = ref(false)
 const errorMsg = ref('')
 const uploadProgress = ref<number | null>(null)
 
-interface PendingFile { file: File; type: 'video' | 'document' }
+interface PendingFile { file: File; type: 'video' | 'document' | 'image' }
 const pendingFiles = ref<PendingFile[]>([])
 
 const videoInputRef = ref<HTMLInputElement | null>(null)
 const docInputRef = ref<HTMLInputElement | null>(null)
+const imgInputRef = ref<HTMLInputElement | null>(null)
+const cameraInputRef = ref<HTMLInputElement | null>(null)
 
 const topicId = computed(() => {
   const raw = route.params.topicId
@@ -179,6 +197,12 @@ function onVideoSelected(e: Event) {
 function onDocSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) pendingFiles.value.push({ file, type: 'document' })
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+function onImgSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) pendingFiles.value.push({ file, type: 'image' })
   ;(e.target as HTMLInputElement).value = ''
 }
 
@@ -204,7 +228,7 @@ async function uploadPendingFiles(resolvedTopicId: number) {
   await Promise.all(
     pendingFiles.value.map(async (pf) => {
       try {
-        const prefix = pf.type === 'video' ? 'videos' : 'content'
+        const prefix = pf.type === 'video' ? 'videos' : pf.type === 'image' ? 'images' : 'content'
         const { publicUrl } = await uploadFileDirect(
           pf.file,
           prefix,
@@ -504,6 +528,8 @@ a.row-action { text-decoration: none; }
 
 .video-icon { background: #FFE5ED; color: #E91E63; }
 .doc-icon { background: #E3F2FD; color: #2196F3; }
+.img-icon { background: #E8F5E9; color: #4CAF50; }
+.camera-icon { background: #FFF3E0; color: #FF9800; }
 .task-add-icon { background: #E0F7F4; color: #00BCD4; }
 
 .add-label { font-size: 14px; color: #fff; font-weight: 500; }
