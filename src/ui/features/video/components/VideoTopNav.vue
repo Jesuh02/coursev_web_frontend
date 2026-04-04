@@ -8,34 +8,9 @@
       </svg>
     </button>
 
-    <!-- Center Pills Container (Live + Courses) -->
-    <div class="center-pills-container">
-      <div class="pill-wrapper">
-        <!-- En Vivo (Live) with orange glow -->
-        <div class="glow-effect orange-glow" />
-        <button class="pill-btn live-btn" title="En Vivo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23 7l-7 5 7 5V7z" />
-            <rect x="1" y="5" width="15" height="14" rx="2" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="pill-wrapper">
-        <!-- Cerrar sesión with purple glow -->
-        <div class="glow-effect purple-glow" />
-        <button class="pill-btn courses-btn" @click="emit('go-login')" title="Cerrar sesión">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- Right side icons -->
     <div class="right-icons">
-      <button class="avatar-btn" @click="emit('go-login')">
+      <button class="avatar-btn" @click="goToMyProfile()">
         <AppAvatar :size="36" :alt="'U'" />
       </button>
       
@@ -100,7 +75,7 @@ import { storeToRefs } from 'pinia'
 import AppAvatar from '@/ui/shared/components/AppAvatar.vue'
 import { useAuthStore } from '@/stores/authStore'
 
-const emit = defineEmits<{ 'toggle-search': []; 'go-login': [] }>()
+const emit = defineEmits<{ 'toggle-search': [] }>()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -112,6 +87,11 @@ const { isAdmin, isAdminOrDocente } = storeToRefs(authStore)
 function navigate(path: string) {
   showMenu.value = false
   router.push(path)
+}
+
+function goToMyProfile() {
+  const userId = authStore.user?.id
+  if (userId) router.push(`/user/${userId}`)
 }
 </script>
 
