@@ -896,7 +896,7 @@ async function loadSubmissionsForCourse(courseId: number) {
     const submissions = await submissionAdapter.getSubmissionByCourse(courseId)
 
     // Resolve task info in parallel (deduplicated by taskId)
-    const taskIds: number[] = [...new Set(submissions.map((s: any) => s.task_id as number))]
+    const taskIds: number[] = Array.from(new Set<number>(submissions.map((s: any) => s.task_id as number)))
     const taskMap = new Map<number, Task>()
     await Promise.all(
       taskIds.map(async (tid: number) => {
