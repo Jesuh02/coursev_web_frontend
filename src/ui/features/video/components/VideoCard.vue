@@ -743,4 +743,17 @@ defineExpose({ startPreload })
 .fade-leave-to {
   opacity: 0;
 }
+
+/* Desktop: card fits inside the centered feed container */
+@media (min-width: 768px) {
+  .video-card {
+    height: calc(100dvh - 40px);
+    border-radius: 16px;
+    scroll-snap-align: none;
+  }
+
+  .video-player {
+    border-radius: 16px;
+  }
+}
 </style>

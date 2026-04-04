@@ -8,35 +8,61 @@
       <SearchBar v-model="searchQuery" placeholder="Buscar videos..." />
     </div>
 
-    <!-- Video Feed -->
-    <div class="video-home" ref="feedRef" @scroll="onScroll">
-      <!-- Skeleton Loading -->
-      <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
-        <VideoSkeleton v-for="i in 2" :key="i" />
+    <!-- Video Feed Wrapper (centered on desktop) -->
+    <div class="video-feed-wrapper">
+      <div class="video-home" ref="feedRef" @scroll="onScroll">
+        <!-- Skeleton Loading -->
+        <div v-if="videoStore.loading && !videoStore.videos.length" class="skeleton-feed">
+          <VideoSkeleton v-for="i in 2" :key="i" />
+        </div>
+
+        <!-- Video Cards -->
+        <template v-else>
+          <VideoCard
+            v-for="(video, idx) in filteredVideos"
+            :key="video.id"
+            :ref="(el) => setCardRef(el, idx)"
+            :video="video"
+            :active="idx === activeIndex"
+            :preload-hint="getPreloadHint(idx)"
+            @playback-state-change="onPlaybackStateChange(idx, $event)"
+            @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
+            @like="onLike(video)"
+            @comment="openComments(video.id)"
+            @share="onShare(video)"
+            @profile="goToProfile(video.userId)"
+          />
+          <EmptyState 
+            v-if="!filteredVideos.length" 
+            title="No hay videos" 
+            description="Aún no hay contenido disponible" 
+          />
+        </template>
       </div>
 
-      <!-- Video Cards -->
-      <template v-else>
-        <VideoCard
-          v-for="(video, idx) in filteredVideos"
-          :key="video.id"
-          :ref="(el) => setCardRef(el, idx)"
-          :video="video"
-          :active="idx === activeIndex"
-          :preload-hint="getPreloadHint(idx)"
-          @playback-state-change="onPlaybackStateChange(idx, $event)"
-          @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
-          @like="onLike(video)"
-          @comment="openComments(video.id)"
-          @share="onShare(video)"
-          @profile="goToProfile(video.userId)"
-        />
-        <EmptyState 
-          v-if="!filteredVideos.length" 
-          title="No hay videos" 
-          description="Aún no hay contenido disponible" 
-        />
-      </template>
+      <!-- Desktop Navigation Arrows -->
+      <div class="desktop-nav-arrows">
+        <button
+          class="nav-arrow nav-arrow-up"
+          :disabled="activeIndex <= 0"
+          @click="navigateVideo(-1)"
+          aria-label="Video anterior"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+        <button
+          class="nav-arrow nav-arrow-down"
+          :disabled="activeIndex >= filteredVideos.length - 1"
+          @click="navigateVideo(1)"
+          aria-label="Siguiente video"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Bottom Navigation -->
@@ -223,16 +249,19 @@ function onScroll() {
   activeIndex.value = Math.round(feedRef.value.scrollTop / cardH)
 }
 
+function navigateVideo(dir: number) {
+  const next = Math.max(0, Math.min(activeIndex.value + dir, filteredVideos.value.length - 1))
+  if (next !== activeIndex.value) {
+    activeIndex.value = next
+    const cards = feedRef.value?.querySelectorAll('.video-card')
+    cards?.[next]?.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault()
-    const dir = e.key === 'ArrowDown' ? 1 : -1
-    const next = Math.max(0, Math.min(activeIndex.value + dir, filteredVideos.value.length - 1))
-    if (next !== activeIndex.value) {
-      activeIndex.value = next
-      const cards = feedRef.value?.querySelectorAll('.video-card')
-      cards?.[next]?.scrollIntoView({ behavior: 'smooth' })
-    }
+    navigateVideo(e.key === 'ArrowDown' ? 1 : -1)
   }
 }
 
@@ -268,6 +297,15 @@ function logoutAndGoToLogin() {
   overflow: hidden;
 }
 
+.video-feed-wrapper {
+  position: relative;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .video-home {
   height: 100dvh;
   width: 100%;
@@ -280,6 +318,73 @@ function logoutAndGoToLogin() {
 
 .video-home::-webkit-scrollbar {
   display: none;
+}
+
+/* Desktop navigation arrows - hidden on mobile */
+.desktop-nav-arrows {
+  display: none;
+}
+
+/* Desktop layout: centered video with arrows */
+@media (min-width: 768px) {
+  .video-feed-wrapper {
+    gap: 16px;
+  }
+
+  .video-home {
+    max-width: 480px;
+    height: calc(100dvh - 40px);
+    border-radius: 16px;
+    scroll-snap-type: none;
+    overflow-y: auto;
+  }
+
+  .desktop-nav-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: absolute;
+    right: calc(50% - 280px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+  }
+
+  .nav-arrow {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, opacity 0.2s, transform 0.15s;
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-arrow:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+
+  .nav-arrow:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .nav-arrow:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+/* Larger desktops: reposition arrows further out */
+@media (min-width: 1200px) {
+  .desktop-nav-arrows {
+    right: calc(50% - 310px);
+  }
 }
 
 .search-overlay {
