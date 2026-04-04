@@ -639,22 +639,42 @@ useChatSocket(tokenStorage.userId || null, 'chatbot_llm', (msg: ChatSocketMessag
 
 async function loadHistoryFromBackend() {
   try {
-    // Load by origin (per-account) first; fallback to session, then legacy "app" origin
-    let data: any[]
+    // Load by origin (per-account) first; fallback to legacy "app" origin, then session
+    let data: any[] = []
+
+    // 1. Try chatbot_llm origin
     try {
-      data = await chatAdapter.getMyMessagesByOrigin('chatbot_llm') as any[]
-    } catch {
-      data = await chatAdapter.getMessagesBySession(sessionId.value) as any[]
+      const result = await chatAdapter.getMyMessagesByOrigin('chatbot_llm')
+      if (Array.isArray(result)) data = result
+    } catch (err) {
+      console.warn('[ChatBotLLM] getMyMessagesByOrigin("chatbot_llm") failed:', err)
     }
-    // Fallback: try legacy "app" origin (old Android builds saved with this origin)
-    if (!Array.isArray(data) || data.length === 0) {
+
+    // 2. Fallback: try legacy "app" origin (old Android builds saved with this origin)
+    if (data.length === 0) {
       try {
-        data = await chatAdapter.getMyMessagesByOrigin('app') as any[]
-      } catch { data = [] }
+        const result = await chatAdapter.getMyMessagesByOrigin('app')
+        if (Array.isArray(result)) data = result
+      } catch (err) {
+        console.warn('[ChatBotLLM] getMyMessagesByOrigin("app") failed:', err)
+      }
     }
-    if (!Array.isArray(data) || data.length === 0) return
+
+    // 3. Last resort: try by session id
+    if (data.length === 0) {
+      try {
+        const result = await chatAdapter.getMessagesBySession(sessionId.value)
+        if (Array.isArray(result)) data = result
+      } catch (err) {
+        console.warn('[ChatBotLLM] getMessagesBySession failed:', err)
+      }
+    }
+
+    console.log(`[ChatBotLLM] loadHistory: ${data.length} mensajes cargados (userId=${tokenStorage.userId})`)
+    if (data.length === 0) return
+
     messages.value = data.map((m: any) => ({
-      id: m.id || crypto.randomUUID(),
+      id: String(m.id || '') || crypto.randomUUID(),
       role: m.role,
       content: m.content,
       createdAt: m.createdAt ?? new Date().toISOString(),
@@ -666,7 +686,7 @@ async function loadHistoryFromBackend() {
     }))
     scrollToBottom()
   } catch (e) {
-    // Silently ignore — history just won't be loaded
+    console.error('[ChatBotLLM] loadHistoryFromBackend error:', e)
   }
 }
 
@@ -688,8 +708,9 @@ async function saveMessageToBackend(
       calificationAdded: extra.calification_added ?? false,
       submissionId: extra.submission_id ?? null,
     } as any)
+    console.log('[ChatBotLLM] Mensaje guardado en backend (origin=chatbot_llm)')
   } catch (e) {
-    // Silently ignore — persistence failure shouldn't break UX
+    console.error('[ChatBotLLM] Error guardando mensaje en backend:', e)
   }
 }
 
@@ -1104,6 +1125,7 @@ async function sendMessage() {
     messages.value.push(errMsg)
   } finally {
     isTyping.value = false
+    isSending.value = false
     scrollToBottom()
   }
 }

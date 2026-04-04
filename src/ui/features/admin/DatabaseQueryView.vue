@@ -198,17 +198,18 @@ onUnmounted(() => {
 async function loadHistory() {
   try {
     const data = await chatAdapter.getMyMessagesByOrigin('db_query')
+    console.log(`[DatabaseQuery] loadHistory: ${Array.isArray(data) ? data.length : 0} mensajes cargados (userId=${tokenStorage.userId})`)
     if (Array.isArray(data) && data.length > 0) {
       messages.value = data.map((m) => ({
-        id: m.id || crypto.randomUUID(),
+        id: String(m.id || '') || crypto.randomUUID(),
         role: m.role,
         content: m.content,
         excelUrl: m.excelUrl ?? null,
       }))
       scrollToBottom()
     }
-  } catch {
-    // ignore – user may have no history yet
+  } catch (err) {
+    console.error('[DatabaseQuery] Error cargando historial:', err)
   }
 }
 
@@ -344,7 +345,9 @@ function persistMessage(content: string, isFromUser: boolean, excelUrl: string |
     origin: 'db_query',
     excelUrl,
     username: tokenStorage.username ?? null,
-  } as any).catch(() => { /* silent – does not disrupt UX */ })
+  } as any)
+  .then(() => console.log('[DatabaseQuery] Mensaje guardado en backend (origin=db_query)'))
+  .catch((err) => console.error('[DatabaseQuery] Error guardando mensaje:', err))
 }
 
 // ── Send ──
@@ -352,6 +355,7 @@ function persistMessage(content: string, isFromUser: boolean, excelUrl: string |
 async function sendQuery() {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
+  isTyping.value = true
 
   messages.value.push({ id: crypto.randomUUID(), role: 'user', content: text })
   inputText.value = ''
@@ -363,7 +367,6 @@ async function sendQuery() {
   // Persist user message immediately – independent of the LLM call
   persistMessage(text, true)
 
-  isTyping.value = true
   try {
     // Excel generation is now handled server-side by /llm/process.
     // A single LLM call generates BOTH the text AND the Excel from the same data,
