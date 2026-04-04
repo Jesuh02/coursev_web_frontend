@@ -1,6 +1,8 @@
 import type { StoragePort } from '@/domain/ports'
 import { api, tokenStorage, getApiV1 } from './httpClient'
 
+type StoragePrefix = 'videos' | 'content' | 'submissions' | 'courses' | 'images'
+
 
 export const storageAdapter: StoragePort = {
   getUploadUrl: (fileName, contentType, folder) => {
@@ -19,7 +21,7 @@ export const storageAdapter: StoragePort = {
  */
 export async function uploadFileDirect(
   file: File,
-  prefix: 'videos' | 'content' | 'submissions' | 'courses',
+  prefix: StoragePrefix,
   onProgress?: (pct: number) => void,
 ): Promise<{ key: string; publicUrl: string }> {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -94,7 +96,7 @@ export async function uploadFileDirect(
  */
 async function uploadViaBackend(
   file: File,
-  prefix: string,
+  prefix: StoragePrefix,
   onProgress?: (pct: number) => void,
 ): Promise<{ key: string; publicUrl: string }> {
   const formData = new FormData()
