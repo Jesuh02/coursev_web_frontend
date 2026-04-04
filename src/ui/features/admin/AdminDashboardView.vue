@@ -2431,6 +2431,14 @@ const loadApprovedEnrollments = async () => {
       for (const sid of blocked) {
         newBlockedKeys.add(`${uid}-${cid}-${sid}`)
       }
+      // Also mark subjects with enrollment_status='inactivo' (from progreso_materia) as blocked
+      const subjects: any[] = Array.isArray(item.subjects) ? item.subjects : []
+      for (const s of subjects) {
+        const enrollStatus = String(s.enrollmentStatus ?? s.enrollment_status ?? 'activo').toLowerCase()
+        if (enrollStatus === 'inactivo' && s.id) {
+          newBlockedKeys.add(`${uid}-${cid}-${s.id}`)
+        }
+      }
     }
     blockedSubjectKeys.value = newBlockedKeys
 
