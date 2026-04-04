@@ -332,11 +332,34 @@ function logoutAndGoToLogin() {
   }
 
   .video-home {
-    max-width: 480px;
+    max-width: 560px;
     height: calc(100dvh - 40px);
     border-radius: 16px;
     scroll-snap-type: none;
     overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Ambient glow behind the video feed */
+  .video-feed-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(calc(-50% - 20px), -50%);
+    width: 500px;
+    height: calc(100dvh - 20px);
+    z-index: 0;
+    border-radius: 28px;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(180, 160, 220, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(160, 180, 220, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(200, 200, 220, 0.03) 40%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
   }
 
   .desktop-nav-arrows {
@@ -344,7 +367,7 @@ function logoutAndGoToLogin() {
     flex-direction: column;
     gap: 12px;
     position: absolute;
-    right: calc(50% - 280px);
+    right: calc(50% - 330px);
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
@@ -383,7 +406,7 @@ function logoutAndGoToLogin() {
 /* Larger desktops: reposition arrows further out */
 @media (min-width: 1200px) {
   .desktop-nav-arrows {
-    right: calc(50% - 310px);
+    right: calc(50% - 360px);
   }
 }
 

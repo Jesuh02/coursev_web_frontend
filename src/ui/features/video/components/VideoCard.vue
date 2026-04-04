@@ -750,10 +750,23 @@ defineExpose({ startPreload })
     height: calc(100dvh - 40px);
     border-radius: 16px;
     scroll-snap-align: none;
+    overflow: visible;
   }
 
   .video-player {
     border-radius: 16px;
+  }
+
+  .right-actions {
+    right: -68px;
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 24px;
+  }
+
+  .bottom-info {
+    right: 16px;
   }
 }
 </style>
