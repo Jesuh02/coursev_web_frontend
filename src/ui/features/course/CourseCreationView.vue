@@ -181,6 +181,10 @@ const selectedGuests = ref<User[]>([])
 const originalGuestIds = ref<Set<number>>(new Set())
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 
+// Pre-loaded user lists
+const allUsers = ref<User[]>([])
+const role2Users = ref<User[]>([])
+
 const isEdit = computed(() => !!route.params.id)
 const saveError = ref('')
 
@@ -213,6 +217,20 @@ const effectiveIsActive = computed(() => form.isActive && !deadlineForcesInactiv
 
 onMounted(async () => {
   if (!authStore.user) await authStore.fetchProfile()
+
+  // Pre-load all users for collaborator/guest lists
+  try {
+    const { userAdapter } = await import('@/infrastructure/api')
+    const users = await userAdapter.listAllUsers(500)
+    const me = authStore.user?.username
+    allUsers.value = users.filter(u => u.username !== me)
+    role2Users.value = allUsers.value.filter(u =>
+      u.roles?.some(r => r.id === 2 || r.id === 3)
+    )
+    // Show default lists
+    collabResults.value = role2Users.value
+    guestResults.value = allUsers.value
+  } catch { /* ignore – search still works as fallback */ }
 
   if (!isEdit.value) return
   const course = await courseAdapter.getCourseById(Number(route.params.id))
@@ -342,13 +360,22 @@ function collabMetaLine(user: User) {
 function onCollabSearch() {
   if (collabSearchTimer) clearTimeout(collabSearchTimer)
   const q = collabQuery.value.trim()
-  if (!q) { collabResults.value = []; return }
+  if (!q) {
+    // Show default role 2 users when search is empty
+    collabResults.value = role2Users.value
+    return
+  }
   collabSearchTimer = setTimeout(async () => {
+    // First filter from pre-loaded list
+    const localMatches = allUsers.value.filter(u => matchesCollaboratorQuery(u, q))
+    if (localMatches.length > 0) {
+      collabResults.value = localMatches
+      return
+    }
+    // Fallback to API search for users not in pre-loaded list
     try {
       const users = await userAdapter.searchUsers(q)
-      console.log('[CollaboratorFilter] Backend returned:', users.length, 'users for query:', q)
       const filtered = users.filter(u => u.username !== authStore.user?.username)
-      console.log('[CollaboratorFilter] After self-exclusion:', filtered.length, 'users')
       collabResults.value = filtered
     } catch (err) {
       console.error('[CollaboratorFilter] Search error:', err)
