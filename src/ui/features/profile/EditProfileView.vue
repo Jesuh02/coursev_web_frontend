@@ -92,9 +92,12 @@ onMounted(() => {
 
 <style scoped>
 .edit-profile {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg-primary);
-  padding-bottom: 40px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 0px) + 16px);
 }
 
 .avatar-section {
