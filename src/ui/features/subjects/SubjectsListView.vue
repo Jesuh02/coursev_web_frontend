@@ -294,7 +294,11 @@ async function loadSubjects() {
   errorMessage.value = ''
   try {
     const raw: any[] = await subjectAdapter.getSubjectsByCourse(courseId.value)
-    allSubjects.value = raw.map(normalizeSubject)
+    allSubjects.value = raw.map(normalizeSubject).sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return dateA - dateB
+    })
     loadSubjectStats()
   } catch {
     errorMessage.value = 'Error al cargar materias'
