@@ -157,6 +157,8 @@ import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/domain/models'
+import { courseAdapter, collaboratorAdapter, userAdapter } from '@/infrastructure/api'
+import { uploadFileDirect } from '@/infrastructure/api/storageAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,6 +180,10 @@ const guestResults = ref<User[]>([])
 const selectedGuests = ref<User[]>([])
 const originalGuestIds = ref<Set<number>>(new Set())
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
+
+// Pre-loaded user lists
+const allUsers = ref<User[]>([])
+const role2Users = ref<User[]>([])
 
 const isEdit = computed(() => !!route.params.id)
 const saveError = ref('')
@@ -212,8 +218,20 @@ const effectiveIsActive = computed(() => form.isActive && !deadlineForcesInactiv
 onMounted(async () => {
   if (!authStore.user) await authStore.fetchProfile()
 
+  // Pre-load all users for collaborator/guest lists
+  try {
+    const users = await userAdapter.listAllUsers(500)
+    const me = authStore.user?.username
+    allUsers.value = users.filter(u => u.username !== me)
+    role2Users.value = allUsers.value.filter(u =>
+      u.roles?.some(r => r.id === 2 || r.id === 3)
+    )
+    // Show default lists
+    collabResults.value = role2Users.value
+    guestResults.value = allUsers.value
+  } catch { /* ignore – search still works as fallback */ }
+
   if (!isEdit.value) return
-  const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
   const course = await courseAdapter.getCourseById(Number(route.params.id))
   form.title = course.title
   form.description = course.description ?? ''
@@ -239,8 +257,7 @@ onMounted(async () => {
 
   // Pre-load existing guests (exclude anyone already loaded as collaborator)
   try {
-    const { courseAdapter: ca } = await import('@/infrastructure/api')
-    const guests = await ca.getGuests(Number(route.params.id))
+    const guests = await courseAdapter.getGuests(Number(route.params.id))
     const collabIds = new Set(selectedCollaborators.value.map(c => c.id))
     selectedGuests.value = guests
       .filter(g => !collabIds.has(g.userId))
@@ -342,14 +359,22 @@ function collabMetaLine(user: User) {
 function onCollabSearch() {
   if (collabSearchTimer) clearTimeout(collabSearchTimer)
   const q = collabQuery.value.trim()
-  if (!q) { collabResults.value = []; return }
+  if (!q) {
+    // Show default role 2 users when search is empty
+    collabResults.value = role2Users.value
+    return
+  }
   collabSearchTimer = setTimeout(async () => {
-    const { userAdapter } = await import('@/infrastructure/api')
+    // First filter from pre-loaded list
+    const localMatches = allUsers.value.filter(u => matchesCollaboratorQuery(u, q))
+    if (localMatches.length > 0) {
+      collabResults.value = localMatches
+      return
+    }
+    // Fallback to API search for users not in pre-loaded list
     try {
       const users = await userAdapter.searchUsers(q)
-      console.log('[CollaboratorFilter] Backend returned:', users.length, 'users for query:', q)
       const filtered = users.filter(u => u.username !== authStore.user?.username)
-      console.log('[CollaboratorFilter] After self-exclusion:', filtered.length, 'users')
       collabResults.value = filtered
     } catch (err) {
       console.error('[CollaboratorFilter] Search error:', err)
@@ -388,7 +413,6 @@ async function confirmPromoteToDocente() {
   if (!user) return
   roleDialog.visible = false
   try {
-    const { userAdapter } = await import('@/infrastructure/api')
     await userAdapter.assignRole(user.id, 2)
     addCollaborator(user)
   } catch {
@@ -400,9 +424,19 @@ async function confirmPromoteToDocente() {
 function onGuestSearch() {
   if (guestSearchTimer) clearTimeout(guestSearchTimer)
   const q = guestQuery.value.trim()
-  if (!q) { guestResults.value = []; return }
+  if (!q) {
+    // Show all users when search is empty
+    guestResults.value = allUsers.value
+    return
+  }
   guestSearchTimer = setTimeout(async () => {
-    const { userAdapter } = await import('@/infrastructure/api')
+    // Filter from pre-loaded list
+    const localMatches = allUsers.value.filter(u => matchesCollaboratorQuery(u, q))
+    if (localMatches.length > 0) {
+      guestResults.value = localMatches
+      return
+    }
+    // Fallback to API search
     try {
       const users = await userAdapter.searchUsers(q)
       guestResults.value = users.filter(u => u.username !== authStore.user?.username)
@@ -419,13 +453,9 @@ function handleGuestSelect(user: User) {
   }
   // Don't add if already a collaborator
   if (selectedCollaborators.value.some(c => c.id === user.id)) {
-    guestQuery.value = ''
-    guestResults.value = []
     return
   }
   selectedGuests.value.push(user)
-  guestQuery.value = ''
-  guestResults.value = []
 }
 
 function removeGuest(userId: number) {
@@ -436,16 +466,10 @@ async function submitCourse() {
   saving.value = true
   saveError.value = ''
   try {
-    const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
-    const { api } = await import('@/infrastructure/api/httpClient')
-
     // Upload thumbnail if a new file was selected
     let thumbnailUri: string | undefined
     if (selectedFile.value) {
-      const formData = new FormData()
-      formData.append('file', selectedFile.value)
-      formData.append('prefix', 'thumbnails')
-      const uploaded = await api.upload<{ publicUrl: string }>('/storage/upload', formData)
+      const uploaded = await uploadFileDirect(selectedFile.value, 'images')
       thumbnailUri = encodeURI(uploaded.publicUrl)
     } else if (form.thumbnailPreview && !form.thumbnailPreview.startsWith('blob:')) {
       thumbnailUri = encodeURI(form.thumbnailPreview)

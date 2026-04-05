@@ -153,7 +153,7 @@
             </div>
             <div class="topic-info">
               <span class="topic-name">{{ topic.title }}</span>
-              <p v-if="topic.description" class="topic-subtitle">{{ topic.description }}</p>
+              <p v-if="topic.description" class="topic-subtitle" :class="{ 'topic-subtitle--expanded': expandedTopicDescriptions.has(topic.id) }" @click.stop="toggleTopicDescription(topic.id)">{{ topic.description }}</p>
             </div>
             <button v-if="hasSubjectContentAccess" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -215,7 +215,7 @@
             </div>
             <div class="topic-info">
               <span class="topic-name">{{ topic.title }}</span>
-              <p v-if="topic.description" class="topic-subtitle">{{ topic.description }}</p>
+              <p v-if="topic.description" class="topic-subtitle" :class="{ 'topic-subtitle--expanded': expandedTopicDescriptions.has(topic.id) }" @click.stop="toggleTopicDescription(topic.id)">{{ topic.description }}</p>
             </div>
             <span class="task-count-badge">{{ topicTasks[topic.id]?.length ?? 0 }} tareas</span>
             <span v-if="hasSubjectContentAccess && (pendingByTopic[topic.id] ?? 0) > 0" class="topic-pending-pill">⏳ {{ pendingByTopic[topic.id] }} sin revisar</span>
@@ -249,7 +249,7 @@
                   </button>
                 </div>
               </div>
-              <p v-if="task.description" class="task-description">{{ task.description }}</p>
+              <p v-if="task.description" class="task-description" :class="{ 'task-description--expanded': expandedTaskDescriptions.has(task.id) }" @click.stop="toggleTaskDescription(task.id)">{{ task.description }}</p>
               <div class="task-attachments">
                 <span v-if="!taskContent[task.id]?.length" class="no-attachments">No hay archivos adjuntos</span>
                 <button
@@ -328,10 +328,15 @@ const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
 
-const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
-const displayDescription = computed(() => subjectDescription.value || course.value?.description)
+// Fetched subject data — ensures title is always available even without query params
+const fetchedSubject = ref<{ name?: string; description?: string; thumbnailUrl?: string } | null>(null)
+
+const displayTitle = computed(() => subjectName.value || fetchedSubject.value?.name || course.value?.title || 'Cargando…')
+const displayDescription = computed(() => subjectDescription.value || fetchedSubject.value?.description || course.value?.description)
 const heroImage = computed(() => {
-  const subjectThumb = subjectThumbnailUrl.value ? resolveImageUrl(subjectThumbnailUrl.value) : null
+  const subjectThumb = (subjectThumbnailUrl.value || fetchedSubject.value?.thumbnailUrl)
+    ? resolveImageUrl(subjectThumbnailUrl.value || fetchedSubject.value?.thumbnailUrl)
+    : null
   return subjectThumb || resolveImageUrl(course.value?.thumbnailUri ?? course.value?.thumbnail_uri)
 })
 
@@ -413,6 +418,8 @@ const checkEnrollmentStatus = async (cid: number) => {
 
 const expandedTopics = reactive(new Set<number>())
 const expandedTaskTopics = reactive(new Set<number>())
+const expandedTopicDescriptions = reactive(new Set<number>())
+const expandedTaskDescriptions = reactive(new Set<number>())
 const topicContent = ref<Record<number, ContentItem[]>>({})
 const topicTasks = ref<Record<number, Task[]>>({})
 const taskContent = ref<Record<number, ContentItem[]>>({})
@@ -623,6 +630,16 @@ async function toggleTopicTasks(topicId: number) {
   }
 }
 
+function toggleTopicDescription(topicId: number) {
+  if (expandedTopicDescriptions.has(topicId)) expandedTopicDescriptions.delete(topicId)
+  else expandedTopicDescriptions.add(topicId)
+}
+
+function toggleTaskDescription(taskId: number) {
+  if (expandedTaskDescriptions.has(taskId)) expandedTaskDescriptions.delete(taskId)
+  else expandedTaskDescriptions.add(taskId)
+}
+
 async function deleteTopic(topicId: number) {
   try {
     await topicAdapter.deleteTopic(topicId)
@@ -784,6 +801,20 @@ onMounted(async () => {
     return
   }
   course.value = courseStore.current
+
+  // Always fetch subject data when subjectId is present to guarantee the title
+  if (subjectId.value) {
+    try {
+      const subject = await subjectAdapter.getSubjectById(subjectId.value)
+      if (subject) {
+        fetchedSubject.value = {
+          name: (subject as any).name ?? (subject as any).title,
+          description: (subject as any).description,
+          thumbnailUrl: (subject as any).thumbnailUrl ?? (subject as any).thumbnail_url,
+        }
+      }
+    } catch { /* silent — query params will be used as fallback */ }
+  }
 
   // Guard: if user is not admin and a subjectId is specified, check if subject is blocked
   if (!authStore.hasRole(3) && subjectId.value) {
@@ -1067,7 +1098,8 @@ watch(viewAsRole, async (newRole) => {
 .topic-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(191,90,242,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .topic-info { flex: 1; min-width: 0; }
 .topic-name { font-size: 15px; font-weight: 600; color: #fff; }
-.topic-subtitle { font-size: 12px; color: #8E8E93; margin-top: 3px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic-subtitle { font-size: 12px; color: #8E8E93; margin-top: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.topic-subtitle--expanded { -webkit-line-clamp: unset; overflow: visible; display: block; }
 .topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
 .topic-action:hover { background: rgba(255,255,255,0.08); }
 .chevron { transition: transform 0.25s; flex-shrink: 0; }
@@ -1106,7 +1138,8 @@ watch(viewAsRole, async (newRole) => {
 .status-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 8px; margin-top: 4px; }
 .status-badge.pending, .status-badge.not-submitted { color: #FF9500; background: rgba(255,149,0,0.12); }
 .status-badge.graded { color: #30D158; background: rgba(48,209,88,0.12); }
-.task-description { font-size: 13px; color: #8E8E93; margin-top: 8px; line-height: 1.4; }
+.task-description { font-size: 13px; color: #8E8E93; margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.task-description--expanded { -webkit-line-clamp: unset; overflow: visible; display: block; }
 .task-attachments { margin-top: 8px; }
 .no-attachments { font-size: 12px; color: #555; }
 .attachment-link {
