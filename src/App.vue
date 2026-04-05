@@ -36,6 +36,7 @@ onMounted(async () => {
     notifStore.fetchUnreadCount()
     notifStore.connectSocket(userId)
     notifStore.requestBrowserPermission()
+    notifStore.fetchUnreadCount()
   }
 
   // Handle notification clicks from the service worker → navigate inside the app
@@ -55,6 +56,7 @@ watch(() => authStore.user?.id, (newId) => {
     notifStore.fetchUnreadCount()
     notifStore.connectSocket(userId)
     notifStore.requestBrowserPermission()
+    notifStore.fetchUnreadCount()
   } else {
     notifStore.disconnectSocket()
   }

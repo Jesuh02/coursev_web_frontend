@@ -521,7 +521,9 @@ function writeCachedProgress(cid: number, progress: CourseProgressResponse) {
 
 async function loadStudentProgress(cid: number) {
   const userId = Number(authStore.user?.id ?? 0)
-  if (userId <= 0 || authStore.isAdmin || canEditCourseSettings.value || hasSubjectContentAccess.value) return
+  if (userId <= 0) return
+  // Allow loading when admin views as student (role switcher)
+  if (!isViewingAsStudent.value && (authStore.isAdmin || canEditCourseSettings.value || hasSubjectContentAccess.value)) return
 
   const cached = readCachedProgress(cid)
   if (cached) {
