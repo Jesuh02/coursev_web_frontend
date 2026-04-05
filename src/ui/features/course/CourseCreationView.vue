@@ -157,6 +157,8 @@ import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/domain/models'
+import { courseAdapter, collaboratorAdapter, userAdapter } from '@/infrastructure/api'
+import { uploadFileDirect } from '@/infrastructure/api/storageAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -213,7 +215,6 @@ onMounted(async () => {
   if (!authStore.user) await authStore.fetchProfile()
 
   if (!isEdit.value) return
-  const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
   const course = await courseAdapter.getCourseById(Number(route.params.id))
   form.title = course.title
   form.description = course.description ?? ''
@@ -239,8 +240,7 @@ onMounted(async () => {
 
   // Pre-load existing guests (exclude anyone already loaded as collaborator)
   try {
-    const { courseAdapter: ca } = await import('@/infrastructure/api')
-    const guests = await ca.getGuests(Number(route.params.id))
+    const guests = await courseAdapter.getGuests(Number(route.params.id))
     const collabIds = new Set(selectedCollaborators.value.map(c => c.id))
     selectedGuests.value = guests
       .filter(g => !collabIds.has(g.userId))
@@ -344,7 +344,6 @@ function onCollabSearch() {
   const q = collabQuery.value.trim()
   if (!q) { collabResults.value = []; return }
   collabSearchTimer = setTimeout(async () => {
-    const { userAdapter } = await import('@/infrastructure/api')
     try {
       const users = await userAdapter.searchUsers(q)
       console.log('[CollaboratorFilter] Backend returned:', users.length, 'users for query:', q)
@@ -388,7 +387,6 @@ async function confirmPromoteToDocente() {
   if (!user) return
   roleDialog.visible = false
   try {
-    const { userAdapter } = await import('@/infrastructure/api')
     await userAdapter.assignRole(user.id, 2)
     addCollaborator(user)
   } catch {
@@ -402,7 +400,6 @@ function onGuestSearch() {
   const q = guestQuery.value.trim()
   if (!q) { guestResults.value = []; return }
   guestSearchTimer = setTimeout(async () => {
-    const { userAdapter } = await import('@/infrastructure/api')
     try {
       const users = await userAdapter.searchUsers(q)
       guestResults.value = users.filter(u => u.username !== authStore.user?.username)
@@ -436,9 +433,6 @@ async function submitCourse() {
   saving.value = true
   saveError.value = ''
   try {
-    const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
-    const { uploadFileDirect } = await import('@/infrastructure/api/storageAdapter')
-
     // Upload thumbnail if a new file was selected
     let thumbnailUri: string | undefined
     if (selectedFile.value) {
