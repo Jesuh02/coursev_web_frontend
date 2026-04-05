@@ -6,7 +6,7 @@
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
       <!-- VISTA PROFESOR / ADMIN -->
-      <div v-else-if="isSubjectCreator" class="submission-content">
+      <div v-else-if="isSubjectCreator && !isAdminViewingAsStudent" class="submission-content">
         <div v-if="task" class="task-header-card card-enter">
           <h2 class="task-name">{{ task.title }}</h2>
           <p v-if="task.description" class="task-desc">{{ task.description }}</p>
@@ -214,6 +214,12 @@
 
       <!-- VISTA ESTUDIANTE -->
       <div v-else class="submission-content">
+        <!-- Admin viewing as student: role indicator -->
+        <div v-if="isAdminViewingAsStudent" class="role-indicator-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Vista de Estudiante — Puedes enviar tareas como estudiante</span>
+        </div>
+
         <div v-if="task" class="task-header-card card-enter">
           <h2 class="task-name">{{ task.title }}</h2>
           <p v-if="task.description" class="task-desc">{{ task.description }}</p>
@@ -356,6 +362,56 @@
             <span>{{ submitting ? 'Enviando...' : 'Enviar Tarea' }}</span>
           </button>
         </div>
+
+        <!-- Admin viewing as student: also show grading section -->
+        <template v-if="isAdminViewingAsStudent && allSubmissions.length > 0">
+          <h3 class="section-title" style="margin-top: 16px;">Entregas de Estudiantes (Admin)</h3>
+          <div class="teacher-stats-row card-enter">
+            <span class="stats-chip">{{ allSubmissions.length }} entregas</span>
+            <span class="stats-chip graded">{{ gradedCount }} calificadas</span>
+            <span class="stats-chip pending">{{ allSubmissions.length - gradedCount }} pendientes</span>
+          </div>
+          <div class="search-bar card-enter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
+          </div>
+          <div
+            v-for="(sub, idx) in filteredSubmissions"
+            :key="'admin-' + sub.id"
+            class="student-submission-card card-enter"
+            :style="{ animationDelay: `${0.2 + idx * 0.05}s` }"
+          >
+            <div class="student-header">
+              <div class="student-avatar">{{ (sub.studentUsername ?? 'E')[0].toUpperCase() }}</div>
+              <div class="student-info">
+                <p class="student-name">{{ sub.studentUsername ?? `Estudiante #${sub.student_id}` }}</p>
+                <p v-if="personaNameMap.get(Number(sub.student_id ?? sub.studentId))" class="persona-name">
+                  {{ personaNameMap.get(Number(sub.student_id ?? sub.studentId)) }}
+                </p>
+                <p class="submission-date">{{ formatDate(sub.created_at) }}</p>
+              </div>
+              <span class="grade-badge" :class="sub.grade !== null && sub.grade !== undefined ? 'graded' : 'pending'">
+                {{ sub.grade !== null && sub.grade !== undefined ? `${sub.grade}/10` : 'Sin calificar' }}
+              </span>
+            </div>
+            <div v-if="sub.file_name" class="file-row-teacher">
+              📎
+              <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
+              <span v-else>{{ sub.file_name }}</span>
+            </div>
+            <div class="grade-form">
+              <p class="form-label">Calificar</p>
+              <div class="grade-row">
+                <input v-model.number="gradingMap[sub.id].grade" type="number" min="0" max="10" step="0.1" class="grade-input" placeholder="Nota (0-10)" />
+              </div>
+              <textarea v-model="gradingMap[sub.id].feedback" class="feedback-input" placeholder="Retroalimentación (opcional)..." rows="3" />
+              <button class="grade-btn" :disabled="gradingMap[sub.id].saving" @click="gradeSubmission(sub)">
+                {{ gradingMap[sub.id].saving ? 'Guardando...' : 'Guardar Calificación' }}
+              </button>
+              <p v-if="gradingMap[sub.id].saved" class="saved-msg">✓ Guardado</p>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -372,6 +428,10 @@ import TopBar from '@/ui/shared/components/TopBar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
+
+// ── Role switcher: admin viewing as student ────────────────────────
+const viewAsRole = computed(() => Number(route.query.viewAsRole ?? 0))
+const isAdminViewingAsStudent = computed(() => authStore.isAdmin && viewAsRole.value === 1)
 
 const task = ref<Task | null>(null)
 const submission = ref<TaskSubmission | null>(null)
@@ -435,8 +495,8 @@ const isOverdue = computed(() => {
   return new Date(due as string).getTime() <= currentTimestamp.value
 })
 
-const canSubmit = computed(() => status.value === 'not-submitted' && !isSubjectCreator.value && !isOverdue.value)
-const canResubmit = computed(() => status.value === 'pending' && !isSubjectCreator.value && !isOverdue.value)
+const canSubmit = computed(() => status.value === 'not-submitted' && (!isSubjectCreator.value || isAdminViewingAsStudent.value) && !isOverdue.value)
+const canResubmit = computed(() => status.value === 'pending' && (!isSubjectCreator.value || isAdminViewingAsStudent.value) && !isOverdue.value)
 const isEditingSubmission = ref(false)
 const resubmitFile = ref<File | null>(null)
 const resubmitFileInput = ref<HTMLInputElement | null>(null)
@@ -796,6 +856,16 @@ onMounted(async () => {
 
 /* ── Loading ── */
 .loading-center { display: flex; justify-content: center; padding: 60px 0; }
+
+/* ── Role indicator banner ── */
+.role-indicator-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 12px; margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.10), rgba(191,90,242,0.08));
+  border: 1px solid rgba(0,212,255,0.25);
+  font-size: 13px; font-weight: 500; color: #00D4FF;
+}
+
 .spinner {
   width: 28px; height: 28px;
   border: 3px solid rgba(191,90,242,0.2);

@@ -218,7 +218,36 @@
 
     <!-- ── Input bar ── -->
     <div class="input-bar">
+      <!-- Image preview bar -->
+      <div v-if="pendingImage" class="img-preview-bar">
+        <img :src="pendingImage" class="img-preview-thumb" alt="preview" />
+        <span class="img-preview-name">{{ pendingImageName }}</span>
+        <button class="img-preview-remove" @click="clearPendingImage" title="Quitar imagen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
       <div class="input-wrap">
+        <!-- Hidden file input for images -->
+        <input
+          ref="imageInputRef"
+          type="file"
+          accept="image/*"
+          style="display: none"
+          @change="onImageSelected"
+        />
+        <button
+          class="send-btn send-btn--attach"
+          title="Adjuntar imagen"
+          @click="imageInputRef?.click()"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
         <textarea
           ref="inputRef"
           v-model="inputText"
@@ -565,6 +594,11 @@ const coursesCache = ref<Course[]>([])
 // Graded tasks
 const showGradedOverlay = ref(false)
 const gradedTasks = ref<GradedEntry[]>([])
+
+// Image attachment for vision
+const pendingImage = ref<string | null>(null) // base64 data URI
+const pendingImageName = ref<string>('')
+const imageInputRef = ref<HTMLInputElement>()
 
 // Student progress
 const showStudentProgressOverlay = ref(false)
@@ -1015,6 +1049,29 @@ function clearContext() {
   selectedTask.value = null
 }
 
+// ─── Image attachment ─────────────────────────────────────────────────────────
+
+function onImageSelected(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 7 * 1024 * 1024) {
+    alert('La imagen es demasiado grande. Máximo 7 MB.')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    pendingImage.value = reader.result as string
+    pendingImageName.value = file.name
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearPendingImage() {
+  pendingImage.value = null
+  pendingImageName.value = ''
+  if (imageInputRef.value) imageInputRef.value.value = ''
+}
+
 // ─── Send message ─────────────────────────────────────────────────────────────
 
 async function sendMessage() {
@@ -1076,7 +1133,12 @@ async function sendMessage() {
       }),
       // Enable MCP tools (DB queries) only for teachers and admins
       ...(!ctx && !progressCtx && authStore.isAdminOrDocente && { forceMCPTools: true }),
+      // Attach image if user selected one
+      ...(pendingImage.value && { imageBase64: pendingImage.value }),
     }
+
+    // Clear image after building payload
+    clearPendingImage()
 
     const data = await api.postSlow<{
       respuesta_texto?: string
@@ -2062,6 +2124,56 @@ function renderMarkdown(text: string): string {
 }
 
 .send-btn:disabled { opacity: 0.4; }
+
+/* Image preview bar */
+.img-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.img-preview-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.img-preview-name {
+  flex: 1;
+  font-size: 13px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.img-preview-remove {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-preview-remove:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #ff4444;
+}
+
+/* Image attach button */
+.send-btn--attach {
+  color: #888;
+}
+.send-btn--attach:hover {
+  color: #00D68F;
+  background: rgba(0, 214, 143, 0.08);
+}
 
 @keyframes micPulse {
   0%, 100% { transform: scale(1); }

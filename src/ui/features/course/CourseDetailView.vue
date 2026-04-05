@@ -30,6 +30,15 @@
         <span v-if="canEditCourseSettings" class="tag config" @click="$router.push(`/course/${courseId}/edit`)">Configurar</span>
       </div>
 
+      <!-- Role switcher for admin (role 3) -->
+      <div v-if="canSwitchRole" class="role-switcher">
+        <label class="role-switcher-label">Vista actual:</label>
+        <select v-model="viewAsRole" class="role-switcher-select">
+          <option :value="3">Administrador (Rol 3)</option>
+          <option :value="1">Estudiante (Rol 1)</option>
+        </select>
+      </div>
+
       <!-- Pending submissions alert (admin/docente only) -->
       <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="pending-alert-card">
         <div class="pending-alert-header">
@@ -222,8 +231,8 @@
                 </div>
                 <div class="task-info">
                   <p class="task-title">{{ task.title }}</p>
-                  <span v-if="!hasSubjectContentAccess" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
-                  <span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
+                  <span v-if="!hasSubjectContentAccess || isViewingAsStudent" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
+                  <span v-if="hasSubjectContentAccess && !isViewingAsStudent && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
                 </div>
                 <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
                   <button
@@ -253,8 +262,8 @@
               </div>
               <button
                 class="submissions-btn"
-                @click="$router.push({ path: `/task-submission/${task.id}`, query: { courseId: String(courseId) } })"
-              >{{ (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
+                @click="$router.push({ path: `/task-submission/${task.id}`, query: { courseId: String(courseId), ...(canSwitchRole ? { viewAsRole: String(viewAsRole) } : {}) } })"
+              >{{ isViewingAsStudent ? 'Realizar Entrega' : (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
             </div>
           </div>
         </div>
@@ -333,7 +342,16 @@ const isCourseCreator = computed(() => {
   const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
   return currentUserId > 0 && creatorId === currentUserId
 })
+
+// ── Role switcher for admin (role 3) ────────────────────────────────
+// viewAsRole: 3 = admin/creator view, 1 = student view
+const viewAsRole = ref<number>(authStore.isAdmin ? 3 : 1)
+const canSwitchRole = computed(() => authStore.isAdmin)
+const viewAsRoleLabel = computed(() => viewAsRole.value === 3 ? 'Administrador' : 'Estudiante')
+const isViewingAsStudent = computed(() => canSwitchRole.value && viewAsRole.value === 1)
+
 const canEditCourseSettings = computed(() => authStore.isAdmin || isCourseCreator.value)
+// When viewing as student, keep CRUD access (role 3 always has it)
 const hasSubjectContentAccess = computed(() =>
   canEditCourseSettings.value || collaboratorAccess.value
 )
@@ -360,12 +378,16 @@ const showEnrollmentBanner = computed(() => {
   return enrollmentStatus.value !== 'approved'
 })
 
-const showStudentProgressCard = computed(() =>
-  !canEditCourseSettings.value &&
-  !hasSubjectContentAccess.value &&
-  !showEnrollmentBanner.value &&
-  (progressLoading.value || progressLoaded.value || Boolean(studentProgress.value))
-)
+const showStudentProgressCard = computed(() => {
+  // Admin viewing as student: show progress card
+  if (isViewingAsStudent.value) {
+    return progressLoading.value || progressLoaded.value || Boolean(studentProgress.value)
+  }
+  return !canEditCourseSettings.value &&
+    !hasSubjectContentAccess.value &&
+    !showEnrollmentBanner.value &&
+    (progressLoading.value || progressLoaded.value || Boolean(studentProgress.value))
+})
 
 const requestEnrollment = async () => {
   requestingEnrollment.value = true
@@ -695,7 +717,8 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
 }
 
 async function loadSubmissionStatuses(tasks: Task[]) {
-  if (hasSubjectContentAccess.value) return
+  // Allow loading when admin views as student
+  if (hasSubjectContentAccess.value && !isViewingAsStudent.value) return
   const userId = authStore.user?.id
   if (!userId) return
   for (const task of tasks) {
@@ -849,6 +872,23 @@ watch(() => authStore.user?.id, async (newId) => {
     }
   } catch { /* silent */ }
 })
+
+// When admin switches to student view, load student progress and submission statuses
+watch(viewAsRole, async (newRole) => {
+  if (newRole === 1 && authStore.isAdmin) {
+    const cid = Number(courseId.value)
+    if (cid > 0) {
+      if (!studentProgress.value && !progressLoading.value) {
+        await loadStudentProgress(cid)
+      }
+      // Load submission statuses so task badges show for student view
+      const allTasks = Object.values(topicTasks.value).flat()
+      if (allTasks.length > 0) {
+        await loadSubmissionStatuses(allTasks)
+      }
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -880,6 +920,23 @@ watch(() => authStore.user?.id, async (newId) => {
 .tag.subject-tag { color: #00D4FF; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
 .tag.config { cursor: pointer; border-color: rgba(255,255,255,0.15); }
 .tag.config:hover { background: rgba(255,255,255,0.1); }
+
+/* ── Role switcher ─────────────────────────────────────── */
+.role-switcher {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 18px; padding: 10px 14px; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(191,90,242,0.08));
+  border: 1px solid rgba(0,212,255,0.2);
+}
+.role-switcher-label { font-size: 13px; font-weight: 600; color: #8E8E93; white-space: nowrap; }
+.role-switcher-select {
+  flex: 1; padding: 8px 12px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; outline: none; appearance: auto;
+}
+.role-switcher-select:focus { border-color: rgba(0,212,255,0.4); }
+.role-switcher-select option { background: #1C1C1E; color: #fff; }
 
 .progress-card {
   margin-bottom: 20px;
