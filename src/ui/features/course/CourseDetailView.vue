@@ -328,10 +328,15 @@ const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
 
-const displayTitle = computed(() => subjectName.value || course.value?.title || 'Cargando…')
-const displayDescription = computed(() => subjectDescription.value || course.value?.description)
+// Fetched subject data — ensures title is always available even without query params
+const fetchedSubject = ref<{ name?: string; description?: string; thumbnailUrl?: string } | null>(null)
+
+const displayTitle = computed(() => subjectName.value || fetchedSubject.value?.name || course.value?.title || 'Cargando…')
+const displayDescription = computed(() => subjectDescription.value || fetchedSubject.value?.description || course.value?.description)
 const heroImage = computed(() => {
-  const subjectThumb = subjectThumbnailUrl.value ? resolveImageUrl(subjectThumbnailUrl.value) : null
+  const subjectThumb = (subjectThumbnailUrl.value || fetchedSubject.value?.thumbnailUrl)
+    ? resolveImageUrl(subjectThumbnailUrl.value || fetchedSubject.value?.thumbnailUrl)
+    : null
   return subjectThumb || resolveImageUrl(course.value?.thumbnailUri ?? course.value?.thumbnail_uri)
 })
 
@@ -796,6 +801,20 @@ onMounted(async () => {
     return
   }
   course.value = courseStore.current
+
+  // Always fetch subject data when subjectId is present to guarantee the title
+  if (subjectId.value) {
+    try {
+      const subject = await subjectAdapter.getSubjectById(subjectId.value)
+      if (subject) {
+        fetchedSubject.value = {
+          name: (subject as any).name ?? (subject as any).title,
+          description: (subject as any).description,
+          thumbnailUrl: (subject as any).thumbnailUrl ?? (subject as any).thumbnail_url,
+        }
+      }
+    } catch { /* silent — query params will be used as fallback */ }
+  }
 
   // Guard: if user is not admin and a subjectId is specified, check if subject is blocked
   if (!authStore.hasRole(3) && subjectId.value) {
