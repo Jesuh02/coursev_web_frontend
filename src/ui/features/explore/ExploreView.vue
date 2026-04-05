@@ -349,10 +349,9 @@ async function navigateToCourse(course: Course) {
       showAccessMessage('Tu solicitud de acceso está pendiente de aprobación.')
     } else if (status === 'revoked') {
       showAccessMessage('Tu acceso a este curso fue revocado por el administrador.')
-    } else if (data?.enrolled === false) {
-      // enrolled es explícitamente false — no permitir acceso aunque el status sea desconocido
-      showAccessMessage('No tienes acceso a este curso.')
     } else {
+      // null status (new student), 'rejected' (guest removed / re-enrollment), or unknown:
+      // let the student request enrollment through the normal pre-enrollment flow.
       await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
     }
   } catch {
