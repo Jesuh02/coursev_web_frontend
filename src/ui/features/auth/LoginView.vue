@@ -412,9 +412,11 @@ function particleStyle(i: number) {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
   background: var(--bg-secondary);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   position: relative;
   display: flex;
   justify-content: center;
@@ -426,6 +428,7 @@ function particleStyle(i: number) {
   position: relative;
   z-index: 1;
   align-self: flex-start;
+  padding-bottom: max(32px, env(safe-area-inset-bottom, 0px) + 16px);
 }
 
 /* ── Partículas flotantes ── */
@@ -512,6 +515,9 @@ function particleStyle(i: number) {
 
 .avatar-glow {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 110px;
   height: 110px;
   border-radius: 50%;
@@ -528,6 +534,7 @@ function particleStyle(i: number) {
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
   position: relative;
   z-index: 1;
   box-shadow: 0 4px 24px rgba(139, 92, 246, 0.35);
@@ -714,6 +721,41 @@ function particleStyle(i: number) {
 .google-button-host :deep(iframe) {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* ── Responsive móvil ── */
+@media (max-width: 480px) {
+  .login-header {
+    padding: 44px 20px 52px;
+  }
+
+  .brand {
+    font-size: 34px;
+  }
+
+  .brand-emoji {
+    font-size: 28px;
+  }
+
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .login-avatar {
+    margin-top: -40px;
+    margin-bottom: 10px;
+  }
+
+  .login-card {
+    margin: 0 12px 16px;
+    padding: 20px 16px;
+  }
+
+  .login-footer {
+    gap: 12px;
+    margin-top: 16px;
+  }
 }
 
 /* ── Animaciones locales ── */
