@@ -7162,4 +7162,171 @@ watch(() => route.query, () => {
   font-size: 10px;
   color: #818CF8;
 }
+
+/* ─── Responsive: enrollment tab (mobile) ──────────────────────────── */
+@media (max-width: 600px) {
+
+  /* Pill sub-tabs: full width */
+  .enroll-pill-tabs {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .enroll-pill-tab {
+    flex: 1;
+    justify-content: center;
+    font-size: 12.5px;
+    padding: 8px 10px;
+  }
+
+  /* Hero card: reduce padding */
+  .enroll-hero {
+    padding: 14px 14px;
+    border-radius: 16px;
+  }
+
+  .enroll-hero-top {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .enroll-hero-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .enroll-hero-title {
+    font-size: 15px;
+  }
+
+  .enroll-hero-sub {
+    font-size: 11.5px;
+  }
+
+  /* KPI row: smaller numbers */
+  .enroll-kpi-num {
+    font-size: 20px;
+  }
+
+  .enroll-kpi-lbl {
+    font-size: 10px;
+  }
+
+  .enroll-kpi {
+    padding: 10px 6px;
+    border-radius: 12px;
+  }
+
+  /* Filter bar: full-width fields stacked */
+  .enroll-filter-bar {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .enroll-filter-field {
+    min-width: 0;
+  }
+
+  /* Pre-matrícula card: stack vertically */
+  .enroll-card {
+    flex-direction: column;
+  }
+
+  .enroll-card-accent {
+    width: 100%;
+    height: 3px;
+  }
+
+  .enroll-card-body {
+    padding: 12px 14px 10px;
+  }
+
+  .enroll-actions-col {
+    flex-direction: row;
+    padding: 0 14px 14px;
+    gap: 8px;
+  }
+
+  .enroll-btn-approve,
+  .enroll-btn-reject {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    font-size: 12.5px;
+  }
+
+  /* Course groups: reduce padding & font */
+  .enroll-course-group-header {
+    padding: 12px 14px;
+  }
+
+  .enroll-course-group-name {
+    font-size: 13.5px;
+  }
+
+  /* Subjects row: horizontal scroll on mobile */
+  .enroll-course-group-subjects {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .enroll-course-group-subjects::-webkit-scrollbar { display: none; }
+
+  .enroll-subj-card {
+    flex-shrink: 0;
+  }
+
+  /* User rows: stack left/right vertically */
+  .enroll-user-rows {
+    padding: 6px 10px 10px;
+    gap: 6px;
+  }
+
+  .enroll-enrolled-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 10px;
+  }
+
+  .enroll-enrolled-left {
+    width: 100%;
+  }
+
+  .enroll-enrolled-right {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  /* Action buttons: full width on mobile */
+  .enroll-activate-btn,
+  .enroll-deactivate-btn,
+  .enroll-revoke-btn,
+  .enroll-restore-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Subject chips: wrap from left */
+  .enroll-block-chips {
+    justify-content: flex-start;
+    max-width: 100%;
+  }
+
+  /* Block details: full width */
+  .enroll-block-details {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Section padding */
+  .enroll-section {
+    padding: 0 10px 24px;
+    gap: 10px;
+  }
+}
 </style>
