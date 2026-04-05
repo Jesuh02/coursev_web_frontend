@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import type { Video } from '@/domain/models'
 import { likeAdapter, commentAdapter, subscriptionAdapter } from '@/infrastructure/api'
 import { tokenStorage, resolveImageUrl, buildProxyFileUrl, extractR2Key } from '@/infrastructure/api/httpClient'
