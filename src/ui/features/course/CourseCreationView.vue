@@ -453,13 +453,9 @@ function handleGuestSelect(user: User) {
   }
   // Don't add if already a collaborator
   if (selectedCollaborators.value.some(c => c.id === user.id)) {
-    guestQuery.value = ''
-    guestResults.value = []
     return
   }
   selectedGuests.value.push(user)
-  guestQuery.value = ''
-  guestResults.value = []
 }
 
 function removeGuest(userId: number) {
