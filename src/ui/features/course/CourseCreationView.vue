@@ -176,6 +176,7 @@ const roleDialog = reactive<{ visible: boolean; user: User | null }>({ visible: 
 const guestQuery = ref('')
 const guestResults = ref<User[]>([])
 const selectedGuests = ref<User[]>([])
+const originalGuestIds = ref<Set<number>>(new Set())
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 
 const isEdit = computed(() => !!route.params.id)
@@ -256,6 +257,7 @@ onMounted(async () => {
         createdAt: null,
         updatedAt: null,
       } as User))
+    originalGuestIds.value = new Set(selectedGuests.value.map(g => g.id))
   } catch { /* ignore */ }
 })
 
@@ -463,8 +465,13 @@ async function submitCourse() {
       const courseId = Number(route.params.id)
       await courseAdapter.updateCourse(courseId, payload)
       await collaboratorAdapter.sync(courseId, selectedCollaborators.value.map(c => c.id))
-      if (selectedGuests.value.length > 0) {
-        await courseAdapter.inviteGuests(courseId, selectedGuests.value.map(g => g.id))
+      // Sync guests: remove those that were deleted, invite those that are new
+      const currentGuestIds = new Set(selectedGuests.value.map(g => g.id))
+      const toRemove = [...originalGuestIds.value].filter(id => !currentGuestIds.has(id))
+      const toInvite = selectedGuests.value.map(g => g.id).filter(id => !originalGuestIds.value.has(id))
+      await Promise.all(toRemove.map(userId => courseAdapter.removeGuest(courseId, userId)))
+      if (toInvite.length > 0) {
+        await courseAdapter.inviteGuests(courseId, toInvite)
       }
       router.back()
     } else {

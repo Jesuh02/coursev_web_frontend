@@ -410,9 +410,12 @@ function logout() {
 
 <style scoped>
 .profile-view {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(180deg, rgba(98,0,238,0.08) 0%, var(--bg-primary) 40%);
-  padding-bottom: 80px;
+  padding-bottom: max(80px, env(safe-area-inset-bottom, 0px) + 64px);
 }
 
 .profile-header {
