@@ -79,6 +79,10 @@ export const useNotificationStore = defineStore('notifications', () => {
     socket.on('connect', () => {
       socket!.emit('join:user', userId)
     })
+    // Hydrate badge count as soon as the server acknowledges the room join
+    socket.on('notification:unread_count', (count: number) => {
+      unreadCount.value = typeof count === 'number' ? count : 0
+    })
     socket.on('notification:new', (raw: Notification) => {
       const notif = normalizeNotification(raw)
       // Prepend only if not already in list

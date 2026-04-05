@@ -33,6 +33,7 @@ onMounted(async () => {
   // Connect notification socket & request browser permission once user is known
   const userId = Number(authStore.user?.id ?? 0)
   if (userId > 0) {
+    notifStore.fetchUnreadCount()
     notifStore.connectSocket(userId)
     notifStore.requestBrowserPermission()
   }
@@ -51,6 +52,7 @@ onMounted(async () => {
 watch(() => authStore.user?.id, (newId) => {
   const userId = Number(newId ?? 0)
   if (userId > 0) {
+    notifStore.fetchUnreadCount()
     notifStore.connectSocket(userId)
     notifStore.requestBrowserPermission()
   } else {
