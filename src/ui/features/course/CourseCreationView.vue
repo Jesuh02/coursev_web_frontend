@@ -437,15 +437,12 @@ async function submitCourse() {
   saveError.value = ''
   try {
     const { courseAdapter, collaboratorAdapter } = await import('@/infrastructure/api')
-    const { api } = await import('@/infrastructure/api/httpClient')
+    const { uploadFileDirect } = await import('@/infrastructure/api/storageAdapter')
 
     // Upload thumbnail if a new file was selected
     let thumbnailUri: string | undefined
     if (selectedFile.value) {
-      const formData = new FormData()
-      formData.append('file', selectedFile.value)
-      formData.append('prefix', 'thumbnails')
-      const uploaded = await api.upload<{ publicUrl: string }>('/storage/upload', formData)
+      const uploaded = await uploadFileDirect(selectedFile.value, 'images')
       thumbnailUri = encodeURI(uploaded.publicUrl)
     } else if (form.thumbnailPreview && !form.thumbnailPreview.startsWith('blob:')) {
       thumbnailUri = encodeURI(form.thumbnailPreview)

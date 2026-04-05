@@ -29,6 +29,10 @@ self.addEventListener('fetch', (event) => {
     // Solo interceptar requests http/https; ignorar chrome-extension://, etc.
     const url = new URL(event.request.url)
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return
+
+    // No interceptar requests a APIs externas (solo cachear assets del propio dominio)
+    if (url.origin !== self.location.origin) return
+
     event.respondWith(
         fetch(event.request)
         .then((response) => {
@@ -39,7 +43,16 @@ self.addEventListener('fetch', (event) => {
             }
             return response
         })
-        .catch(() => caches.match(event.request))
+        .catch(() =>
+            caches.match(event.request).then((cached) => {
+                if (cached) return cached
+                // SPA fallback: para navegación, devolver index.html cacheado
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/index.html')
+                }
+                return cached // undefined — deja que el browser muestre su error de red
+            })
+        )
     )
 })
 
