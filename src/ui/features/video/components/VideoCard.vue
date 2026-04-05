@@ -10,6 +10,7 @@
       playsinline
       :preload="preloadHint ?? 'none'"
       @loadeddata="loaded = true"
+      @canplay="onCanPlay"
       @error="onVideoError"
     />
 
@@ -229,8 +230,11 @@ onMounted(() => {
   videoEl.value?.addEventListener('pause', onVideoPause)
   document.addEventListener('enterpictureinpicture', syncPiPState)
   document.addEventListener('leavepictureinpicture', syncPiPState)
-  if (props.active) tryPlay()
-  else setPausedState(true)
+  if (props.active) {
+    nextTick(() => tryPlay())
+  } else {
+    setPausedState(true)
+  }
 })
 
 function tryPlay() {
@@ -240,6 +244,13 @@ function tryPlay() {
   }
   videoEl.value.muted = muted.value
   videoEl.value.play().then(() => { setPausedState(false) }).catch(() => { setPausedState(true) })
+}
+
+function onCanPlay() {
+  if (props.active && videoEl.value?.paused) {
+    videoEl.value.muted = muted.value
+    videoEl.value.play().then(() => setPausedState(false)).catch(() => {})
+  }
 }
 
 function onVideoPlay() {
