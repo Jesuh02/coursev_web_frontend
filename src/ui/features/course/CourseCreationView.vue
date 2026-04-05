@@ -220,7 +220,6 @@ onMounted(async () => {
 
   // Pre-load all users for collaborator/guest lists
   try {
-    const { userAdapter } = await import('@/infrastructure/api')
     const users = await userAdapter.listAllUsers(500)
     const me = authStore.user?.username
     allUsers.value = users.filter(u => u.username !== me)
@@ -425,8 +424,19 @@ async function confirmPromoteToDocente() {
 function onGuestSearch() {
   if (guestSearchTimer) clearTimeout(guestSearchTimer)
   const q = guestQuery.value.trim()
-  if (!q) { guestResults.value = []; return }
+  if (!q) {
+    // Show all users when search is empty
+    guestResults.value = allUsers.value
+    return
+  }
   guestSearchTimer = setTimeout(async () => {
+    // Filter from pre-loaded list
+    const localMatches = allUsers.value.filter(u => matchesCollaboratorQuery(u, q))
+    if (localMatches.length > 0) {
+      guestResults.value = localMatches
+      return
+    }
+    // Fallback to API search
     try {
       const users = await userAdapter.searchUsers(q)
       guestResults.value = users.filter(u => u.username !== authStore.user?.username)
