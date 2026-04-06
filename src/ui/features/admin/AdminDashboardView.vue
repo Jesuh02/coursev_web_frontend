@@ -112,75 +112,22 @@
           </div>
         </div>
 
-        <!-- Actividad Semanal -->
+        <!-- Actividad Semanal — TradingView Lightweight Chart -->
         <div class="a-card">
           <div class="a-card-header">
             <h3>Actividad Semanal</h3>
             <span class="a-tag a-tag-cyan">Últimos 7 días</span>
           </div>
-          <div class="a-area-chart-wrap">
-            <svg :viewBox="`0 0 ${weeklyAreaWidth} 110`" preserveAspectRatio="none" class="a-area-svg a-area-svg-tall">
-              <defs>
-                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#9B8FFF" stop-opacity="0.45" />
-                  <stop offset="60%" stop-color="#6B5FFF" stop-opacity="0.12" />
-                  <stop offset="100%" stop-color="#5A4FE0" stop-opacity="0" />
-                </linearGradient>
-                <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur"/>
-                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-                <clipPath id="weeklyReveal">
-                  <rect x="0" y="0" :width="weeklyAreaWidth" height="110" class="a-clip-reveal" />
-                </clipPath>
-              </defs>
-              <!-- Horizontal grid lines -->
-              <line x1="0" :x2="weeklyAreaWidth" y1="20" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
-              <line x1="0" :x2="weeklyAreaWidth" y1="42" y2="42" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
-              <line x1="0" :x2="weeklyAreaWidth" y1="64" y2="64" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
-              <line x1="0" :x2="weeklyAreaWidth" y1="86" y2="86" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-              <!-- Max value label -->
-              <text v-if="weeklyMax > 0" x="3" y="15" fill="#636366" font-size="7" font-family="system-ui">{{ weeklyMax }}</text>
-              <text x="3" y="91" fill="#636366" font-size="7" font-family="system-ui">0</text>
-              <!-- Area fill -->
-              <path :d="weeklySmoothedAreaPath" fill="url(#areaFill)" class="a-chart-fill" clip-path="url(#weeklyReveal)" />
-              <!-- Glow line (blurred duplicate) -->
-              <path :d="weeklySmoothedLinePath" fill="none" stroke="#9B8FFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.22" clip-path="url(#weeklyReveal)" />
-              <!-- Main animated line -->
-              <path :d="weeklySmoothedLinePath" fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="a-chart-line" clip-path="url(#weeklyReveal)" />
-              <defs>
-                <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#7B6FEF" />
-                  <stop offset="100%" stop-color="#C4BAFF" />
-                </linearGradient>
-              </defs>
-              <!-- Dots with pulse ring -->
-              <g v-for="(pt, i) in weeklyPoints" :key="i" clip-path="url(#weeklyReveal)">
-                <circle :cx="pt.x" :cy="pt.y" r="7" fill="#9B8FFF" opacity="0.15" class="a-dot-pulse" :style="`animation-delay:${i*0.08+0.5}s`" />
-                <circle :cx="pt.x" :cy="pt.y" r="3.5" fill="#C4BAFF" stroke="#1a1a2e" stroke-width="2" class="a-dot-main" :style="`animation-delay:${i*0.08+0.5}s`" />
-              </g>
-            </svg>
-          </div>
-          <div class="a-chart-labels">
-            <span v-for="label in weeklyLabels" :key="label">{{ label }}</span>
-          </div>
+          <div ref="weeklyChartContainer" class="lw-chart-container"></div>
         </div>
 
-        <!-- Progreso Mensual -->
+        <!-- Progreso Mensual — TradingView Lightweight Chart -->
         <div class="a-card">
           <div class="a-card-header">
             <h3>Progreso Mensual</h3>
             <span class="a-tag a-tag-green">6 meses</span>
           </div>
-          <div class="a-grouped-bars">
-            <div v-for="(m, i) in monthlyBars" :key="i" class="a-bar-group">
-              <div class="a-bars-col">
-                <div class="a-bar a-bar-completed" :style="{ height: m.completedH + '%' }"></div>
-                <div class="a-bar a-bar-active" :style="{ height: m.activeH + '%' }"></div>
-              </div>
-              <span class="a-bar-lbl">{{ m.label }}</span>
-            </div>
-          </div>
+          <div ref="monthlyChartContainer" class="lw-chart-container"></div>
           <div class="a-legend-row">
             <span class="a-legend"><span class="a-dot a-dot-completed"></span>Completados</span>
             <span class="a-legend"><span class="a-dot a-dot-active"></span>Activos</span>
@@ -1505,9 +1452,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import { useRouter, useRoute } from 'vue-router'
+import { createChart, AreaSeries, HistogramSeries, ColorType } from 'lightweight-charts'
+import type { IChartApi, ISeriesApi, AreaSeriesPartialOptions, HistogramSeriesPartialOptions } from 'lightweight-charts'
 import { progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -3409,6 +3358,150 @@ const monthlyBars = computed(() => {
   }))
 })
 
+// ─── TradingView Lightweight Charts ─────────────────────────────────────
+const weeklyChartContainer = ref<HTMLDivElement | null>(null)
+const monthlyChartContainer = ref<HTMLDivElement | null>(null)
+let weeklyChartInstance: IChartApi | null = null
+let monthlyChartInstance: IChartApi | null = null
+
+const lwChartOptions = {
+  layout: {
+    background: { type: ColorType.Solid as const, color: 'transparent' },
+    textColor: '#8E8E93',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontSize: 11,
+  },
+  grid: {
+    vertLines: { color: 'rgba(255,255,255,0.04)' },
+    horzLines: { color: 'rgba(255,255,255,0.04)' },
+  },
+  crosshair: {
+    vertLine: { color: 'rgba(155, 143, 255, 0.3)', width: 1 as const, style: 3 as const, labelBackgroundColor: '#6C63FF' },
+    horzLine: { color: 'rgba(155, 143, 255, 0.3)', width: 1 as const, style: 3 as const, labelBackgroundColor: '#6C63FF' },
+  },
+  rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)', scaleMargins: { top: 0.1, bottom: 0.05 } },
+  timeScale: { borderColor: 'rgba(255,255,255,0.08)', fixLeftEdge: true, fixRightEdge: true },
+  handleScroll: false,
+  handleScale: false,
+}
+
+function buildWeeklyDates(): string[] {
+  const today = new Date()
+  const dates: string[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  return dates
+}
+
+function buildMonthlyDates(): string[] {
+  const today = new Date()
+  const dates: string[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  return dates
+}
+
+function initWeeklyChart() {
+  if (!weeklyChartContainer.value) return
+  if (weeklyChartInstance) { weeklyChartInstance.remove(); weeklyChartInstance = null }
+
+  const chart = createChart(weeklyChartContainer.value, {
+    ...lwChartOptions,
+    height: 180,
+    width: weeklyChartContainer.value.clientWidth,
+  })
+  weeklyChartInstance = chart
+
+  const areaSeries = chart.addSeries(AreaSeries, {
+    lineColor: '#9B8FFF',
+    topColor: 'rgba(155, 143, 255, 0.45)',
+    bottomColor: 'rgba(90, 79, 224, 0)',
+    lineWidth: 2,
+    crosshairMarkerBackgroundColor: '#C4BAFF',
+    crosshairMarkerBorderColor: '#1a1a2e',
+    crosshairMarkerBorderWidth: 2,
+    crosshairMarkerRadius: 5,
+    lastValueVisible: true,
+    priceLineVisible: false,
+  } as AreaSeriesPartialOptions)
+
+  const vals = weeklyValues.value
+  const dates = buildWeeklyDates()
+  const data = dates.map((time, i) => ({ time, value: vals[i] ?? 0 }))
+  areaSeries.setData(data as any)
+  chart.timeScale().fitContent()
+
+  const ro = new ResizeObserver(() => {
+    if (weeklyChartContainer.value && weeklyChartInstance) {
+      weeklyChartInstance.applyOptions({ width: weeklyChartContainer.value.clientWidth })
+    }
+  })
+  ro.observe(weeklyChartContainer.value)
+}
+
+function initMonthlyChart() {
+  if (!monthlyChartContainer.value) return
+  if (monthlyChartInstance) { monthlyChartInstance.remove(); monthlyChartInstance = null }
+
+  const chart = createChart(monthlyChartContainer.value, {
+    ...lwChartOptions,
+    height: 180,
+    width: monthlyChartContainer.value.clientWidth,
+  })
+  monthlyChartInstance = chart
+
+  const completedSeries = chart.addSeries(HistogramSeries, {
+    color: '#30D158',
+    priceFormat: { type: 'volume' },
+    priceScaleId: '',
+    lastValueVisible: false,
+    priceLineVisible: false,
+  } as HistogramSeriesPartialOptions)
+
+  chart.priceScale('').applyOptions({
+    scaleMargins: { top: 0.1, bottom: 0.05 },
+  })
+
+  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
+  const dates = buildMonthlyDates()
+  const data = dates.map((time, i) => ({
+    time,
+    value: vals[i] ?? 0,
+    color: 'rgba(48, 209, 88, 0.85)',
+  }))
+  completedSeries.setData(data as any)
+  chart.timeScale().fitContent()
+
+  const ro = new ResizeObserver(() => {
+    if (monthlyChartContainer.value && monthlyChartInstance) {
+      monthlyChartInstance.applyOptions({ width: monthlyChartContainer.value.clientWidth })
+    }
+  })
+  ro.observe(monthlyChartContainer.value)
+}
+
+watch([weeklyValues, weeklyLabels], () => {
+  if (weeklyChartInstance && weeklyChartContainer.value) {
+    initWeeklyChart()
+  }
+})
+
+watch([monthlyChartRaw], () => {
+  if (monthlyChartInstance && monthlyChartContainer.value) {
+    initMonthlyChart()
+  }
+}, { deep: true })
+
+onBeforeUnmount(() => {
+  if (weeklyChartInstance) { weeklyChartInstance.remove(); weeklyChartInstance = null }
+  if (monthlyChartInstance) { monthlyChartInstance.remove(); monthlyChartInstance = null }
+})
+
 const resolveAvatar = (url: string) => {
   if (!url) return '/default-avatar.png'
   // Google OAuth avatar CDN rate-limits aggressively — use fallback directly
@@ -3467,6 +3560,10 @@ const loadAnalyticsData = async () => {
     console.error('Error loading analytics:', error)
   } finally {
     analyticsLoading.value = false
+    nextTick(() => {
+      initWeeklyChart()
+      initMonthlyChart()
+    })
   }
 }
 
@@ -4005,6 +4102,16 @@ watch(() => route.query, () => {
 .a-chart-labels { display: flex; justify-content: space-between; padding: 6px 6px 0; }
 .a-chart-labels span { font-size: 10px; color: #636366; font-weight: 500; }
 
+/* ═══════ TradingView Lightweight Charts ═══════ */
+.lw-chart-container {
+  width: 100%;
+  height: 180px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.lw-chart-container :deep(table) { border-collapse: collapse; }
+.lw-chart-container :deep(td), .lw-chart-container :deep(th) { border: none !important; }
+
 /* Chart animations */
 @keyframes clipReveal {
   from { width: 0; }
@@ -4026,6 +4133,219 @@ watch(() => route.query, () => {
 @keyframes pulseDot { 0%,100% { r: 7; opacity: 0.15; } 50% { r: 11; opacity: 0; } }
 .a-dot-pulse { animation: pulseDot 2s ease-in-out infinite; }
 .a-chart-line { animation: chartFillIn 0.6s ease 0.35s both; }
+
+/* ═══════ Premium Analytics Tables (.at-) ═══════ */
+.a-premium-table-card { overflow: hidden; }
+
+.at-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 143, 255, 0.25) transparent;
+}
+.at-table-wrap::-webkit-scrollbar { height: 4px; }
+.at-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.at-table-wrap::-webkit-scrollbar-thumb { background: rgba(155, 143, 255, 0.25); border-radius: 4px; }
+
+.at-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.at-table thead tr {
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.08), rgba(155, 143, 255, 0.04));
+}
+
+.at-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8E8E93;
+  border-bottom: 1px solid rgba(130, 112, 255, 0.12);
+  white-space: nowrap;
+}
+
+.at-th-rank { width: 40px; text-align: center; }
+.at-th-right { text-align: right; }
+
+.at-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.at-row {
+  transition: background 0.2s, transform 0.15s;
+  animation: atRowSlideIn 0.35s ease both;
+}
+@keyframes atRowSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.at-row:hover {
+  background: rgba(155, 143, 255, 0.06);
+}
+
+.at-row-clickable { cursor: pointer; }
+.at-row-clickable:hover { background: rgba(155, 143, 255, 0.10); }
+
+.at-row-gold td:first-child { box-shadow: inset 3px 0 0 #FFD700; }
+.at-row-silver td:first-child { box-shadow: inset 3px 0 0 #C0C0C0; }
+.at-row-bronze td:first-child { box-shadow: inset 3px 0 0 #CD7F32; }
+
+.at-cell-rank { text-align: center; width: 40px; }
+
+.at-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+}
+.at-medal-1 { background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 165, 0, 0.12)); }
+.at-medal-2 { background: linear-gradient(135deg, rgba(192, 192, 192, 0.18), rgba(160, 160, 160, 0.12)); }
+.at-medal-3 { background: linear-gradient(135deg, rgba(205, 127, 50, 0.18), rgba(168, 107, 40, 0.12)); }
+.at-medal-4, .at-medal-5 {
+  font-size: 12px;
+  font-weight: 800;
+  color: #636366;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.at-cell-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.at-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(155, 143, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.at-username {
+  font-weight: 600;
+  color: #fff;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.at-cell-num { text-align: right; }
+
+.at-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.at-pill-purple {
+  color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.12);
+  border: 1px solid rgba(191, 90, 242, 0.18);
+}
+.at-pill-cyan {
+  color: #00D4FF;
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+}
+.at-pill-green {
+  color: #30D158;
+  background: rgba(48, 209, 88, 0.12);
+  border: 1px solid rgba(48, 209, 88, 0.18);
+}
+
+.at-cell-rating { text-align: right; }
+
+.at-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(255, 214, 10, 0.08);
+}
+.at-stars span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFD60A;
+}
+
+.at-cell-course {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.at-course-thumb {
+  width: 44px; height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.at-course-info { min-width: 0; }
+
+.at-course-name {
+  font-weight: 600;
+  color: #fff;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  max-width: 180px;
+}
+
+.at-cell-grade { text-align: right; }
+
+.at-grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.at-grade-high {
+  color: #30D158;
+  background: rgba(48, 209, 88, 0.12);
+  border: 1px solid rgba(48, 209, 88, 0.18);
+}
+.at-grade-mid {
+  color: #FFD60A;
+  background: rgba(255, 214, 10, 0.10);
+  border: 1px solid rgba(255, 214, 10, 0.18);
+}
+.at-grade-low {
+  color: #FF453A;
+  background: rgba(255, 69, 58, 0.10);
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
 
 /* ═══════ Cursos por Terminar thumbnail ═══════ */
 .course-finish-thumb {
