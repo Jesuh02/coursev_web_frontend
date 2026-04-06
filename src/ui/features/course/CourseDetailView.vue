@@ -290,7 +290,7 @@
             <div v-if="!memberTeachers.length" class="members-empty">Sin docentes asignados</div>
             <div v-for="teacher in memberTeachers" :key="teacher.userId" class="member-row" @click="$router.push(`/user/${teacher.userId}`)">
               <div class="member-avatar">
-                <img v-if="teacher.avatar" :src="resolveImageUrl(teacher.avatar)" :alt="teacher.username" @error="($event.target as HTMLImageElement).style.display='none'" />
+                <img v-if="teacher.avatar" :src="resolveImageUrl(teacher.avatar) ?? undefined" :alt="teacher.username" @error="($event.target as HTMLImageElement).style.display='none'" />
                 <span v-else class="member-avatar-initials">{{ teacher.username.charAt(0).toUpperCase() }}</span>
               </div>
               <div class="member-info">
@@ -311,7 +311,7 @@
             <div v-if="!memberStudents.length" class="members-empty">Sin estudiantes inscritos</div>
             <div v-for="student in memberStudents" :key="student.userId" class="member-row" @click="$router.push(`/user/${student.userId}`)">
               <div class="member-avatar">
-                <img v-if="student.avatar" :src="resolveImageUrl(student.avatar)" :alt="student.username ?? ''" @error="($event.target as HTMLImageElement).style.display='none'" />
+                <img v-if="student.avatar" :src="resolveImageUrl(student.avatar) ?? undefined" :alt="student.username ?? ''" @error="($event.target as HTMLImageElement).style.display='none'" />
                 <span v-else class="member-avatar-initials">{{ (student.username ?? 'E').charAt(0).toUpperCase() }}</span>
               </div>
               <div class="member-info">
