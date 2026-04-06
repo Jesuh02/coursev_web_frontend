@@ -140,6 +140,9 @@
           Tareas <span class="tab-count">{{ totalTaskCount }}</span>
           <span v-if="hasSubjectContentAccess && totalPendingCount > 0" class="tab-pending-badge">{{ totalPendingCount }}</span>
         </button>
+        <button class="tab-btn tab-btn--members" :class="{ active: activeTab === 'members' }" @click="activeTab = 'members'">
+          Personas
+        </button>
       </div>
 
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
@@ -194,7 +197,7 @@
         </div>
       </template>
 
-      <template v-else>
+      <template v-else-if="activeTab === 'tasks'">
         <!-- Pending tasks summary bar (admin/docente only) -->
         <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="tasks-pending-bar">
           <div class="tasks-pending-bar-left">
@@ -273,6 +276,54 @@
         </div>
       </template>
 
+      <!-- ── Personas tab ───────────────────────────────── -->
+      <template v-if="activeTab === 'members'">
+        <div v-if="membersLoading" class="loading-center"><div class="spinner" /></div>
+        <template v-else>
+          <!-- Docentes -->
+          <div class="members-section">
+            <div class="members-section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <h3 class="members-section-title">Docentes</h3>
+              <span class="members-count">{{ memberTeachers.length }}</span>
+            </div>
+            <div v-if="!memberTeachers.length" class="members-empty">Sin docentes asignados</div>
+            <div v-for="teacher in memberTeachers" :key="teacher.userId" class="member-row" @click="$router.push(`/user/${teacher.userId}`)">
+              <div class="member-avatar">
+                <img v-if="teacher.avatar" :src="resolveImageUrl(teacher.avatar)" :alt="teacher.username" @error="($event.target as HTMLImageElement).style.display='none'" />
+                <span v-else class="member-avatar-initials">{{ teacher.username.charAt(0).toUpperCase() }}</span>
+              </div>
+              <div class="member-info">
+                <p class="member-name">{{ teacher.username }}</p>
+                <p class="member-meta">Docente</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+            </div>
+          </div>
+
+          <!-- Estudiantes -->
+          <div class="members-section">
+            <div class="members-section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+              <h3 class="members-section-title">Estudiantes</h3>
+              <span class="members-count">{{ memberStudents.length }}</span>
+            </div>
+            <div v-if="!memberStudents.length" class="members-empty">Sin estudiantes inscritos</div>
+            <div v-for="student in memberStudents" :key="student.userId" class="member-row" @click="$router.push(`/user/${student.userId}`)">
+              <div class="member-avatar">
+                <img v-if="student.avatar" :src="resolveImageUrl(student.avatar)" :alt="student.username ?? ''" @error="($event.target as HTMLImageElement).style.display='none'" />
+                <span v-else class="member-avatar-initials">{{ (student.username ?? 'E').charAt(0).toUpperCase() }}</span>
+              </div>
+              <div class="member-info">
+                <p class="member-name">{{ student.username ?? 'Estudiante' }}</p>
+                <p class="member-meta">Estudiante</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+            </div>
+          </div>
+        </template>
+      </template>
+
       <div v-if="hasSubjectContentAccess && !loading" class="bottom-actions">
         <button class="action-btn theme" @click="$router.push({ path: `/course/${courseId}/topic`, query: { subjectId: String(subjectId ?? '') } })">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
@@ -291,12 +342,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Course, Topic, Task, ContentItem, Progress } from '@/domain/models'
+import type { Course, Topic, Task, ContentItem, Progress, GuestEntry } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
 import {
   topicAdapter, taskAdapter, contentItemAdapter,
   submissionAdapter, resolveImageUrl, buildProxyFileUrl, collaboratorAdapter, subjectAdapter,
-  tokenStorage,
+  courseAdapter, userAdapter, tokenStorage,
 } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -322,14 +373,14 @@ const subjectDescription = computed(() => route.query.subjectDescription as stri
 const subjectThumbnailUrl = computed(() => route.query.subjectThumbnailUrl as string | undefined)
 const course = ref<Course | null>(null)
 const topics = ref<Topic[]>([])
-const activeTab = ref<'docs' | 'tasks'>('docs')
+const activeTab = ref<'docs' | 'tasks' | 'members'>('docs')
 const loading = ref(true)
 const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
 
 // Fetched subject data — ensures title is always available even without query params
-const fetchedSubject = ref<{ name?: string; description?: string; thumbnailUrl?: string } | null>(null)
+const fetchedSubject = ref<{ name?: string; description?: string; thumbnailUrl?: string; createdBy?: number | null } | null>(null)
 
 const displayTitle = computed(() => subjectName.value || fetchedSubject.value?.name || course.value?.title || 'Cargando…')
 const displayDescription = computed(() => subjectDescription.value || fetchedSubject.value?.description || course.value?.description)
@@ -413,6 +464,64 @@ const checkEnrollmentStatus = async (cid: number) => {
     enrollmentStatus.value = extractEnrollmentStatus(data)
   } catch {
     enrollmentStatus.value = null
+  }
+}
+
+// ── Members (Personas tab) ──────────────────────────────────────────
+interface CollaboratorMember {
+  id: number
+  userId: number
+  username: string
+  email: string
+  avatar: string | null
+}
+const memberTeachers = ref<CollaboratorMember[]>([])
+const memberStudents = ref<GuestEntry[]>([])
+const membersLoading = ref(false)
+const membersLoaded = ref(false)
+
+async function loadMembers(courseIdNum: number) {
+  if (membersLoaded.value) return
+  membersLoading.value = true
+  try {
+    // Usar getGuests igual que la vista de edición — fuente de verdad de los estudiantes
+    const guests = await courseAdapter.getGuests(courseIdNum).catch(() => [])
+    memberStudents.value = guests as GuestEntry[]
+
+    // Si estamos dentro de una materia, solo mostrar el docente creador de esa materia
+    if (subjectId.value) {
+      const creatorId = fetchedSubject.value?.createdBy ?? null
+      if (creatorId) {
+        try {
+          const creator = await userAdapter.getUserById(creatorId) as any
+          memberTeachers.value = [{
+            id: creatorId,
+            userId: creatorId,
+            username: creator?.username ?? 'Docente',
+            email: creator?.email ?? '',
+            avatar: creator?.avatar ?? null,
+          }]
+        } catch {
+          memberTeachers.value = []
+        }
+      } else {
+        memberTeachers.value = []
+      }
+    } else {
+      // Sin materia: mostrar todos los colaboradores del curso
+      const collabs = await collaboratorAdapter.getByCourse(courseIdNum).catch(() => [])
+      memberTeachers.value = (collabs as any[]).map((c: any) => ({
+        id: c.id,
+        userId: c.userId ?? c.user_id,
+        username: c.user?.username ?? c.username ?? 'Docente',
+        email: c.user?.email ?? c.email ?? '',
+        avatar: c.user?.avatar ?? c.avatar ?? null,
+      }))
+    }
+
+    membersLoaded.value = true
+  } catch { /* silent */ } finally {
+    membersLoading.value = false
   }
 }
 
@@ -811,6 +920,7 @@ onMounted(async () => {
           name: (subject as any).name ?? (subject as any).title,
           description: (subject as any).description,
           thumbnailUrl: (subject as any).thumbnailUrl ?? (subject as any).thumbnail_url,
+          createdBy: (subject as any).createdBy ?? (subject as any).created_by ?? null,
         }
       }
     } catch { /* silent — query params will be used as fallback */ }
@@ -920,6 +1030,14 @@ watch(viewAsRole, async (newRole) => {
         await loadSubmissionStatuses(allTasks)
       }
     }
+  }
+})
+
+// Load members when Personas tab is activated
+watch(activeTab, (tab) => {
+  if (tab === 'members') {
+    const cid = Number(courseId.value)
+    if (cid > 0) loadMembers(cid)
   }
 })
 </script>
@@ -1079,6 +1197,7 @@ watch(viewAsRole, async (newRole) => {
   border: 2px solid rgba(255,255,255,0.08); transition: all 0.25s;
 }
 .tab-btn.active { color: #000; background: linear-gradient(135deg, #00D4FF, #00E5C5); border-color: transparent; }
+.tab-btn--members.active { color: #fff; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .tab-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
@@ -1298,4 +1417,54 @@ watch(viewAsRole, async (newRole) => {
   transition: opacity 0.2s;
 }
 .enroll-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Members / Personas tab ────────────────────────────── */
+.members-section {
+  margin-bottom: 28px;
+}
+
+.members-section-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.members-section-title {
+  font-size: 15px; font-weight: 700; color: #fff; margin: 0; flex: 1;
+}
+
+.members-count {
+  min-width: 24px; height: 24px; padding: 0 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px; background: rgba(255,255,255,0.08);
+  font-size: 12px; font-weight: 700; color: #8E8E93;
+}
+
+.members-empty {
+  font-size: 13px; color: #555; padding: 10px 0;
+}
+
+.member-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  margin-bottom: 6px; cursor: pointer;
+  background: rgba(255,255,255,0.03);
+  transition: background 0.15s;
+}
+.member-row:hover { background: rgba(255,255,255,0.06); }
+
+.member-avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.member-avatar-initials {
+  font-size: 16px; font-weight: 700; color: #BF5AF2;
+}
+
+.member-info { flex: 1; min-width: 0; }
+.member-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
 </style>
