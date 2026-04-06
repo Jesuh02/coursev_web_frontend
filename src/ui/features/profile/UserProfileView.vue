@@ -354,12 +354,19 @@ onMounted(async () => {
 
     // Load subjects for role 2 and role 3 users
     const hasRole2or3 = fetchedUser.roles?.some(r => r.id === 2 || r.id === 3)
-    if (hasRole2or3 && fetchedCourses.length > 0) {
-      const subjectPromises = fetchedCourses.map(c =>
-        subjectAdapter.getSubjectsByCourse(c.id).catch(() => [] as Subject[])
-      )
-      const subjectsByC = await Promise.all(subjectPromises)
-      allSubjects.value = subjectsByC.flat()
+    if (hasRole2or3) {
+      // Use creator endpoint to get subjects created by this user directly
+      const creatorSubjects = await subjectAdapter.getSubjectsByCreator(userId).catch(() => [] as Subject[])
+      if (creatorSubjects.length > 0) {
+        allSubjects.value = creatorSubjects
+      } else if (fetchedCourses.length > 0) {
+        // Fallback: iterate over courses to find subjects
+        const subjectPromises = fetchedCourses.map(c =>
+          subjectAdapter.getSubjectsByCourse(c.id).catch(() => [] as Subject[])
+        )
+        const subjectsByC = await Promise.all(subjectPromises)
+        allSubjects.value = subjectsByC.flat()
+      }
     }
 
     // Set default tab based on role

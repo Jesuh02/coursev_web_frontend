@@ -85,6 +85,7 @@ export interface TaskPort {
 
 export interface SubjectPort {
   getSubjectsByCourse(courseId: number): Promise<Subject[]>
+  getSubjectsByCreator(userId: number): Promise<Subject[]>
   getSubjectById(id: number): Promise<Subject>
   createSubject(data: Record<string, unknown>): Promise<Subject>
   updateSubject(id: number, data: Record<string, unknown>): Promise<Subject>

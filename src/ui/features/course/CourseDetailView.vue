@@ -1095,6 +1095,10 @@ watch(activeTab, (tab) => {
 
   /* ── Hero ─────────────────────────────────────────────── */
   .hero-section { height: 200px; }
+  .hero-image img {
+    transform: scale(1.25);
+    object-position: center center;
+  }
   .hero-toolbar { padding: 24px 40px; }
   .toolbar-btn {
     width: 44px; height: 44px;

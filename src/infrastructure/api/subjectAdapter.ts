@@ -12,6 +12,7 @@ export interface SubjectCollaborator {
 
 export const subjectAdapter: SubjectPort = {
   getSubjectsByCourse: (courseId) => api.get<Subject[]>(`/subjects/course/${courseId}`),
+  getSubjectsByCreator: (userId: number) => api.get<Subject[]>(`/subjects/creator/${userId}`),
   getSubjectById: (id) => api.get<Subject>(`/subjects/${id}`),
   createSubject: (data) => api.post<Subject>('/subjects', data),
   updateSubject: (id, data) => api.put<Subject>(`/subjects/${id}`, data),
