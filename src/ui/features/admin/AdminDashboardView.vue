@@ -1112,6 +1112,15 @@
               <svg class="enroll-filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
               <input v-model="approvedSubjectFilter" class="enroll-filter-input" placeholder="Filtrar materia..." />
             </div>
+            <button
+              class="enroll-filter-toggle"
+              :class="{ active: approvedOnlyWithoutAccess }"
+              @click="approvedOnlyWithoutAccess = !approvedOnlyWithoutAccess"
+              title="Mostrar solo cursos/materias sin acceso"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Sin acceso
+            </button>
           </div>
         </div>
 
@@ -2263,6 +2272,7 @@ const loadingApproved = ref(false)
 const approvedUserFilter = ref('')
 const approvedCourseFilter = ref('')
 const approvedSubjectFilter = ref('')
+const approvedOnlyWithoutAccess = ref(false)
 const revokingKeys = ref<Record<string, boolean>>({})
 const restoringKeys = ref<Record<string, boolean>>({})
 const blockedSubjectKeys = ref<Set<string>>(new Set())
@@ -2351,6 +2361,7 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
   const uq = approvedUserFilter.value.toLowerCase()
   const cq = approvedCourseFilter.value.toLowerCase()
   const sq = approvedSubjectFilter.value.toLowerCase()
+  const onlyNoAccess = approvedOnlyWithoutAccess.value
 
   const filtered = activeEnrollments.value.filter(e => {
     const matchUser = matchesFlexibleUserSearch(uq, e.fullName, e.username, e.identificacion)
@@ -2358,7 +2369,10 @@ const filteredApprovedGrouped = computed<ApprovedGrouped[]>(() => {
       || (e.courseName ?? '').toLowerCase().includes(cq)
       || String(e.courseId).includes(cq)
     const matchSubject = !sq || e.subjects.some(s => s.name.toLowerCase().includes(sq))
-    return matchUser && matchCourse && matchSubject
+    const matchNoAccess = !onlyNoAccess
+      || e.courseEnrollmentStatus === 'inactivo'
+      || e.subjects.some(s => blockedSubjectKeys.value.has(`${e.userId}-${e.courseId}-${s.id}`))
+    return matchUser && matchCourse && matchSubject && matchNoAccess
   })
 
   const grouped = new Map<number, ApprovedGrouped>()
@@ -5557,6 +5571,25 @@ watch(() => route.query, () => {
 }
 
 .enroll-filter-input::placeholder { color: #4B5563; }
+
+.enroll-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: #8E8E93;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.enroll-filter-toggle:hover { background: rgba(255,69,58,0.08); border-color: rgba(255,69,58,0.3); color: #FF6B6B; }
+.enroll-filter-toggle.active { background: rgba(255,69,58,0.12); border-color: rgba(255,69,58,0.45); color: #FF453A; }
 
 /* ─── Skeletons ────────────────────────────────────────────────────── */
 
