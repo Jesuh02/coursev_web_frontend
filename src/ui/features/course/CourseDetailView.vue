@@ -1115,12 +1115,12 @@ watch(activeTab, (tab) => {
   }
   .toolbar-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
   .hero-info {
-    top: 50%; bottom: auto; left: 50%; right: auto;
-    transform: translate(-50%, -50%);
-    width: 90%; padding: 0 20px;
-    box-sizing: border-box; text-align: center;
+    top: 0; bottom: 0; left: 0; right: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; z-index: 6;
   }
-  .hero-gradient { height: 100%; background: rgba(0,0,0,0.35); border-radius: 16px; }
+  .hero-gradient { top: 0; height: 100%; background: rgba(0,0,0,0.35); border-radius: 16px; }
   .hero-accent { height: 3px; background: linear-gradient(90deg, #00D4FF 0%, #BF5AF2 50%, #FF375F 100%); border-radius: 0 0 16px 16px; }
 
   .course-title {
