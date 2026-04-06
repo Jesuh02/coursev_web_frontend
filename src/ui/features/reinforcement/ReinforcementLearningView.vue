@@ -975,13 +975,15 @@ async function startQuiz() {
     // Kick off async generation — returns a jobId immediately (no long HTTP connection)
     type StartResp = { jobId: string }
     const startData = await api.post<StartResp>('/reinforcement/start-generation', body)
-    const jobId = (startData as unknown as StartResp)?.jobId
+    let jobId = (startData as unknown as StartResp)?.jobId
     if (!jobId) throw new Error('No se pudo iniciar la generación. Intenta de nuevo.')
 
     // Poll until done or error. First-time ingestion can be slow, so keep the UI waiting much longer.
     const MAX_POLL_MS   = 110 * 60 * 1000
     const POLL_INTERVAL = 2500
     const pollStart     = Date.now()
+    const MAX_GEN_RETRIES = 2
+    let   genRetries = 0
 
     type PollResp = { status: 'pending' | 'done' | 'error'; questions?: QuizQuestion[]; error?: string }
 
@@ -999,7 +1001,21 @@ async function startQuiz() {
             .filter(q => q.question)
             .map(normalizeQuestionForDisplay)
             .filter(q => !(q as QuizQuestion & { _rejected?: boolean })._rejected)
-          if (!qs.length) throw new Error('No se generaron preguntas. Intenta de nuevo.')
+
+          // Backend returned empty questions (insufficient count) — retry generation
+          if (!qs.length) {
+            if (genRetries >= MAX_GEN_RETRIES) {
+              throw new Error('No se pudieron generar suficientes preguntas tras varios intentos. Intenta de nuevo.')
+            }
+            genRetries++
+            const retryData = await api.post<StartResp>('/reinforcement/start-generation', { ...body, forceFresh: true })
+            const newJobId = (retryData as unknown as StartResp)?.jobId
+            if (!newJobId) throw new Error('No se pudo reintentar la generación.')
+            jobId = newJobId
+            await wait(POLL_INTERVAL)
+            continue
+          }
+
           questions.value = qs
           quizStartTime   = Date.now()
           phase.value     = 'quiz'
@@ -1015,7 +1031,7 @@ async function startQuiz() {
         if (e instanceof Error) {
           const msg = e.message || ''
           // Terminal: explicit job-level errors
-          if (/expir[aoó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)) {
+          if (/expir[aoó]|no existe|error al generar|generation failed|no se pudieron generar/i.test(msg)) {
             throw e
           }
           // Terminal: true auth failure (token refresh already attempted by httpClient)
