@@ -1434,7 +1434,7 @@ watch(activeTab, (tab) => {
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
 .hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 80%; background: linear-gradient(transparent, #080C1A); }
+.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background: linear-gradient(transparent, #080C1A); }
 .hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
 .hero-info { position: absolute; bottom: 12px; left: 16px; right: 16px; z-index: 5; }
 
