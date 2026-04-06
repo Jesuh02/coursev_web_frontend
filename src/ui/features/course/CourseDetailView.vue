@@ -301,6 +301,26 @@
             </div>
           </div>
 
+          <!-- Administrador del curso -->
+          <div v-if="memberAdmin" class="members-section">
+            <div class="members-section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9F0A" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+              <h3 class="members-section-title">Administrador</h3>
+              <span class="members-count">1</span>
+            </div>
+            <div class="member-row" @click="$router.push(`/user/${memberAdmin.userId}`)">
+              <div class="member-avatar">
+                <img v-if="memberAdmin.avatar" :src="resolveImageUrl(memberAdmin.avatar) ?? undefined" :alt="memberAdmin.username" @error="($event.target as HTMLImageElement).style.display='none'" />
+                <span v-else class="member-avatar-initials">{{ memberAdmin.username.charAt(0).toUpperCase() }}</span>
+              </div>
+              <div class="member-info">
+                <p class="member-name">{{ memberAdmin.username }}</p>
+                <p class="member-meta">Administrador</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+            </div>
+          </div>
+
           <!-- Estudiantes -->
           <div class="members-section">
             <div class="members-section-header">
@@ -476,6 +496,7 @@ interface CollaboratorMember {
   avatar: string | null
 }
 const memberTeachers = ref<CollaboratorMember[]>([])
+const memberAdmin = ref<CollaboratorMember | null>(null)
 const memberStudents = ref<GuestEntry[]>([])
 const membersLoading = ref(false)
 const membersLoaded = ref(false)
@@ -487,6 +508,23 @@ async function loadMembers(courseIdNum: number) {
     // Usar getGuests igual que la vista de edición — fuente de verdad de los estudiantes
     const guests = await courseAdapter.getGuests(courseIdNum).catch(() => [])
     memberStudents.value = guests as GuestEntry[]
+
+    // Admin creador del curso (único, el que tiene creator_user_id)
+    const adminId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
+    if (adminId) {
+      try {
+        const admin = await userAdapter.getUserById(adminId) as any
+        memberAdmin.value = {
+          id: adminId,
+          userId: adminId,
+          username: admin?.username ?? 'Administrador',
+          email: admin?.email ?? '',
+          avatar: admin?.avatar ?? null,
+        }
+      } catch {
+        memberAdmin.value = null
+      }
+    }
 
     // Si estamos dentro de una materia, solo mostrar el docente creador de esa materia
     if (subjectId.value) {
