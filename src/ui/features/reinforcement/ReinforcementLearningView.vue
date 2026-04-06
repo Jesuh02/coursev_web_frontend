@@ -1010,17 +1010,19 @@ async function startQuiz() {
           throw new Error(s.error || 'Error al generar preguntas')
         }
       } catch (e: unknown) {
-        // HttpError = clean backend response already processed by the HTTP client
-        // (includes auth refresh attempts). Always propagate — do not swallow.
-        if (e instanceof HttpError) throw e
-        // Retry transient network failures, but stop on explicit backend/job errors.
+        // Only abort the poll loop for terminal job conditions or auth that can't recover.
+        // Network glitches, timeouts, and transient 5xx → continue polling.
         if (e instanceof Error) {
           const msg = e.message || ''
-          if (
-            /expir[aoó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)
-          ) {
+          // Terminal: explicit job-level errors
+          if (/expir[aoó]|no existe|error al generar|generation failed|no se generaron/i.test(msg)) {
             throw e
           }
+          // Terminal: true auth failure (token refresh already attempted by httpClient)
+          if (e instanceof HttpError && e.statusCode === 401) {
+            throw e
+          }
+          // Non-terminal: swallow and keep polling
         }
       }
 
