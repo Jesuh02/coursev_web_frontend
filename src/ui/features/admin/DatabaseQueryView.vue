@@ -67,12 +67,6 @@
 
           <div class="bubble" :class="msg.role === 'user' ? 'bubble--user' : 'bubble--bot'">
             <div class="bubble-text" v-html="renderMarkdown(msg.content)" />
-
-            <!-- Excel download -->
-            <a v-if="msg.excelUrl" :href="msg.excelUrl" target="_blank" rel="noopener" class="excel-pill">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-              Descargar Excel
-            </a>
           </div>
         </div>
 
@@ -155,7 +149,6 @@ interface LocalMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
-  excelUrl?: string | null
 }
 
 interface LLMApiResponse {
@@ -204,7 +197,6 @@ async function loadHistory() {
         id: String(m.id || '') || crypto.randomUUID(),
         role: m.role,
         content: m.content,
-        excelUrl: m.excelUrl ?? null,
       }))
       scrollToBottom()
     }
@@ -337,13 +329,12 @@ function esc(s: string) {
 
 // ── Save helper (non-blocking) ──
 
-function persistMessage(content: string, isFromUser: boolean, excelUrl: string | null = null) {
+function persistMessage(content: string, isFromUser: boolean) {
   chatAdapter.upsertMessage({
     content,
     role: isFromUser ? 'user' : 'assistant',
     sessionId: sessionId.value,
     origin: 'db_query',
-    excelUrl,
     username: tokenStorage.username ?? null,
   } as any)
   .then(() => console.log('[DatabaseQuery] Mensaje guardado en backend (origin=db_query)'))
@@ -380,12 +371,10 @@ async function sendQuery() {
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
-    const finalExcelUrl = data.excelUrl || null
-
-    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl: finalExcelUrl })
+    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply })
 
     // Persist assistant response – independent of next UI action
-    persistMessage(reply, false, finalExcelUrl)
+    persistMessage(reply, false)
   } catch {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
   }
@@ -636,24 +625,6 @@ function shareMessage(msg: LocalMessage) {
   0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
   40% { transform: scale(1); opacity: 1; }
 }
-
-/* ── Excel pill ── */
-.excel-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 7px 14px;
-  background: rgba(52,199,89,0.12);
-  color: #34C759;
-  border: 1px solid rgba(52,199,89,0.25);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.15s;
-}
-.excel-pill:hover { background: rgba(52,199,89,0.22); }
 
 /* ── Markdown tables ── */
 .bubble-text :deep(.tbl-wrap) {
