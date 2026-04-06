@@ -3425,6 +3425,7 @@ const lwChartOptions = {
     textColor: 'rgba(255, 255, 255, 0.5)',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     fontSize: 11,
+    attributionLogo: false,
   },
   grid: {
     vertLines: { visible: false },
