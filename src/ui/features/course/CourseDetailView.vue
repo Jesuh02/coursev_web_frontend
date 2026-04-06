@@ -1094,9 +1094,14 @@ watch(activeTab, (tab) => {
   }
 
   /* ── Hero ─────────────────────────────────────────────── */
-  .hero-section { height: 180px; }
+  .hero-section { height: 260px; }
+  .hero-image {
+    width: 55%;
+    margin: 0 auto;
+    border-radius: 18px;
+  }
   .hero-image img {
-    transform: scale(1.45);
+    border-radius: 18px;
     object-position: center center;
   }
   .hero-toolbar { padding: 24px 40px; }
@@ -1108,9 +1113,9 @@ watch(activeTab, (tab) => {
     transition: background 0.2s, transform 0.2s;
   }
   .toolbar-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
-  .hero-info { bottom: 32px; left: 48px; right: 48px; }
-  .hero-gradient { height: 80%; background: linear-gradient(transparent 0%, rgba(8,12,26,0.4) 40%, #080C1A 100%); }
-  .hero-accent { height: 3px; background: linear-gradient(90deg, #00D4FF 0%, #BF5AF2 50%, #FF375F 100%); }
+  .hero-info { bottom: 24px; left: 50%; right: auto; transform: translateX(-50%); width: 50%; text-align: center; }
+  .hero-gradient { height: 80%; background: linear-gradient(transparent 0%, rgba(8,12,26,0.4) 40%, #080C1A 100%); border-radius: 0 0 18px 18px; }
+  .hero-accent { height: 3px; background: linear-gradient(90deg, #00D4FF 0%, #BF5AF2 50%, #FF375F 100%); border-radius: 0 0 18px 18px; }
 
   .course-title {
     font-size: 38px;
@@ -1355,9 +1360,12 @@ watch(activeTab, (tab) => {
    LARGE DESKTOP — 1100px+
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1100px) {
-  .hero-section { height: 195px; }
-  .hero-image img { transform: scale(1.55); }
-  .hero-info { bottom: 40px; left: 56px; right: 56px; }
+  .hero-section { height: 280px; }
+  .hero-image { width: 50%; border-radius: 20px; }
+  .hero-image img { border-radius: 20px; }
+  .hero-gradient { border-radius: 0 0 20px 20px; }
+  .hero-accent { border-radius: 0 0 20px 20px; }
+  .hero-info { bottom: 28px; width: 46%; }
 
   .course-title { font-size: 44px; letter-spacing: -0.025em; }
   .course-body { max-width: 960px; padding: 0 48px; }
@@ -1381,8 +1389,11 @@ watch(activeTab, (tab) => {
    EXTRA LARGE — 1400px+
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1400px) {
-  .hero-section { height: 210px; }
-  .hero-image img { transform: scale(1.6); }
+  .hero-section { height: 300px; }
+  .hero-image { width: 50%; border-radius: 22px; }
+  .hero-image img { border-radius: 22px; }
+  .hero-gradient { border-radius: 0 0 22px 22px; }
+  .hero-accent { border-radius: 0 0 22px 22px; }
   .course-title { font-size: 48px; }
 
   .course-body {
