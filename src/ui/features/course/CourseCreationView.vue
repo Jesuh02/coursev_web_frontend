@@ -156,6 +156,7 @@ import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useCourseStore } from '@/stores/courseStore'
 import type { User } from '@/domain/models'
 import { courseAdapter, collaboratorAdapter, userAdapter } from '@/infrastructure/api'
 import { uploadFileDirect } from '@/infrastructure/api/storageAdapter'
@@ -165,6 +166,7 @@ const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
 const saving = ref(false)
 const authStore = useAuthStore()
+const courseStore = useCourseStore()
 const selectedFile = ref<File | null>(null)
 
 // Collaborator state
@@ -496,6 +498,12 @@ async function submitCourse() {
       await Promise.all(toRemove.map(userId => courseAdapter.removeGuest(courseId, userId)))
       if (toInvite.length > 0) {
         await courseAdapter.inviteGuests(courseId, toInvite)
+      }
+      // Invalidar el conteo en caché para que ExploreView lo recalcule.
+      // El endpoint /enrolled-count ahora cuenta pre_enrollments aprobadas (misma fuente que getGuests).
+      if (toRemove.length > 0 || toInvite.length > 0) {
+        const storeEntry = courseStore.courses.find(c => c.id === courseId)
+        if (storeEntry) storeEntry.studentCount = undefined
       }
       router.back()
     } else {
