@@ -1083,88 +1083,325 @@ watch(activeTab, (tab) => {
 <style scoped>
 .course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
+/* ══════════════════════════════════════════════════════════
+   DESKTOP — 769px+
+   ══════════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
-  .course-detail { left: 100px; }
-
-  .hero-section { height: 340px; }
-  .hero-toolbar { padding: 20px 32px; }
-  .hero-info { bottom: 28px; left: 40px; right: 40px; }
-
-  .course-title { font-size: 36px; }
-
-  .course-body {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 0 36px;
-    margin-top: 24px;
+  .course-detail {
+    left: 100px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(191,90,242,0.25) transparent;
   }
 
-  .course-desc { font-size: 15px; margin-bottom: 20px; }
+  /* ── Hero ─────────────────────────────────────────────── */
+  .hero-section { height: 360px; }
+  .hero-toolbar { padding: 24px 40px; }
+  .toolbar-btn {
+    width: 44px; height: 44px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .toolbar-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
+  .hero-info { bottom: 32px; left: 48px; right: 48px; }
+  .hero-gradient { height: 80%; background: linear-gradient(transparent 0%, rgba(8,12,26,0.4) 40%, #080C1A 100%); }
+  .hero-accent { height: 3px; background: linear-gradient(90deg, #00D4FF 0%, #BF5AF2 50%, #FF375F 100%); }
 
-  .tags-row { margin-bottom: 24px; }
-  .tag { padding: 7px 16px; font-size: 13px; }
+  .course-title {
+    font-size: 38px;
+    letter-spacing: -0.02em;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  }
 
-  .role-switcher { max-width: 420px; }
+  .featured-badge {
+    padding: 5px 14px;
+    font-size: 12px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
 
-  .tabs { max-width: 520px; gap: 14px; margin-bottom: 28px; }
-  .tab-btn { padding: 13px 22px; font-size: 15px; border-radius: 30px; }
+  /* ── Body container ──────────────────────────────────── */
+  .course-body {
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 40px;
+    margin-top: 28px;
+  }
 
-  .section-heading { font-size: 20px; margin-bottom: 18px; }
+  .course-desc {
+    font-size: 15px;
+    line-height: 1.65;
+    margin-bottom: 22px;
+    color: #9CA3B8;
+  }
 
-  .topic-block { margin-bottom: 12px; border-radius: 18px; }
-  .topic-row { padding: 16px 22px; gap: 14px; }
-  .topic-icon { width: 40px; height: 40px; }
+  /* ── Tags ─────────────────────────────────────────────── */
+  .tags-row { margin-bottom: 26px; gap: 10px; }
+  .tag {
+    padding: 7px 16px;
+    font-size: 13px;
+    border-radius: 22px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .tag:hover { background: rgba(255,255,255,0.1); }
+  .tag.purple:hover { background: rgba(191,90,242,0.18); }
+  .tag.subject-tag:hover { background: rgba(0,212,255,0.18); }
+
+  /* ── Role switcher ───────────────────────────────────── */
+  .role-switcher { max-width: 440px; border-radius: 14px; }
+
+  /* ── Tabs ─────────────────────────────────────────────── */
+  .tabs {
+    max-width: 560px;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: rgba(255,255,255,0.03);
+    padding: 5px;
+    border-radius: 32px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .tab-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+    border-radius: 26px;
+    border: none;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .tab-btn:not(.active):hover {
+    color: #ccc;
+    background: rgba(255,255,255,0.06);
+  }
+  .tab-btn.active {
+    box-shadow: 0 4px 16px rgba(0,212,255,0.2);
+  }
+  .tab-btn--members.active {
+    box-shadow: 0 4px 16px rgba(191,90,242,0.2);
+  }
+
+  /* ── Section headings ────────────────────────────────── */
+  .section-heading {
+    font-size: 20px;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Topic blocks ────────────────────────────────────── */
+  .topic-block {
+    margin-bottom: 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .topic-block:hover {
+    border-color: rgba(191,90,242,0.18);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .topic-row { padding: 18px 24px; gap: 14px; }
+  .topic-icon { width: 42px; height: 42px; }
   .topic-name { font-size: 16px; }
-  .topic-expanded { padding: 0 22px 18px; }
+  .topic-expanded { padding: 0 24px 20px; }
 
-  .content-row { padding: 12px 16px; border-radius: 12px; }
-  .ci-icon { width: 36px; height: 36px; border-radius: 10px; }
+  /* ── Content rows ────────────────────────────────────── */
+  .content-row {
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .content-row:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+  }
+  .ci-icon { width: 38px; height: 38px; border-radius: 10px; }
   .ci-name { font-size: 14px; }
 
-  .progress-card { padding: 24px; border-radius: 20px; }
-  .progress-eyebrow { font-size: 12px; }
-  .progress-title-card { font-size: 20px; }
-  .progress-percent { font-size: 30px; }
-  .progress-track { height: 12px; margin-top: 18px; }
-  .progress-meta-row, .progress-footer-row { font-size: 14px; }
+  /* ── Progress card ───────────────────────────────────── */
+  .progress-card {
+    padding: 28px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(17,20,40,0.98), rgba(12,15,28,0.94));
+    border: 1px solid rgba(0,212,255,0.12);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+  }
+  .progress-eyebrow { font-size: 12px; letter-spacing: 0.1em; }
+  .progress-title-card { font-size: 22px; }
+  .progress-percent { font-size: 32px; }
+  .progress-track {
+    height: 10px;
+    margin-top: 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, #00D4FF, #00E5C5);
+    box-shadow: 0 0 16px rgba(0,212,255,0.3);
+  }
+  .progress-meta-row, .progress-footer-row { font-size: 14px; margin-top: 16px; }
 
-  .task-card { padding: 18px; border-radius: 14px; }
+  /* ── Task cards ──────────────────────────────────────── */
+  .task-card {
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.025);
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  }
+  .task-card:hover {
+    border-color: rgba(0,212,255,0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    background: rgba(255,255,255,0.04);
+  }
   .task-title { font-size: 15px; }
-  .task-description { font-size: 14px; }
+  .task-description { font-size: 14px; line-height: 1.5; }
 
-  .submissions-btn { padding: 12px; font-size: 14px; border-radius: 14px; max-width: 320px; }
+  .submissions-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 14px;
+    max-width: 340px;
+    transition: all 0.25s;
+  }
+  .submissions-btn:hover {
+    background: rgba(0,212,255,0.1);
+    border-color: rgba(0,212,255,0.5);
+    box-shadow: 0 4px 16px rgba(0,212,255,0.12);
+  }
 
-  .pending-alert-card { padding: 20px; border-radius: 18px; }
+  /* ── Pending alert ───────────────────────────────────── */
+  .pending-alert-card {
+    padding: 22px;
+    border-radius: 18px;
+    backdrop-filter: blur(8px);
+  }
 
+  /* ── Enrollment ──────────────────────────────────────── */
   .enrollment-request,
   .enrollment-pending,
-  .enrollment-rejected { padding: 22px; border-radius: 18px; }
+  .enrollment-rejected { padding: 24px; border-radius: 18px; }
   .enroll-title { font-size: 16px; }
   .enroll-desc { font-size: 14px; }
-  .enroll-btn { padding: 12px 22px; font-size: 14px; }
+  .enroll-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+    border-radius: 14px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .enroll-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(108,99,255,0.3);
+  }
 
-  .members-section { margin-bottom: 32px; }
-  .member-row { padding: 12px 16px; border-radius: 14px; margin-bottom: 8px; }
+  /* ── Members ─────────────────────────────────────────── */
+  .members-section { margin-bottom: 36px; }
+  .members-section-header { margin-bottom: 14px; padding-bottom: 12px; }
+  .members-section-title { font-size: 16px; }
+  .member-row {
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: all 0.2s;
+  }
+  .member-row:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateX(4px);
+  }
   .member-avatar { width: 46px; height: 46px; }
   .member-name { font-size: 15px; }
   .member-meta { font-size: 13px; }
 
-  .bottom-actions { max-width: 500px; margin-top: 32px; margin-bottom: 40px; gap: 16px; }
-  .action-btn { padding: 16px; border-radius: 18px; font-size: 15px; }
+  /* ── Bottom actions ──────────────────────────────────── */
+  .bottom-actions {
+    max-width: 520px;
+    margin-top: 36px;
+    margin-bottom: 48px;
+    gap: 16px;
+  }
+  .action-btn {
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .action-btn.theme:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(191,90,242,0.3);
+  }
+  .action-btn.task:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,212,255,0.2);
+    background: rgba(0,212,255,0.06);
+  }
 
-  .empty-state { padding: 70px 0; font-size: 15px; }
+  .empty-state { padding: 80px 0; font-size: 15px; }
+
+  /* ── Task management buttons ─────────────────────────── */
+  .task-mgmt-btn {
+    width: 34px; height: 34px; border-radius: 10px;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .task-mgmt-btn:hover { transform: scale(1.1); }
 }
 
+/* ══════════════════════════════════════════════════════════
+   LARGE DESKTOP — 1100px+
+   ══════════════════════════════════════════════════════════ */
 @media (min-width: 1100px) {
-  .hero-section { height: 380px; }
+  .hero-section { height: 400px; }
+  .hero-info { bottom: 40px; left: 56px; right: 56px; }
+
+  .course-title { font-size: 44px; letter-spacing: -0.025em; }
   .course-body { max-width: 960px; padding: 0 48px; }
-  .course-title { font-size: 40px; }
-  .course-desc { font-size: 16px; line-height: 1.6; }
-  .topic-row { padding: 18px 26px; }
-  .progress-card { padding: 28px 32px; }
-  .task-card { padding: 20px 24px; }
-  .pending-alert-card { padding: 22px 26px; }
+  .course-desc { font-size: 16px; line-height: 1.7; }
+
+  .topic-row { padding: 20px 28px; }
+  .topic-expanded { padding: 0 28px 22px; }
+
+  .progress-card { padding: 32px 36px; border-radius: 24px; }
+  .progress-title-card { font-size: 24px; }
+  .progress-percent { font-size: 36px; }
+
+  .task-card { padding: 22px 26px; border-radius: 18px; }
+  .pending-alert-card { padding: 24px 28px; border-radius: 20px; }
+
+  .tabs { max-width: 600px; }
+  .tab-btn { padding: 13px 28px; font-size: 15px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   EXTRA LARGE — 1400px+
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 1400px) {
+  .hero-section { height: 440px; }
+  .course-title { font-size: 48px; }
+
+  .course-body {
+    max-width: 1060px;
+    padding: 0 56px;
+    margin-top: 36px;
+  }
+
+  .course-desc { font-size: 16.5px; max-width: 680px; }
+
+  .progress-card { padding: 36px 40px; }
+
+  .topic-block { border-radius: 20px; }
+  .topic-row { padding: 22px 30px; }
+  .topic-icon { width: 46px; height: 46px; }
+
+  .task-card { padding: 24px 28px; border-radius: 20px; }
+
+  .member-row { padding: 16px 20px; border-radius: 16px; }
+  .member-avatar { width: 50px; height: 50px; }
+
+  .bottom-actions { max-width: 560px; gap: 18px; }
+  .action-btn { padding: 18px 28px; border-radius: 18px; font-size: 16px; }
+
+  .empty-state { padding: 100px 0; }
 }
 
 .hero-section { position: relative; height: 280px; }
