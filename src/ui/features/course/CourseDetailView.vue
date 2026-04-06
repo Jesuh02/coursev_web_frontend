@@ -1468,3 +1468,5 @@ watch(activeTab, (tab) => {
 .member-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .member-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
 </style>
+
+/* ── ******** ─────────────────────────────────────── */
