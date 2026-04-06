@@ -113,29 +113,25 @@
         </div>
 
         <!-- Actividad Semanal — TradingView Lightweight Chart -->
-        <div class="a-card">
+        <div class="a-card a-card-chart">
           <div class="a-card-header">
             <h3>Actividad Semanal</h3>
-            <span class="a-tag a-tag-cyan">Últimos 7 días</span>
+            <span class="a-tag a-tag-teal">Últimos 7 días</span>
           </div>
-          <div ref="weeklyChartContainer" class="lw-chart-container"></div>
+          <div ref="weeklyChartContainer" class="lw-chart-container lw-chart-lg"></div>
         </div>
 
         <!-- Progreso Mensual — TradingView Lightweight Chart -->
-        <div class="a-card">
+        <div class="a-card a-card-chart">
           <div class="a-card-header">
             <h3>Progreso Mensual</h3>
-            <span class="a-tag a-tag-green">6 meses</span>
+            <span class="a-tag a-tag-teal">6 meses</span>
           </div>
-          <div ref="monthlyChartContainer" class="lw-chart-container"></div>
-          <div class="a-legend-row">
-            <span class="a-legend"><span class="a-dot a-dot-completed"></span>Completados</span>
-            <span class="a-legend"><span class="a-dot a-dot-active"></span>Activos</span>
-          </div>
+          <div ref="monthlyChartContainer" class="lw-chart-container lw-chart-lg"></div>
         </div>
 
         <!-- Top 5 Creadores -->
-        <div class="a-card">
+        <div class="a-card a-premium-table-card">
           <div class="a-card-header">
             <h3>Top 5 Creadores</h3>
             <span class="a-tag a-tag-gold">
@@ -144,61 +140,120 @@
             </span>
           </div>
           <div v-if="topCreators.length === 0" class="a-empty">Sin datos disponibles</div>
-          <div v-else class="a-rank-list">
-            <div v-for="(c, i) in topCreators" :key="c.userId" class="a-rank-row">
-              <span class="a-rank-badge" :class="['a-rank-' + (i + 1)]">{{ i + 1 }}</span>
-              <img :src="resolveAvatar(c.avatar)" class="a-avatar" alt="" @error="onAvatarError" />
-              <div class="a-rank-info">
-                <span class="a-rank-name">{{ c.username }}</span>
-                <span class="a-rank-meta">{{ c.coursesCount }} cursos · {{ c.studentsCount }} estudiantes</span>
-              </div>
-              <div class="a-rank-rating">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFD60A" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <span>{{ c.rating.toFixed(1) }}</span>
-              </div>
-            </div>
+          <div v-else class="at-table-wrap">
+            <table class="at-table">
+              <thead>
+                <tr>
+                  <th class="at-th-rank">#</th>
+                  <th>Creador</th>
+                  <th class="at-th-right">Cursos</th>
+                  <th class="at-th-right">Estudiantes</th>
+                  <th class="at-th-right">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(c, i) in topCreators" :key="c.userId" class="at-row" :class="[i === 0 ? 'at-row-gold' : i === 1 ? 'at-row-silver' : i === 2 ? 'at-row-bronze' : '']" :style="{ animationDelay: (i * 0.06) + 's' }">
+                  <td class="at-cell-rank">
+                    <span class="at-medal" :class="'at-medal-' + (i + 1)">{{ i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) }}</span>
+                  </td>
+                  <td>
+                    <div class="at-cell-user">
+                      <img :src="resolveAvatar(c.avatar)" class="at-avatar" alt="" @error="onAvatarError" />
+                      <span class="at-username">{{ c.username }}</span>
+                    </div>
+                  </td>
+                  <td class="at-cell-num"><span class="at-pill at-pill-purple">{{ c.coursesCount }}</span></td>
+                  <td class="at-cell-num"><span class="at-pill at-pill-cyan">{{ c.studentsCount }}</span></td>
+                  <td class="at-cell-rating">
+                    <div class="at-stars">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFD60A" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <span>{{ c.rating.toFixed(1) }}</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
         <!-- Cursos Populares -->
-        <div class="a-card">
+        <div class="a-card a-premium-table-card">
           <div class="a-card-header">
             <h3>Cursos Populares</h3>
-            <span class="a-tag a-tag-cyan">Top 5</span>
+            <span class="a-tag a-tag-teal">Top 5</span>
           </div>
           <div v-if="aPopularCourses.length === 0" class="a-empty">Sin datos disponibles</div>
-          <div v-else class="a-rank-list">
-            <div v-for="course in aPopularCourses" :key="course.id" class="a-rank-row a-clickable" @click="goToCourse(course.id)">
-              <img :src="resolveThumbnail(course.thumbnail)" class="a-course-thumb" alt="" />
-              <div class="a-rank-info">
-                <span class="a-rank-name">{{ course.title }}</span>
-                <span class="a-rank-meta">{{ course.enrolledCount }} inscritos</span>
-              </div>
-              <div class="a-rank-rating">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFD60A" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <span>{{ course.rating.toFixed(1) }}</span>
-              </div>
-            </div>
+          <div v-else class="at-table-wrap">
+            <table class="at-table">
+              <thead>
+                <tr>
+                  <th class="at-th-rank">#</th>
+                  <th>Curso</th>
+                  <th class="at-th-right">Inscritos</th>
+                  <th class="at-th-right">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(course, i) in aPopularCourses" :key="course.id" class="at-row at-row-clickable" :class="[i === 0 ? 'at-row-gold' : i === 1 ? 'at-row-silver' : i === 2 ? 'at-row-bronze' : '']" :style="{ animationDelay: (i * 0.06) + 's' }" @click="goToCourse(course.id)">
+                  <td class="at-cell-rank">
+                    <span class="at-medal" :class="'at-medal-' + (i + 1)">{{ i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) }}</span>
+                  </td>
+                  <td>
+                    <div class="at-cell-course">
+                      <img :src="resolveThumbnail(course.thumbnail)" class="at-course-thumb" alt="" @error="onCourseThumbError" />
+                      <div class="at-course-info">
+                        <span class="at-course-name">{{ course.title }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="at-cell-num"><span class="at-pill at-pill-cyan">{{ course.enrolledCount }}</span></td>
+                  <td class="at-cell-rating">
+                    <div class="at-stars">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFD60A" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <span>{{ course.rating.toFixed(1) }}</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
         <!-- Estudiantes Destacados -->
-        <div class="a-card">
+        <div class="a-card a-premium-table-card">
           <div class="a-card-header">
             <h3>Estudiantes Destacados</h3>
             <span class="a-tag a-tag-purple">Top 5</span>
           </div>
           <div v-if="topStudents.length === 0" class="a-empty">Sin datos disponibles</div>
-          <div v-else class="a-rank-list">
-            <div v-for="(s, i) in topStudents" :key="s.userId" class="a-rank-row">
-              <span class="a-rank-badge" :class="['a-rank-' + (i + 1)]">{{ i + 1 }}</span>
-              <img :src="resolveAvatar(s.avatar)" class="a-avatar" alt="" @error="onAvatarError" />
-              <div class="a-rank-info">
-                <span class="a-rank-name">{{ s.username }}</span>
-                <span class="a-rank-meta">{{ s.approvedCourses }} cursos aprobados</span>
-              </div>
-              <span class="a-grade-pill">{{ s.averageGrade.toFixed(2) }}</span>
-            </div>
+          <div v-else class="at-table-wrap">
+            <table class="at-table">
+              <thead>
+                <tr>
+                  <th class="at-th-rank">#</th>
+                  <th>Estudiante</th>
+                  <th class="at-th-right">Cursos Aprobados</th>
+                  <th class="at-th-right">Promedio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(s, i) in topStudents" :key="s.userId" class="at-row" :class="[i === 0 ? 'at-row-gold' : i === 1 ? 'at-row-silver' : i === 2 ? 'at-row-bronze' : '']" :style="{ animationDelay: (i * 0.06) + 's' }">
+                  <td class="at-cell-rank">
+                    <span class="at-medal" :class="'at-medal-' + (i + 1)">{{ i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) }}</span>
+                  </td>
+                  <td>
+                    <div class="at-cell-user">
+                      <img :src="resolveAvatar(s.avatar)" class="at-avatar" alt="" @error="onAvatarError" />
+                      <span class="at-username">{{ s.username }}</span>
+                    </div>
+                  </td>
+                  <td class="at-cell-num"><span class="at-pill at-pill-green">{{ s.approvedCourses }}</span></td>
+                  <td class="at-cell-grade">
+                    <span class="at-grade-badge" :class="s.averageGrade >= 4 ? 'at-grade-high' : s.averageGrade >= 3 ? 'at-grade-mid' : 'at-grade-low'">{{ s.averageGrade.toFixed(2) }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -3367,20 +3422,20 @@ let monthlyChartInstance: IChartApi | null = null
 const lwChartOptions = {
   layout: {
     background: { type: ColorType.Solid as const, color: 'transparent' },
-    textColor: '#8E8E93',
+    textColor: 'rgba(255, 255, 255, 0.5)',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     fontSize: 11,
   },
   grid: {
-    vertLines: { color: 'rgba(255,255,255,0.04)' },
-    horzLines: { color: 'rgba(255,255,255,0.04)' },
+    vertLines: { visible: false },
+    horzLines: { color: 'rgba(255, 255, 255, 0.04)', style: 1 },
   },
   crosshair: {
-    vertLine: { color: 'rgba(155, 143, 255, 0.3)', width: 1 as const, style: 3 as const, labelBackgroundColor: '#6C63FF' },
-    horzLine: { color: 'rgba(155, 143, 255, 0.3)', width: 1 as const, style: 3 as const, labelBackgroundColor: '#6C63FF' },
+    vertLine: { color: 'rgba(255, 255, 255, 0.25)', width: 1 as const, style: 0 as const, labelBackgroundColor: '#2a2e39' },
+    horzLine: { color: 'rgba(255, 255, 255, 0.25)', width: 1 as const, style: 2 as const, labelBackgroundColor: '#2a2e39' },
   },
-  rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)', scaleMargins: { top: 0.1, bottom: 0.05 } },
-  timeScale: { borderColor: 'rgba(255,255,255,0.08)', fixLeftEdge: true, fixRightEdge: true },
+  rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.06)', scaleMargins: { top: 0.08, bottom: 0.02 } },
+  timeScale: { borderColor: 'rgba(255, 255, 255, 0.06)', fixLeftEdge: true, fixRightEdge: true },
   handleScroll: false,
   handleScale: false,
 }
@@ -3412,20 +3467,20 @@ function initWeeklyChart() {
 
   const chart = createChart(weeklyChartContainer.value, {
     ...lwChartOptions,
-    height: 180,
+    height: 260,
     width: weeklyChartContainer.value.clientWidth,
   })
   weeklyChartInstance = chart
 
   const areaSeries = chart.addSeries(AreaSeries, {
-    lineColor: '#9B8FFF',
-    topColor: 'rgba(155, 143, 255, 0.45)',
-    bottomColor: 'rgba(90, 79, 224, 0)',
+    lineColor: '#26a69a',
+    topColor: 'rgba(38, 166, 154, 0.38)',
+    bottomColor: 'rgba(38, 166, 154, 0.0)',
     lineWidth: 2,
-    crosshairMarkerBackgroundColor: '#C4BAFF',
-    crosshairMarkerBorderColor: '#1a1a2e',
+    crosshairMarkerBackgroundColor: '#26a69a',
+    crosshairMarkerBorderColor: '#ffffff',
     crosshairMarkerBorderWidth: 2,
-    crosshairMarkerRadius: 5,
+    crosshairMarkerRadius: 4,
     lastValueVisible: true,
     priceLineVisible: false,
   } as AreaSeriesPartialOptions)
@@ -3450,13 +3505,13 @@ function initMonthlyChart() {
 
   const chart = createChart(monthlyChartContainer.value, {
     ...lwChartOptions,
-    height: 180,
+    height: 260,
     width: monthlyChartContainer.value.clientWidth,
   })
   monthlyChartInstance = chart
 
   const completedSeries = chart.addSeries(HistogramSeries, {
-    color: '#30D158',
+    color: '#26a69a',
     priceFormat: { type: 'volume' },
     priceScaleId: '',
     lastValueVisible: false,
@@ -3472,7 +3527,7 @@ function initMonthlyChart() {
   const data = dates.map((time, i) => ({
     time,
     value: vals[i] ?? 0,
-    color: 'rgba(48, 209, 88, 0.85)',
+    color: 'rgba(38, 166, 154, 0.85)',
   }))
   completedSeries.setData(data as any)
   chart.timeScale().fitContent()
@@ -4081,6 +4136,12 @@ watch(() => route.query, () => {
 .a-tag-cyan   { color: #00D4FF; background: rgba(0, 212, 255, 0.12); border: 1px solid rgba(0, 212, 255, 0.22); }
 .a-tag-green  { color: #30D158; background: rgba(48, 209, 88, 0.12); border: 1px solid rgba(48, 209, 88, 0.22); }
 .a-tag-gold   { color: #FFD60A; background: rgba(255, 214, 10, 0.10); border: 1px solid rgba(255, 214, 10, 0.22); }
+.a-tag-teal   { color: #26a69a; background: rgba(38, 166, 154, 0.12); border: 1px solid rgba(38, 166, 154, 0.22); }
+
+.a-card-chart {
+  padding-bottom: 0;
+  overflow: hidden;
+}
 
 /* ═══════ Gauges ═══════ */
 .a-gauges-row { display: flex; justify-content: space-around; gap: 8px; }
@@ -4105,9 +4166,13 @@ watch(() => route.query, () => {
 /* ═══════ TradingView Lightweight Charts ═══════ */
 .lw-chart-container {
   width: 100%;
-  height: 180px;
+  height: 260px;
   border-radius: 10px;
   overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+.lw-chart-lg {
+  height: 260px;
 }
 .lw-chart-container :deep(table) { border-collapse: collapse; }
 .lw-chart-container :deep(td), .lw-chart-container :deep(th) { border: none !important; }
