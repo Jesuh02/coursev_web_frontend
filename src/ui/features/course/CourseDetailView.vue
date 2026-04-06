@@ -12,11 +12,11 @@
       <div class="hero-image">
         <img v-if="heroImage" :src="heroImage" alt="" />
         <div class="hero-gradient" />
+        <div class="hero-info">
+          <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
+          <h1 class="course-title">{{ displayTitle }}</h1>
+        </div>
         <div class="hero-accent" />
-      </div>
-      <div class="hero-info">
-        <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
-        <h1 class="course-title">{{ displayTitle }}</h1>
       </div>
     </div>
 
@@ -1117,7 +1117,7 @@ watch(activeTab, (tab) => {
   .hero-info {
     top: 50%; bottom: auto; left: 50%; right: auto;
     transform: translate(-50%, -50%);
-    max-width: 800px; width: 100%; padding: 0 40px;
+    width: 90%; padding: 0 20px;
     box-sizing: border-box; text-align: center;
   }
   .hero-gradient { height: 100%; background: rgba(0,0,0,0.35); border-radius: 16px; }
@@ -1373,7 +1373,6 @@ watch(activeTab, (tab) => {
   .hero-image img { border-radius: 18px; }
   .hero-gradient { border-radius: 18px; }
   .hero-accent { border-radius: 0 0 18px 18px; }
-  .hero-info { max-width: 880px; padding: 0 48px; }
 
   .course-title { font-size: 44px; letter-spacing: -0.025em; }
   .course-body { max-width: 960px; padding: 0 48px; }
@@ -1402,7 +1401,6 @@ watch(activeTab, (tab) => {
   .hero-image img { border-radius: 20px; }
   .hero-gradient { border-radius: 20px; }
   .hero-accent { border-radius: 0 0 20px 20px; }
-  .hero-info { max-width: 980px; padding: 0 56px; }
   .course-title { font-size: 48px; }
 
   .course-body {
