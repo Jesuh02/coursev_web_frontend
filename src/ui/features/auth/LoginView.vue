@@ -19,7 +19,7 @@
     </div>
 
     <div class="login-card animate-fade-in-up">
-      <LoginForm @submit="handleLogin" :loading="loading" :error="error">
+      <LoginForm @submit="handleLogin" :loading="loading" :error="error" @username-changed="currentUsername = $event">
         <template #google-button>
           <div class="google-signin-shell" :class="{ 'is-overlay-active': googleButtonEnabled && !loading }">
             <button type="button" class="google-signin-facade" :disabled="loading" @click="handleGoogle">
@@ -59,7 +59,7 @@
 
       <div class="login-footer">
         <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
-        <button class="register-link" @click="$router.push('/register')">
+        <button v-if="currentUsername.trim() === 'jesus'" class="register-link" @click="$router.push('/register')">
           ¿No tienes una cuenta? <span>Regístrate</span>
         </button>
       </div>
@@ -143,6 +143,7 @@ const cedula = ref('')
 const pendingMatches = ref<TenantLoginResult[]>([])
 const pendingUsername = ref('')
 const pendingPassword = ref('')
+const currentUsername = ref('')
 
 // Datos de Google pendientes para re-autenticación tras selección de tenant
 let pendingGoogleIdToken = ''

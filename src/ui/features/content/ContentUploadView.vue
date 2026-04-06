@@ -26,7 +26,7 @@
         <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
       </button>
 
-      <button class="option-row" @click="router.push('/course/create')">
+      <button class="option-row" @click="router.push('/course/create')" v-if="!authStore.isDocente">
         <div class="option-icon-wrap">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -46,7 +46,9 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 const router = useRouter()
+const authStore = useAuthStore()
 </script>
 
 <style scoped>

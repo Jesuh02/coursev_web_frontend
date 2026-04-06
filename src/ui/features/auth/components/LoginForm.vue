@@ -6,7 +6,7 @@
         <div class="field-icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
-        <input v-model="username" type="text" placeholder="Ingrese su usuario" required />
+        <input v-model="username" type="text" placeholder="Ingrese su usuario" required @input="onUsernameInput" />
       </div>
     </div>
 
@@ -50,11 +50,15 @@
 import { ref } from 'vue'
 
 defineProps<{ loading?: boolean; error?: string }>()
-const emit = defineEmits<{ submit: [username: string, password: string]; google: [] }>()
+const emit = defineEmits<{ submit: [username: string, password: string]; google: []; 'username-changed': [username: string] }>()
 
 const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
+
+function onUsernameInput(e: Event) {
+  emit('username-changed', (e.target as HTMLInputElement).value)
+}
 
 function onSubmit() {
   emit('submit', username.value, password.value)
