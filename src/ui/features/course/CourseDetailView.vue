@@ -1047,6 +1047,86 @@ watch(activeTab, (tab) => {
 
 @media (min-width: 769px) {
   .course-detail { left: 100px; }
+
+  .hero-section { height: 340px; }
+  .hero-toolbar { padding: 20px 32px; }
+  .hero-info { bottom: 28px; left: 40px; right: 40px; }
+
+  .course-title { font-size: 36px; }
+
+  .course-body {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 36px;
+    margin-top: 24px;
+  }
+
+  .course-desc { font-size: 15px; margin-bottom: 20px; }
+
+  .tags-row { margin-bottom: 24px; }
+  .tag { padding: 7px 16px; font-size: 13px; }
+
+  .role-switcher { max-width: 420px; }
+
+  .tabs { max-width: 520px; gap: 14px; margin-bottom: 28px; }
+  .tab-btn { padding: 13px 22px; font-size: 15px; border-radius: 30px; }
+
+  .section-heading { font-size: 20px; margin-bottom: 18px; }
+
+  .topic-block { margin-bottom: 12px; border-radius: 18px; }
+  .topic-row { padding: 16px 22px; gap: 14px; }
+  .topic-icon { width: 40px; height: 40px; }
+  .topic-name { font-size: 16px; }
+  .topic-expanded { padding: 0 22px 18px; }
+
+  .content-row { padding: 12px 16px; border-radius: 12px; }
+  .ci-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .ci-name { font-size: 14px; }
+
+  .progress-card { padding: 24px; border-radius: 20px; }
+  .progress-eyebrow { font-size: 12px; }
+  .progress-title-card { font-size: 20px; }
+  .progress-percent { font-size: 30px; }
+  .progress-track { height: 12px; margin-top: 18px; }
+  .progress-meta-row, .progress-footer-row { font-size: 14px; }
+
+  .task-card { padding: 18px; border-radius: 14px; }
+  .task-title { font-size: 15px; }
+  .task-description { font-size: 14px; }
+
+  .submissions-btn { padding: 12px; font-size: 14px; border-radius: 14px; max-width: 320px; }
+
+  .pending-alert-card { padding: 20px; border-radius: 18px; }
+
+  .enrollment-request,
+  .enrollment-pending,
+  .enrollment-rejected { padding: 22px; border-radius: 18px; }
+  .enroll-title { font-size: 16px; }
+  .enroll-desc { font-size: 14px; }
+  .enroll-btn { padding: 12px 22px; font-size: 14px; }
+
+  .members-section { margin-bottom: 32px; }
+  .member-row { padding: 12px 16px; border-radius: 14px; margin-bottom: 8px; }
+  .member-avatar { width: 46px; height: 46px; }
+  .member-name { font-size: 15px; }
+  .member-meta { font-size: 13px; }
+
+  .bottom-actions { max-width: 500px; margin-top: 32px; margin-bottom: 40px; gap: 16px; }
+  .action-btn { padding: 16px; border-radius: 18px; font-size: 15px; }
+
+  .empty-state { padding: 70px 0; font-size: 15px; }
+}
+
+@media (min-width: 1100px) {
+  .hero-section { height: 380px; }
+  .course-body { max-width: 960px; padding: 0 48px; }
+  .course-title { font-size: 40px; }
+  .course-desc { font-size: 16px; line-height: 1.6; }
+  .topic-row { padding: 18px 26px; }
+  .progress-card { padding: 28px 32px; }
+  .task-card { padding: 20px 24px; }
+  .pending-alert-card { padding: 22px 26px; }
 }
 
 .hero-section { position: relative; height: 280px; }
@@ -1468,5 +1548,3 @@ watch(activeTab, (tab) => {
 .member-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .member-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
 </style>
-
-/* ── ******** ─────────────────────────────────────── */
