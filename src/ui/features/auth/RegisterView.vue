@@ -184,7 +184,12 @@ onMounted(async () => {
 
   const googleAvatar = getSingleQueryValue(route.query.googleAvatar).trim()
   if (googleAvatar) {
-    avatarPreview.value = googleAvatar
+    try {
+      const parsed = new URL(googleAvatar)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        avatarPreview.value = googleAvatar
+      }
+    } catch { /* URL inválida — se ignora */ }
   }
 })
 
