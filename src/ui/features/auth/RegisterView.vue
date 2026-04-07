@@ -54,7 +54,7 @@
         <div class="autocomplete-wrapper">
           <AppInput v-model="institucionQuery" label="Institución" placeholder="Buscar institución..." :error="fieldErrors.institucion" @update:modelValue="onInstitucionInput" @focus="showInstitucionList = true" @blur="onInstitucionBlur" />
           <ul v-if="showInstitucionList && filteredInstituciones.length" class="autocomplete-list">
-            <li v-for="inst in filteredInstituciones" :key="inst.id" @mousedown.prevent="selectInstitucion(inst)">
+            <li v-for="inst in filteredInstituciones" :key="`${inst.tenantId ?? ''}:${inst.id}`" @mousedown.prevent="selectInstitucion(inst)">
               <span class="inst-name">{{ inst.nombre }}</span>
               <span v-if="inst.ciudad" class="inst-city">{{ inst.ciudad }}</span>
             </li>
@@ -143,6 +143,7 @@ const instituciones = ref<Institucion[]>([])
 const institucionQuery = ref('')
 const showInstitucionList = ref(false)
 const selectedInstitucionId = ref<number | null>(null)
+const selectedInstitucionTenantId = ref<string | null>(null)
 const isGoogleSignIn = computed(() => route.query.isGoogleSignIn === '1')
 
 function getSingleQueryValue(value: unknown): string {
@@ -157,6 +158,7 @@ const filteredInstituciones = computed(() => {
 
 function onInstitucionInput() {
   selectedInstitucionId.value = null
+  selectedInstitucionTenantId.value = null
   showInstitucionList.value = true
 }
 
@@ -167,12 +169,13 @@ function onInstitucionBlur() {
 function selectInstitucion(inst: Institucion) {
   institucionQuery.value = inst.nombre
   selectedInstitucionId.value = inst.id
+  selectedInstitucionTenantId.value = inst.tenantId ?? null
   showInstitucionList.value = false
 }
 
 onMounted(async () => {
   try {
-    instituciones.value = await institucionAdapter.getAll()
+    instituciones.value = await institucionAdapter.getAllCrossTenant()
   } catch { /* silent */ }
 
   const googleEmail = getSingleQueryValue(route.query.googleEmail).trim()
@@ -270,6 +273,7 @@ async function handleRegister() {
         fecha_nacimiento: form.value.fecha_nacimiento,
         institucion_id: selectedInstitucionId.value,
       },
+      selectedInstitucionTenantId.value ? [selectedInstitucionTenantId.value] : undefined,
     )
     router.push('/video')
   } catch (error) {

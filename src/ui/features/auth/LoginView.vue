@@ -59,9 +59,7 @@
 
       <div class="login-footer">
         <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
-        <button v-if="currentUsername.trim() === 'jesus'" class="register-link" @click="$router.push('/register')">
-          ¿No tienes una cuenta? <span>Regístrate</span>
-        </button>
+
       </div>
     </div>
 
