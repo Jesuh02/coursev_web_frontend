@@ -319,11 +319,22 @@ function setFilter(f: FilterType) {
 }
 
 function navigateToCourse(course: Course) {
-  router.push(`/courses/${course.id}`)
+  router.push(`/course/${course.id}`)
 }
 
 function navigateToSubject(subject: Subject) {
-  router.push(`/subjects/${subject.courseId}`)
+  // Normalize courseId — backend may return snake_case (course_id)
+  const courseId = subject.courseId || (subject as any).course_id
+  if (!courseId) return
+  router.push({
+    path: `/course/${courseId}`,
+    query: {
+      subjectId: String(subject.id),
+      subjectName: subject.name,
+      subjectDescription: subject.description || '',
+      subjectThumbnailUrl: subject.thumbnailUrl || (subject as any).thumbnail_url || '',
+    },
+  })
 }
 
 function navigateToVideo(video: Video) {
@@ -357,15 +368,25 @@ onMounted(async () => {
     if (hasRole2or3) {
       // Use creator endpoint to get subjects created by this user directly
       const creatorSubjects = await subjectAdapter.getSubjectsByCreator(userId).catch(() => [] as Subject[])
+      // Normalize fields — backend returns snake_case (course_id, thumbnail_url, etc.)
+      const normalizeSubject = (s: any): Subject => ({
+        ...s,
+        courseId: s.courseId ?? s.course_id ?? 0,
+        thumbnailUrl: s.thumbnailUrl ?? s.thumbnail_url ?? null,
+        isActive: s.isActive ?? s.is_active ?? true,
+        orderIndex: s.orderIndex ?? s.order_index ?? 0,
+        createdAt: s.createdAt ?? s.created_at ?? null,
+        createdBy: s.createdBy ?? s.created_by ?? null,
+      })
       if (creatorSubjects.length > 0) {
-        allSubjects.value = creatorSubjects
+        allSubjects.value = (creatorSubjects as any[]).map(normalizeSubject)
       } else if (fetchedCourses.length > 0) {
         // Fallback: iterate over courses to find subjects
         const subjectPromises = fetchedCourses.map(c =>
           subjectAdapter.getSubjectsByCourse(c.id).catch(() => [] as Subject[])
         )
         const subjectsByC = await Promise.all(subjectPromises)
-        allSubjects.value = subjectsByC.flat()
+        allSubjects.value = (subjectsByC.flat() as any[]).map(normalizeSubject)
       }
     }
 

@@ -164,6 +164,115 @@
           </div>
         </div>
 
+        <!-- Radar / Spider Chart — Indicadores Clave -->
+        <div class="a-card">
+          <div class="a-card-header">
+            <h3>Indicadores Clave</h3>
+            <span class="a-tag a-tag-purple">Rendimiento</span>
+          </div>
+          <div class="a-radar-wrap">
+            <svg viewBox="0 0 220 220" class="a-radar-svg" aria-hidden="true">
+              <defs>
+                <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(155,143,255,0.38)" />
+                  <stop offset="100%" stop-color="rgba(155,143,255,0.04)" />
+                </radialGradient>
+                <filter id="radarGlow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- Grid rings -->
+              <polygon v-for="f in radarGridFractions" :key="f"
+                :points="radarGridPolygon(f)"
+                fill="none"
+                :stroke="f === 1.0 ? 'rgba(155,143,255,0.25)' : 'rgba(255,255,255,0.07)'"
+                :stroke-width="f === 1.0 ? 1.5 : 1" />
+              <!-- Axis lines -->
+              <line v-for="pt in radarAxisPoints" :key="'ax-' + pt.label"
+                x1="110" y1="110" :x2="pt.x" :y2="pt.y"
+                stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+              <!-- Data fill polygon -->
+              <polygon :points="radarDataPolygon"
+                fill="url(#radarFillGrad)"
+                stroke="#9B8FFF"
+                stroke-width="2"
+                stroke-linejoin="round"
+                filter="url(#radarGlow)"
+                class="a-radar-polygon" />
+              <!-- Data points -->
+              <g v-for="(pt, i) in radarDataPoints" :key="'rp-' + i">
+                <circle :cx="pt.x" :cy="pt.y" r="8" fill="rgba(155,143,255,0.18)" />
+                <circle :cx="pt.x" :cy="pt.y" r="4" fill="#9B8FFF" />
+              </g>
+              <!-- Axis labels -->
+              <text v-for="pt in radarAxisPoints" :key="'lbl-' + pt.label"
+                :x="pt.lx" :y="pt.ly"
+                text-anchor="middle" dominant-baseline="middle"
+                font-size="9.5" fill="#8E8E93" font-family="system-ui, -apple-system, sans-serif">
+                {{ pt.label }}
+              </text>
+            </svg>
+            <!-- Legend -->
+            <div class="a-radar-legend">
+              <div v-for="(pt, i) in radarAxisPoints" :key="'rl-' + i" class="a-radar-leg-item">
+                <span class="a-radar-dot"></span>
+                <span class="a-radar-leg-label">{{ pt.label }}</span>
+                <span class="a-radar-leg-value">{{ Math.round((radarValues[i] ?? 0) * 100) }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Donut Chart — Distribución de Métricas -->
+        <div class="a-card">
+          <div class="a-card-header">
+            <h3>Distribución de Métricas</h3>
+            <span class="a-tag a-tag-green">3 indicadores</span>
+          </div>
+          <div class="a-donut-wrap">
+            <div class="a-donut-svg-container">
+              <svg viewBox="0 0 140 140" class="a-donut-svg" aria-hidden="true">
+                <defs>
+                  <filter id="donutGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+                    <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+                <!-- Background ring -->
+                <circle cx="70" cy="70" r="48" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="16" />
+                <!-- Colored segments -->
+                <circle v-for="(seg, i) in donutSegmentsData" :key="'ds-' + i"
+                  cx="70" cy="70" r="48"
+                  fill="none"
+                  :stroke="seg.color"
+                  stroke-width="14"
+                  stroke-linecap="butt"
+                  :stroke-dasharray="seg.dasharray"
+                  :transform="seg.transform"
+                  filter="url(#donutGlow)"
+                  class="a-donut-arc" />
+                <!-- Center value -->
+                <text x="70" y="64" text-anchor="middle" font-size="22" font-weight="800" fill="white" font-family="system-ui, -apple-system">{{ donutCenterValue }}%</text>
+                <text x="70" y="81" text-anchor="middle" font-size="9" fill="#636366" font-family="system-ui, -apple-system">Promedio</text>
+              </svg>
+            </div>
+            <!-- Legend -->
+            <div class="a-donut-legend">
+              <div v-for="(seg, i) in donutSegmentsData" :key="'dl-' + i" class="a-donut-leg-item">
+                <span class="a-donut-leg-dot" :style="{ background: seg.color }"></span>
+                <div class="a-donut-leg-info">
+                  <span class="a-donut-leg-label">{{ seg.label }}</span>
+                  <span class="a-donut-leg-pct" :style="{ color: seg.color }">{{ seg.pct }}%</span>
+                </div>
+                <div class="a-donut-leg-bar-wrap">
+                  <div class="a-donut-leg-bar" :style="{ width: seg.pct + '%', background: seg.color }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Top 5 Creadores -->
         <div class="a-card a-premium-table-card">
           <div class="a-card-header">
@@ -3445,6 +3554,97 @@ const monthlyBars = computed(() => {
   }))
 })
 
+// ─── Radar / Spider Chart ─────────────────────────────────────────────────
+const RADAR_CX = 110
+const RADAR_CY = 110
+const RADAR_R = 88
+const RADAR_LABELS = ['Completados', 'Aprobados', 'Satisfacción', 'Certificados', 'Activos']
+const radarGridFractions = [0.25, 0.5, 0.75, 1.0]
+
+const radarValues = computed<number[]>(() => {
+  const maxUsers = Math.max(creatorMetrics.value.enrolledUsersCount, 1)
+  return [
+    (creatorMetrics.value.completionRate ?? 0) / 100,
+    (creatorMetrics.value.approvalRate ?? 0) / 100,
+    (creatorMetrics.value.satisfactionRate ?? 0) / 100,
+    Math.min((creatorMetrics.value.certifiedUsersCount ?? 0) / maxUsers, 1),
+    1,
+  ]
+})
+
+const radarAxisPoints = computed(() =>
+  RADAR_LABELS.map((label, i) => {
+    const angle = (i * 2 * Math.PI / RADAR_LABELS.length) - Math.PI / 2
+    return {
+      x: (RADAR_CX + RADAR_R * Math.cos(angle)).toFixed(2),
+      y: (RADAR_CY + RADAR_R * Math.sin(angle)).toFixed(2),
+      lx: (RADAR_CX + (RADAR_R + 22) * Math.cos(angle)).toFixed(2),
+      ly: (RADAR_CY + (RADAR_R + 22) * Math.sin(angle)).toFixed(2),
+      label,
+    }
+  })
+)
+
+const radarDataPoints = computed(() =>
+  radarValues.value.map((v, i) => {
+    const angle = (i * 2 * Math.PI / RADAR_LABELS.length) - Math.PI / 2
+    return {
+      x: (RADAR_CX + RADAR_R * v * Math.cos(angle)).toFixed(2),
+      y: (RADAR_CY + RADAR_R * v * Math.sin(angle)).toFixed(2),
+    }
+  })
+)
+
+const radarDataPolygon = computed(() =>
+  radarDataPoints.value.map(p => `${p.x},${p.y}`).join(' ')
+)
+
+const radarGridPolygon = (fraction: number): string => {
+  const N = RADAR_LABELS.length
+  return Array.from({ length: N }, (_, i) => {
+    const angle = (i * 2 * Math.PI / N) - Math.PI / 2
+    const x = (RADAR_CX + RADAR_R * fraction * Math.cos(angle)).toFixed(2)
+    const y = (RADAR_CY + RADAR_R * fraction * Math.sin(angle)).toFixed(2)
+    return `${x},${y}`
+  }).join(' ')
+}
+
+// ─── Donut Chart ────────────────────────────────────────────────────────
+const DONUT_R_VAL = 48
+const DONUT_C = 2 * Math.PI * DONUT_R_VAL
+
+const donutSegmentsData = computed(() => {
+  const items = [
+    { pct: Math.round(creatorMetrics.value.completionRate ?? 0), color: '#30D158', label: 'Completados' },
+    { pct: Math.round(creatorMetrics.value.approvalRate ?? 0), color: '#00D4FF', label: 'Aprobados' },
+    { pct: Math.round(creatorMetrics.value.satisfactionRate ?? 0), color: '#BF5AF2', label: 'Satisfacción' },
+  ]
+  const total = items.reduce((s, v) => s + Math.max(v.pct, 0), 0) || 1
+  const GAP_DEG = 5
+  let cumulativeDeg = 0
+  return items.map(item => {
+    const pct = Math.max(item.pct, 0)
+    const segDeg = (pct / total) * 360
+    const arcLen = Math.max(0, (segDeg - GAP_DEG) / 360 * DONUT_C)
+    const startDeg = cumulativeDeg - 90 + GAP_DEG / 2
+    cumulativeDeg += segDeg
+    return {
+      ...item,
+      dasharray: `${arcLen.toFixed(2)} ${DONUT_C.toFixed(2)}`,
+      transform: `rotate(${startDeg.toFixed(2)} 70 70)`,
+    }
+  })
+})
+
+const donutCenterValue = computed(() => {
+  const vals = [
+    creatorMetrics.value.completionRate ?? 0,
+    creatorMetrics.value.approvalRate ?? 0,
+    creatorMetrics.value.satisfactionRate ?? 0,
+  ]
+  return Math.round(vals.reduce((a, b) => a + b, 0) / 3)
+})
+
 const resolveAvatar = (url: string) => {
   if (!url) return '/default-avatar.png'
   // Google OAuth avatar CDN rate-limits aggressively — use fallback directly
@@ -4401,6 +4601,127 @@ watch(() => route.query, () => {
 .a-dot { width: 8px; height: 8px; border-radius: 50%; }
 .a-dot-completed { background: #30D158; }
 .a-dot-active    { background: #00D4FF; }
+
+/* ═══════ Radar / Spider Chart ═══════ */
+.a-radar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+.a-radar-svg {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 16px rgba(155, 143, 255, 0.2));
+}
+@keyframes radarReveal {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.a-radar-polygon { animation: radarReveal 0.9s cubic-bezier(.22,.68,0,1.2) both; }
+.a-radar-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+.a-radar-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.a-radar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9B8FFF;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(155,143,255,0.5);
+}
+.a-radar-leg-label {
+  font-size: 11px;
+  color: #8E8E93;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.a-radar-leg-value {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ═══════ Donut Chart ═══════ */
+.a-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.a-donut-svg-container {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.4));
+}
+.a-donut-svg {
+  width: 140px;
+  height: 140px;
+  display: block;
+}
+.a-donut-arc {
+  transition: stroke-dasharray 1.3s cubic-bezier(.22,.68,0,1.2),
+              opacity 0.6s ease;
+}
+.a-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.a-donut-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.a-donut-leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+.a-donut-leg-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 80px;
+}
+.a-donut-leg-label {
+  font-size: 11px;
+  color: #8E8E93;
+  font-weight: 500;
+}
+.a-donut-leg-pct {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.a-donut-leg-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.a-donut-leg-bar {
+  height: 100%;
+  border-radius: 2px;
+  max-width: 100%;
+  transition: width 1s cubic-bezier(.22,.68,0,1.2);
+}
 
 /* ═══════ Rank Lists ═══════ */
 .a-rank-list { display: flex; flex-direction: column; gap: 8px; }
