@@ -519,9 +519,22 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   const text = question.question ?? ''
   const lower = text.toLowerCase()
 
-  const mathSignals = /calcula|suma|total|multiplica|divide|resta|resultado|costo\s+total|precio\s+total|monto\s+total|redondea|¿cuánto|cuántos|cuántas|promedio|media|porcentaje/i
+  const mathSignals = /calcula|suma|total|multiplica|divide|resta|resultado|costo\s+total|precio\s+total|monto\s+total|redondea|¿cuánto|cuántos|cuántas|promedio|media|porcentaje|serie\s+(?:aritm|geom)|progresión|sumatoria|[Σ∑]|derivada|extremo|mínimo\s+local|máximo\s+local|notación\s+científica/i
   const hasSignificantNumbers = /\d{3,}/.test(text.replace(/,/g, ''))
   if (!mathSignals.test(lower) && !hasSignificantNumbers) return question
+
+  // Fill-in-blank sanity: scientific notation coefficient must be in [1, 10)
+  if (question.type === 'fill_in_blank') {
+    const isSci = /notaci[oó]n\s+cient[ií]fica/i.test(text)
+    const wantsCoeff = /coeficiente|mantisa/i.test(text)
+    if (isSci && wantsCoeff) {
+      const ans = parseDecimal(String(question.correctAnswer ?? ''))
+      if (ans && (ans.abs().gte(10) || ans.isZero())) {
+        console.warn(`[FE MathVerify] SANITY REJECT: coefficient=${ans} not in [1,10)`)
+        return null
+      }
+    }
+  }
 
   const computed = computeExpectedAnswer(text)
   if (computed === null) return question
@@ -574,7 +587,7 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
 function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] } | null {
   const cleaned = text.replace(/[$€¥£₡₿]\s*/g, '')
 
-  // Strategy 1: Explicit inline arithmetic
+  // Strategy 1: Explicit inline arithmetic with follow-up operations
   const numberPat = '\\d[\\d,]*\\.?\\d*'
   const opPat = '[+\\-×*÷/]'
   const exprRegex = new RegExp(`(${numberPat})\\s*(${opPat})\\s*(${numberPat}(?:\\s*${opPat}\\s*${numberPat})*)`, 'g')
@@ -585,6 +598,11 @@ function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] 
     if (result) {
       const steps: string[] = []
       let valid = true
+      const exprNumbers: Decimal[] = []
+      for (let i = 0; i < tokens.length; i += 2) {
+        const nd = parseDecimal(tokens[i])
+        if (nd) exprNumbers.push(nd)
+      }
       for (let i = 1; i < tokens.length; i += 2) {
         const op = tokens[i]
         const num = parseDecimal(tokens[i + 1] || '')
@@ -602,6 +620,25 @@ function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] 
       }
       if (valid && steps.length > 0) {
         const after = cleaned.substring(cleaned.indexOf(exprMatch[0]) + exprMatch[0].length)
+
+        // Follow-up: "resta la suma de los primeros N números"
+        const restaSumaRe = /resta[rn]?\s+(?:la\s+)?suma\s+de\s+los\s+primeros?\s+(\d+|un[oa]?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+n[uú]meros?/i
+        const restaSumaM = restaSumaRe.exec(after)
+        if (restaSumaM && exprNumbers.length >= 2) {
+          const wtn: Record<string, number> = { 'un': 1, 'uno': 1, 'una': 1, 'dos': 2, 'tres': 3,
+            'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10 }
+          const cap = restaSumaM[1].toLowerCase()
+          const nRestar = wtn[cap] || parseInt(cap, 10)
+          if (nRestar > 0 && nRestar < exprNumbers.length) {
+            let partSum = new Decimal(0)
+            for (let pi = 0; pi < nRestar; pi++) partSum = partSum.plus(exprNumbers[pi])
+            const prev = result!
+            result = result!.minus(partSum)
+            steps.push(`Resta suma de primeros ${nRestar}: ${prev} - ${partSum} = ${result}`)
+          }
+        }
+
+        // Follow-up: percentage/tax/discount
         const pctM = after.match(/(?:impuesto|descuento|incremento|aumento|IVA)\s+(?:del?)?\s*([\d,.]+)\s*%/i)
         if (pctM) {
           const pct = parseDecimal(pctM[1])
@@ -614,12 +651,47 @@ function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] 
             steps.push(`${prev} × ${factor} = ${result}`)
           }
         }
+
+        // Follow-up: general subtraction "se le resta N"
+        const subM = after.match(/(?:se\s+(?:le\s+)?)?(?:resta[rn]?|quit[ao]?[rn]?|descuent[ao]?[rn]?)\s+(?:(?:un|una|el|la)\s+)?(?:\w+\s+){0,5}?\$?\s*([\d,]+\.?\d*)/i)
+        if (subM && !restaSumaM) {
+          const subVal = parseDecimal(subM[1])
+          if (subVal && subVal.gt(0) && !exprNumbers.some(n => n.equals(subVal))) {
+            const prev = result!
+            result = result!.minus(subVal)
+            steps.push(`Sustracción: ${prev} - ${subVal} = ${result}`)
+          }
+        }
+
+        // Follow-up: general addition "se le agrega/añade/suma N"
+        const addFollowM = after.match(/(?:se\s+(?:le\s+)?)?(?:agrega[rn]?|añad[aeir]+|suma[rn]?|adiciona[rn]?)\s+(?:(?:un|una|el|la)\s+)?(?:\w+\s+){0,5}?\$?\s*([\d,]+\.?\d*)/i)
+        if (addFollowM) {
+          const addVal = parseDecimal(addFollowM[1])
+          if (addVal && addVal.gt(0) && !exprNumbers.some(n => n.equals(addVal))) {
+            const prev = result!
+            result = result!.plus(addVal)
+            steps.push(`Adición: ${prev} + ${addVal} = ${result}`)
+          }
+        }
+
         return { value: result!, steps }
       }
     }
   }
 
-  // Strategy 2: Word problem — sum data numbers + rate/percentage
+  // Strategy 2: Series summation (arithmetic / geometric / combined)
+  const seriesResult = feSeriesSummation(text)
+  if (seriesResult) return seriesResult
+
+  // Strategy 3: Scientific notation sum
+  const sciResult = feScientificNotationSum(text)
+  if (sciResult) return sciResult
+
+  // Strategy 4: Derivative extrema (polynomial f(x))
+  const derivResult = feDerivativeExtrema(text)
+  if (derivResult) return derivResult
+
+  // Strategy 5: Word problem — sum data numbers + rate/percentage
   const lower = text.toLowerCase()
   if (/total|suma|calcula|acumulad|promedio|media|¿cuánto|cuántos|monto|resultado|costo|precio|valor/i.test(lower)) {
     const pctSet = new Set<string>()
@@ -694,6 +766,393 @@ function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] 
     }
   }
   return null
+}
+
+// ─── Frontend series summation ───────────────────────────────────────────────
+
+function feSeriesSummation(text: string): { value: Decimal; steps: string[] } | null {
+  const results: { value: Decimal; steps: string[] }[] = []
+
+  // ─── A) Arithmetic series via sigma notation: Σ_{i=1}^{200} (7i - 12) ────
+  const sigmaLinRe = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(?(\d+\.?\d*)\s*[ij]\s*([+-]\s*\d+\.?\d*)?\)?/i
+  const sigmaLinM = sigmaLinRe.exec(text)
+  if (sigmaLinM) {
+    const start = parseInt(sigmaLinM[1], 10)
+    const end = parseInt(sigmaLinM[2], 10)
+    const slope = parseDecimal(sigmaLinM[3])
+    const intercept = sigmaLinM[4] ? parseDecimal(sigmaLinM[4].replace(/\s/g, '')) : new Decimal(0)
+    if (slope && intercept !== null && end >= start && end - start <= 100000) {
+      const n = end - start + 1
+      const a1 = slope.times(start).plus(intercept!)
+      const an = slope.times(end).plus(intercept!)
+      const sum = a1.plus(an).times(n).div(2)
+      results.push({
+        value: sum,
+        steps: [`Serie aritmética sigma: a₁=${a1}, aₙ=${an}, n=${n}`, `S = (a₁+aₙ)·n/2 = ${sum}`]
+      })
+    }
+  }
+
+  // ─── B) Geometric series via sigma notation: Σ_{j=1}^{25} 4·(3.2)^{j-1} ──
+  const sigmaGeoRe = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*\d+\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*(\d+\.?\d*)\s*[·*×]\s*\(?(\d+\.?\d*)\)?\s*\^\s*\{?\s*(?:\(\s*)?[ij]\s*(?:-\s*1\s*(?:\))?\s*)?\}?/i
+  const sigmaGeoM = sigmaGeoRe.exec(text)
+  if (sigmaGeoM) {
+    const n = parseInt(sigmaGeoM[1], 10)
+    const a1 = new Decimal(sigmaGeoM[2])
+    const r = new Decimal(sigmaGeoM[3])
+    if (a1.gt(0) && !r.equals(1) && n >= 1 && n <= 10000) {
+      const sum = a1.times(r.pow(n).minus(1)).div(r.minus(1))
+      results.push({
+        value: sum,
+        steps: [`Serie geométrica sigma: a₁=${a1}, r=${r}, n=${n}`, `S = a₁(rⁿ-1)/(r-1) = ${sum.toExponential(4)}`]
+      })
+    }
+  }
+
+  // ─── C) Arithmetic series from sequence keywords ───────────────────────────
+  if (!sigmaLinM) {
+    const arithSeqRe = /(?:serie\s+aritm[eé]trica|progresión\s+aritm[eé]trica)[\s\S]*?(?:primeros?\s+)?(\d+)\s+t[eé]rminos?[\s\S]*?(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i
+    const arithM = arithSeqRe.exec(text)
+    if (arithM) {
+      const n = parseInt(arithM[1], 10)
+      const a1 = new Decimal(arithM[2])
+      const second = new Decimal(arithM[3])
+      const third = new Decimal(arithM[4])
+      const d1 = second.minus(a1)
+      const d2 = third.minus(second)
+      if (d1.equals(d2) && n >= 1 && n <= 100000) {
+        const an = a1.plus(d1.times(n - 1))
+        const sum = a1.plus(an).times(n).div(2)
+        results.push({
+          value: sum,
+          steps: [`Serie aritmética: a₁=${a1}, d=${d1}, n=${n}`, `S = (a₁+aₙ)·n/2 = ${sum}`]
+        })
+      }
+    }
+  }
+
+  // ─── D) Geometric series from sequence keywords ────────────────────────────
+  if (!sigmaGeoM) {
+    const geoSeqRe = /(?:serie\s+geom[eé]trica|progresión\s+geom[eé]trica|geom[eé]tric)[\s\S]*?(?:primeros?\s+)?(\d+)\s+t[eé]rminos?[\s\S]*?(\d+\.?\d*)\s*,\s*(\d+\.?\d*)\s*,\s*(\d+\.?\d*)/i
+    const geoM = geoSeqRe.exec(text)
+    if (geoM) {
+      const n = parseInt(geoM[1], 10)
+      const a1 = new Decimal(geoM[2])
+      const second = new Decimal(geoM[3])
+      const third = new Decimal(geoM[4])
+      if (!a1.isZero() && !second.isZero()) {
+        const r = second.div(a1)
+        const r2 = third.div(second)
+        if (r.equals(r2) && !r.equals(1) && n >= 1 && n <= 10000) {
+          const sum = a1.times(r.pow(n).minus(1)).div(r.minus(1))
+          results.push({
+            value: sum,
+            steps: [`Serie geométrica: a₁=${a1}, r=${r}, n=${n}`, `S = a₁(rⁿ-1)/(r-1) = ${sum.toExponential(4)}`]
+          })
+        }
+      }
+    }
+  }
+
+  // ─── E) Polynomial summation: Σ_{i=1}^{n} (ai² + bi + c) ─────────────────
+  if (!sigmaLinM) {
+    const sigmPolyRe = /[Σ∑]\s*\(?(?:de\s+)?i\s*=\s*(\d+)\s+a\s+(\d+)\)?\s*(?:de\s+)?\(([^)]+)\)/i
+    const sigmPolyRe2 = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(([^)]+)\)/i
+    const polyM = sigmPolyRe.exec(text) || sigmPolyRe2.exec(text)
+    if (polyM) {
+      const start = parseInt(polyM[1], 10)
+      const end = parseInt(polyM[2], 10)
+      if (end >= start && end - start <= 100000) {
+        const coeffs = feParsePolyCoeffs(polyM[3])
+        if (coeffs) {
+          const n = new Decimal(end)
+          let sum = new Decimal(0)
+          const sumSteps: string[] = [`Sumatoria(i=${start} a ${end}) de (${polyM[3]})`]
+          if (!coeffs.a3.isZero()) {
+            const s3 = n.times(n.plus(1)).div(2).pow(2)
+            sum = sum.plus(coeffs.a3.times(s3))
+          }
+          if (!coeffs.a2.isZero()) {
+            const s2 = n.times(n.plus(1)).times(n.times(2).plus(1)).div(6)
+            sum = sum.plus(coeffs.a2.times(s2))
+          }
+          if (!coeffs.a1.isZero()) {
+            const s1 = n.times(n.plus(1)).div(2)
+            sum = sum.plus(coeffs.a1.times(s1))
+          }
+          if (!coeffs.a0.isZero()) {
+            sum = sum.plus(coeffs.a0.times(n))
+          }
+          sumSteps.push(`Resultado: ${sum}`)
+          results.push({ value: sum, steps: sumSteps })
+        }
+      }
+    }
+  }
+
+  // Combine results if multiple series found (S₁ + S₂)
+  if (results.length >= 2) {
+    let total = results[0].value
+    const allSteps = results.flatMap(r => r.steps)
+    for (let i = 1; i < results.length; i++) total = total.plus(results[i].value)
+    allSteps.push(`Total combinado: ${results.map(r => r.value.toExponential(4)).join(' + ')} = ${total.toExponential(4)}`)
+
+    // Apply rounding if requested
+    if (/redonde[ao]\s+.*?entero/i.test(text)) {
+      total = total.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      allSteps.push(`Redondeado: ${total}`)
+    }
+    return { value: total, steps: allSteps }
+  }
+
+  if (results.length === 1) {
+    let val = results[0].value
+    if (/redonde[ao]\s+.*?entero/i.test(text)) {
+      val = val.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      results[0].steps.push(`Redondeado: ${val}`)
+    }
+    return { value: val, steps: results[0].steps }
+  }
+
+  return null
+}
+
+function feParsePolyCoeffs(expr: string): { a3: Decimal; a2: Decimal; a1: Decimal; a0: Decimal } | null {
+  let s = expr.trim().replace(/i³/g, 'i^3').replace(/i²/g, 'i^2').replace(/\s+/g, ' ')
+  if (/^[\di]/.test(s)) s = '+' + s
+  const result = { a3: new Decimal(0), a2: new Decimal(0), a1: new Decimal(0), a0: new Decimal(0) }
+  const termRe = /([+-])\s*(\d*\.?\d*)\s*i\s*\^\s*(\d+)|([+-])\s*(\d*\.?\d*)\s*i(?!\s*\^)|([+-])\s*(\d+\.?\d*)/g
+  let m: RegExpExecArray | null
+  let matched = false
+  while ((m = termRe.exec(s)) !== null) {
+    matched = true
+    if (m[1] !== undefined && m[3] !== undefined) {
+      const sign = m[1] === '-' ? -1 : 1
+      const coeff = (m[2] === '' || m[2] === undefined) ? 1 : parseFloat(m[2])
+      const power = parseInt(m[3], 10)
+      if (power <= 3) (result as any)['a' + power] = new Decimal(sign * coeff)
+    } else if (m[4] !== undefined) {
+      const sign = m[4] === '-' ? -1 : 1
+      const coeff = (m[5] === '' || m[5] === undefined) ? 1 : parseFloat(m[5])
+      result.a1 = new Decimal(sign * coeff)
+    } else if (m[6] !== undefined) {
+      const sign = m[6] === '-' ? -1 : 1
+      result.a0 = new Decimal(sign * parseFloat(m[7]))
+    }
+  }
+  return matched ? result : null
+}
+
+// ─── Frontend scientific notation sum ────────────────────────────────────────
+
+function feScientificNotationSum(text: string): { value: Decimal; steps: string[] } | null {
+  if (!/notaci[oó]n\s+cient[ií]fica|[eE]\d+|10\s*\^/i.test(text)) return null
+
+  const numbers: Decimal[] = []
+  const steps: string[] = []
+
+  // Match: 5.678912e8
+  const sciRe1 = /(\d+\.?\d*)\s*[eE]\s*(\d+)/g
+  let m: RegExpExecArray | null
+  while ((m = sciRe1.exec(text)) !== null) {
+    numbers.push(new Decimal(m[1]).times(new Decimal(10).pow(parseInt(m[2], 10))))
+  }
+  // Match: 5.678912 × 10^8
+  const sciRe2 = /(\d+\.?\d*)\s*[×x]\s*10\s*\^\s*(\d+)/gi
+  while ((m = sciRe2.exec(text)) !== null) {
+    const val = new Decimal(m[1]).times(new Decimal(10).pow(parseInt(m[2], 10)))
+    if (!numbers.some(n => n.equals(val))) numbers.push(val)
+  }
+
+  if (numbers.length < 2) return null
+
+  let sum = new Decimal(0)
+  for (let i = 0; i < numbers.length; i++) {
+    sum = sum.plus(numbers[i])
+    steps.push(`Número ${i + 1}: ${numbers[i].toExponential(6)}`)
+  }
+  steps.push(`Suma: ${sum.toExponential(6)}`)
+
+  // Check for coefficient request
+  if (/coeficiente|mantisa/i.test(text)) {
+    const sumStr = sum.toExponential()
+    const mantissa = parseDecimal(sumStr.split('e')[0])
+    if (mantissa) {
+      const sfMatch = text.match(/(\d+)\s*(?:cifras?\s+significativas?|dígitos?\s+significativos?)/i)
+      let result = mantissa
+      if (sfMatch) {
+        result = new Decimal(mantissa.toPrecision(parseInt(sfMatch[1], 10)))
+        steps.push(`Coeficiente redondeado a ${sfMatch[1]} cifras: ${result}`)
+      } else {
+        steps.push(`Coeficiente: ${result}`)
+      }
+      return { value: result, steps }
+    }
+  }
+
+  if (/redonde[ao]\s+.*?entero/i.test(text)) {
+    sum = sum.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+    steps.push(`Redondeado: ${sum}`)
+  }
+
+  return { value: sum, steps }
+}
+
+// ─── Frontend derivative extrema ────────────────────────────────────────────
+
+function feDerivativeExtrema(text: string): { value: Decimal; steps: string[] } | null {
+  if (!/derivada|extremo|mínimo\s+local|máximo\s+local|punto\s+crítico/i.test(text)) return null
+
+  const fxMatch = text.match(/f\s*\(\s*x\s*\)\s*=\s*([^.]+?)(?:\.\s|$)/i)
+  if (!fxMatch) return null
+
+  // Normalize unicode superscripts
+  let polyText = fxMatch[1].trim()
+    .replace(/⁰/g, '^0').replace(/¹/g, '^1').replace(/²/g, '^2')
+    .replace(/³/g, '^3').replace(/⁴/g, '^4').replace(/⁵/g, '^5')
+    .replace(/⁶/g, '^6').replace(/⁷/g, '^7').replace(/⁸/g, '^8')
+    .replace(/⁹/g, '^9').replace(/−/g, '-').replace(/–/g, '-')
+
+  if (!/^[+-]/.test(polyText)) polyText = '+' + polyText
+  const coeffs: Record<number, Decimal> = {}
+  const terms = polyText.match(/[+-][^+-]+/g)
+  if (!terms) return null
+
+  for (const term of terms) {
+    const t = term.trim()
+    let m = t.match(/^([+-]?\s*\d*\.?\d*)\s*x\s*\^\s*(\d+)$/)
+    if (m) {
+      let c = m[1].replace(/\s/g, '')
+      if (c === '+' || c === '') c = '1'
+      if (c === '-') c = '-1'
+      coeffs[parseInt(m[2], 10)] = new Decimal(c)
+      continue
+    }
+    m = t.match(/^([+-]?\s*\d*\.?\d*)\s*x\s*$/)
+    if (m) {
+      let c = m[1].replace(/\s/g, '')
+      if (c === '+' || c === '') c = '1'
+      if (c === '-') c = '-1'
+      coeffs[1] = new Decimal(c)
+      continue
+    }
+    m = t.match(/^([+-]?\s*\d+\.?\d*)\s*$/)
+    if (m) {
+      coeffs[0] = new Decimal(m[1].replace(/\s/g, ''))
+    }
+  }
+
+  const maxPow = Math.max(...Object.keys(coeffs).map(Number))
+  if (maxPow < 2 || maxPow > 6) return null
+
+  // Compute derivative
+  const deriv: Record<number, Decimal> = {}
+  for (const [p, c] of Object.entries(coeffs)) {
+    const pi = parseInt(p, 10)
+    if (pi === 0) continue
+    deriv[pi - 1] = c.times(pi)
+  }
+
+  const steps: string[] = [`f(x) = ${fxMatch[1].trim()}`]
+  const derivTerms = Object.entries(deriv).sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+    .map(([p, c]) => `${c}x^${p}`).join(' + ')
+  steps.push(`f'(x) = ${derivTerms}`)
+
+  // Find roots of derivative
+  const derivMax = Math.max(...Object.keys(deriv).map(Number))
+  let roots: Decimal[] = []
+
+  if (derivMax === 1) {
+    // Linear: ax + b = 0
+    const a = deriv[1] || new Decimal(0)
+    const b = deriv[0] || new Decimal(0)
+    if (!a.isZero()) roots = [b.neg().div(a)]
+  } else if (derivMax === 2) {
+    // Quadratic: ax² + bx + c = 0
+    const a = deriv[2] || new Decimal(0)
+    const b = deriv[1] || new Decimal(0)
+    const c = deriv[0] || new Decimal(0)
+    const disc = b.times(b).minus(a.times(c).times(4))
+    if (disc.gte(0)) {
+      const sqrtD = disc.sqrt()
+      roots.push(b.neg().plus(sqrtD).div(a.times(2)))
+      if (disc.gt(0)) roots.push(b.neg().minus(sqrtD).div(a.times(2)))
+    }
+  } else {
+    // Higher degree: try integer roots [-50, 50]
+    for (let x = -50; x <= 50; x++) {
+      const dx = new Decimal(x)
+      let val = new Decimal(0)
+      for (const [p, c] of Object.entries(deriv)) {
+        val = val.plus(c.times(dx.pow(parseInt(p, 10))))
+      }
+      if (val.abs().lt('0.0001')) roots.push(dx)
+    }
+  }
+
+  if (roots.length === 0) return null
+  steps.push(`Raíces de f'(x): ${roots.join(', ')}`)
+
+  // Classify using second derivative
+  const deriv2: Record<number, Decimal> = {}
+  for (const [p, c] of Object.entries(deriv)) {
+    const pi = parseInt(p, 10)
+    if (pi === 0) continue
+    deriv2[pi - 1] = c.times(pi)
+  }
+
+  const minima: { x: Decimal; y: Decimal }[] = []
+  const maxima: { x: Decimal; y: Decimal }[] = []
+
+  for (const root of roots) {
+    let d2val = new Decimal(0)
+    for (const [p, c] of Object.entries(deriv2)) {
+      d2val = d2val.plus(c.times(root.pow(parseInt(p, 10))))
+    }
+    let fval = new Decimal(0)
+    for (const [p, c] of Object.entries(coeffs)) {
+      fval = fval.plus(c.times(root.pow(parseInt(p, 10))))
+    }
+    if (d2val.gt(0)) {
+      minima.push({ x: root, y: fval })
+      steps.push(`f''(${root}) = ${d2val} > 0 → mínimo local en x=${root}`)
+    } else if (d2val.lt(0)) {
+      maxima.push({ x: root, y: fval })
+      steps.push(`f''(${root}) = ${d2val} < 0 → máximo local en x=${root}`)
+    } else {
+      // f''=0: check higher derivatives or leading coefficient
+      const leadCoeff = coeffs[maxPow] || new Decimal(0)
+      if (maxPow % 2 === 0 && leadCoeff.gt(0)) {
+        minima.push({ x: root, y: fval })
+        steps.push(`f''(${root})=0, pero grado par con coef. positivo → mínimo en x=${root}`)
+      } else if (maxPow % 2 === 0 && leadCoeff.lt(0)) {
+        maxima.push({ x: root, y: fval })
+        steps.push(`f''(${root})=0, grado par con coef. negativo → máximo en x=${root}`)
+      }
+    }
+  }
+
+  const lower = text.toLowerCase()
+  const wantsMin = /mínimo|mín(?:imo)?\s+local/i.test(lower)
+  const wantsMax = /máximo|máx(?:imo)?\s+local/i.test(lower) && !wantsMin
+  const wantsX = /valor\s+de\s+x|cuál\s+es\s+(?:el\s+)?(?:valor|x)/i.test(lower)
+
+  let result: Decimal | null = null
+  if (wantsMin && minima.length > 0) {
+    const target = minima.find(p => p.x.isInteger()) || minima[0]
+    result = wantsX ? target.x : target.y
+    steps.push(`Respuesta (x del mínimo): ${target.x}`)
+  } else if (wantsMax && maxima.length > 0) {
+    const target = maxima.find(p => p.x.isInteger()) || maxima[0]
+    result = wantsX ? target.x : target.y
+    steps.push(`Respuesta (x del máximo): ${target.x}`)
+  } else if (minima.length > 0 || maxima.length > 0) {
+    const all = [...minima, ...maxima]
+    result = all[0].x
+    steps.push(`Punto crítico: x = ${result}`)
+  }
+
+  return result ? { value: result, steps } : null
 }
 
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
