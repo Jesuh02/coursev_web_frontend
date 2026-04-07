@@ -556,22 +556,20 @@ async function openInfoDialog(course: Course) {
   infoTeachers.value = []
   infoStudents.value = []
   try {
-    const [collabsRes, studentsRes] = await Promise.allSettled([
+    const [collabsRes, guestsRes] = await Promise.allSettled([
       collaboratorAdapter.getByCourse(course.id),
-      progressAdapter.getAllProgressByCourse(course.id),
+      courseAdapter.getGuests(course.id),
     ])
     if (collabsRes.status === 'fulfilled') {
       infoTeachers.value = collabsRes.value
         .filter(c => c.user)
         .map(c => ({ id: c.userId, name: c.user?.username ?? `Usuario #${c.userId}` }))
     }
-    if (studentsRes.status === 'fulfilled') {
-      infoStudents.value = (studentsRes.value as any[])
-        .filter((p: any) => {
-          const s = p.enrollmentStatus
-          return s == null || s === 'activo'
-        })
-        .map((p: any) => ({ userId: p.userId ?? p.usuarioEstudiante, username: p.username ?? `Usuario #${p.userId ?? p.usuarioEstudiante}` }))
+    if (guestsRes.status === 'fulfilled') {
+      const collabIds = new Set(infoTeachers.value.map(t => t.id))
+      infoStudents.value = guestsRes.value
+        .filter(g => !collabIds.has(g.userId))
+        .map(g => ({ userId: g.userId, username: g.username ?? `Usuario #${g.userId}` }))
     }
   } finally {
     infoLoading.value = false
