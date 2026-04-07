@@ -519,9 +519,47 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   const text = question.question ?? ''
   const lower = text.toLowerCase()
 
-  const mathSignals = /calcula|suma|total|multiplica|divide|resta|resultado|costo\s+total|precio\s+total|monto\s+total|redondea|¿cuánto|cuántos|cuántas|promedio|media|porcentaje|serie\s+(?:aritm|geom)|progresión|sumatoria|[Σ∑]|derivada|extremo|mínimo\s+local|máximo\s+local|notación\s+científica/i
+  const mathSignals = /calcula|suma|total|multiplica|divide|resta|resultado|costo\s+total|precio\s+total|monto\s+total|redondea|¿cuánto|cuántos|cuántas|promedio|media|porcentaje|serie\s+(?:aritm|geom)|progresión|sumatoria|[Σ∑]|derivada|extremo|mínimo\s+local|máximo\s+local|notación\s+científica|dígito|cifra|posición/i
   const hasSignificantNumbers = /\d{3,}/.test(text.replace(/,/g, ''))
   if (!mathSignals.test(lower) && !hasSignificantNumbers) return question
+
+  // ── Digit-position meta-questions: compute answer properly ──
+  const metaPatterns = [
+    /d[ií]gito\s+(?:(?:de|en|que\s+ocupa)\s+)?(?:las?\s+)?(?:posici[oó]n\s+(?:de\s+(?:las?\s+)?)?)?(?:centenas?|decenas?|unidades?|miles?|millones?|millares?)/i,
+    /posici[oó]n\s+(?:de\s+(?:las?\s+)?)?(?:centenas?|decenas?|unidades?|miles?|millones?|millares?)/i,
+    /¿cu[aá]l\s+es\s+el\s+d[ií]gito/i,
+    /cifra\s+(?:de|en)\s+(?:la\s+)?posici[oó]n/i,
+    /d[ií]gito\s+(?:que\s+)?(?:est[aá]|se\s+encuentra|ocupa)\s+en/i,
+    /qu[eé]\s+(?:d[ií]gito|n[uú]mero|cifra)\s+(?:hay|est[aá]|se\s+encuentra|ocupa)/i,
+    /(?:centenas?|decenas?|unidades?)\s+de\s+(?:mill[oó]n|millar)/i,
+  ]
+  if (metaPatterns.some(re => re.test(text))) {
+    const digitResult = feDigitPositionProblem(text)
+    if (digitResult) {
+      const digitAnswer = digitResult.value
+      if (question.type === 'fill_in_blank') {
+        const currentAnswer = parseDecimal(String(question.correctAnswer ?? ''))
+        if (currentAnswer && !currentAnswer.eq(digitAnswer)) {
+          console.warn(`[FE MathVerify] CORRECTED digit-position fill_in_blank: LLM="${question.correctAnswer}" → Correct="${digitAnswer}"`)
+          return { ...question, correctAnswer: digitAnswer.toFixed(), explanation: digitResult.steps.join('. ') + '.' }
+        }
+        return question
+      }
+      if (question.type === 'multiple_choice' && Array.isArray(question.options)) {
+        const optionValues = question.options.map(opt => parseDecimal(String(opt).replace(/[^\d.-]/g, '')))
+        let matchIdx = -1
+        for (let i = 0; i < optionValues.length; i++) {
+          if (optionValues[i] && optionValues[i]!.eq(digitAnswer)) { matchIdx = i; break }
+        }
+        if (matchIdx >= 0 && matchIdx !== question.correctIndex) {
+          console.warn(`[FE MathVerify] CORRECTED digit-position MC: index ${question.correctIndex}→${matchIdx} (digit=${digitAnswer})`)
+          return { ...question, correctIndex: matchIdx, explanation: digitResult.steps.join('. ') + '.' }
+        }
+        return question
+      }
+    }
+    return question
+  }
 
   // Fill-in-blank sanity: scientific notation coefficient must be in [1, 10)
   if (question.type === 'fill_in_blank') {
@@ -582,6 +620,106 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
     }
   }
   return question
+}
+
+// ─── Frontend digit-position problem solver ──────────────────────────────────
+
+function feDigitPositionProblem(text: string): { value: Decimal; steps: string[] } | null {
+  const positionMap: Record<string, number> = {
+    'unidades': 0, 'unidad': 0, 'decenas': 1, 'decena': 1,
+    'centenas': 2, 'centena': 2, 'miles': 3, 'mil': 3,
+    'millares': 3, 'millar': 3, 'decenas de mil': 4,
+    'decenas de millar': 4, 'centenas de mil': 5,
+    'centenas de millar': 5, 'millones': 6, 'millon': 6,
+    'millón': 6, 'unidades de millón': 6, 'unidades de millon': 6,
+    'decenas de millón': 7, 'decenas de millon': 7,
+    'centenas de millón': 8, 'centenas de millon': 8,
+    'miles de millón': 9, 'miles de millon': 9,
+  }
+
+  const lower = text.toLowerCase()
+    .replace(/í/g, 'i').replace(/ó/g, 'o')
+    .replace(/á/g, 'a').replace(/é/g, 'e').replace(/ú/g, 'u')
+  let position = -1
+  let posName = ''
+
+  const sortedKeys = Object.keys(positionMap).sort((a, b) => b.length - a.length)
+  for (const key of sortedKeys) {
+    const normalized = key.replace(/í/g, 'i').replace(/ó/g, 'o')
+      .replace(/á/g, 'a').replace(/é/g, 'e').replace(/ú/g, 'u')
+    if (lower.includes(normalized)) {
+      position = positionMap[key]
+      posName = key
+      break
+    }
+  }
+
+  if (position < 0) {
+    // Try 10^N with unicode superscripts
+    const powMatch = text.match(/10[\u2070\xb9\xb2\xb3\u2074\u2075\u2076\u2077\u2078\u2079]+/)
+    if (powMatch) {
+      const scMap: Record<string, number> = {
+        '\u2070': 0, '\xb9': 1, '\xb2': 2, '\xb3': 3, '\u2074': 4,
+        '\u2075': 5, '\u2076': 6, '\u2077': 7, '\u2078': 8, '\u2079': 9,
+      }
+      let exp = 0
+      for (let ci = 2; ci < powMatch[0].length; ci++) {
+        const d = scMap[powMatch[0][ci]]
+        if (d !== undefined) exp = exp * 10 + d
+      }
+      position = exp
+      posName = `posición 10^${exp}`
+    }
+  }
+
+  if (position < 0) return null
+
+  // Compute base number
+  const cleaned = text.replace(/[$€¥£₡₿]\s*/g, '')
+  const allNums: Decimal[] = []
+  const numRe = /\d[\d,]*\.?\d*/g
+  let nm
+  while ((nm = numRe.exec(cleaned)) !== null) {
+    const p = parseDecimal(nm[0])
+    if (p) allNums.push(p)
+  }
+
+  const steps: string[] = []
+  let baseNumber: Decimal | null = null
+
+  // Try explicit arithmetic first
+  const exprResult = computeExpectedAnswer(text)
+  if (exprResult) {
+    baseNumber = exprResult.value
+    steps.push(...exprResult.steps)
+  }
+
+  // Otherwise, sum significant numbers
+  if (!baseNumber && allNums.length >= 2) {
+    const dataNums = allNums.filter(n => n.abs().gte(10))
+    if (dataNums.length >= 2) {
+      baseNumber = dataNums.reduce((a, b) => a.plus(b), new Decimal(0))
+      steps.push(`Suma: ${dataNums.join(' + ')} = ${baseNumber}`)
+    }
+  }
+
+  if (!baseNumber && allNums.length === 1 && allNums[0].abs().gte(10)) {
+    baseNumber = allNums[0]
+    steps.push(`Número base: ${baseNumber}`)
+  }
+
+  if (!baseNumber) return null
+
+  const integerPart = baseNumber.abs().floor()
+  const intStr = integerPart.toFixed(0)
+  const digitIndex = intStr.length - 1 - position
+  const digit = digitIndex < 0 ? 0 : parseInt(intStr[digitIndex], 10)
+
+  steps.push(`Número resultado: ${baseNumber.toFixed(baseNumber.dp() || 0)}`)
+  steps.push(`Parte entera: ${intStr}`)
+  steps.push(`Posición ${posName} (10^${position}): dígito = ${digit}`)
+
+  return { value: new Decimal(digit), steps }
 }
 
 function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] } | null {

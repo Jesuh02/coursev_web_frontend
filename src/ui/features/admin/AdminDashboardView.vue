@@ -118,7 +118,29 @@
             <h3>Actividad Semanal</h3>
             <span class="a-tag a-tag-teal">Últimos 7 días</span>
           </div>
-          <div ref="weeklyChartContainer" class="lw-chart-container lw-chart-lg"></div>
+          <div class="a-area-chart-wrap">
+            <svg
+              class="a-area-svg a-area-svg-tall"
+              :viewBox="`0 0 ${weeklyAreaWidth} 100`"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="weeklyAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(38, 166, 154, 0.42)" />
+                  <stop offset="100%" stop-color="rgba(38, 166, 154, 0.02)" />
+                </linearGradient>
+              </defs>
+              <path :d="weeklySmoothedAreaPath" fill="url(#weeklyAreaGradient)" class="a-chart-fill" />
+              <path :d="weeklySmoothedLinePath" fill="none" stroke="#26a69a" stroke-width="2.5" stroke-linecap="round" class="a-chart-line" />
+              <g v-for="(point, idx) in weeklyPoints" :key="`weekly-point-${idx}`">
+                <circle :cx="point.x" :cy="point.y" r="3.5" fill="#26a69a" class="a-dot-main" />
+                <circle :cx="point.x" :cy="point.y" r="7" fill="rgba(38, 166, 154, 0.16)" class="a-dot-pulse" />
+              </g>
+            </svg>
+            <div class="a-chart-labels">
+              <span v-for="(label, idx) in weeklyLabels" :key="`weekly-label-${idx}`">{{ label }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Progreso Mensual — TradingView Lightweight Chart -->
@@ -127,7 +149,19 @@
             <h3>Progreso Mensual</h3>
             <span class="a-tag a-tag-teal">6 meses</span>
           </div>
-          <div ref="monthlyChartContainer" class="lw-chart-container lw-chart-lg"></div>
+          <div class="a-grouped-bars">
+            <div v-for="(bar, idx) in monthlyBars" :key="`monthly-bar-${idx}`" class="a-bar-group">
+              <div class="a-bars-col">
+                <div class="a-bar a-bar-completed" :style="{ height: `${bar.completedH}px` }"></div>
+                <div class="a-bar a-bar-active" :style="{ height: `${bar.activeH}px` }"></div>
+              </div>
+              <span class="a-bar-lbl">{{ bar.label }}</span>
+            </div>
+          </div>
+          <div class="a-legend-row">
+            <div class="a-legend"><span class="a-dot a-dot-completed"></span><span>Completadas</span></div>
+            <div class="a-legend"><span class="a-dot a-dot-active"></span><span>Activas</span></div>
+          </div>
         </div>
 
         <!-- Top 5 Creadores -->
@@ -1507,11 +1541,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import { useRouter, useRoute } from 'vue-router'
-import { createChart, AreaSeries, HistogramSeries, ColorType } from 'lightweight-charts'
-import type { IChartApi, ISeriesApi, AreaSeriesPartialOptions, HistogramSeriesPartialOptions } from 'lightweight-charts'
 import { progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -3413,150 +3445,6 @@ const monthlyBars = computed(() => {
   }))
 })
 
-// ─── TradingView Lightweight Charts ─────────────────────────────────────
-const weeklyChartContainer = ref<HTMLDivElement | null>(null)
-const monthlyChartContainer = ref<HTMLDivElement | null>(null)
-let weeklyChartInstance: IChartApi | null = null
-let monthlyChartInstance: IChartApi | null = null
-
-const lwChartOptions = {
-  layout: {
-    background: { type: ColorType.Solid as const, color: 'transparent' },
-    textColor: 'rgba(255, 255, 255, 0.5)',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    fontSize: 11,
-  },
-  grid: {
-    vertLines: { visible: false },
-    horzLines: { color: 'rgba(255, 255, 255, 0.04)', style: 1 },
-  },
-  crosshair: {
-    vertLine: { color: 'rgba(255, 255, 255, 0.25)', width: 1 as const, style: 0 as const, labelBackgroundColor: '#2a2e39' },
-    horzLine: { color: 'rgba(255, 255, 255, 0.25)', width: 1 as const, style: 2 as const, labelBackgroundColor: '#2a2e39' },
-  },
-  rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.06)', scaleMargins: { top: 0.08, bottom: 0.02 } },
-  timeScale: { borderColor: 'rgba(255, 255, 255, 0.06)', fixLeftEdge: true, fixRightEdge: true },
-  handleScroll: false,
-  handleScale: false,
-}
-
-function buildWeeklyDates(): string[] {
-  const today = new Date()
-  const dates: string[] = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - i)
-    dates.push(d.toISOString().slice(0, 10))
-  }
-  return dates
-}
-
-function buildMonthlyDates(): string[] {
-  const today = new Date()
-  const dates: string[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-    dates.push(d.toISOString().slice(0, 10))
-  }
-  return dates
-}
-
-function initWeeklyChart() {
-  if (!weeklyChartContainer.value) return
-  if (weeklyChartInstance) { weeklyChartInstance.remove(); weeklyChartInstance = null }
-
-  const chart = createChart(weeklyChartContainer.value, {
-    ...lwChartOptions,
-    height: 260,
-    width: weeklyChartContainer.value.clientWidth,
-  })
-  weeklyChartInstance = chart
-
-  const areaSeries = chart.addSeries(AreaSeries, {
-    lineColor: '#26a69a',
-    topColor: 'rgba(38, 166, 154, 0.38)',
-    bottomColor: 'rgba(38, 166, 154, 0.0)',
-    lineWidth: 2,
-    crosshairMarkerBackgroundColor: '#26a69a',
-    crosshairMarkerBorderColor: '#ffffff',
-    crosshairMarkerBorderWidth: 2,
-    crosshairMarkerRadius: 4,
-    lastValueVisible: true,
-    priceLineVisible: false,
-  } as AreaSeriesPartialOptions)
-
-  const vals = weeklyValues.value
-  const dates = buildWeeklyDates()
-  const data = dates.map((time, i) => ({ time, value: vals[i] ?? 0 }))
-  areaSeries.setData(data as any)
-  chart.timeScale().fitContent()
-
-  const ro = new ResizeObserver(() => {
-    if (weeklyChartContainer.value && weeklyChartInstance) {
-      weeklyChartInstance.applyOptions({ width: weeklyChartContainer.value.clientWidth })
-    }
-  })
-  ro.observe(weeklyChartContainer.value)
-}
-
-function initMonthlyChart() {
-  if (!monthlyChartContainer.value) return
-  if (monthlyChartInstance) { monthlyChartInstance.remove(); monthlyChartInstance = null }
-
-  const chart = createChart(monthlyChartContainer.value, {
-    ...lwChartOptions,
-    height: 260,
-    width: monthlyChartContainer.value.clientWidth,
-  })
-  monthlyChartInstance = chart
-
-  const completedSeries = chart.addSeries(HistogramSeries, {
-    color: '#26a69a',
-    priceFormat: { type: 'volume' },
-    priceScaleId: '',
-    lastValueVisible: false,
-    priceLineVisible: false,
-  } as HistogramSeriesPartialOptions)
-
-  chart.priceScale('').applyOptions({
-    scaleMargins: { top: 0.1, bottom: 0.05 },
-  })
-
-  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
-  const dates = buildMonthlyDates()
-  const data = dates.map((time, i) => ({
-    time,
-    value: vals[i] ?? 0,
-    color: 'rgba(38, 166, 154, 0.85)',
-  }))
-  completedSeries.setData(data as any)
-  chart.timeScale().fitContent()
-
-  const ro = new ResizeObserver(() => {
-    if (monthlyChartContainer.value && monthlyChartInstance) {
-      monthlyChartInstance.applyOptions({ width: monthlyChartContainer.value.clientWidth })
-    }
-  })
-  ro.observe(monthlyChartContainer.value)
-}
-
-watch([weeklyValues, weeklyLabels], () => {
-  if (weeklyChartInstance && weeklyChartContainer.value) {
-    initWeeklyChart()
-  }
-})
-
-watch([monthlyChartRaw], () => {
-  if (monthlyChartInstance && monthlyChartContainer.value) {
-    initMonthlyChart()
-  }
-}, { deep: true })
-
-onBeforeUnmount(() => {
-  if (weeklyChartInstance) { weeklyChartInstance.remove(); weeklyChartInstance = null }
-  if (monthlyChartInstance) { monthlyChartInstance.remove(); monthlyChartInstance = null }
-})
-
 const resolveAvatar = (url: string) => {
   if (!url) return '/default-avatar.png'
   // Google OAuth avatar CDN rate-limits aggressively — use fallback directly
@@ -3615,10 +3503,6 @@ const loadAnalyticsData = async () => {
     console.error('Error loading analytics:', error)
   } finally {
     analyticsLoading.value = false
-    nextTick(() => {
-      initWeeklyChart()
-      initMonthlyChart()
-    })
   }
 }
 
