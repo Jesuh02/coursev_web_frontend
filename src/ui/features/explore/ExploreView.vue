@@ -23,8 +23,10 @@
           :key="course.id"
           :course="course"
           :creator-name="getCourseCreatorName(course)"
+          :teacher-count="teacherCounts[course.id]"
           @click="navigateToCourse(course)"
           @options="canManageCourses ? openCourseOptions($event) : undefined"
+          @info="openInfoDialog($event)"
         />
       </TransitionGroup>
     </div>
@@ -75,6 +77,50 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Diálogo de participantes del curso -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="infoVisible" class="info-overlay" @click="infoVisible = false">
+          <div class="info-dialog" @click.stop>
+            <div class="info-dialog-header">
+              <span class="info-dialog-title">{{ infoCourse?.title }}</span>
+              <button class="info-close-btn" @click="infoVisible = false" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div v-if="infoLoading" class="info-loading">
+              <div class="info-spinner" />
+            </div>
+            <div v-else class="info-dialog-body">
+              <div class="info-section">
+                <div class="info-section-header">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                  <span class="info-section-label">Docentes</span>
+                  <span class="info-section-count">{{ infoTeachers.length }}</span>
+                </div>
+                <p v-if="!infoTeachers.length" class="info-empty">Sin docentes asignados</p>
+                <ul v-else class="info-list">
+                  <li v-for="t in infoTeachers" :key="t.id" class="info-item">{{ t.name }}</li>
+                </ul>
+              </div>
+              <div class="info-divider" />
+              <div class="info-section">
+                <div class="info-section-header">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  <span class="info-section-label">Estudiantes</span>
+                  <span class="info-section-count">{{ infoStudents.length }}</span>
+                </div>
+                <p v-if="!infoStudents.length" class="info-empty">Sin estudiantes registrados</p>
+                <ul v-else class="info-list">
+                  <li v-for="s in infoStudents" :key="s.userId" class="info-item">{{ s.username }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -107,6 +153,16 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null
 const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
+
+// ── Teacher counts (collaborators per course) ─────────────────────────────
+const teacherCounts = ref<Record<number, number>>({})
+
+// ── Info dialog ───────────────────────────────────────────────────────────
+const infoVisible = ref(false)
+const infoCourse = ref<Course | null>(null)
+const infoLoading = ref(false)
+const infoTeachers = ref<{ id: number; name: string }[]>([])
+const infoStudents = ref<{ userId: number; username: string }[]>([])
 
 const canManageCourses = computed(() => authStore.isAdmin)
 const userRole = computed(() => {
@@ -467,11 +523,52 @@ async function resolveStudentCounts(courses: Course[]) {
   })
 }
 
+async function resolveTeacherCounts(courses: Course[]) {
+  const missing = courses.filter(c => teacherCounts.value[c.id] === undefined)
+  if (!missing.length) return
+  const results = await Promise.allSettled(
+    missing.map(c => collaboratorAdapter.getByCourse(c.id)),
+  )
+  results.forEach((result, index) => {
+    teacherCounts.value[missing[index].id] = result.status === 'fulfilled' ? result.value.length : 0
+  })
+}
+
+async function openInfoDialog(course: Course) {
+  infoCourse.value = course
+  infoVisible.value = true
+  infoLoading.value = true
+  infoTeachers.value = []
+  infoStudents.value = []
+  try {
+    const [collabsRes, studentsRes] = await Promise.allSettled([
+      collaboratorAdapter.getByCourse(course.id),
+      progressAdapter.getAllProgressByCourse(course.id),
+    ])
+    if (collabsRes.status === 'fulfilled') {
+      infoTeachers.value = collabsRes.value
+        .filter(c => c.user)
+        .map(c => ({ id: c.userId, name: c.user?.username ?? `Usuario #${c.userId}` }))
+    }
+    if (studentsRes.status === 'fulfilled') {
+      infoStudents.value = (studentsRes.value as any[])
+        .filter((p: any) => {
+          const s = p.enrollmentStatus
+          return s == null || s === 'activo'
+        })
+        .map((p: any) => ({ userId: p.userId ?? p.usuarioEstudiante, username: p.username ?? `Usuario #${p.userId ?? p.usuarioEstudiante}` }))
+    }
+  } finally {
+    infoLoading.value = false
+  }
+}
+
 watch(
   () => courseStore.courses,
   (courses) => {
     void resolveMissingCreatorUsernames(courses)
     void resolveStudentCounts(courses)
+    void resolveTeacherCounts(courses)
   },
   { immediate: true },
 )
@@ -602,4 +699,153 @@ onUnmounted(() => observer?.disconnect())
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* Info dialog */
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+}
+
+.info-dialog {
+  background: rgba(28, 28, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 360px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.info-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+.info-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8E8E93;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.info-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.info-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.info-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--purple-light, #BF5AF2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.info-dialog-body {
+  padding: 0 0 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.info-section {
+  padding: 14px 20px 10px;
+}
+
+.info-section-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.info-section-header svg {
+  color: #8E8E93;
+  flex-shrink: 0;
+}
+
+.info-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8E8E93;
+}
+
+.info-section-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.07);
+  color: #8E8E93;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.info-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 20px;
+}
+
+.info-empty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  margin: 0;
+}
+
+.info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-item {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
 </style>

@@ -16,11 +16,19 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             {{ course.studentCount ?? 0 }} estudiante{{ (course.studentCount ?? 0) !== 1 ? 's' : '' }}
           </span>
+          <span class="teacher-count">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            {{ teacherCount ?? 0 }} docente{{ (teacherCount ?? 0) !== 1 ? 's' : '' }}
+          </span>
           <span class="category-badge">{{ course.category ?? 'General' }}</span>
         </div>
         <div class="footer-right">
           <span v-if="course.price > 0" class="price-tag premium">Premium</span>
           <span v-else class="price-tag free">Gratis</span>
+          <!-- Botón info -->
+          <button class="info-btn" @click.stop="$emit('info', course)" aria-label="Ver participantes">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </button>
           <!-- Botón de opciones (3 puntos) para usuarios con rol 3 (admin) -->
           <button v-if="canModify" class="options-btn" @click.stop="$emit('options', course)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
@@ -37,8 +45,8 @@ import { resolveImageUrl } from '@/infrastructure/api'
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 
-const props = defineProps<{ course: Course; creatorName?: string | null }>()
-defineEmits<{ click: [], options: [course: Course] }>()
+const props = defineProps<{ course: Course; creatorName?: string | null; teacherCount?: number }>()
+defineEmits<{ click: [], options: [course: Course], info: [course: Course] }>()
 
 const authStore = useAuthStore()
 const thumb = computed(() => resolveImageUrl(props.course.thumbnailUri ?? props.course.thumbnail_uri))
@@ -145,6 +153,35 @@ const creatorLabel = computed(() => {
 
 .student-count svg {
   color: #8E8E93;
+}
+
+.teacher-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #BF5AF2;
+}
+
+.teacher-count svg {
+  color: #BF5AF2;
+}
+
+.info-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8E8E93;
+  transition: background 0.2s, color 0.2s;
+}
+
+.info-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .category-badge {
