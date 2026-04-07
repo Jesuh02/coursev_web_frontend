@@ -273,6 +273,48 @@
           </div>
         </div>
 
+        <!-- Embudo de Conversión -->
+        <div class="a-card a-funnel-card">
+          <div class="a-card-header">
+            <h3>Embudo de Conversión</h3>
+            <span class="a-tag a-tag-cyan">Pipeline</span>
+          </div>
+          <div class="a-funnel-body">
+            <svg class="a-funnel-svg" viewBox="0 0 280 212" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <filter id="funnel-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <polygon
+                v-for="(stage, i) in funnelSvgData"
+                :key="i"
+                :points="stage.points"
+                :fill="stage.color"
+                :stroke="stage.color"
+                fill-opacity="0.18"
+                stroke-opacity="0.7"
+                stroke-width="1.5"
+                class="a-funnel-polygon"
+                :style="{ animationDelay: `${i * 90}ms` }"
+              />
+              <!-- labels inside the SVG -->
+              <g v-for="(stage, i) in funnelSvgData" :key="'lbl-' + i">
+                <text x="140" :y="stage.midY - 6" text-anchor="middle" font-size="12" font-weight="700" fill="white" opacity="0.92">{{ stage.label }}</text>
+                <text x="140" :y="stage.midY + 9" text-anchor="middle" font-size="10" fill="white" opacity="0.6">{{ stage.count }} &bull; {{ stage.pct }}%</text>
+              </g>
+            </svg>
+            <div class="a-funnel-legend">
+              <div v-for="stage in funnelStages" :key="stage.label" class="a-funnel-legend-item">
+                <span class="a-funnel-dot" :style="{ background: stage.color }" />
+                <span class="a-funnel-legend-label">{{ stage.label }}</span>
+                <span class="a-funnel-legend-pct" :style="{ color: stage.color }">{{ stage.pct }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Top 5 Creadores -->
         <div class="a-card a-premium-table-card">
           <div class="a-card-header">
@@ -3643,6 +3685,38 @@ const donutCenterValue = computed(() => {
     creatorMetrics.value.satisfactionRate ?? 0,
   ]
   return Math.round(vals.reduce((a, b) => a + b, 0) / 3)
+})
+
+const funnelStages = computed(() => {
+  const enrolled  = creatorMetrics.value.enrolledUsersCount  ?? 0
+  const approved  = Math.round((creatorMetrics.value.approvalRate  ?? 0) * enrolled / 100)
+  const completed = Math.round((creatorMetrics.value.completionRate ?? 0) * enrolled / 100)
+  const certified = creatorMetrics.value.certifiedUsersCount ?? 0
+  const maxVal    = Math.max(enrolled, 1)
+  return [
+    { label: 'Inscritos',    count: enrolled,  pct: 100,                                      color: '#00D4FF' },
+    { label: 'Aprobados',    count: approved,  pct: Math.round(approved  / maxVal * 100),     color: '#9B8FFF' },
+    { label: 'Completados',  count: completed, pct: Math.round(completed / maxVal * 100),     color: '#30D158' },
+    { label: 'Certificados', count: certified, pct: Math.round(certified / maxVal * 100),     color: '#FFD60A' },
+  ]
+})
+
+const funnelSvgData = computed(() => {
+  const W = 280, H = 212, padX = 12, padTop = 4
+  const stageH = (H - padTop * 2) / funnelStages.value.length
+  const maxW   = W - padX * 2
+  return funnelStages.value.map((stage, i) => {
+    const topW  = maxW * (stage.pct / 100)
+    const nextPct = funnelStages.value[i + 1]?.pct ?? 0
+    const botW  = maxW * (nextPct / 100)
+    const topY  = padTop + i * stageH
+    const botY  = topY + stageH
+    const topL  = (W - topW) / 2
+    const topR  = topL + topW
+    const botL  = (W - botW) / 2
+    const botR  = botL + botW
+    return { ...stage, points: `${topL},${topY} ${topR},${topY} ${botR},${botY} ${botL},${botY}`, midY: topY + stageH / 2 + 5 }
+  })
 })
 
 const resolveAvatar = (url: string) => {
@@ -7951,5 +8025,59 @@ watch(() => route.query, () => {
     padding: 0 10px 24px;
     gap: 10px;
   }
+}
+
+/* ═══════ Funnel Chart ═══════ */
+.a-funnel-card { padding-bottom: 4px; }
+.a-funnel-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 4px 0;
+}
+.a-funnel-svg {
+  flex-shrink: 0;
+  width: 172px;
+  height: 132px;
+  filter: drop-shadow(0 0 18px rgba(0, 212, 255, 0.12));
+}
+@keyframes funnelSlide {
+  from { opacity: 0; clip-path: inset(0 50% 0 50%); }
+  to   { opacity: 1; clip-path: inset(0 0% 0 0%); }
+}
+.a-funnel-polygon {
+  animation: funnelSlide 0.55s cubic-bezier(.22,.68,0,1.2) both;
+}
+.a-funnel-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.a-funnel-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.a-funnel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+.a-funnel-legend-label {
+  font-size: 11px;
+  color: #8E8E93;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.a-funnel-legend-pct {
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 </style>

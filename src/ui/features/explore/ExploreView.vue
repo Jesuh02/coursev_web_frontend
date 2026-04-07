@@ -406,11 +406,26 @@ async function navigateToCourse(course: Course) {
     } else if (status === 'revoked') {
       showAccessMessage('Tu acceso a este curso fue revocado por el administrador.')
     } else {
-      // null status (new student), 'rejected' (guest removed / re-enrollment), or unknown:
-      // let the student request enrollment through the normal pre-enrollment flow.
+      // null/rejected/unknown: verificar si el usuario está matriculado (invitado)
+      // antes de solicitar matrícula nueva.
+      try {
+        const enrolledData: any = await progressAdapter.isEnrolled(course.id)
+        if (enrolledData === true || enrolledData?.isEnrolled === true) {
+          router.push(`/subjects/${course.id}`)
+          return
+        }
+      } catch { /* fallthrough */ }
       await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
     }
   } catch {
+    // Si getEnrollmentStatus falla, verificar isEnrolled como fallback
+    try {
+      const enrolledData: any = await progressAdapter.isEnrolled(course.id)
+      if (enrolledData === true || enrolledData?.isEnrolled === true) {
+        router.push(`/subjects/${course.id}`)
+        return
+      }
+    } catch { /* fallthrough */ }
     await requestEnrollmentOnAccessAttempt(course)
   }
 }

@@ -978,7 +978,8 @@ onMounted(async () => {
     } catch { /* silent — if check fails, allow access */ }
   }
 
-  if (authStore.hasRole(2) && !authStore.hasRole(3)) {
+  // Verificar acceso de colaborador para roles 1 y 2 (no solo rol 2)
+  if (!authStore.hasRole(3)) {
     try {
       const access = await collaboratorAdapter.checkAccess(id)
       collaboratorAccess.value = Boolean(access?.hasAccess)
