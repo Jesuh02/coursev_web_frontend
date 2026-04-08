@@ -1634,8 +1634,8 @@ async function startQuiz() {
     if (!jobId) throw new Error('No se pudo iniciar la generación. Intenta de nuevo.')
 
     // Poll until done or error.
-    const MAX_POLL_MS   = 3 * 60 * 1000   // 3 minutes (was 110 min)
-    const POLL_INTERVAL = 2500
+    const MAX_POLL_MS   = 5 * 60 * 1000   // 5 minutes
+    const POLL_INTERVAL = 1500             // faster polling for snappier UX
     const POLL_REQ_TIMEOUT = 15_000        // 15 s per request
     const pollStart     = Date.now()
     const MAX_GEN_RETRIES = 2
