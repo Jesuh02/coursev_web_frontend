@@ -125,6 +125,11 @@ export interface Subject {
   createdBy: number | null
 }
 
+export interface TaskSubmissionFile {
+  fileUri: string | null
+  fileName: string | null
+}
+
 export interface TaskSubmission {
   id: number
   task_id: number
@@ -132,6 +137,8 @@ export interface TaskSubmission {
   studentId?: number
   file_uri: string | null
   file_name: string | null
+  additionalFiles?: TaskSubmissionFile[] | null
+  additional_files?: TaskSubmissionFile[] | null
   submission_date: number | null
   grade: number | null
   feedback: string | null

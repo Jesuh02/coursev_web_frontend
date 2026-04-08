@@ -283,11 +283,17 @@
         <div v-if="status !== 'not-submitted'" class="submission-detail card-enter" style="animation-delay: 0.15s">
           <h3 class="section-title">Tu Entrega</h3>
           <div class="detail-card">
-            <p v-if="submission?.file_name" class="file-row">
-              📎 <a v-if="submission.file_uri" :href="getFileUrl(submission)" target="_blank" rel="noopener">{{ submission.file_name }}</a>
-              <span v-else>{{ submission.file_name }}</span>
-            </p>
-            <p v-else class="detail-text">Entrega enviada</p>
+            <div class="submission-files-list">
+              <p v-if="submission?.file_name" class="file-row">
+                📎 <a v-if="submission.file_uri" :href="getFileUrl(submission)" target="_blank" rel="noopener">{{ submission.file_name }}</a>
+                <span v-else>{{ submission.file_name }}</span>
+              </p>
+              <p v-for="(af, i) in (submission?.additionalFiles ?? submission?.additional_files ?? [])" :key="i" class="file-row">
+                📎 <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener">{{ af.fileName }}</a>
+                <span v-else>{{ af.fileName }}</span>
+              </p>
+              <p v-if="!submission?.file_name && !(submission?.additionalFiles?.length) && !(submission?.additional_files?.length)" class="detail-text">Entrega enviada</p>
+            </div>
             <button v-if="canResubmit && !isEditingSubmission" class="resubmit-toggle-btn" @click="isEditingSubmission = true">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Cambiar archivo
@@ -300,12 +306,12 @@
               <div class="file-upload attach-option" @click="openResubmitFilePicker">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
                 <span class="file-upload-label">Archivo</span>
-                <input ref="resubmitFileInput" type="file" hidden @change="onResubmitFileSelect" />
+                <input ref="resubmitFileInput" type="file" multiple hidden @change="onResubmitFileSelect" />
               </div>
               <div class="file-upload attach-option" @click="openResubmitImagePicker">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 <span class="file-upload-label">Imagen</span>
-                <input ref="resubmitImageInput" type="file" accept="image/*" hidden @change="onResubmitFileSelect" />
+                <input ref="resubmitImageInput" type="file" accept="image/*" multiple hidden @change="onResubmitFileSelect" />
               </div>
               <div class="file-upload attach-option" @click="openResubmitCamera">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -313,18 +319,20 @@
                 <input ref="resubmitCameraInput" type="file" accept="image/*" capture="environment" hidden @change="onResubmitFileSelect" />
               </div>
             </div>
-            <div v-if="resubmitFile" class="selected-file-row">
-              <span class="selected-file-name">📎 {{ resubmitFile.name }}</span>
-              <button class="file-clear-btn" @click="resubmitFile = null">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <div v-if="resubmitFiles.length > 0" class="selected-files-list">
+              <div v-for="(f, i) in resubmitFiles" :key="i" class="selected-file-row">
+                <span class="selected-file-name">📎 {{ f.name }}</span>
+                <button class="file-clear-btn" @click="removeResubmitFile(i)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
             </div>
             <div v-if="resubmitError" class="submit-error-msg">{{ resubmitError }}</div>
             <div class="resubmit-actions">
               <button class="resubmit-cancel-btn" :disabled="resubmitting" @click="cancelResubmit">Cancelar</button>
-              <button class="submit-btn resubmit-btn" :disabled="resubmitting || !resubmitFile" @click="resubmitWork">
+              <button class="submit-btn resubmit-btn" :disabled="resubmitting || resubmitFiles.length === 0" @click="resubmitWork">
                 <span v-if="resubmitting" class="btn-spinner" />
-                <span>{{ resubmitting ? 'Actualizando...' : 'Actualizar Archivo' }}</span>
+                <span>{{ resubmitting ? 'Actualizando...' : 'Actualizar Archivos' }}</span>
               </button>
             </div>
           </div>
@@ -440,7 +448,7 @@ const loading = ref(true)
 const submitting = ref(false)
 const submitError = ref('')
 const textAnswer = ref('')
-const selectedFile = ref<File | null>(null)
+const selectedFiles = ref<File[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const imageInput = ref<HTMLInputElement | null>(null)
 const cameraInput = ref<HTMLInputElement | null>(null)
@@ -498,7 +506,7 @@ const isOverdue = computed(() => {
 const canSubmit = computed(() => status.value === 'not-submitted' && (!isSubjectCreator.value || isAdminViewingAsStudent.value) && !isOverdue.value)
 const canResubmit = computed(() => status.value === 'pending' && (!isSubjectCreator.value || isAdminViewingAsStudent.value) && !isOverdue.value)
 const isEditingSubmission = ref(false)
-const resubmitFile = ref<File | null>(null)
+const resubmitFiles = ref<File[]>([])
 const resubmitFileInput = ref<HTMLInputElement | null>(null)
 const resubmitImageInput = ref<HTMLInputElement | null>(null)
 const resubmitCameraInput = ref<HTMLInputElement | null>(null)
@@ -549,13 +557,19 @@ watch(isOverdue, (overdue) => {
   if (!overdue) return
 
   isEditingSubmission.value = false
-  resubmitFile.value = null
+  resubmitFiles.value = []
   resubmitError.value = ''
 })
 
 type TopicLookup = {
   courseId?: number | null
   subjectId?: number | null
+}
+
+function resolveFileUrl(uri: string | null | undefined): string {
+  if (!uri || uri.startsWith('file:///')) return '#'
+  if (uri.startsWith('http')) return uri
+  return buildProxyFileUrl(uri)
 }
 
 function getFileUrl(sub: TaskSubmission): string {
@@ -585,7 +599,13 @@ function toggleFeedbackExpansion(key: string) {
 }
 
 function onFileSelect(e: Event) {
-  selectedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
+  selectedFiles.value = [...selectedFiles.value, ...files]
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+function removeSelectedFile(index: number) {
+  selectedFiles.value = selectedFiles.value.filter((_, i) => i !== index)
 }
 
 function openFilePicker() {
@@ -613,17 +633,23 @@ function openResubmitCamera() {
 }
 
 function onResubmitFileSelect(e: Event) {
-  resubmitFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
+  resubmitFiles.value = [...resubmitFiles.value, ...files]
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+function removeResubmitFile(index: number) {
+  resubmitFiles.value = resubmitFiles.value.filter((_, i) => i !== index)
 }
 
 function cancelResubmit() {
   isEditingSubmission.value = false
-  resubmitFile.value = null
+  resubmitFiles.value = []
   resubmitError.value = ''
 }
 
 async function resubmitWork() {
-  if (!task.value || !resubmitFile.value) return
+  if (!task.value || resubmitFiles.value.length === 0) return
   if (isOverdue.value) {
     resubmitError.value = 'No es posible actualizar la tarea. El plazo de entrega ha vencido.'
     return
@@ -631,21 +657,28 @@ async function resubmitWork() {
   resubmitting.value = true
   resubmitError.value = ''
   try {
-    let fileKey: string | undefined
+    const uploadResults: { key: string }[] = []
     try {
-      const { key } = await uploadFileDirect(resubmitFile.value, 'submissions', () => {})
-      fileKey = key
+      for (const file of resubmitFiles.value) {
+        const { key } = await uploadFileDirect(file, 'submissions', () => {})
+        uploadResults.push({ key })
+      }
     } catch {
-      resubmitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+      resubmitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
       resubmitting.value = false
       return
     }
+    const [first, ...rest] = uploadResults
+    const [firstFile, ...restFiles] = resubmitFiles.value
     const payload: Record<string, unknown> = { taskId: task.value.id }
-    if (fileKey) payload.fileUri = fileKey
-    payload.fileName = resubmitFile.value.name
+    payload.fileUri = first.key
+    payload.fileName = firstFile.name
+    if (rest.length > 0) {
+      payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+    }
     submission.value = await submissionAdapter.submitWork(payload)
     isEditingSubmission.value = false
-    resubmitFile.value = null
+    resubmitFiles.value = []
   } catch {
     resubmitError.value = 'Error al actualizar la tarea. Intenta de nuevo.'
   }
@@ -676,25 +709,30 @@ async function submitWork() {
   submitting.value = true
   submitError.value = ''
   try {
-    let fileKey: string | undefined
-    if (selectedFile.value) {
+    const uploadResults: { key: string }[] = []
+    if (selectedFiles.value.length > 0) {
       try {
-        const { key } = await uploadFileDirect(
-          selectedFile.value,
-          'submissions',
-          () => {},
-        )
-        fileKey = key
+        for (const file of selectedFiles.value) {
+          const { key } = await uploadFileDirect(file, 'submissions', () => {})
+          uploadResults.push({ key })
+        }
       } catch {
-        submitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+        submitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
         submitting.value = false
         return
       }
     }
     const payload: Record<string, unknown> = { taskId: task.value.id }
     if (textAnswer.value) payload.textContent = textAnswer.value
-    if (fileKey) payload.fileUri = fileKey
-    if (selectedFile.value) payload.fileName = selectedFile.value.name
+    if (uploadResults.length > 0) {
+      const [first, ...rest] = uploadResults
+      const [firstFile, ...restFiles] = selectedFiles.value
+      payload.fileUri = first.key
+      payload.fileName = firstFile.name
+      if (rest.length > 0) {
+        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+      }
+    }
     submitError.value = ''
     submission.value = await submissionAdapter.submitWork(payload)
   } catch {
@@ -1218,6 +1256,7 @@ onMounted(async () => {
 
 .submission-detail { display: flex; flex-direction: column; gap: 8px; }
 .detail-card { padding: 14px; border-radius: 12px; background: #1C1C1E; }
+.submission-files-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .detail-text { font-size: 14px; color: #ccc; }
 .file-row { font-size: 14px; color: #ccc; }
 .file-row a { color: #00D4FF; text-decoration: none; }
@@ -1244,6 +1283,8 @@ onMounted(async () => {
   border-radius: 10px; font-size: 12px;
 }
 .file-upload-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.selected-files-list { display: flex; flex-direction: column; gap: 6px; }
 
 .selected-file-row {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;

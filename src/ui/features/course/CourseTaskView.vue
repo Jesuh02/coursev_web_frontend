@@ -92,12 +92,30 @@
             placeholder="Escribe tu respuesta aquí..."
             rows="6"
           />
-          <div class="file-upload" @click="fileInputRef?.click()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-            <span>{{ selectedFile ? selectedFile.name : 'Adjuntar archivo' }}</span>
-            <input ref="fileInputRef" type="file" hidden @change="onFileSelected" />
+          <div class="task-attach-row">
+            <div class="task-attach-btn" @click="fileInputRef?.click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <span>Archivo</span>
+              <input ref="fileInputRef" type="file" multiple hidden @change="onFileSelected" />
+            </div>
+            <div class="task-attach-btn" @click="imageInputRef?.click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Imagen</span>
+              <input ref="imageInputRef" type="file" accept="image/*" multiple hidden @change="onFileSelected" />
+            </div>
+            <div class="task-attach-btn" @click="cameraInputRef?.click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Cámara</span>
+              <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" hidden @change="onFileSelected" />
+            </div>
           </div>
-          <div v-if="uploading && selectedFile" class="upload-progress">
+          <div v-if="selectedFiles.length > 0" class="selected-files-list">
+            <div v-for="(f, i) in selectedFiles" :key="i" class="task-file-selected">
+              <span>📎 {{ f.name }}</span>
+              <button class="file-clear" @click="removeSelectedFile(i)">&#215;</button>
+            </div>
+          </div>
+          <div v-if="uploading && selectedFiles.length > 0" class="upload-progress">
             <div class="progress-bar" :style="{ width: uploadProgress + '%' }" />
             <span class="progress-label">Subiendo... {{ uploadProgress }}%</span>
           </div>
@@ -238,7 +256,7 @@ async function handleSave() {
 const task = ref<Task | null>(null)
 const existingSubmission = ref<TaskSubmission | null>(null)
 const submission = ref('')
-const selectedFile = ref<File | null>(null)
+const selectedFiles = ref<File[]>([])
 const uploading = ref(false)
 const uploadProgress = ref(0)
 const submitError = ref('')
@@ -247,7 +265,13 @@ const imageInputRef = ref<HTMLInputElement | null>(null)
 const cameraInputRef = ref<HTMLInputElement | null>(null)
 
 function onFileSelected(e: Event) {
-  selectedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
+  selectedFiles.value = [...selectedFiles.value, ...files]
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+function removeSelectedFile(index: number) {
+  selectedFiles.value = selectedFiles.value.filter((_, i) => i !== index)
 }
 
 const isDueOverdue = computed(() => {
@@ -281,29 +305,40 @@ async function submitTask() {
   submitError.value = ''
   uploadProgress.value = 0
   try {
-    let fileKey: string | undefined
-    if (selectedFile.value) {
+    const uploadResults: { key: string }[] = []
+    if (selectedFiles.value.length > 0) {
       try {
-        const { key } = await uploadFileDirect(
-          selectedFile.value,
-          'submissions',
-          (pct) => { uploadProgress.value = pct },
-        )
-        fileKey = key
+        for (const file of selectedFiles.value) {
+          const { key } = await uploadFileDirect(
+            file,
+            'submissions',
+            (pct) => { uploadProgress.value = pct },
+          )
+          uploadResults.push({ key })
+        }
       } catch {
-        submitError.value = 'Error de red al subir el archivo. Verifica tu conexión.'
+        submitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
         uploading.value = false
         return
       }
     }
-    const result = await submissionAdapter.submitWork({
+    const payload: Record<string, unknown> = {
       task_id: task.value.id,
       text: submission.value,
-      ...(fileKey ? { file_key: fileKey } : {}),
-    })
+    }
+    if (uploadResults.length > 0) {
+      const [first, ...rest] = uploadResults
+      const [firstFile, ...restFiles] = selectedFiles.value
+      payload.file_key = first.key
+      payload.file_name = firstFile.name
+      if (rest.length > 0) {
+        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+      }
+    }
+    const result = await submissionAdapter.submitWork(payload)
     existingSubmission.value = result
     submission.value = ''
-    selectedFile.value = null
+    selectedFiles.value = []
     uploadProgress.value = 0
   } catch {
     submitError.value = 'Error al enviar la tarea. Intenta de nuevo.'
@@ -426,6 +461,7 @@ onMounted(async () => {
   border: 1px dashed rgba(255,255,255,0.1);
 }
 .task-attach-btn:active { background: #2A2A2A; }
+.selected-files-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .task-file-selected {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
   border-radius: 10px; background: rgba(142,142,147,0.1);
