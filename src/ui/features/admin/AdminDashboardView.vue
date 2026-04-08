@@ -89,7 +89,7 @@
               <div class="a-gauge-ring">
                 <svg viewBox="0 0 80 80">
                   <circle cx="40" cy="40" r="34" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="none" />
-                  <circle cx="40" cy="40" r="34" stroke="#00D4FF" stroke-width="6" fill="none"
+                  <circle cx="40" cy="40" r="34" stroke="#5ac8fa" stroke-width="6" fill="none"
                     stroke-linecap="round" :stroke-dasharray="gaugeDash(creatorMetrics.approvalRate)"
                     transform="rotate(-90 40 40)" class="a-gauge-arc" />
                 </svg>
@@ -126,15 +126,15 @@
             >
               <defs>
                 <linearGradient id="weeklyAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(38, 166, 154, 0.42)" />
-                  <stop offset="100%" stop-color="rgba(38, 166, 154, 0.02)" />
+                  <stop offset="0%" stop-color="rgba(48,209,88,0.32)" />
+                  <stop offset="100%" stop-color="rgba(48,209,88,0.02)" />
                 </linearGradient>
               </defs>
               <path :d="weeklySmoothedAreaPath" fill="url(#weeklyAreaGradient)" class="a-chart-fill" />
-              <path :d="weeklySmoothedLinePath" fill="none" stroke="#26a69a" stroke-width="2.5" stroke-linecap="round" class="a-chart-line" />
+              <path :d="weeklySmoothedLinePath" fill="none" stroke="#30d158" stroke-width="2.5" stroke-linecap="round" class="a-chart-line" />
               <g v-for="(point, idx) in weeklyPoints" :key="`weekly-point-${idx}`">
-                <circle :cx="point.x" :cy="point.y" r="3.5" fill="#26a69a" class="a-dot-main" />
-                <circle :cx="point.x" :cy="point.y" r="7" fill="rgba(38, 166, 154, 0.16)" class="a-dot-pulse" />
+                <circle :cx="point.x" :cy="point.y" r="3.5" fill="#30d158" class="a-dot-main" />
+                <circle :cx="point.x" :cy="point.y" r="7" fill="rgba(48,209,88,0.16)" class="a-dot-pulse" />
               </g>
             </svg>
             <div class="a-chart-labels">
@@ -174,19 +174,15 @@
             <svg viewBox="0 0 220 220" class="a-radar-svg" aria-hidden="true">
               <defs>
                 <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="rgba(155,143,255,0.38)" />
-                  <stop offset="100%" stop-color="rgba(155,143,255,0.04)" />
+                  <stop offset="0%" stop-color="rgba(10,132,255,0.28)" />
+                  <stop offset="100%" stop-color="rgba(10,132,255,0.03)" />
                 </radialGradient>
-                <filter id="radarGlow" x="-30%" y="-30%" width="160%" height="160%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
               </defs>
               <!-- Grid rings -->
               <polygon v-for="f in radarGridFractions" :key="f"
                 :points="radarGridPolygon(f)"
                 fill="none"
-                :stroke="f === 1.0 ? 'rgba(155,143,255,0.25)' : 'rgba(255,255,255,0.07)'"
+                :stroke="f === 1.0 ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.07)'"
                 :stroke-width="f === 1.0 ? 1.5 : 1" />
               <!-- Axis lines -->
               <line v-for="pt in radarAxisPoints" :key="'ax-' + pt.label"
@@ -195,15 +191,14 @@
               <!-- Data fill polygon -->
               <polygon :points="radarDataPolygon"
                 fill="url(#radarFillGrad)"
-                stroke="#9B8FFF"
+                stroke="#0a84ff"
                 stroke-width="2"
                 stroke-linejoin="round"
-                filter="url(#radarGlow)"
                 class="a-radar-polygon" />
               <!-- Data points -->
               <g v-for="(pt, i) in radarDataPoints" :key="'rp-' + i">
-                <circle :cx="pt.x" :cy="pt.y" r="8" fill="rgba(155,143,255,0.18)" />
-                <circle :cx="pt.x" :cy="pt.y" r="4" fill="#9B8FFF" />
+                <circle :cx="pt.x" :cy="pt.y" r="8" fill="rgba(10,132,255,0.14)" />
+                <circle :cx="pt.x" :cy="pt.y" r="4" fill="#0a84ff" />
               </g>
               <!-- Axis labels -->
               <text v-for="pt in radarAxisPoints" :key="'lbl-' + pt.label"
@@ -233,12 +228,6 @@
           <div class="a-donut-wrap">
             <div class="a-donut-svg-container">
               <svg viewBox="0 0 140 140" class="a-donut-svg" aria-hidden="true">
-                <defs>
-                  <filter id="donutGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-                    <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                  </filter>
-                </defs>
                 <!-- Background ring -->
                 <circle cx="70" cy="70" r="48" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="16" />
                 <!-- Colored segments -->
@@ -250,7 +239,6 @@
                   stroke-linecap="butt"
                   :stroke-dasharray="seg.dasharray"
                   :transform="seg.transform"
-                  filter="url(#donutGlow)"
                   class="a-donut-arc" />
                 <!-- Center value -->
                 <text x="70" y="64" text-anchor="middle" font-size="22" font-weight="800" fill="white" font-family="system-ui, -apple-system">{{ donutCenterValue }}%</text>
@@ -281,12 +269,6 @@
           </div>
           <div class="a-funnel-body">
             <svg class="a-funnel-svg" viewBox="0 0 280 212" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <defs>
-                <filter id="funnel-glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
               <polygon
                 v-for="(stage, i) in funnelSvgData"
                 :key="i"
@@ -635,7 +617,7 @@
         >
           <div class="section-header moderation-header" @click="toggleSection('subjectProgress')">
             <div class="header-left">
-              <div class="section-icon moderation-icon" style="background: linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)">
+              <div class="section-icon moderation-icon" style="background: rgba(99,108,255,0.1); color: var(--sys-indigo)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="18" height="18" rx="3"/>
                   <path d="M9 9h6M9 12h6M9 15h4"/>
@@ -1147,7 +1129,7 @@
           <div class="enroll-hero-glow"></div>
           <div class="enroll-hero-top">
             <div class="enroll-hero-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div class="enroll-hero-text">
               <h3 class="enroll-hero-title">Solicitudes de Matrícula</h3>
@@ -1350,7 +1332,7 @@
             <div class="enroll-course-group-header">
               <div class="enroll-course-group-row">
                 <div class="enroll-course-group-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                 </div>
                 <span class="enroll-course-group-name">{{ group.courseName }}</span>
                 <span class="enroll-course-group-badge">{{ group.users.length }} usuario{{ group.users.length !== 1 ? 's' : '' }}</span>
@@ -1365,7 +1347,7 @@
                     @error="onCourseThumbError"
                   />
                   <div v-else class="enroll-subj-card-thumb enroll-subj-card-thumb--placeholder">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   </div>
                   <span class="enroll-subj-card-name">{{ subj.name }}</span>
                 </div>
@@ -3658,7 +3640,7 @@ const DONUT_C = 2 * Math.PI * DONUT_R_VAL
 const donutSegmentsData = computed(() => {
   const items = [
     { pct: Math.round(creatorMetrics.value.completionRate ?? 0), color: '#30D158', label: 'Completados' },
-    { pct: Math.round(creatorMetrics.value.approvalRate ?? 0), color: '#00D4FF', label: 'Aprobados' },
+    { pct: Math.round(creatorMetrics.value.approvalRate ?? 0), color: '#5ac8fa', label: 'Aprobados' },
     { pct: Math.round(creatorMetrics.value.satisfactionRate ?? 0), color: '#BF5AF2', label: 'Satisfacción' },
   ]
   const total = items.reduce((s, v) => s + Math.max(v.pct, 0), 0) || 1
@@ -3694,10 +3676,10 @@ const funnelStages = computed(() => {
   const certified = creatorMetrics.value.certifiedUsersCount ?? 0
   const maxVal    = Math.max(enrolled, 1)
   return [
-    { label: 'Inscritos',    count: enrolled,  pct: 100,                                      color: '#00D4FF' },
-    { label: 'Aprobados',    count: approved,  pct: Math.round(approved  / maxVal * 100),     color: '#9B8FFF' },
-    { label: 'Completados',  count: completed, pct: Math.round(completed / maxVal * 100),     color: '#30D158' },
-    { label: 'Certificados', count: certified, pct: Math.round(certified / maxVal * 100),     color: '#FFD60A' },
+    { label: 'Inscritos',    count: enrolled,  pct: 100,                                      color: '#5ac8fa' },
+    { label: 'Aprobados',    count: approved,  pct: Math.round(approved  / maxVal * 100),     color: '#0a84ff' },
+    { label: 'Completados',  count: completed, pct: Math.round(completed / maxVal * 100),     color: '#30d158' },
+    { label: 'Certificados', count: certified, pct: Math.round(certified / maxVal * 100),     color: '#ffd60a' },
   ]
 })
 
@@ -3850,8 +3832,8 @@ const loadTopStudentsData = async () => {
 }
 
 const stats = ref([
-  { label: 'Tareas Pendientes', value: 0, color: '#FF9500', iconComponent: 'span' },
-  { label: 'Cursos Activos', value: 0, color: '#00D4FF', iconComponent: 'span' },
+  { label: 'Tareas Pendientes', value: 0, color: '#ff9f0a', iconComponent: 'span' },
+  { label: 'Cursos Activos', value: 0, color: '#5ac8fa', iconComponent: 'span' },
   { label: 'Promedio', value: 0, color: '#30D158', iconComponent: 'span' },
   { label: 'Completadas', value: 0, color: '#BF5AF2', iconComponent: 'span' }
 ])
@@ -3923,9 +3905,9 @@ const goToTask = (task: PendingTask) => {
 
 const getTaskIconBg = (type: string) => {
   switch (type?.toLowerCase()) {
-    case 'quiz': return '#BF5AF220'
-    case 'document': return '#00D4FF20'
-    default: return '#FF950020'
+    case 'quiz': return 'rgba(191,90,242,0.12)'
+    case 'document': return 'rgba(90,200,250,0.12)'
+    default: return 'rgba(255,159,10,0.12)'
   }
 }
 
@@ -4700,7 +4682,7 @@ watch(() => route.query, () => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--sys-purple);
+  background: var(--sys-blue);
   flex-shrink: 0;
 }
 .a-radar-leg-label {
@@ -4957,9 +4939,9 @@ watch(() => route.query, () => {
 
 .section-header-actions .badge { margin-right: 0; }
 
-.badge-mint   { background: rgba(90,230,179,0.1);  color: #5ae6b3; }
-.badge-amber  { background: rgba(255,201,77,0.1);  color: #ffc94d; }
-.badge-gold   { background: rgba(255,201,77,0.12); color: #ffc94d; }
+.badge-mint   { background: rgba(48,209,88,0.1);   color: var(--sys-green); }
+.badge-amber  { background: rgba(255,159,10,0.1);  color: var(--sys-orange); }
+.badge-gold   { background: rgba(255,214,10,0.1);  color: var(--sys-yellow); }
 .badge-lilac  { background: rgba(191,90,242,0.1);  color: var(--sys-purple); }
 .badge-indigo { background: rgba(99,108,255,0.1);  color: var(--sys-indigo); }
 .badge.orange { background: rgba(255,159,10,0.1);  color: var(--sys-orange); }
@@ -5224,8 +5206,8 @@ watch(() => route.query, () => {
 .certificates-stat-pending { background: rgba(255, 149, 0, 0.12); }
 .certificates-stat-issued { background: rgba(48, 209, 88, 0.12); }
 
-.certificates-stat-total .stat-number { color: #64B5F6; }
-.certificates-stat-pending .stat-number { color: #FF9500; }
+.certificates-stat-total .stat-number { color: var(--sys-teal); }
+.certificates-stat-pending .stat-number { color: var(--sys-orange); }
 .certificates-stat-issued .stat-number { color: #30D158; }
 
 .cert-admin-card {
@@ -6292,7 +6274,7 @@ watch(() => route.query, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(99,102,241,0.12);
+  background: rgba(99,108,255,0.12);
 }
 
 .enroll-block-chip-icon { flex-shrink: 0; }
@@ -6321,7 +6303,7 @@ watch(() => route.query, () => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8E8E93;
+  color: var(--sys-label-3);
   background: rgba(142,142,147,0.15);
   border-radius: 4px;
   padding: 1px 4px;
@@ -6336,7 +6318,7 @@ watch(() => route.query, () => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #FC8181;
+  color: var(--sys-red);
   background: rgba(255,69,58,0.08);
   border: 1px solid rgba(255,69,58,0.14);
   cursor: pointer;
@@ -6346,8 +6328,6 @@ watch(() => route.query, () => {
 
 .enroll-revoke-btn:hover:not(:disabled) {
   background: rgba(255,69,58,0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(255,69,58,0.16);
 }
 
 .enroll-revoke-btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -6360,7 +6340,7 @@ watch(() => route.query, () => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #68D391;
+  color: var(--sys-green);
   background: rgba(48,209,88,0.08);
   border: 1px solid rgba(48,209,88,0.14);
   cursor: pointer;
@@ -6369,28 +6349,26 @@ watch(() => route.query, () => {
 }
 .enroll-restore-btn:hover:not(:disabled) {
   background: rgba(48,209,88,0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(48,209,88,0.16);
 }
 .enroll-restore-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── Inactive course/subject enrollment status (dimmed) ─── */
 
 .enroll-enrolled-row.is-inactive-course {
-  background: rgba(255,193,7,0.04);
-  border: 1px dashed rgba(255,193,7,0.25);
+  background: rgba(255,159,10,0.04);
+  border: 1px dashed rgba(255,159,10,0.2);
   opacity: 0.6;
 }
-.enroll-enrolled-row.is-inactive-course .enroll-user-name { color: #A1A1AA; }
-.enroll-enrolled-row.is-inactive-course .enroll-user-handle { color: #71717A; }
+.enroll-enrolled-row.is-inactive-course .enroll-user-name { color: var(--sys-label-3); }
+.enroll-enrolled-row.is-inactive-course .enroll-user-handle { color: var(--sys-label-4); }
 .enroll-enrolled-row.is-inactive-course .enroll-avatar { filter: grayscale(70%) opacity(0.6); }
-.enroll-enrolled-row.is-inactive-course:hover { opacity: 0.8; background: rgba(255,193,7,0.08); }
+.enroll-enrolled-row.is-inactive-course:hover { opacity: 0.8; background: rgba(255,159,10,0.08); }
 
 .enroll-inactive-badge {
   font-size: 10px;
   font-weight: 700;
-  color: #FBBF24;
-  background: rgba(251,191,36,0.12);
+  color: var(--sys-orange);
+  background: rgba(255,159,10,0.12);
   border-radius: 6px;
   padding: 1px 6px;
   margin-top: 2px;
@@ -6405,17 +6383,15 @@ watch(() => route.query, () => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #34D399;
-  background: rgba(52,211,153,0.08);
-  border: 1px solid rgba(52,211,153,0.18);
+  color: var(--sys-green);
+  background: rgba(48,209,88,0.08);
+  border: 1px solid rgba(48,209,88,0.18);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 .enroll-activate-btn:hover:not(:disabled) {
-  background: rgba(52,211,153,0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(52,211,153,0.16);
+  background: rgba(48,209,88,0.2);
 }
 .enroll-activate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -6427,17 +6403,15 @@ watch(() => route.query, () => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #FBBF24;
-  background: rgba(251,191,36,0.08);
-  border: 1px solid rgba(251,191,36,0.14);
+  color: var(--sys-orange);
+  background: rgba(255,159,10,0.08);
+  border: 1px solid rgba(255,159,10,0.14);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 .enroll-deactivate-btn:hover:not(:disabled) {
-  background: rgba(251,191,36,0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(251,191,36,0.16);
+  background: rgba(255,159,10,0.2);
 }
 .enroll-deactivate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -6449,7 +6423,7 @@ watch(() => route.query, () => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #FF453A;
+  color: var(--sys-red);
   background: rgba(255,69,58,0.08);
   border: 1px solid rgba(255,69,58,0.14);
   cursor: pointer;
@@ -6458,8 +6432,6 @@ watch(() => route.query, () => {
 }
 .enroll-revoke-btn:hover:not(:disabled) {
   background: rgba(255,69,58,0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(255,69,58,0.16);
 }
 .enroll-revoke-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -6471,15 +6443,15 @@ watch(() => route.query, () => {
   border-radius: 999px;
   font-size: 10px;
   font-weight: 600;
-  color: #FBBF24;
-  background: rgba(251,191,36,0.06);
-  border: 1px solid rgba(251,191,36,0.14);
+  color: var(--sys-orange);
+  background: rgba(255,159,10,0.06);
+  border: 1px solid rgba(255,159,10,0.14);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 .enroll-deactivate-subj-btn:hover:not(:disabled) {
-  background: rgba(251,191,36,0.16);
+  background: rgba(255,159,10,0.16);
 }
 .enroll-deactivate-subj-btn:disabled { opacity: 0.4; pointer-events: none; }
 
@@ -6493,7 +6465,7 @@ watch(() => route.query, () => {
 
 .enroll-revoke-reason {
   font-size: 11px;
-  color: #FC8181;
+  color: var(--sys-red);
   margin-top: 2px;
   font-style: italic;
 }
@@ -6528,7 +6500,7 @@ watch(() => route.query, () => {
   padding: 26px 22px 22px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.45);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
 }
 
 .enroll-dialog-icon-wrap {
@@ -6644,7 +6616,7 @@ watch(() => route.query, () => {
 
 .enroll-dialog-error {
   font-size: 0.78rem;
-  color: #FC8181;
+  color: var(--sys-red);
   background: rgba(255,69,58,0.1);
   border: 1px solid rgba(255,69,58,0.25);
   border-radius: 8px;
@@ -6662,34 +6634,31 @@ watch(() => route.query, () => {
 .enroll-dialog-confirm.is-red {
   background: rgba(255,69,58,0.15);
   border: 1px solid rgba(255,69,58,0.3);
-  color: #FC8181;
+  color: var(--sys-red);
 }
 
 .enroll-dialog-confirm.is-red:hover:not(:disabled) {
   background: rgba(255,69,58,0.28);
-  box-shadow: 0 4px 20px rgba(255,69,58,0.22);
 }
 
 .enroll-dialog-confirm.is-amber {
   background: rgba(255,149,0,0.14);
   border: 1px solid rgba(255,149,0,0.3);
-  color: #FB923C;
+  color: var(--sys-orange);
 }
 
 .enroll-dialog-confirm.is-amber:hover:not(:disabled) {
   background: rgba(255,149,0,0.28);
-  box-shadow: 0 4px 20px rgba(255,149,0,0.2);
 }
 
 .enroll-dialog-confirm.is-green {
   background: rgba(48,209,88,0.14);
   border: 1px solid rgba(48,209,88,0.3);
-  color: #34D399;
+  color: var(--sys-green);
 }
 
 .enroll-dialog-confirm.is-green:hover:not(:disabled) {
   background: rgba(48,209,88,0.28);
-  box-shadow: 0 4px 20px rgba(48,209,88,0.2);
 }
 
 .enroll-dialog-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -6851,7 +6820,7 @@ watch(() => route.query, () => {
   top: 50%;
   transform: translateY(-50%);
   font-size: 13px;
-  color: #6b7280;
+  color: var(--sys-label-3);
   pointer-events: none;
 }
 
@@ -7433,7 +7402,7 @@ watch(() => route.query, () => {
 .enroll-block-detail-subj {
   font-size: 12px;
   font-weight: 600;
-  color: #FF453A;
+  color: var(--sys-red);
 }
 .enroll-block-detail-info {
   display: flex;
@@ -7444,7 +7413,7 @@ watch(() => route.query, () => {
 }
 .enroll-block-detail-reason {
   font-size: 11px;
-  color: #e5e7eb;
+  color: var(--sys-label-2);
   font-style: italic;
 }
 .enroll-block-detail-date {
@@ -7635,7 +7604,6 @@ watch(() => route.query, () => {
   flex-shrink: 0;
   width: 172px;
   height: 132px;
-  filter: drop-shadow(0 0 18px rgba(0, 212, 255, 0.12));
 }
 @keyframes funnelSlide {
   from { opacity: 0; clip-path: inset(0 50% 0 50%); }
