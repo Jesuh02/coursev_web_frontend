@@ -357,15 +357,17 @@
               <input ref="cameraInput" type="file" accept="image/*" capture="environment" hidden @change="onFileSelect" />
             </div>
           </div>
-          <div v-if="selectedFile" class="selected-file-row">
-            <span class="selected-file-name">📎 {{ selectedFile.name }}</span>
-            <button class="file-clear-btn" @click="selectedFile = null">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+          <div v-if="selectedFiles.length > 0" class="selected-files-list">
+            <div v-for="(file, index) in selectedFiles" :key="index" class="selected-file-row">
+              <span class="selected-file-name">📎 {{ file.name }}</span>
+              <button class="file-clear-btn" @click="removeSelectedFile(index)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
           <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
-          <button class="submit-btn" :disabled="submitting || (!selectedFile && !textAnswer.trim())" @click="submitWork">
+          <button class="submit-btn" :disabled="submitting || (selectedFiles.length === 0 && !textAnswer.trim())" @click="submitWork">
             <span v-if="submitting" class="btn-spinner" />
             <span>{{ submitting ? 'Enviando...' : 'Enviar Tarea' }}</span>
           </button>
