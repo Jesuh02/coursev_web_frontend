@@ -342,6 +342,10 @@ const fillAnswer      = ref('')
 const fillCorrect     = ref(false)
 const orderingUserSeq = ref<number[]>([])
 
+// ─── Abort / cleanup handles ───────────────────────────────────────────────────
+let pollAbort: AbortController | null = null
+let cpuMoveTimer: ReturnType<typeof setTimeout> | null = null
+
 // ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
 const isSpeaking = ref(false)
 
@@ -1485,7 +1489,7 @@ function triquiClick(i: number) {
   if (!empty.length) { triquiIsDraw.value = true; triquiScore.value.draw++; scheduleReset(); return }
 
   triquiPlayerTurn.value = false
-  setTimeout(() => cpuMove(board), 700)
+  cpuMoveTimer = setTimeout(() => cpuMove(board), 700)
 }
 
 function cpuMove(board: Cell[]) {
@@ -1603,6 +1607,11 @@ async function startQuiz() {
   fillAnswer.value   = ''
   fillCorrect.value  = false
 
+  // Cancel any previous polling loop (prevents stacking on re-mount)
+  pollAbort?.abort()
+  pollAbort = new AbortController()
+  const signal = pollAbort.signal
+
   phase.value = 'loading'
   loadingTimer = setInterval(() => loadingTick.value++, 2000)
 
@@ -1624,22 +1633,32 @@ async function startQuiz() {
     let jobId = (startData as unknown as StartResp)?.jobId
     if (!jobId) throw new Error('No se pudo iniciar la generación. Intenta de nuevo.')
 
-    // Poll until done or error. First-time ingestion can be slow, so keep the UI waiting much longer.
-    const MAX_POLL_MS   = 110 * 60 * 1000
+    // Poll until done or error.
+    const MAX_POLL_MS   = 3 * 60 * 1000   // 3 minutes (was 110 min)
     const POLL_INTERVAL = 2500
+    const POLL_REQ_TIMEOUT = 15_000        // 15 s per request
     const pollStart     = Date.now()
     const MAX_GEN_RETRIES = 2
+    const MAX_CONSECUTIVE_ERRORS = 6
     let   genRetries = 0
+    let   consecutiveErrors = 0
 
     type PollResp = { status: 'pending' | 'done' | 'error'; questions?: QuizQuestion[]; error?: string }
 
-    while (phase.value === 'loading') {
+    while (phase.value === 'loading' && !signal.aborted) {
       if (Date.now() - pollStart > MAX_POLL_MS) {
-        throw new Error('La generación tardó demasiado. Intenta de nuevo o vuelve a abrir la sesión de refuerzo.')
+        throw new Error('La generación tardó demasiado. Intenta de nuevo.')
       }
 
       try {
-        const s = await api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`) as unknown as PollResp
+        const s = await Promise.race([
+          api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout de solicitud')), POLL_REQ_TIMEOUT),
+          ),
+        ]) as unknown as PollResp
+
+        consecutiveErrors = 0
 
         if (s?.status === 'done') {
           const raw: QuizQuestion[] = Array.isArray(s.questions) ? s.questions : []
@@ -1672,19 +1691,22 @@ async function startQuiz() {
           throw new Error(s.error || 'Error al generar preguntas')
         }
       } catch (e: unknown) {
+        if (signal.aborted) break
+
+        consecutiveErrors++
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          throw new Error('Demasiados errores consecutivos. Verifica tu conexión e intenta de nuevo.')
+        }
+
         // Only abort the poll loop for terminal job conditions or auth that can't recover.
-        // Network glitches, timeouts, and transient 5xx → continue polling.
         if (e instanceof Error) {
           const msg = e.message || ''
-          // Terminal: explicit job-level errors
           if (/expir[aoó]|no existe|error al generar|generation failed|no se pudieron generar/i.test(msg)) {
             throw e
           }
-          // Terminal: true auth failure (token refresh already attempted by httpClient)
           if (e instanceof HttpError && e.statusCode === 401) {
             throw e
           }
-          // Non-terminal: swallow and keep polling
         }
       }
 
@@ -1696,6 +1718,7 @@ async function startQuiz() {
     showError(msg)
     phase.value = 'start'
   } finally {
+    pollAbort = null
     if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null }
   }
 }
@@ -1801,8 +1824,10 @@ function showError(msg: string) {
 }
 
 onUnmounted(() => {
+  pollAbort?.abort()
   if (loadingTimer)       clearInterval(loadingTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
+  if (cpuMoveTimer)       clearTimeout(cpuMoveTimer)
   stopSpeaking()
 })
 </script>
