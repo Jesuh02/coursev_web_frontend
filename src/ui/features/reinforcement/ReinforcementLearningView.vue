@@ -1650,13 +1650,16 @@ async function startQuiz() {
         throw new Error('La generación tardó demasiado. Intenta de nuevo.')
       }
 
+      let pollReqTimer: ReturnType<typeof setTimeout> | null = null
       try {
         const s = await Promise.race([
           api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout de solicitud')), POLL_REQ_TIMEOUT),
-          ),
-        ]) as unknown as PollResp
+          new Promise<never>((_, reject) => {
+            pollReqTimer = setTimeout(() => reject(new Error('Timeout de solicitud')), POLL_REQ_TIMEOUT)
+          }),
+        ]).finally(() => {
+          if (pollReqTimer) { clearTimeout(pollReqTimer); pollReqTimer = null }
+        }) as unknown as PollResp
 
         consecutiveErrors = 0
 
@@ -1713,6 +1716,8 @@ async function startQuiz() {
       await wait(POLL_INTERVAL)
     }
   } catch (e: unknown) {
+    // If the component was unmounted (signal aborted), silently exit
+    if (signal.aborted) return
     let msg = 'Error al generar preguntas'
     if (e instanceof Error) msg = e.message
     showError(msg)
