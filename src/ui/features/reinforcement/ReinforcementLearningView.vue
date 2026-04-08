@@ -1129,12 +1129,35 @@ function feScientificNotationSum(text: string): { value: Decimal; steps: string[
 
   if (numbers.length < 2) return null
 
-  let sum = new Decimal(0)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Paso 1: Identificar los números en notación científica
+  // ═══════════════════════════════════════════════════════════════════════
+  steps.push('Paso 1: Identificar los números en notación científica')
   for (let i = 0; i < numbers.length; i++) {
-    sum = sum.plus(numbers[i])
-    steps.push(`Número ${i + 1}: ${numbers[i].toExponential(6)}`)
+    steps.push(`  Número ${i + 1}: ${numbers[i].toExponential(6)}`)
   }
-  steps.push(`Suma: ${sum.toExponential(6)}`)
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Paso 2: Convertir cada número a forma decimal completa
+  // (DEBE hacerse ANTES de alinear/sumar — no se puede alinear por
+  //  punto decimal si los números están en notación científica)
+  // ═══════════════════════════════════════════════════════════════════════
+  steps.push('Paso 2: Convertir a forma decimal')
+  for (let j = 0; j < numbers.length; j++) {
+    const dp = numbers[j].dp() || 0
+    steps.push(`  ${numbers[j].toExponential(6)} = ${numbers[j].toFixed(dp)}`)
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Paso 3: Sumar los valores decimales
+  // ═══════════════════════════════════════════════════════════════════════
+  let sum = new Decimal(0)
+  for (let k = 0; k < numbers.length; k++) {
+    sum = sum.plus(numbers[k])
+  }
+  steps.push('Paso 3: Sumar los valores convertidos')
+  steps.push(`  ${numbers.map(n => n.toFixed(n.dp() || 0)).join(' + ')} = ${sum.toFixed(sum.dp() || 0)}`)
+  steps.push(`  Resultado en notación científica: ${sum.toExponential(6)}`)
 
   // Check for coefficient request
   if (/coeficiente|mantisa/i.test(text)) {
@@ -1143,11 +1166,12 @@ function feScientificNotationSum(text: string): { value: Decimal; steps: string[
     if (mantissa) {
       const sfMatch = text.match(/(\d+)\s*(?:cifras?\s+significativas?|dígitos?\s+significativos?)/i)
       let result = mantissa
+      steps.push('Paso 4: Expresar en notación científica')
       if (sfMatch) {
         result = new Decimal(mantissa.toPrecision(parseInt(sfMatch[1], 10)))
-        steps.push(`Coeficiente redondeado a ${sfMatch[1]} cifras: ${result}`)
+        steps.push(`  Coeficiente redondeado a ${sfMatch[1]} cifras: ${result}`)
       } else {
-        steps.push(`Coeficiente: ${result}`)
+        steps.push(`  Coeficiente: ${result}`)
       }
       return { value: result, steps }
     }
