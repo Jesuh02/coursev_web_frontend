@@ -909,29 +909,109 @@ function computeExpectedAnswer(text: string): { value: Decimal; steps: string[] 
 // ─── Frontend series summation ───────────────────────────────────────────────
 
 function feSeriesSummation(text: string): { value: Decimal; steps: string[] } | null {
+  // Orden pedagógico (alineado con QuizMathValidator._tryCombinedFormula):
+  //   1. Sumatoria polinomial (mayor prioridad)
+  //   2. Serie aritmética S  (sigma + keywords)
+  //   3. Serie geométrica G  (sigma + keywords)
+  //   4. Resultado combinado  S + G
+
   const results: { value: Decimal; steps: string[] }[] = []
 
-  // ─── A) Arithmetic series via sigma notation: Σ_{i=1}^{200} (7i - 12) ────
-  const sigmaLinRe = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(?(\d+\.?\d*)\s*[ij]\s*([+-]\s*\d+\.?\d*)?\)?/i
-  const sigmaLinM = sigmaLinRe.exec(text)
-  if (sigmaLinM) {
-    const start = parseInt(sigmaLinM[1], 10)
-    const end = parseInt(sigmaLinM[2], 10)
-    const slope = parseDecimal(sigmaLinM[3])
-    const intercept = sigmaLinM[4] ? parseDecimal(sigmaLinM[4].replace(/\s/g, '')) : new Decimal(0)
-    if (slope && intercept !== null && end >= start && end - start <= 100000) {
-      const n = end - start + 1
-      const a1 = slope.times(start).plus(intercept!)
-      const an = slope.times(end).plus(intercept!)
-      const sum = a1.plus(an).times(n).div(2)
-      results.push({
-        value: sum,
-        steps: [`Serie aritmética sigma: a₁=${a1}, aₙ=${an}, n=${n}`, `S = (a₁+aₙ)·n/2 = ${sum}`]
-      })
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PASO 1: Sumatoria polinomial — Σ_{i=1}^{n} (ai² + bi + c)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let polyMatched = false
+  const sigmPolyRe = /[Σ∑]\s*\(?(?:de\s+)?i\s*=\s*(\d+)\s+a\s+(\d+)\)?\s*(?:de\s+)?\(([^)]+)\)/i
+  const sigmPolyRe2 = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(([^)]+)\)/i
+  const polyM = sigmPolyRe.exec(text) || sigmPolyRe2.exec(text)
+  if (polyM) {
+    const start = parseInt(polyM[1], 10)
+    const end = parseInt(polyM[2], 10)
+    if (end >= start && end - start <= 100000) {
+      const coeffs = feParsePolyCoeffs(polyM[3])
+      if (coeffs) {
+        polyMatched = true
+        const n = new Decimal(end)
+        let sum = new Decimal(0)
+        const sumSteps: string[] = [`Sumatoria(i=${start} a ${end}) de (${polyM[3]})`]
+        if (!coeffs.a3.isZero()) {
+          const s3 = n.times(n.plus(1)).div(2).pow(2)
+          sum = sum.plus(coeffs.a3.times(s3))
+        }
+        if (!coeffs.a2.isZero()) {
+          const s2 = n.times(n.plus(1)).times(n.times(2).plus(1)).div(6)
+          sum = sum.plus(coeffs.a2.times(s2))
+        }
+        if (!coeffs.a1.isZero()) {
+          const s1 = n.times(n.plus(1)).div(2)
+          sum = sum.plus(coeffs.a1.times(s1))
+        }
+        if (!coeffs.a0.isZero()) {
+          sum = sum.plus(coeffs.a0.times(n))
+        }
+        sumSteps.push(`Resultado: ${sum}`)
+        results.push({ value: sum, steps: sumSteps })
+      }
     }
   }
 
-  // ─── B) Geometric series via sigma notation: Σ_{j=1}^{25} 4·(3.2)^{j-1} ──
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PASO 2: Resolver la serie aritmética S
+  //   — Usar fórmula de suma aritmética: S = (a₁ + aₙ)·n/2
+  //   — Calcular S numéricamente
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (!polyMatched) {
+    // 2a) Sigma notation: Σ_{i=1}^{200} (7i - 12)
+    const sigmaLinRe = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(?(\d+\.?\d*)\s*[ij]\s*([+-]\s*\d+\.?\d*)?\)?/i
+    const sigmaLinM = sigmaLinRe.exec(text)
+    if (sigmaLinM) {
+      const start = parseInt(sigmaLinM[1], 10)
+      const end = parseInt(sigmaLinM[2], 10)
+      const slope = parseDecimal(sigmaLinM[3])
+      const intercept = sigmaLinM[4] ? parseDecimal(sigmaLinM[4].replace(/\s/g, '')) : new Decimal(0)
+      if (slope && intercept !== null && end >= start && end - start <= 100000) {
+        const n = end - start + 1
+        const a1 = slope.times(start).plus(intercept!)
+        const an = slope.times(end).plus(intercept!)
+        const sum = a1.plus(an).times(n).div(2)
+        results.push({
+          value: sum,
+          steps: [`🔢 Serie aritmética sigma: a₁=${a1}, d=${slope}, n=${n}`, `aₙ = ${an}`, `S = (a₁+aₙ)·n/2 = (${a1}+${an})·${n}/2 = ${sum}`]
+        })
+      }
+    }
+
+    // 2b) Sequence keywords: "serie aritmética ... primeros N términos ... a, b, c"
+    if (!sigmaLinM) {
+      const arithSeqRe = /(?:serie\s+aritm[eé]trica|progresión\s+aritm[eé]trica)[\s\S]*?(?:primeros?\s+)?(\d+)\s+t[eé]rminos?[\s\S]*?(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i
+      const arithM = arithSeqRe.exec(text)
+      if (arithM) {
+        const n = parseInt(arithM[1], 10)
+        const a1 = new Decimal(arithM[2])
+        const second = new Decimal(arithM[3])
+        const third = new Decimal(arithM[4])
+        const d1 = second.minus(a1)
+        const d2 = third.minus(second)
+        if (d1.equals(d2) && n >= 1 && n <= 100000) {
+          const an = a1.plus(d1.times(n - 1))
+          const sum = a1.plus(an).times(n).div(2)
+          results.push({
+            value: sum,
+            steps: [`🔢 Serie aritmética: a₁=${a1}, d=${d1}, n=${n}`, `aₙ = a₁ + (n-1)·d = ${an}`, `S = (a₁+aₙ)·n/2 = (${a1}+${an})·${n}/2 = ${sum}`]
+          })
+        }
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PASO 3: Resolver la serie geométrica G
+  //   — Usar fórmula de suma geométrica: G = a₁·(rⁿ - 1)/(r - 1)
+  //   — Calcular rⁿ
+  //   — Sustituir y obtener G
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // 3a) Sigma notation: Σ_{j=1}^{25} 4·(3.2)^{j-1}
   const sigmaGeoRe = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*\d+\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*(\d+\.?\d*)\s*[·*×]\s*\(?(\d+\.?\d*)\)?\s*\^\s*\{?\s*(?:\(\s*)?[ij]\s*(?:-\s*1\s*(?:\))?\s*)?\}?/i
   const sigmaGeoM = sigmaGeoRe.exec(text)
   if (sigmaGeoM) {
@@ -939,37 +1019,16 @@ function feSeriesSummation(text: string): { value: Decimal; steps: string[] } | 
     const a1 = new Decimal(sigmaGeoM[2])
     const r = new Decimal(sigmaGeoM[3])
     if (a1.gt(0) && !r.equals(1) && n >= 1 && n <= 10000) {
-      const sum = a1.times(r.pow(n).minus(1)).div(r.minus(1))
+      const rN = r.pow(n)
+      const sum = a1.times(rN.minus(1)).div(r.minus(1))
       results.push({
         value: sum,
-        steps: [`Serie geométrica sigma: a₁=${a1}, r=${r}, n=${n}`, `S = a₁(rⁿ-1)/(r-1) = ${sum.toExponential(4)}`]
+        steps: [`📈 Serie geométrica sigma: a₁=${a1}, r=${r}, n=${n}`, `rⁿ = ${r}^${n} = ${rN.toExponential(4)}`, `G = a₁·(rⁿ-1)/(r-1) = ${a1}·(${rN.toExponential(4)}-1)/(${r}-1) = ${sum.toExponential(4)}`]
       })
     }
   }
 
-  // ─── C) Arithmetic series from sequence keywords ───────────────────────────
-  if (!sigmaLinM) {
-    const arithSeqRe = /(?:serie\s+aritm[eé]trica|progresión\s+aritm[eé]trica)[\s\S]*?(?:primeros?\s+)?(\d+)\s+t[eé]rminos?[\s\S]*?(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i
-    const arithM = arithSeqRe.exec(text)
-    if (arithM) {
-      const n = parseInt(arithM[1], 10)
-      const a1 = new Decimal(arithM[2])
-      const second = new Decimal(arithM[3])
-      const third = new Decimal(arithM[4])
-      const d1 = second.minus(a1)
-      const d2 = third.minus(second)
-      if (d1.equals(d2) && n >= 1 && n <= 100000) {
-        const an = a1.plus(d1.times(n - 1))
-        const sum = a1.plus(an).times(n).div(2)
-        results.push({
-          value: sum,
-          steps: [`Serie aritmética: a₁=${a1}, d=${d1}, n=${n}`, `S = (a₁+aₙ)·n/2 = ${sum}`]
-        })
-      }
-    }
-  }
-
-  // ─── D) Geometric series from sequence keywords ────────────────────────────
+  // 3b) Sequence keywords: "serie geométrica ... primeros N términos ... a, b, c"
   if (!sigmaGeoM) {
     const geoSeqRe = /(?:serie\s+geom[eé]trica|progresión\s+geom[eé]trica|geom[eé]tric)[\s\S]*?(?:primeros?\s+)?(\d+)\s+t[eé]rminos?[\s\S]*?(\d+\.?\d*)\s*,\s*(\d+\.?\d*)\s*,\s*(\d+\.?\d*)/i
     const geoM = geoSeqRe.exec(text)
@@ -982,63 +1041,29 @@ function feSeriesSummation(text: string): { value: Decimal; steps: string[] } | 
         const r = second.div(a1)
         const r2 = third.div(second)
         if (r.equals(r2) && !r.equals(1) && n >= 1 && n <= 10000) {
-          const sum = a1.times(r.pow(n).minus(1)).div(r.minus(1))
+          const rN = r.pow(n)
+          const sum = a1.times(rN.minus(1)).div(r.minus(1))
           results.push({
             value: sum,
-            steps: [`Serie geométrica: a₁=${a1}, r=${r}, n=${n}`, `S = a₁(rⁿ-1)/(r-1) = ${sum.toExponential(4)}`]
+            steps: [`📈 Serie geométrica: a₁=${a1}, r=${r}, n=${n}`, `rⁿ = ${r}^${n} = ${rN.toExponential(4)}`, `G = a₁·(rⁿ-1)/(r-1) = ${a1}·(${rN.toExponential(4)}-1)/(${r}-1) = ${sum.toExponential(4)}`]
           })
         }
       }
     }
   }
 
-  // ─── E) Polynomial summation: Σ_{i=1}^{n} (ai² + bi + c) ─────────────────
-  if (!sigmaLinM) {
-    const sigmPolyRe = /[Σ∑]\s*\(?(?:de\s+)?i\s*=\s*(\d+)\s+a\s+(\d+)\)?\s*(?:de\s+)?\(([^)]+)\)/i
-    const sigmPolyRe2 = /[Σ∑]\s*_?\{?\s*[ij]\s*=\s*(\d+)\s*\}?\s*\^?\{?\s*(\d+)\s*\}?\s*\(([^)]+)\)/i
-    const polyM = sigmPolyRe.exec(text) || sigmPolyRe2.exec(text)
-    if (polyM) {
-      const start = parseInt(polyM[1], 10)
-      const end = parseInt(polyM[2], 10)
-      if (end >= start && end - start <= 100000) {
-        const coeffs = feParsePolyCoeffs(polyM[3])
-        if (coeffs) {
-          const n = new Decimal(end)
-          let sum = new Decimal(0)
-          const sumSteps: string[] = [`Sumatoria(i=${start} a ${end}) de (${polyM[3]})`]
-          if (!coeffs.a3.isZero()) {
-            const s3 = n.times(n.plus(1)).div(2).pow(2)
-            sum = sum.plus(coeffs.a3.times(s3))
-          }
-          if (!coeffs.a2.isZero()) {
-            const s2 = n.times(n.plus(1)).times(n.times(2).plus(1)).div(6)
-            sum = sum.plus(coeffs.a2.times(s2))
-          }
-          if (!coeffs.a1.isZero()) {
-            const s1 = n.times(n.plus(1)).div(2)
-            sum = sum.plus(coeffs.a1.times(s1))
-          }
-          if (!coeffs.a0.isZero()) {
-            sum = sum.plus(coeffs.a0.times(n))
-          }
-          sumSteps.push(`Resultado: ${sum}`)
-          results.push({ value: sum, steps: sumSteps })
-        }
-      }
-    }
-  }
-
-  // Combine results if multiple series found (S₁ + S₂)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PASO 4: Resultado final — Sumar S + G, redondear si se solicita
+  // ═══════════════════════════════════════════════════════════════════════════
   if (results.length >= 2) {
     let total = results[0].value
     const allSteps = results.flatMap(r => r.steps)
     for (let i = 1; i < results.length; i++) total = total.plus(results[i].value)
-    allSteps.push(`Total combinado: ${results.map(r => r.value.toExponential(4)).join(' + ')} = ${total.toExponential(4)}`)
+    allSteps.push(`➕ Resultado final: ${results.map(r => r.value.toExponential(4)).join(' + ')} = ${total.toExponential(4)}`)
 
-    // Apply rounding if requested
     if (/redonde[ao]\s+.*?entero/i.test(text)) {
       total = total.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
-      allSteps.push(`Redondeado: ${total}`)
+      allSteps.push(`Redondeado al entero: ${total}`)
     }
     return { value: total, steps: allSteps }
   }
@@ -1047,7 +1072,7 @@ function feSeriesSummation(text: string): { value: Decimal; steps: string[] } | 
     let val = results[0].value
     if (/redonde[ao]\s+.*?entero/i.test(text)) {
       val = val.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
-      results[0].steps.push(`Redondeado: ${val}`)
+      results[0].steps.push(`Redondeado al entero: ${val}`)
     }
     return { value: val, steps: results[0].steps }
   }
