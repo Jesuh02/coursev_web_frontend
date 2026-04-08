@@ -135,7 +135,7 @@
         <div
           v-for="(sub, idx) in filteredSubmissions"
           :key="sub.id"
-          :ref="el => { if (el) submissionCardRefs[sub.id] = el as HTMLElement }"
+          :ref="el => setSubmissionCardRef(sub.id, el)"
           class="student-submission-card card-enter"
           :class="{ highlighted: highlightedSubmissionId === sub.id }"
           :style="{ animationDelay: `${0.2 + idx * 0.05}s` }"
@@ -344,12 +344,12 @@
             <div class="file-upload attach-option" @click="openFilePicker">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               <span class="file-upload-label">Archivo</span>
-              <input ref="fileInput" type="file" hidden @change="onFileSelect" />
+              <input ref="fileInput" type="file" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openImagePicker">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <span class="file-upload-label">Imagen</span>
-              <input ref="imageInput" type="file" accept="image/*" hidden @change="onFileSelect" />
+              <input ref="imageInput" type="file" accept="image/*" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openCameraCapture">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -357,15 +357,17 @@
               <input ref="cameraInput" type="file" accept="image/*" capture="environment" hidden @change="onFileSelect" />
             </div>
           </div>
-          <div v-if="selectedFile" class="selected-file-row">
-            <span class="selected-file-name">📎 {{ selectedFile.name }}</span>
-            <button class="file-clear-btn" @click="selectedFile = null">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+          <div v-if="selectedFiles.length > 0" class="selected-files-list">
+            <div v-for="(file, index) in selectedFiles" :key="`${file.name}-${index}`" class="selected-file-row">
+              <span class="selected-file-name">📎 {{ file.name }}</span>
+              <button class="file-clear-btn" @click="removeSelectedFile(index)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <textarea v-model="textAnswer" class="text-input" placeholder="Respuesta escrita (opcional)..." rows="4" />
           <div v-if="submitError" class="submit-error-msg">{{ submitError }}</div>
-          <button class="submit-btn" :disabled="submitting || (!selectedFile && !textAnswer.trim())" @click="submitWork">
+          <button class="submit-btn" :disabled="submitting || (selectedFiles.length === 0 && !textAnswer.trim())" @click="submitWork">
             <span v-if="submitting" class="btn-spinner" />
             <span>{{ submitting ? 'Enviando...' : 'Enviar Tarea' }}</span>
           </button>
@@ -462,6 +464,12 @@ const personaNameMap = ref(new Map<number, string>())
 const expandedFeedbackMap = reactive<Record<string, boolean>>({})
 const currentTimestamp = ref(Date.now())
 let overdueTimer: ReturnType<typeof setInterval> | null = null
+
+function setSubmissionCardRef(id: number, el: unknown) {
+  if (el instanceof HTMLElement) {
+    submissionCardRefs[id] = el
+  }
+}
 
 interface GradingState { grade: number | null; feedback: string; saving: boolean; saved: boolean }
 const gradingMap = reactive<Record<number, GradingState>>({})
