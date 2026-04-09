@@ -655,8 +655,8 @@ useSubjectSocket(courseId.value, {
 }
 .fab:hover { transform: scale(1.1); }
 
-.bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
-.bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px 20px 0 0; padding: 24px 0; }
+.bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px; }
+.bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px; padding: 24px 0; }
 .sheet-title { font-size: 18px; font-weight: 600; color: #fff; padding: 0 24px 16px; }
 .sheet-option { display: block; width: 100%; text-align: left; padding: 14px 24px; font-size: 16px; transition: background 0.15s; }
 .sheet-option:hover { background: rgba(255,255,255,0.05); }
