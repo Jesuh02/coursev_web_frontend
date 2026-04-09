@@ -86,6 +86,11 @@
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
     </button>
 
+    <button v-if="isDragMode" class="drag-done-fab" @click="toggleDragMode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+      <span>Listo</span>
+    </button>
+
     <Teleport to="body">
       <div v-if="optionsSubject" class="bottom-sheet-overlay" @click="optionsSubject = null">
         <div class="bottom-sheet" @click.stop>
@@ -704,6 +709,11 @@ useSubjectSocket(courseId.value, {
 }
 .sort-btn__done { font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
 
+/* El botón del header solo se muestra en pantallas grandes */
+@media (max-width: 768px) {
+  .sort-btn--active { display: none; }
+}
+
 .header-subtitle { font-size: 13px; color: #8E8E93; margin-top: 4px; padding-left: 52px; }
 
 .drag-item {
@@ -766,6 +776,31 @@ useSubjectSocket(courseId.value, {
   z-index: 10;
 }
 .fab:hover { transform: scale(1.1); }
+
+.drag-done-fab {
+  position: fixed;
+  bottom: 90px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #1DB954, #0fa343);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.5);
+  z-index: 200;
+  transition: transform 0.15s, box-shadow 0.15s;
+  pointer-events: auto;
+}
+.drag-done-fab:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(29,185,84,0.4); }
+
+/* El FAB verde solo se muestra en móvil */
+@media (min-width: 769px) {
+  .drag-done-fab { display: none; }
+}
 
 .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px; }
 .bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px; padding: 24px 0; }
