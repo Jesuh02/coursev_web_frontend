@@ -46,7 +46,7 @@
       <div class="spinner-lg" />
     </div>
 
-    <div v-else-if="displaySubjects.length" class="subjects-grid" :class="{ 'subjects-grid--drag': isDragMode }">
+    <div v-else-if="displaySubjects.length" ref="subjectsGridRef" class="subjects-grid" :class="{ 'subjects-grid--drag': isDragMode }">
       <div
         v-for="(subject, index) in displaySubjects"
         :key="subject.id"
@@ -61,6 +61,8 @@
         @dragover.prevent
         @drop.prevent="onDrop(index)"
         @dragend="onDragEnd"
+        @touchstart="onTouchStart(index, $event)"
+        @touchend="onTouchEnd"
       >
         <SubjectCard
           :subject="subject"
@@ -124,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -160,12 +162,68 @@ const enrollmentApproved = ref(false)
 const isDragMode = ref(false)
 const draggedIndex = ref(-1)
 const dragOverIndex = ref(-1)
+const subjectsGridRef = ref<HTMLElement | null>(null)
+
+// Cache de rects para hit-testing táctil (no reactivo)
+let _touchItemRects: DOMRect[] = []
 
 function toggleDragMode() {
   isDragMode.value = !isDragMode.value
   draggedIndex.value = -1
   dragOverIndex.value = -1
 }
+
+// ── Touch handlers (móvil) ──
+function onTouchStart(index: number, event: TouchEvent) {
+  if (!isDragMode.value) return
+  draggedIndex.value = index
+  // Cachear las posiciones de todos los drag-items al inicio del toque
+  const items = subjectsGridRef.value?.querySelectorAll<HTMLElement>('.drag-item') ?? []
+  _touchItemRects = Array.from(items).map(el => el.getBoundingClientRect())
+}
+
+function _handleTouchMove(event: TouchEvent) {
+  if (draggedIndex.value === -1) return
+  event.preventDefault()
+  const touch = event.touches[0]
+  const cx = touch.clientX
+  const cy = touch.clientY
+  let found = -1
+  for (let i = 0; i < _touchItemRects.length; i++) {
+    if (i === draggedIndex.value) continue
+    const r = _touchItemRects[i]
+    if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
+      found = i
+      break
+    }
+  }
+  if (found !== -1) dragOverIndex.value = found
+}
+
+function onTouchEnd() {
+  if (!isDragMode.value) return
+  const from = draggedIndex.value
+  const to = dragOverIndex.value
+  draggedIndex.value = -1
+  dragOverIndex.value = -1
+  if (from !== -1 && to !== -1 && from !== to) {
+    const arr = [...allSubjects.value]
+    const [moved] = arr.splice(from, 1)
+    arr.splice(to, 0, moved)
+    allSubjects.value = arr
+    saveSubjectOrder(arr)
+  }
+}
+
+// Adjuntar/quitar listener no-pasivo para poder llamar preventDefault en touchmove
+watch(isDragMode, (active) => {
+  if (!subjectsGridRef.value) return
+  if (active) {
+    subjectsGridRef.value.addEventListener('touchmove', _handleTouchMove, { passive: false })
+  } else {
+    subjectsGridRef.value.removeEventListener('touchmove', _handleTouchMove)
+  }
+})
 
 function onDragStart(index: number, event: DragEvent) {
   draggedIndex.value = index
@@ -298,6 +356,9 @@ notifStore.onSocketEvent('subject:access-unblocked', handleAccessUnblocked)
 onUnmounted(() => {
   notifStore.offSocketEvent('subject:access-blocked', handleAccessBlocked)
   notifStore.offSocketEvent('subject:access-unblocked', handleAccessUnblocked)
+  if (subjectsGridRef.value) {
+    subjectsGridRef.value.removeEventListener('touchmove', _handleTouchMove)
+  }
 })
 
 async function checkCourseDeadline() {
@@ -612,6 +673,9 @@ useSubjectSocket(courseId.value, {
 }
 .subjects-grid--drag .drag-item {
   cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
 }
 .subjects-grid--drag .drag-item:active {
   cursor: grabbing;
