@@ -6,7 +6,26 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <h1 class="header-title">Mis Materias</h1>
-
+        <button
+          v-if="canCreate && allSubjects.length > 1"
+          class="sort-btn"
+          :class="{ 'sort-btn--active': isDragMode }"
+          @click="toggleDragMode"
+        >
+          <template v-if="!isDragMode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="9" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="9" cy="19" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="19" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </template>
+          <template v-else>
+            <span class="sort-btn__done">Listo</span>
+          </template>
+        </button>
       </div>
       <p v-if="allSubjects.length" class="header-subtitle">• {{ allSubjects.length }} materia{{ allSubjects.length !== 1 ? 's' : '' }}</p>
     </div>
@@ -27,17 +46,32 @@
       <div class="spinner-lg" />
     </div>
 
-    <div v-else-if="filtered.length" class="subjects-grid">
-      <SubjectCard
-        v-for="subject in filtered"
+    <div v-else-if="displaySubjects.length" class="subjects-grid" :class="{ 'subjects-grid--drag': isDragMode }">
+      <div
+        v-for="(subject, index) in displaySubjects"
         :key="subject.id"
-        :subject="subject"
-        :stats="getStats(subject.id)"
-        :is-blocked="!!subjectBlocks[subject.id]"
-        :can-modify="canModifySubject(subject)"
-        @click="navigateToDetail(subject)"
-        @options="openOptions"
-      />
+        class="drag-item"
+        :class="{
+          'drag-item--dragging': isDragMode && draggedIndex === index,
+          'drag-item--over': isDragMode && dragOverIndex === index && draggedIndex !== index,
+        }"
+        :draggable="isDragMode"
+        @dragstart="onDragStart(index, $event)"
+        @dragenter.prevent="onDragEnter(index)"
+        @dragover.prevent
+        @drop.prevent="onDrop(index)"
+        @dragend="onDragEnd"
+      >
+        <SubjectCard
+          :subject="subject"
+          :stats="getStats(subject.id)"
+          :is-blocked="!!subjectBlocks[subject.id]"
+          :can-modify="canModifySubject(subject)"
+          :is-drag-mode="isDragMode"
+          @click="onCardClick(subject)"
+          @options="openOptions"
+        />
+      </div>
     </div>
 
     <div v-else class="empty-state">
@@ -46,7 +80,7 @@
       <button v-if="canCreate" class="empty-add-btn" @click="navigateToCreate">Crear materia</button>
     </div>
 
-    <button v-if="canCreate && filtered.length" class="fab" @click="navigateToCreate">
+    <button v-if="canCreate && filtered.length && !isDragMode" class="fab" @click="navigateToCreate">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
     </button>
 
@@ -122,6 +156,59 @@ const subjectBlocks = ref<Record<number, string>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
 const enrollmentApproved = ref(false)
 
+// ── Drag & drop ordering ──
+const isDragMode = ref(false)
+const draggedIndex = ref(-1)
+const dragOverIndex = ref(-1)
+
+function toggleDragMode() {
+  isDragMode.value = !isDragMode.value
+  draggedIndex.value = -1
+  dragOverIndex.value = -1
+}
+
+function onDragStart(index: number, event: DragEvent) {
+  draggedIndex.value = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
+
+function onDragEnter(index: number) {
+  if (draggedIndex.value === -1 || draggedIndex.value === index) return
+  dragOverIndex.value = index
+}
+
+function onDrop(index: number) {
+  const from = draggedIndex.value
+  draggedIndex.value = -1
+  dragOverIndex.value = -1
+  if (from === -1 || from === index) return
+  const arr = [...allSubjects.value]
+  const [moved] = arr.splice(from, 1)
+  arr.splice(index, 0, moved)
+  allSubjects.value = arr
+  saveSubjectOrder(arr)
+}
+
+function onDragEnd() {
+  draggedIndex.value = -1
+  dragOverIndex.value = -1
+}
+
+async function saveSubjectOrder(subjects: Subject[]) {
+  try {
+    await Promise.all(
+      subjects.map((s, i) => subjectAdapter.updateSubject(s.id, { orderIndex: i }))
+    )
+  } catch { /* silent */ }
+}
+
+function onCardClick(subject: Subject) {
+  if (isDragMode.value) return
+  navigateToDetail(subject)
+}
+
 interface SubjectStats { taskCount: number; progress: number }
 const statsMap = ref<Record<number, SubjectStats>>({})
 
@@ -133,6 +220,8 @@ const filtered = computed(() => {
     s.name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)
   )
 })
+
+const displaySubjects = computed(() => isDragMode.value ? allSubjects.value : filtered.value)
 
 function getStats(subjectId: number): SubjectStats {
   return statsMap.value[subjectId] || { taskCount: 0, progress: 0 }
@@ -292,6 +381,7 @@ async function loadSubjects() {
   try {
     const raw: any[] = await subjectAdapter.getSubjectsByCourse(courseId.value)
     allSubjects.value = raw.map(normalizeSubject).sort((a, b) => {
+      if (a.orderIndex !== b.orderIndex) return a.orderIndex - b.orderIndex
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
       return dateA - dateB
@@ -484,7 +574,48 @@ useSubjectSocket(courseId.value, {
 .add-btn { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
 .add-btn:hover { transform: scale(1.1); }
 .add-btn-placeholder { width: 40px; }
+
+.sort-btn {
+  height: 40px;
+  min-width: 40px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0 10px;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.sort-btn:hover { background: rgba(255,255,255,0.14); }
+.sort-btn--active {
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  padding: 0 14px;
+}
+.sort-btn__done { font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+
 .header-subtitle { font-size: 13px; color: #8E8E93; margin-top: 4px; padding-left: 52px; }
+
+.drag-item {
+  transition: opacity 0.15s, transform 0.15s;
+  border-radius: 24px;
+}
+.drag-item--dragging {
+  opacity: 0.35;
+  transform: scale(0.97);
+}
+.drag-item--over {
+  outline: 2px solid #BF5AF2;
+  outline-offset: 2px;
+  transform: scale(1.02);
+}
+.subjects-grid--drag .drag-item {
+  cursor: grab;
+}
+.subjects-grid--drag .drag-item:active {
+  cursor: grabbing;
+}
 
 .search-bar-container { padding: 0 16px 8px; }
 .search-field { display: flex; align-items: center; gap: 10px; background: #1C1C1E; border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.06); }

@@ -1,9 +1,9 @@
 <template>
   <div
     class="subject-card"
-    :class="{ 'subject-blocked': isBlocked }"
+    :class="{ 'subject-blocked': isBlocked, 'subject-card--drag': isDragMode }"
     @click="$emit('click')"
-    @contextmenu.prevent="canModify ? $emit('options', subject) : undefined"
+    @contextmenu.prevent="canModify && !isDragMode ? $emit('options', subject) : undefined"
   >
     <div class="card-thumb">
       <img v-if="thumb" :src="thumb" :alt="subject.name" />
@@ -17,6 +17,16 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
           <circle cx="12" cy="12" r="10" />
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        </svg>
+      </div>
+      <div v-if="isDragMode" class="drag-handle-badge">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+          <circle cx="9" cy="5" r="1.8"/>
+          <circle cx="15" cy="5" r="1.8"/>
+          <circle cx="9" cy="12" r="1.8"/>
+          <circle cx="15" cy="12" r="1.8"/>
+          <circle cx="9" cy="19" r="1.8"/>
+          <circle cx="15" cy="19" r="1.8"/>
         </svg>
       </div>
     </div>
@@ -69,6 +79,7 @@ const props = defineProps<{
   stats: SubjectStats
   isBlocked?: boolean
   canModify?: boolean
+  isDragMode?: boolean
 }>()
 
 defineEmits<{
@@ -86,6 +97,15 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.subject-card--drag {
+  cursor: grab;
+  user-select: none;
+}
+.subject-card--drag:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .subject-card:hover {
@@ -133,6 +153,20 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   height: 28px;
   border-radius: 50%;
   background: #FF453A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drag-handle-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
