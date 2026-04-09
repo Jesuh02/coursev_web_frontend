@@ -3,16 +3,30 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const THRESHOLD = 80   // px mínimos para disparar la recarga
 const MAX_PULL  = 120  // px máximos de arrastre visual
 
+/** Sube por el DOM desde `el` buscando el primer ancestro con scroll vertical real. */
+function findScrollableAncestor(el: Element | null): Element {
+  while (el && el !== document.documentElement) {
+    const { overflowY } = getComputedStyle(el)
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+      return el
+    }
+    el = el.parentElement
+  }
+  return document.scrollingElement ?? document.documentElement
+}
+
 export function usePullToRefresh() {
   const pullDistance = ref(0)
   const isPulling    = ref(false)
   const isRefreshing = ref(false)
 
-  let startY = 0
+  let startY    = 0
+  let scrollEl: Element | null = null
 
   function onTouchStart(e: TouchEvent) {
-    // Solo activar cuando el scroll del documento esté en el tope
-    const scrollEl = document.scrollingElement ?? document.documentElement
+    // Determinar el contenedor que realmente hace scroll bajo el dedo
+    scrollEl = findScrollableAncestor(e.target as Element)
+    // Solo activar si ese contenedor está en el tope
     if (scrollEl.scrollTop > 0) return
     startY = e.touches[0].clientY
     isPulling.value = true
@@ -21,8 +35,8 @@ export function usePullToRefresh() {
   function onTouchMove(e: TouchEvent) {
     if (!isPulling.value || isRefreshing.value) return
 
-    const scrollEl = document.scrollingElement ?? document.documentElement
-    if (scrollEl.scrollTop > 0) {
+    // Si durante el gesto el contenedor se desplazó, cancelar
+    if (scrollEl && scrollEl.scrollTop > 0) {
       isPulling.value = false
       pullDistance.value = 0
       return
