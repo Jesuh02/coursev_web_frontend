@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { userAdapter } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -77,17 +77,24 @@ async function save() {
   saving.value = false
 }
 
-onMounted(() => {
-  const u = authStore.user
-  if (u) {
-    form.nombre = u.persona?.nombres ?? ''
-    form.apellido = u.persona?.apellidos ?? ''
-    form.username = u.username
-    form.email = u.email ?? ''
-    form.telefono = u.persona?.telefono ?? ''
-    form.avatar = u.avatar ?? ''
-  }
-})
+// Pobla el formulario en cuanto el usuario esté disponible.
+// Usa immediate:true para cubrir el caso normal (navegación interna)
+// y también el caso de recarga de página, donde authStore.user llega
+// de forma asíncrona después de que App.vue llama fetchProfile().
+watch(
+  () => authStore.user,
+  (u) => {
+    if (u && !form.username) {
+      form.nombre = u.persona?.nombres ?? ''
+      form.apellido = u.persona?.apellidos ?? ''
+      form.username = u.username
+      form.email = u.email ?? ''
+      form.telefono = u.persona?.telefono ?? ''
+      form.avatar = u.avatar ?? ''
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
