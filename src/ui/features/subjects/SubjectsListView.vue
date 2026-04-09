@@ -1,5 +1,5 @@
 <template>
-  <div class="subjects-list">
+  <div ref="subjectsListRef" class="subjects-list">
     <div class="header-section">
       <div class="header-top-row">
         <button class="back-btn" @click="$router.back()">
@@ -163,14 +163,44 @@ const isDragMode = ref(false)
 const draggedIndex = ref(-1)
 const dragOverIndex = ref(-1)
 const subjectsGridRef = ref<HTMLElement | null>(null)
+const subjectsListRef = ref<HTMLElement | null>(null)
 
 // Cache de rects para hit-testing táctil (no reactivo)
 let _touchItemRects: DOMRect[] = []
+
+// Auto-scroll
+const SCROLL_ZONE = 90  // px desde el borde superior/inferior de la pantalla
+const SCROLL_BASE = 5   // px base por frame
+let _scrollRafId: number | null = null
+let _scrollDir: 'up' | 'down' | null = null
+
+function _scrollStep() {
+  const container = subjectsListRef.value
+  if (!container || !_scrollDir) return
+  container.scrollBy({ top: _scrollDir === 'down' ? SCROLL_BASE : -SCROLL_BASE })
+  _scrollRafId = requestAnimationFrame(_scrollStep)
+}
+
+function _startAutoScroll(dir: 'up' | 'down') {
+  if (_scrollDir === dir) return // ya está corriendo en esa dirección
+  _stopAutoScroll()
+  _scrollDir = dir
+  _scrollRafId = requestAnimationFrame(_scrollStep)
+}
+
+function _stopAutoScroll() {
+  if (_scrollRafId !== null) {
+    cancelAnimationFrame(_scrollRafId)
+    _scrollRafId = null
+  }
+  _scrollDir = null
+}
 
 function toggleDragMode() {
   isDragMode.value = !isDragMode.value
   draggedIndex.value = -1
   dragOverIndex.value = -1
+  if (!isDragMode.value) _stopAutoScroll()
 }
 
 // ── Touch handlers (móvil) ──
@@ -188,6 +218,12 @@ function _handleTouchMove(event: TouchEvent) {
   const touch = event.touches[0]
   const cx = touch.clientX
   const cy = touch.clientY
+
+  // Refrescar rects en cada movimiento porque el scroll los desplaza
+  const items = subjectsGridRef.value?.querySelectorAll<HTMLElement>('.drag-item') ?? []
+  _touchItemRects = Array.from(items).map(el => el.getBoundingClientRect())
+
+  // Hit-testing
   let found = -1
   for (let i = 0; i < _touchItemRects.length; i++) {
     if (i === draggedIndex.value) continue
@@ -198,10 +234,21 @@ function _handleTouchMove(event: TouchEvent) {
     }
   }
   if (found !== -1) dragOverIndex.value = found
+
+  // Auto-scroll: zona superior o inferior de la pantalla
+  const viewH = window.innerHeight
+  if (cy < SCROLL_ZONE) {
+    _startAutoScroll('up')
+  } else if (cy > viewH - SCROLL_ZONE) {
+    _startAutoScroll('down')
+  } else {
+    _stopAutoScroll()
+  }
 }
 
 function onTouchEnd() {
   if (!isDragMode.value) return
+  _stopAutoScroll()
   const from = draggedIndex.value
   const to = dragOverIndex.value
   draggedIndex.value = -1
@@ -356,6 +403,7 @@ notifStore.onSocketEvent('subject:access-unblocked', handleAccessUnblocked)
 onUnmounted(() => {
   notifStore.offSocketEvent('subject:access-blocked', handleAccessBlocked)
   notifStore.offSocketEvent('subject:access-unblocked', handleAccessUnblocked)
+  _stopAutoScroll()
   if (subjectsGridRef.value) {
     subjectsGridRef.value.removeEventListener('touchmove', _handleTouchMove)
   }
