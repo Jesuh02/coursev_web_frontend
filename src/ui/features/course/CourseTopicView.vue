@@ -1,5 +1,8 @@
 <template>
   <div class="course-topic">
+    <div class="particles" aria-hidden="true">
+      <span v-for="n in 12" :key="n" class="particle" :style="particleStyle(n)" />
+    </div>
     <!-- Header: back + title + save -->
     <div class="bar">
       <button class="bar-back" @click="$router.back()">
@@ -188,6 +191,19 @@ const isCreateMode = computed(() => topicId.value === null)
 const courseId = computed(() => route.params.courseId as string)
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
 
+function particleStyle(n: number) {
+  const pos = [
+    { top: '8%', left: '12%' }, { top: '15%', right: '10%' },
+    { top: '28%', left: '5%' }, { top: '40%', right: '6%' },
+    { top: '55%', left: '8%' }, { top: '65%', right: '12%' },
+    { top: '72%', left: '18%' }, { top: '85%', right: '8%' },
+    { top: '20%', left: '55%' }, { top: '48%', left: '75%' },
+    { top: '78%', left: '60%' }, { top: '90%', left: '35%' },
+  ]
+  const p = pos[(n - 1) % pos.length]
+  return { ...p, animationDelay: `${(n - 1) * 0.55}s`, animationDuration: `${3.5 + (n % 3)}s` }
+}
+
 function onVideoSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) pendingFiles.value.push({ file, type: 'video' })
@@ -327,10 +343,26 @@ onMounted(async () => {
 /* ── Base ── */
 .course-topic {
   min-height: 100vh;
-  background: #0A0E27;
+  background:
+    radial-gradient(ellipse at 25% 0%, rgba(0, 212, 255, .12), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(98, 0, 238, .10), transparent 50%),
+    #0A0A0F;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  position: relative;
 }
+
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.particle {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, .5);
+  animation: floatP 4s ease-in-out infinite;
+}
+.particle:nth-child(odd) { background: rgba(98, 0, 238, .4); width: 2px; height: 2px; }
+@keyframes floatP { 0%, 100% { transform: translateY(0) scale(1); opacity: .4; } 50% { transform: translateY(-14px) scale(1.3); opacity: .9; } }
 
 /* ── Header bar ── */
 .bar {
@@ -338,7 +370,9 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 16px;
   gap: 8px;
-  background: #0A0E27;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -394,6 +428,8 @@ onMounted(async () => {
 .scroll-content {
   padding: 16px;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Spacing helpers ── */
@@ -526,11 +562,11 @@ a.row-action { text-decoration: none; }
   flex-shrink: 0;
 }
 
-.video-icon { background: #FFE5ED; color: #E91E63; }
-.doc-icon { background: #E3F2FD; color: #2196F3; }
-.img-icon { background: #E8F5E9; color: #4CAF50; }
-.camera-icon { background: #FFF3E0; color: #FF9800; }
-.task-add-icon { background: #E0F7F4; color: #00BCD4; }
+.video-icon { background: rgba(233, 30, 99, 0.18); color: #FF375F; }
+.doc-icon { background: rgba(33, 150, 243, 0.18); color: #60AFFF; }
+.img-icon { background: rgba(76, 175, 80, 0.18); color: #4FD97A; }
+.camera-icon { background: rgba(255, 152, 0, 0.18); color: #FFB347; }
+.task-add-icon { background: rgba(0, 212, 255, 0.18); color: #00D4FF; }
 
 .add-label { font-size: 14px; color: #fff; font-weight: 500; }
 
