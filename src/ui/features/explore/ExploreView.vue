@@ -624,13 +624,15 @@ onUnmounted(() => observer?.disconnect())
 
 <style scoped>
 .explore-view {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
   background:
     radial-gradient(130% 120% at 10% 0%, rgba(88, 142, 255, 0.12), transparent 48%),
     radial-gradient(120% 120% at 92% 4%, rgba(178, 126, 255, 0.12), transparent 46%),
     var(--bg-primary);
   padding-bottom: 80px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .course-grid {
