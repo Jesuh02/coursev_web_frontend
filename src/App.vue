@@ -1,5 +1,25 @@
 <template>
   <div class="app-shell">
+    <!-- Indicador pull-to-refresh -->
+    <div
+      class="ptr-indicator"
+      :class="{ visible: isPulling || isRefreshing }"
+      :style="{ transform: `translateX(-50%) translateY(${pullDistance - 48}px)` }"
+    >
+      <svg
+        class="ptr-spinner"
+        :class="{ spinning: isRefreshing || pullDistance >= THRESHOLD }"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          :stroke-dasharray="`${(pullDistance / THRESHOLD) * 63} 63`"
+          :style="{ transition: isRefreshing ? 'none' : 'stroke-dasharray 0.05s' }"
+        />
+      </svg>
+    </div>
+
     <SideNavigation v-if="showNav" />
     <div :class="['app-content', { 'with-sidebar': showNav }]">
       <router-view v-slot="{ Component, route }">
@@ -21,6 +41,9 @@ import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import SideNavigation from '@/components/SideNavigation.vue'
 import BottomNavigation from '@/components/BottomNavigation.vue'
+import { usePullToRefresh } from '@/composables/usePullToRefresh'
+
+const { pullDistance, isPulling, isRefreshing, THRESHOLD } = usePullToRefresh()
 
 const route = useRoute()
 const router = useRouter()
@@ -92,5 +115,43 @@ watch(() => authStore.user?.id, (newId) => {
   .app-content.with-sidebar {
     margin-left: 0;
   }
+}
+
+/* Pull-to-refresh */
+.ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-secondary, #1e1e2e);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ptr-indicator.visible {
+  opacity: 1;
+}
+
+.ptr-spinner {
+  width: 22px;
+  height: 22px;
+  color: var(--color-primary, #7c3aed);
+  transform-origin: center;
+}
+
+.ptr-spinner.spinning {
+  animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
 }
 </style>
