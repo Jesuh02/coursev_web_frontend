@@ -354,45 +354,111 @@ function exportPDF() {
   win.onload = () => { win.print(); win.close() }
 }
 
-// ── Excel export (SpreadsheetML XML – abre sin advertencia de formato en Microsoft Excel) ──
-function exportExcel() {
-  function escX(s: any): string {
-    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
-  }
-  function xCell(val: any, style?: string): string {
-    return `<Cell${style ? ` ss:StyleID="${style}"` : ''}><Data ss:Type="String">${escX(val)}</Data></Cell>`
-  }
-  const brd = (c = '#E0DDE8') => `<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/></Borders>`
+// ── Excel export (OOXML .xlsx – formato nativo de Excel, sin advertencias) ──
+async function exportExcel() {
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'CourseV'
+  wb.created = new Date()
+  const ws = wb.addWorksheet('Reporte de Notas')
 
-  let dataRows = ''
-  dataRows += `<Row>${xCell('Estudiante', 'hdr')}${xCell('Tarea', 'hdr')}${xCell('Nota', 'hdrC')}${xCell('Cal. Ponderada', 'hdrC')}${xCell('Fecha de entrega', 'hdr')}${xCell('Docente que calificó', 'hdr')}${xCell('Retroalimentación', 'hdr')}</Row>`
+  ws.columns = [
+    { width: 24 }, // Estudiante
+    { width: 34 }, // Tarea
+    { width: 10 }, // Nota
+    { width: 14 }, // Cal. Ponderada
+    { width: 20 }, // Fecha de entrega
+    { width: 22 }, // Docente que calificó
+    { width: 38 }, // Retroalimentación
+  ]
+
+  const hdrFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B1060' } }
+  const grpHdrFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3EAFE' } }
+  const row0Fill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+  const row1Fill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F7FC' } }
+  const thinBorder: Partial<ExcelJS.Borders> = {
+    top: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    left: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    bottom: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    right: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+  }
+
+  function gradeFont(grade: number | null, notSubmitted?: boolean): Partial<ExcelJS.Font> {
+    if (notSubmitted || (grade !== null && grade < 3)) return { bold: true, color: { argb: 'FFB91C1C' }, name: 'Calibri' }
+    if (grade !== null && grade >= 4) return { bold: true, color: { argb: 'FF1A7F37' }, name: 'Calibri' }
+    if (grade !== null) return { bold: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+    return { color: { argb: 'FF999999' }, name: 'Calibri' }
+  }
+
+  // Header row
+  const hdrRow = ws.addRow(['Estudiante', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
+  hdrRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
+    cell.fill = hdrFill
+    cell.border = thinBorder
+    cell.alignment = { vertical: 'middle', wrapText: true }
+  })
+  hdrRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.height = 18
 
   for (const group of reportData.value) {
     const avg = group.average !== null ? group.average : '—'
-    dataRows += `<Row><Cell ss:StyleID="grpHdr" ss:MergeAcross="6"><Data ss:Type="String">${escX(group.subjectName)} — Docente: ${escX(group.teacherName)} — Promedio: ${escX(avg)}</Data></Cell></Row>`
+    const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 7)
+    grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
+    grpRow.getCell(1).fill = grpHdrFill
+    grpRow.getCell(1).border = thinBorder
+    grpRow.height = 20
+
     if (!group.rows.length) {
-      dataRows += `<Row><Cell ss:StyleID="empty" ss:MergeAcross="6"><Data ss:Type="String">Sin entregas registradas</Data></Cell></Row>`
+      const emptyRow = ws.addRow(['Sin entregas registradas'])
+      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 7)
+      emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
+      continue
     }
-    for (let i = 0; i < group.rows.length; i++) {
-      const row = group.rows[i]
-      const rs = i % 2 === 0 ? 'r0' : 'r1'
-      const gradeVal = row.notSubmitted ? '0' : (row.grade !== null ? String(row.grade) : '—')
-      const ponderada = group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—'
-      const gs = (row.notSubmitted || (row.grade !== null && row.grade < 3)) ? 'gR' : row.grade !== null ? (row.grade >= 4 ? 'gG' : 'gY') : 'gN'
+
+    group.rows.forEach((row, i) => {
+      const grade = row.notSubmitted ? 0 : (row.grade ?? null)
+      const ponderadaNum = group.studentAverages[row.studentName] ?? null
+      const ponderada = ponderadaNum !== null ? Number(ponderadaNum.toFixed(1)) : '—'
       const taskLabel = row.notSubmitted ? `${row.taskName} (No entregado)` : row.taskName
       const fb = row.feedback ? stripHtml(row.feedback) : '—'
-      dataRows += `<Row>${xCell(row.studentName, rs)}${xCell(taskLabel, rs)}${xCell(gradeVal, gs)}${xCell(ponderada, 'numC')}${xCell(row.notSubmitted ? '—' : formatDate(row.submissionDate), rs)}${xCell(row.gradedByUsername ?? '—', rs)}${xCell(fb, rs)}</Row>`
-    }
+
+      const dataRow = ws.addRow([
+        row.studentName,
+        taskLabel,
+        grade !== null ? Number(typeof grade === 'number' ? grade.toFixed(1) : grade) : '—',
+        ponderada,
+        row.notSubmitted ? '—' : formatDate(row.submissionDate),
+        row.gradedByUsername ?? '—',
+        fb,
+      ])
+      const rowFill = i % 2 === 0 ? row0Fill : row1Fill
+      dataRow.eachCell(cell => {
+        cell.fill = rowFill
+        cell.border = thinBorder
+        cell.font = { name: 'Calibri' }
+        cell.alignment = { vertical: 'middle', wrapText: true }
+      })
+      dataRow.getCell(3).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
+      dataRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' }
+      if (ponderadaNum !== null) {
+        dataRow.getCell(4).font = gradeFont(ponderadaNum)
+      } else {
+        dataRow.getCell(4).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
+      }
+      dataRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
+      dataRow.height = 16
+    })
   }
 
-  const styles = `<Styles><Style ss:ID="Default"/><Style ss:ID="hdr"><Alignment ss:Horizontal="Left"/><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10" ss:Name="Calibri"/><Interior ss:Color="#3B1060" ss:Pattern="Solid"/>${brd('#2A0A45')}</Style><Style ss:ID="hdrC"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10" ss:Name="Calibri"/><Interior ss:Color="#3B1060" ss:Pattern="Solid"/>${brd('#2A0A45')}</Style><Style ss:ID="grpHdr"><Font ss:Bold="1" ss:Color="#4A0E8F" ss:Size="11" ss:Name="Calibri"/><Interior ss:Color="#F3EAFE" ss:Pattern="Solid"/>${brd('#C9A0F5')}</Style><Style ss:ID="empty"><Font ss:Italic="1" ss:Color="#999999" ss:Name="Calibri"/></Style><Style ss:ID="r0"><Font ss:Name="Calibri"/><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>${brd()}</Style><Style ss:ID="r1"><Font ss:Name="Calibri"/><Interior ss:Color="#F9F7FC" ss:Pattern="Solid"/>${brd()}</Style><Style ss:ID="gR"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#B91C1C" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gG"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#1A7F37" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gY"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#B45309" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gN"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#999999" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="numC"><Alignment ss:Horizontal="Center"/><Font ss:Name="Calibri"/>${brd()}</Style></Styles>`
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${styles}<Worksheet ss:Name="Reporte de Notas"><Table><Column ss:Width="140"/><Column ss:Width="190"/><Column ss:Width="55"/><Column ss:Width="70"/><Column ss:Width="110"/><Column ss:Width="130"/><Column ss:Width="220"/>${dataRows}</Table></Worksheet></Workbook>`
-
-  const blob = new Blob([xml], { type: 'text/xml;charset=utf-8;' })
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reporte_notas_${Date.now()}.xml`
+  a.download = `reporte_notas_${Date.now()}.xlsx`
   a.click()
   URL.revokeObjectURL(url)
 }
