@@ -71,11 +71,11 @@
                   <table class="grade-table">
                     <thead>
                       <tr>
-                        <th>Estudiante</th>
+                        <th class="th-student">Estudiante</th>
                         <th>Tarea</th>
-                        <th>Nota</th>
+                        <th class="th-grade">Nota</th>
                         <th>Fecha de entrega</th>
-                        <th>Calificó</th>
+                        <th>Docente que calificó</th>
                         <th>Retroalimentación</th>
                       </tr>
                     </thead>
@@ -538,16 +538,18 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .subject-row-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(191, 90, 242, 0.08);
+  padding: 10px 14px 10px 12px;
+  background: rgba(191, 90, 242, 0.10);
   gap: 8px;
+  border-left: 3px solid #BF5AF2;
 }
 
 .subject-info {
@@ -558,20 +560,22 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 }
 
 .subject-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.1px;
 }
 
 .subject-teacher {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  color: #8E8E93;
+  font-size: 12px;
+  color: #BF5AF2;
+  opacity: 0.8;
 }
 
 .subject-avg {
@@ -597,16 +601,18 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 }
 
 .grade-table th {
-  padding: 8px 10px;
+  padding: 9px 10px;
   text-align: left;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #636366;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #8E8E93;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
+.th-student { min-width: 90px; }
+.th-grade { text-align: center; }
 
 .grade-table td {
   padding: 8px 10px;
@@ -618,18 +624,22 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 .grade-row:last-child td { border-bottom: none; }
 .grade-row:hover { background: rgba(255, 255, 255, 0.02); }
 
+/* Estudiante: identificador primario de cada fila — blanco+negrita */
 .cell-student {
-  font-weight: 600;
-  color: #BF5AF2;
+  font-weight: 700;
+  color: #fff;
   white-space: nowrap;
   min-width: 80px;
 }
+/* Tarea: secundario — gris medio para no competir con el nombre del estudiante */
 .cell-task {
   min-width: 100px;
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #C7C7CC;
+  font-size: 11.5px;
 }
 .cell-grade {
   font-weight: 700;
@@ -640,8 +650,13 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 .cell-date {
   white-space: nowrap;
   font-size: 11px;
-  color: #8E8E93;
+  color: #636366;
   min-width: 80px;
+}
+.cell-grader {
+  font-size: 11.5px;
+  color: #9E9EA3;
+  white-space: nowrap;
 }
 .cell-feedback {
   color: #8E8E93;

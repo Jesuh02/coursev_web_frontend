@@ -83,36 +83,45 @@
                 <thead>
                   <tr>
                     <th>Estudiante</th>
-                    <th>Materia</th>
                     <th>Tarea</th>
                     <th class="col-nota">Nota</th>
                     <th class="col-date">Fecha de entrega</th>
-                    <th>Calificó</th>
+                    <th>Docente que calificó</th>
                     <th>Retroalimentación</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-for="group in filteredData" :key="group.courseName">
                     <tr class="course-header-row">
-                      <td colspan="7">{{ group.courseName }}</td>
+                      <td colspan="6">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;opacity:.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        {{ group.courseName }}
+                      </td>
                     </tr>
                     <template v-if="group.rows.length">
-                      <tr v-for="row in group.rows" :key="row.id">
-                        <td class="col-student">{{ row.studentUsername || '—' }}</td>
-                        <td class="col-subject">{{ row.subjectName || '—' }}</td>
-                        <td class="col-task">{{ row.taskName || '—' }}</td>
-                        <td class="col-nota" :class="gradeClass(row.grade)">{{ row.grade != null ? row.grade : 'Sin nota' }}</td>
-                        <td class="col-date">{{ formatDate(row.submission_date) }}</td>
-                        <td class="col-grader">{{ row.gradedByUsername || '—' }}</td>
-                        <td class="col-feedback">{{ row.feedback || '' }}</td>
-                      </tr>
+                      <template v-for="subGroup in getSubjectGroups(group)" :key="subGroup.subjectName">
+                        <tr class="subject-header-row">
+                          <td colspan="6">
+                            <span class="subject-tag">Materia</span>
+                            {{ subGroup.subjectName }}
+                          </td>
+                        </tr>
+                        <tr v-for="row in subGroup.rows" :key="row.id" class="data-row">
+                          <td class="col-student">{{ row.studentUsername || '—' }}</td>
+                          <td class="col-task">{{ row.taskName || '—' }}</td>
+                          <td class="col-nota" :class="gradeClass(row.grade)">{{ row.grade != null ? row.grade : '—' }}</td>
+                          <td class="col-date">{{ formatDate(row.submission_date) }}</td>
+                          <td class="col-grader">{{ row.gradedByUsername || '—' }}</td>
+                          <td class="col-feedback">{{ row.feedback || '' }}</td>
+                        </tr>
+                      </template>
                     </template>
                     <tr v-else class="no-data-row">
-                      <td colspan="7">Sin entregas registradas</td>
+                      <td colspan="6">Sin entregas registradas</td>
                     </tr>
                   </template>
                   <tr v-if="filteredData.length === 0">
-                    <td colspan="7" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
+                    <td colspan="6" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
                   </tr>
                 </tbody>
               </table>
@@ -268,10 +277,12 @@ function exportPDF() {
 // ── Excel / CSV export ──────────────────────────────────────────────────
 function exportExcel() {
   const BOM = '\uFEFF'
-  let csv = BOM + 'Curso,Materia,Estudiante,Tarea,Nota,Fecha de entrega,Calificó,Retroalimentación\n'
+  let csv = BOM + 'Curso,Materia,Estudiante,Tarea,Nota,Fecha de entrega,Docente que calificó,Retroalimentación\n'
   for (const group of reportData.value) {
-    for (const row of group.rows) {
-      csv += `"${esc(group.courseName)}","${esc(row.subjectName ?? '')}","${esc(row.studentUsername ?? '')}","${esc(row.taskName ?? '')}","${row.grade ?? ''}","${formatDate(row.submission_date)}","${esc(row.gradedByUsername ?? '')}","${esc(row.feedback ?? '')}"\n`
+    for (const subGroup of getSubjectGroups(group)) {
+      for (const row of subGroup.rows) {
+        csv += `"${esc(group.courseName)}","${esc(subGroup.subjectName)}","${esc(row.studentUsername ?? '')}","${esc(row.taskName ?? '')}","${row.grade ?? ''}","${formatDate(row.submission_date)}","${esc(row.gradedByUsername ?? '')}","${esc(row.feedback ?? '')}"\n`
+      }
     }
   }
   downloadBlob(csv, `reporte_plataforma_${Date.now()}.csv`, 'text/csv;charset=utf-8;')
@@ -284,6 +295,17 @@ function exportWord() {
 }
 
 function esc(s: string) { return String(s).replace(/"/g, '""') }
+
+// ── Subject sub-grouping ──────────────────────────────────────────────────
+function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[] }[] {
+  const map = new Map<string, ReportRow[]>()
+  for (const row of group.rows) {
+    const key = row.subjectName ?? '—'
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(row)
+  }
+  return Array.from(map.entries()).map(([subjectName, rows]) => ({ subjectName, rows }))
+}
 
 function downloadBlob(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType })
@@ -299,22 +321,25 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="course-header"><td colspan="7">${group.courseName}</td></tr>`
+    rows += `<tr class="course-header"><td colspan="6">${esc_html(group.courseName)}</td></tr>`
     if (!group.rows.length) {
-      rows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
-    }
-    for (const row of group.rows) {
-      const g = row.grade != null ? row.grade : '—'
-      const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
-      rows += `<tr>
-        <td>${esc_html(row.studentUsername ?? '—')}</td>
-        <td>${esc_html(row.subjectName ?? '—')}</td>
-        <td>${esc_html(row.taskName ?? '—')}</td>
+      rows += `<tr><td colspan="6" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
+    } else {
+      for (const [subjectName, subRows] of getSubjectGroups(group).map(sg => [sg.subjectName, sg.rows] as const)) {
+        rows += `<tr class="subject-header"><td colspan="6"><span class="stag">Materia</span> ${esc_html(String(subjectName))}</td></tr>`
+        for (const row of subRows) {
+          const g = row.grade != null ? row.grade : '—'
+          const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
+          rows += `<tr>
+        <td><strong>${esc_html(row.studentUsername ?? '—')}</strong></td>
+        <td style="color:#555">${esc_html(row.taskName ?? '—')}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
         <td style="color:#555;font-size:12px;white-space:nowrap">${formatDate(row.submission_date)}</td>
         <td>${esc_html(row.gradedByUsername ?? '—')}</td>
         <td style="max-width:240px;word-break:break-word;color:#444">${esc_html(row.feedback ?? '—')}</td>
       </tr>`
+        }
+      }
     }
   }
 
@@ -333,9 +358,11 @@ h1{font-size:20px;margin-bottom:4px;color:#1A1A1A}
 .summary .val{font-size:18px;font-weight:700;color:#6A1B9A;display:block}
 .summary .lbl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:11px;color:#555;text-transform:uppercase;padding:8px 10px;border-bottom:2px solid #ddd;background:#fafafa;letter-spacing:.4px}
+th{text-align:left;font-size:10px;color:#555;text-transform:uppercase;padding:8px 10px;border-bottom:2px solid #ddd;background:#fafafa;letter-spacing:.4px}
 td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
 .course-header td{font-weight:700;font-size:13px;background:#f2e8ff;color:#6A1B9A;padding:10px 10px 8px;border-bottom:1px solid #d9baf5}
+.subject-header td{font-size:11.5px;background:#f9f5ff;color:#7B3FA6;padding:7px 10px 7px 22px;border-bottom:1px solid #e8daf5;border-left:3px solid #9B59D9}
+.stag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;background:#e8d5f5;color:#6A1B9A;padding:1px 5px;border-radius:3px;margin-right:7px;vertical-align:middle}
 @media print{body{padding:20px}@page{margin:15mm}}
 </style></head><body>
 <h1>📊 Reporte de Notas — Plataforma</h1>
@@ -347,7 +374,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
   <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-  <thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Calificó</th><th>Retroalimentación</th></tr></thead>
+  <thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead>
   <tbody>${rows}</tbody>
 </table></body></html>`
 }
@@ -555,18 +582,51 @@ function esc_html(s: string): string {
   color: #BF5AF2;
   font-weight: 700;
   font-size: 13px;
-  padding: 9px 14px;
+  padding: 10px 14px;
   border-top: 1px solid rgba(191, 90, 242, 0.15);
   border-bottom: 1px solid rgba(191, 90, 242, 0.2);
+  border-left: 3px solid #BF5AF2;
+}
+
+.subject-header-row td {
+  background: rgba(106, 27, 154, 0.08);
+  color: #C3A4E8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px 7px 30px;
+  border-top: 1px solid rgba(191, 90, 242, 0.08);
+  border-bottom: 1px solid rgba(191, 90, 242, 0.06);
+  border-left: 2px solid rgba(191, 90, 242, 0.35);
+}
+
+.subject-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(191, 90, 242, 0.18);
+  color: #BF5AF2;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.data-row td {
+  padding-left: 30px;
 }
 
 .no-data-row td { color: #636366; font-style: italic; padding-left: 28px; }
 
-.col-nota { text-align: center; width: 72px; }
-.col-date { color: #8E8E93; font-size: 12px; white-space: nowrap; width: 150px; }
-.col-feedback { max-width: 240px; word-break: break-word; color: #AEAEB2; }
-.col-student { font-weight: 500; }
-.col-task { color: #DCDCDC; }
+.col-nota { text-align: center; width: 64px; }
+.col-date { color: #636366; font-size: 12px; white-space: nowrap; width: 140px; }
+.col-feedback { max-width: 220px; word-break: break-word; color: #AEAEB2; font-size: 12px; }
+/* Estudiante: entidad principal de la fila — blanco+negrita */
+.col-student { font-weight: 700; color: #fff !important; }
+/* Tarea: secundario — gris medio */
+.col-task { color: #C7C7CC; font-size: 12px; }
+.col-grader { color: #9E9EA3; font-size: 12px; }
 
 .no-results {
   text-align: center;
