@@ -74,17 +74,19 @@
                         <th class="th-student">Estudiante</th>
                         <th>Tarea</th>
                         <th class="th-grade">Nota</th>
+                        <th class="th-ponderada">Cal. Ponderada</th>
                         <th>Fecha de entrega</th>
                         <th>Docente que calificó</th>
                         <th>Retroalimentación</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(row, i) in group.rows" :key="i" class="grade-row">
+                      <tr v-for="(row, i) in group.rows" :key="i" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
                         <td class="cell-student">{{ row.studentName }}</td>
-                        <td class="cell-task">{{ row.taskName }}</td>
-                        <td class="cell-grade" :class="gradeClass(row.grade)">{{ row.grade ?? '—' }}</td>
-                        <td class="cell-date">{{ formatDate(row.submissionDate) }}</td>
+                        <td class="cell-task">{{ row.taskName }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
+                        <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : gradeClass(row.grade)">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
+                        <td class="cell-ponderada" :class="gradeClass(group.studentAverages[row.studentName] ?? null)">{{ group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—' }}</td>
+                        <td class="cell-date">{{ row.notSubmitted ? '—' : formatDate(row.submissionDate) }}</td>
                         <td class="cell-grader">{{ row.gradedByUsername ?? '—' }}</td>
                         <td class="cell-feedback">
                           <span v-if="row.feedback" :title="stripHtml(row.feedback)">{{ truncate(stripHtml(row.feedback), 80) }}</span>
@@ -145,6 +147,7 @@ interface SubmissionRow {
   submissionDate: number | null
   feedback: string | null
   gradedByUsername: string | null
+  notSubmitted?: boolean
 }
 
 interface SubjectReport {
@@ -153,6 +156,7 @@ interface SubjectReport {
   teacherName: string
   rows: SubmissionRow[]
   average: number | null
+  studentAverages: Record<string, number>  // calificacion_ponderada por estudiante
 }
 
 const loading = ref(false)
@@ -231,6 +235,13 @@ async function fetchReport() {
 
     // Group submission rows by subject
     const subjectRowsMap = new Map<number, SubmissionRow[]>()
+    // Map subjectId → taskName → Set of submitted studentNames
+    const submittedBySubjectTask = new Map<number, Map<string, Set<string>>>()
+    // Map subjectId → list of task names
+    const subjectTaskNames = new Map<number, string[]>()
+    // All known students (submitted at least one task)
+    const knownStudents = new Set<string>()
+
     for (const sub of (submissions as any[])) {
       const taskId = sub.task_id ?? sub.taskId
       const task = taskMap.get(taskId)
@@ -239,21 +250,71 @@ async function fetchReport() {
       const subjectId = topicSubjectMap.get(topicId)
       if (!subjectId) continue
 
+      const studentName = sub.studentUsername ?? sub.student_username ?? `Estudiante #${sub.student_id ?? sub.studentId}`
+      const taskName = sub.taskName ?? task.title ?? task.name ?? 'Sin título'
+      knownStudents.add(studentName)
+
       if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, [])
       subjectRowsMap.get(subjectId)!.push({
-        studentName: sub.studentUsername ?? sub.student_username ?? `Estudiante #${sub.student_id ?? sub.studentId}`,
-        taskName: sub.taskName ?? task.title ?? task.name ?? 'Sin título',
+        studentName,
+        taskName,
         grade: sub.grade ?? null,
         submissionDate: sub.submission_date ?? sub.submissionDate ?? null,
         feedback: sub.feedback ?? null,
         gradedByUsername: sub.gradedByUsername ?? null,
       })
+
+      // Track submitted (subjectId, taskName, studentName)
+      if (!submittedBySubjectTask.has(subjectId)) submittedBySubjectTask.set(subjectId, new Map())
+      const taskMap2 = submittedBySubjectTask.get(subjectId)!
+      if (!taskMap2.has(taskName)) taskMap2.set(taskName, new Set())
+      taskMap2.get(taskName)!.add(studentName)
+    }
+
+    // Build the task-name list per subject (for detecting non-submissions)
+    for (const [taskId, task] of taskMap) {
+      const topicId = task.topicId ?? task.topic_id
+      const subjectId = topicSubjectMap.get(topicId)
+      if (!subjectId) continue
+      const taskName = task.title ?? task.name ?? 'Sin título'
+      if (!subjectTaskNames.has(subjectId)) subjectTaskNames.set(subjectId, [])
+      const existing = subjectTaskNames.get(subjectId)!
+      if (!existing.includes(taskName)) existing.push(taskName)
+    }
+
+    // Add 0-grade rows for known students who haven't submitted each task
+    for (const [subjectId, taskNames] of subjectTaskNames) {
+      if (!knownStudents.size || !taskNames.length) continue
+      const rows = subjectRowsMap.get(subjectId) ?? []
+      const taskSubmissions = submittedBySubjectTask.get(subjectId) ?? new Map()
+      for (const taskName of taskNames) {
+        const submitters = taskSubmissions.get(taskName) ?? new Set()
+        for (const studentName of knownStudents) {
+          if (!submitters.has(studentName)) {
+            rows.push({ studentName, taskName, grade: 0, submissionDate: null, feedback: null, gradedByUsername: null, notSubmitted: true })
+          }
+        }
+      }
+      if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, rows)
     }
 
     // Build per-subject report
     reportData.value = props.subjects.map(subject => {
       const rows = subjectRowsMap.get(subject.id) ?? []
-      const graded = rows.filter(r => r.grade !== null)
+
+      // calificacion_ponderada por estudiante: suma de notas (null=0) / total tareas del subject
+      const totalTasks = (subjectTaskNames.get(subject.id) ?? []).length || 1
+      const studentGradeSum = new Map<string, number>()
+      for (const row of rows) {
+        const prev = studentGradeSum.get(row.studentName) ?? 0
+        studentGradeSum.set(row.studentName, prev + (row.grade ?? 0))
+      }
+      const studentAverages: Record<string, number> = {}
+      for (const [name, sum] of studentGradeSum) {
+        studentAverages[name] = parseFloat((sum / totalTasks).toFixed(1))
+      }
+
+      const graded = rows.filter(r => r.grade !== null && !r.notSubmitted)
       const avg = graded.length ? graded.reduce((s, r) => s + r.grade!, 0) / graded.length : null
 
       const teacherName = subject.createdBy != null
@@ -266,6 +327,7 @@ async function fetchReport() {
         teacherName,
         rows,
         average: avg != null ? parseFloat(avg.toFixed(1)) : null,
+        studentAverages,
       }
     })
   } catch { /* silent */ }
@@ -295,16 +357,23 @@ function exportExcel() {
     for (let i = 0; i < group.rows.length; i++) {
       const row = group.rows[i]
       const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
-      const grade = row.grade !== null ? row.grade : '—'
-      const gradeColor = row.grade !== null
-        ? (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
-        : '#999999'
+      const gradeVal = row.notSubmitted ? '0' : (row.grade !== null ? row.grade : '—')
+      const gradeColor = (row.notSubmitted || (row.grade !== null && row.grade < 3))
+        ? '#b91c1c'
+        : row.grade !== null
+          ? (row.grade >= 4 ? '#1a7f37' : '#b45309')
+          : '#999999'
       const fb = row.feedback ? escH(stripHtml(row.feedback)) : '—'
-      tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${escH(row.studentName)}</td><td>${escH(row.taskName)}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="white-space:nowrap">${formatDate(row.submissionDate)}</td><td>${escH(row.gradedByUsername ?? '—')}</td><td style="color:#555">${fb}</td></tr>`
+      const ponderada = group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—'
+      const ponderadaColor = group.studentAverages[row.studentName] != null
+        ? (group.studentAverages[row.studentName]! >= 4 ? '#1a7f37' : group.studentAverages[row.studentName]! >= 3 ? '#b45309' : '#b91c1c')
+        : '#999999'
+      const noEntregaBadge = row.notSubmitted ? ' <span style="font-size:8pt;background:#ff453a22;color:#ff453a;padding:1px 5px;border-radius:3px">No entregado</span>' : ''
+      tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${escH(row.studentName)}</td><td>${escH(row.taskName)}${noEntregaBadge}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${gradeVal}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap">${row.notSubmitted ? '—' : formatDate(row.submissionDate)}</td><td>${escH(row.gradedByUsername ?? '—')}</td><td style="color:#555">${fb}</td></tr>`
     }
   }
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte de Notas</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${props.subjects.length} materias&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio general: ${averageGrade.value}</p><table><colgroup><col style="width:140pt"><col style="width:190pt"><col style="width:55pt"><col style="width:110pt"><col style="width:130pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte de Notas</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${props.subjects.length} materias&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio general: ${averageGrade.value}</p><table><colgroup><col style="width:140pt"><col style="width:190pt"><col style="width:55pt"><col style="width:70pt"><col style="width:110pt"><col style="width:130pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
 
   const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -340,7 +409,9 @@ function buildShareText(): string {
   for (const group of reportData.value) {
     text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
     for (const row of group.rows) {
-      text += `   • [${row.studentName}] ${row.taskName}: ${row.grade ?? 'Sin nota'}${row.gradedByUsername ? ` (Calificó: ${row.gradedByUsername})` : ''}\n`
+      const gradeStr = row.notSubmitted ? '0 (No entregado)' : (row.grade ?? 'Sin nota')
+      const ponderada = group.studentAverages[row.studentName] != null ? ` [Cal. Ponderada: ${group.studentAverages[row.studentName]!.toFixed(1)}]` : ''
+      text += `   • [${row.studentName}] ${row.taskName}: ${gradeStr}${ponderada}${row.gradedByUsername ? ` (Calificó: ${row.gradedByUsername})` : ''}\n`
     }
     text += '\n'
   }
@@ -357,15 +428,20 @@ function buildPrintableHTML(): string {
       rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     }
     for (const row of group.rows) {
-      const g = row.grade !== null ? row.grade : '—'
-      const color = row.grade !== null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
+      const g = row.notSubmitted ? '0' : (row.grade !== null ? row.grade : '—')
+      const color = (row.notSubmitted || (row.grade !== null && row.grade < 3)) ? '#FF453A' : row.grade !== null ? (row.grade >= 4 ? '#34C759' : '#FF9500') : '#999'
       const fb = row.feedback ? truncate(stripHtml(row.feedback), 120) : '—'
       const grader = row.gradedByUsername ?? '—'
+      const ponderada = group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—'
+      const ponderadaColor = group.studentAverages[row.studentName] != null
+        ? (group.studentAverages[row.studentName]! >= 4 ? '#34C759' : group.studentAverages[row.studentName]! >= 3 ? '#FF9500' : '#FF453A')
+        : '#999'
       rows += `<tr>
-        <td>${row.studentName}</td>
+        <td>${row.studentName}${row.notSubmitted ? ' <small style="color:#FF453A">(No entregado)</small>' : ''}</td>
         <td>${row.taskName}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
-        <td>${formatDate(row.submissionDate)}</td>
+        <td style="color:${ponderadaColor};font-weight:600;text-align:center">${ponderada}</td>
+        <td>${row.notSubmitted ? '—' : formatDate(row.submissionDate)}</td>
         <td>${grader}</td>
         <td colspan="2" class="feedback-col">${fb}</td>
       </tr>`
@@ -399,7 +475,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-<thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha</th><th>Calificó</th><th colspan="2">Retroalimentación</th></tr></thead>
+<thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha</th><th>Calificó</th><th colspan="2">Retroalimentación</th></tr></thead>
 <tbody>${rows}</tbody>
 </table></body></html>`
 }
@@ -677,6 +753,11 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
   line-height: 1.4;
 }
 .no-feedback { color: #3a3a3c; }
+
+.th-ponderada { min-width: 80px; text-align: center; }
+.cell-ponderada { font-weight: 700; text-align: center; white-space: nowrap; min-width: 80px; }
+.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: #FF453A; border-radius: 4px; padding: 1px 5px; }
+.row-not-submitted { opacity: 0.75; }
 
 .no-tasks {
   padding: 10px 16px;

@@ -85,6 +85,7 @@
                     <th>Estudiante</th>
                     <th>Tarea</th>
                     <th class="col-nota">Nota</th>
+                    <th class="col-ponderada">Cal. Ponderada</th>
                     <th class="col-date">Fecha de entrega</th>
                     <th>Docente que calificó</th>
                     <th>Retroalimentación</th>
@@ -93,7 +94,7 @@
                 <tbody>
                   <template v-for="group in filteredData" :key="group.courseName">
                     <tr class="course-header-row">
-                      <td colspan="6">
+                      <td colspan="7">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;opacity:.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                         {{ group.courseName }}
                       </td>
@@ -101,7 +102,7 @@
                     <template v-if="group.rows.length">
                       <template v-for="subGroup in getSubjectGroups(group)" :key="subGroup.subjectName">
                         <tr class="subject-header-row">
-                          <td colspan="6">
+                          <td colspan="7">
                             <span class="subject-tag">Materia</span>
                             {{ subGroup.subjectName }}
                           </td>
@@ -109,7 +110,8 @@
                         <tr v-for="row in subGroup.rows" :key="row.id" class="data-row">
                           <td class="col-student">{{ row.studentUsername || '—' }}</td>
                           <td class="col-task">{{ row.taskName || '—' }}</td>
-                          <td class="col-nota" :class="gradeClass(row.grade)">{{ row.grade != null ? row.grade : '—' }}</td>
+                          <td class="col-nota" :class="row.grade == null ? 'grade-low' : gradeClass(row.grade)">{{ row.grade != null ? row.grade : '0' }}</td>
+                          <td class="col-ponderada" :class="gradeClass(subGroup.studentAverages[row.studentUsername ?? ''] ?? null)">{{ subGroup.studentAverages[row.studentUsername ?? ''] != null ? Number(subGroup.studentAverages[row.studentUsername ?? '']).toFixed(1) : '—' }}</td>
                           <td class="col-date">{{ formatDate(row.submission_date) }}</td>
                           <td class="col-grader">{{ row.gradedByUsername || '—' }}</td>
                           <td class="col-feedback">{{ row.feedback || '' }}</td>
@@ -117,11 +119,11 @@
                       </template>
                     </template>
                     <tr v-else class="no-data-row">
-                      <td colspan="6">Sin entregas registradas</td>
+                      <td colspan="7">Sin entregas registradas</td>
                     </tr>
                   </template>
                   <tr v-if="filteredData.length === 0">
-                    <td colspan="6" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
+                    <td colspan="7" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
                   </tr>
                 </tbody>
               </table>
@@ -284,21 +286,26 @@ function exportExcel() {
       tableRows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding:6px 12px 6px 24px">Sin entregas registradas</td></tr>`
     } else {
       for (const subGroup of getSubjectGroups(group)) {
-        tableRows += `<tr style="background:#faf5ff"><td colspan="7" style="font-size:9.5pt;font-weight:600;color:#7B3FA6;padding:6px 12px 6px 24px;border-bottom:1px solid #e8d5f7"><span style="font-size:8pt;font-weight:700;background:#e8d5f5;color:#6A1B9A;padding:1px 6px;border-radius:3px;margin-right:8px">Materia</span>${esc_html(subGroup.subjectName)}</td></tr>`
+        tableRows += `<tr style="background:#faf5ff"><td colspan="8" style="font-size:9.5pt;font-weight:600;color:#7B3FA6;padding:6px 12px 6px 24px;border-bottom:1px solid #e8d5f7"><span style="font-size:8pt;font-weight:700;background:#e8d5f5;color:#6A1B9A;padding:1px 6px;border-radius:3px;margin-right:8px">Materia</span>${esc_html(subGroup.subjectName)}</td></tr>`
         for (let i = 0; i < subGroup.rows.length; i++) {
           const row = subGroup.rows[i]
           const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
-          const grade = row.grade != null ? row.grade : '—'
-          const gradeColor = row.grade != null
-            ? (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
+          const grade = row.grade != null ? row.grade : '0'
+          const gradeColor = row.grade == null
+            ? '#b91c1c'
+            : (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
+          const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null
+            ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
+          const ponderadaColor = subGroup.studentAverages[row.studentUsername ?? ''] != null
+            ? (subGroup.studentAverages[row.studentUsername ?? '']! >= 4 ? '#1a7f37' : subGroup.studentAverages[row.studentUsername ?? '']! >= 3 ? '#b45309' : '#b91c1c')
             : '#999999'
-          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
+          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
         }
       }
     }
   }
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte Plataforma</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas — Plataforma</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${courseCount.value} cursos&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio: ${averageGrade.value}</p><table><colgroup><col style="width:130pt"><col style="width:130pt"><col style="width:180pt"><col style="width:50pt"><col style="width:110pt"><col style="width:120pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte Plataforma</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas — Plataforma</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${courseCount.value} cursos&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio: ${averageGrade.value}</p><table><colgroup><col style="width:130pt"><col style="width:130pt"><col style="width:180pt"><col style="width:50pt"><col style="width:70pt"><col style="width:110pt"><col style="width:120pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
 
   downloadBlob('\uFEFF' + html, `reporte_plataforma_${Date.now()}.xls`, 'application/vnd.ms-excel;charset=utf-8;')
 }
@@ -312,14 +319,27 @@ function exportWord() {
 function esc(s: string) { return String(s).replace(/"/g, '""') }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
-function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[] }[] {
+function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number> }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
     const key = row.subjectName ?? '—'
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(row)
   }
-  return Array.from(map.entries()).map(([subjectName, rows]) => ({ subjectName, rows }))
+  return Array.from(map.entries()).map(([subjectName, rows]) => {
+    // calificacion_ponderada: promedio por estudiante en esta materia (null grade = 0)
+    const studentGradesMap = new Map<string, number[]>()
+    for (const row of rows) {
+      const student = row.studentUsername ?? ''
+      if (!studentGradesMap.has(student)) studentGradesMap.set(student, [])
+      studentGradesMap.get(student)!.push(row.grade ?? 0)
+    }
+    const studentAverages: Record<string, number> = {}
+    for (const [student, grades] of studentGradesMap) {
+      studentAverages[student] = parseFloat((grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1))
+    }
+    return { subjectName, rows, studentAverages }
+  })
 }
 
 function downloadBlob(content: string, filename: string, mimeType: string) {
@@ -336,19 +356,22 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="course-header"><td colspan="6">${esc_html(group.courseName)}</td></tr>`
+    rows += `<tr class="course-header"><td colspan="7">${esc_html(group.courseName)}</td></tr>`
     if (!group.rows.length) {
-      rows += `<tr><td colspan="6" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
+      rows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
     } else {
-      for (const [subjectName, subRows] of getSubjectGroups(group).map(sg => [sg.subjectName, sg.rows] as const)) {
-        rows += `<tr class="subject-header"><td colspan="6"><span class="stag">Materia</span> ${esc_html(String(subjectName))}</td></tr>`
-        for (const row of subRows) {
-          const g = row.grade != null ? row.grade : '—'
-          const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
+      for (const subGroup of getSubjectGroups(group)) {
+        rows += `<tr class="subject-header"><td colspan="7"><span class="stag">Materia</span> ${esc_html(String(subGroup.subjectName))}</td></tr>`
+        for (const row of subGroup.rows) {
+          const g = row.grade != null ? row.grade : '0'
+          const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#FF453A'
+          const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
+          const ponderadaColor = subGroup.studentAverages[row.studentUsername ?? ''] != null ? (subGroup.studentAverages[row.studentUsername ?? '']! >= 4 ? '#34C759' : subGroup.studentAverages[row.studentUsername ?? '']! >= 3 ? '#FF9500' : '#FF453A') : '#999'
           rows += `<tr>
         <td><strong>${esc_html(row.studentUsername ?? '—')}</strong></td>
         <td style="color:#555">${esc_html(row.taskName ?? '—')}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
+        <td style="color:${ponderadaColor};font-weight:600;text-align:center">${ponderada}</td>
         <td style="color:#555;font-size:12px;white-space:nowrap">${formatDate(row.submission_date)}</td>
         <td>${esc_html(row.gradedByUsername ?? '—')}</td>
         <td style="max-width:240px;word-break:break-word;color:#444">${esc_html(row.feedback ?? '—')}</td>
@@ -389,7 +412,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
   <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-  <thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead>
+  <thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead>
   <tbody>${rows}</tbody>
 </table></body></html>`
 }
