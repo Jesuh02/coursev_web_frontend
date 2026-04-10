@@ -101,12 +101,12 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <tr v-for="row in subGroup.rows" :key="row.id" class="grade-row">
+                            <tr v-for="row in subGroup.rows" :key="row.id" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
                               <td class="cell-student">{{ row.studentUsername || '—' }}</td>
-                              <td class="cell-task">{{ row.taskName || '—' }}</td>
-                              <td class="cell-grade" :class="row.grade == null ? 'grade-low' : gradeClass(row.grade)">{{ row.grade != null ? row.grade : '0' }}</td>
+                              <td class="cell-task">{{ row.taskName || '—' }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
+                              <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : (row.grade == null ? '' : gradeClass(row.grade))">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
                               <td class="cell-ponderada" :class="gradeClass(subGroup.studentAverages[row.studentUsername ?? ''] ?? null)">{{ subGroup.studentAverages[row.studentUsername ?? ''] != null ? Number(subGroup.studentAverages[row.studentUsername ?? '']).toFixed(1) : '—' }}</td>
-                              <td class="cell-date">{{ formatDate(row.submission_date) }}</td>
+                              <td class="cell-date">{{ row.notSubmitted ? '—' : formatDate(row.submission_date) }}</td>
                               <td class="cell-grader">{{ row.gradedByUsername || '—' }}</td>
                               <td class="cell-feedback">
                                 <span v-if="row.feedback" :title="row.feedback">{{ truncate(row.feedback, 80) }}</span>
@@ -169,12 +169,14 @@ interface ReportRow {
   feedback: string | null
   subjectName?: string | null
   gradedByUsername?: string | null
+  notSubmitted?: boolean
 }
 
 interface CourseGroup {
   courseId: number
   courseName: string
   rows: ReportRow[]
+  progressByUsername: Record<string, number>
 }
 
 const loading = ref(false)
@@ -233,12 +235,28 @@ async function fetchReport() {
 
     const results = await Promise.allSettled(
       courses.map(async (course) => {
-        const subs = await api.get<any[]>(`/submissions/course/${course.id}?page=1&pageSize=300`)
+        const [subsRaw, progressRaw] = await Promise.all([
+          api.get<any[]>(`/submissions/course/${course.id}?page=1&pageSize=500`).catch(() => [] as any[]),
+          api.get<any[]>(`/progress/course/${course.id}/all`).catch(() => [] as any[]),
+        ])
         loadedCourses.value++
+
+        // Build username → averageGrade map from progreso_curso table
+        const progressByUsername: Record<string, number> = {}
+        for (const p of (progressRaw ?? [])) {
+          const username = p.username ?? null
+          const avg = p.averageGrade ?? null
+          if (username && avg != null) progressByUsername[username] = avg
+        }
+
+        const subs: ReportRow[] = (subsRaw ?? []) as ReportRow[]
+        const rows = addNotSubmittedRows(subs)
+
         return {
           courseId: course.id,
           courseName: (course as any).title ?? (course as any).name ?? `Curso ${course.id}`,
-          rows: (subs ?? []) as ReportRow[],
+          rows,
+          progressByUsername,
         } as CourseGroup
       })
     )
@@ -252,6 +270,48 @@ async function fetchReport() {
   } finally {
     loading.value = false
   }
+}
+
+// Add grade=0 rows for known students who haven't submitted specific tasks
+function addNotSubmittedRows(subs: ReportRow[]): ReportRow[] {
+  const subjectTaskStudents = new Map<string, Map<string, Set<string>>>()
+  const knownStudents = new Set<string>()
+
+  for (const sub of subs) {
+    const subjectName = sub.subjectName ?? '—'
+    const taskName = sub.taskName ?? '—'
+    const student = sub.studentUsername ?? null
+    if (!student) continue
+    knownStudents.add(student)
+    if (!subjectTaskStudents.has(subjectName)) subjectTaskStudents.set(subjectName, new Map())
+    const taskMap = subjectTaskStudents.get(subjectName)!
+    if (!taskMap.has(taskName)) taskMap.set(taskName, new Set())
+    taskMap.get(taskName)!.add(student)
+  }
+
+  if (!knownStudents.size) return subs
+
+  const extra: ReportRow[] = []
+  for (const [subjectName, taskMap] of subjectTaskStudents) {
+    for (const [taskName, submitters] of taskMap) {
+      for (const student of knownStudents) {
+        if (!submitters.has(student)) {
+          extra.push({
+            id: 0,
+            studentUsername: student,
+            taskName,
+            grade: 0,
+            submission_date: null,
+            feedback: null,
+            subjectName,
+            gradedByUsername: null,
+            notSubmitted: true,
+          })
+        }
+      }
+    }
+  }
+  return [...subs, ...extra]
 }
 
 // ── PDF export (print) ──────────────────────────────────────────────────
@@ -277,16 +337,17 @@ function exportExcel() {
         for (let i = 0; i < subGroup.rows.length; i++) {
           const row = subGroup.rows[i]
           const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
-          const grade = row.grade != null ? row.grade : '0'
-          const gradeColor = row.grade == null
+          const grade = row.notSubmitted ? '0' : (row.grade != null ? row.grade : '—')
+          const gradeColor = (row.notSubmitted || (row.grade != null && row.grade < 3))
             ? '#b91c1c'
-            : (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
+            : row.grade != null ? (row.grade >= 4 ? '#1a7f37' : '#b45309') : '#999999'
+          const noEntregaBadge = row.notSubmitted ? ' <span style="font-size:8pt;background:#ff453a22;color:#ff453a;padding:1px 5px;border-radius:3px">No entregado</span>' : ''
           const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null
             ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
           const ponderadaColor = subGroup.studentAverages[row.studentUsername ?? ''] != null
             ? (subGroup.studentAverages[row.studentUsername ?? '']! >= 4 ? '#1a7f37' : subGroup.studentAverages[row.studentUsername ?? '']! >= 3 ? '#b45309' : '#b91c1c')
             : '#999999'
-          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
+          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}${noEntregaBadge}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${row.notSubmitted ? '—' : formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
         }
       }
     }
@@ -306,6 +367,7 @@ function exportWord() {
 function esc(s: string) { return String(s).replace(/"/g, '""') }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
+// studentAverages uses averageGrade from progreso_curso table (course-level weighted grade)
 function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
@@ -314,18 +376,15 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: Repo
     map.get(key)!.push(row)
   }
   return Array.from(map.entries()).map(([subjectName, rows]) => {
-    // calificacion_ponderada: promedio por estudiante en esta materia (null grade = 0)
-    const studentGradesMap = new Map<string, number[]>()
+    // Cal. Ponderada: from progreso_curso table (course-level averageGrade per student)
+    const studentAverages: Record<string, number> = {}
     for (const row of rows) {
       const student = row.studentUsername ?? ''
-      if (!studentGradesMap.has(student)) studentGradesMap.set(student, [])
-      studentGradesMap.get(student)!.push(row.grade ?? 0)
+      if (student && !(student in studentAverages) && group.progressByUsername[student] != null) {
+        studentAverages[student] = group.progressByUsername[student]
+      }
     }
-    const studentAverages: Record<string, number> = {}
-    for (const [student, grades] of studentGradesMap) {
-      studentAverages[student] = parseFloat((grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1))
-    }
-    const graded = rows.filter(r => r.grade != null)
+    const graded = rows.filter(r => r.grade != null && !r.notSubmitted)
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
     return { subjectName, rows, studentAverages, average }
   })
@@ -352,16 +411,17 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
       for (const subGroup of getSubjectGroups(group)) {
         rows += `<tr class="subject-header"><td colspan="7"><span class="stag">Materia</span> ${esc_html(String(subGroup.subjectName))}</td></tr>`
         for (const row of subGroup.rows) {
-          const g = row.grade != null ? row.grade : '0'
-          const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#FF453A'
+          const g = row.notSubmitted ? '0' : (row.grade != null ? row.grade : '—')
+          const color = (row.notSubmitted || (row.grade != null && row.grade < 3)) ? '#FF453A' : row.grade != null ? (row.grade >= 4 ? '#34C759' : '#FF9500') : '#999'
+          const noEntregaTag = row.notSubmitted ? ' <span style="font-size:9px;background:#ff453a22;color:#ff453a;padding:1px 4px;border-radius:3px">No entregado</span>' : ''
           const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
           const ponderadaColor = subGroup.studentAverages[row.studentUsername ?? ''] != null ? (subGroup.studentAverages[row.studentUsername ?? '']! >= 4 ? '#34C759' : subGroup.studentAverages[row.studentUsername ?? '']! >= 3 ? '#FF9500' : '#FF453A') : '#999'
           rows += `<tr>
         <td><strong>${esc_html(row.studentUsername ?? '—')}</strong></td>
-        <td style="color:#555">${esc_html(row.taskName ?? '—')}</td>
+        <td style="color:#555">${esc_html(row.taskName ?? '—')}${noEntregaTag}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
         <td style="color:${ponderadaColor};font-weight:600;text-align:center">${ponderada}</td>
-        <td style="color:#555;font-size:12px;white-space:nowrap">${formatDate(row.submission_date)}</td>
+        <td style="color:#555;font-size:12px;white-space:nowrap">${row.notSubmitted ? '—' : formatDate(row.submission_date)}</td>
         <td>${esc_html(row.gradedByUsername ?? '—')}</td>
         <td style="max-width:240px;word-break:break-word;color:#444">${esc_html(row.feedback ?? '—')}</td>
       </tr>`
@@ -678,6 +738,9 @@ function esc_html(s: string): string {
 .cell-grader { font-size: 11.5px; color: #9E9EA3; white-space: nowrap; }
 .cell-feedback { color: #8E8E93; font-size: 11px; min-width: 100px; max-width: 220px; line-height: 1.4; }
 .no-feedback { color: #3a3a3c; }
+
+.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: #FF453A; border-radius: 4px; padding: 1px 5px; }
+.row-not-submitted { opacity: 0.75; }
 
 .no-tasks {
   padding: 10px 16px;
