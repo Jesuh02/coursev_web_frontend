@@ -804,7 +804,7 @@
               </div>
               <div v-else class="mcp-list">
                 <div v-for="course in myCoursesProgress" :key="course.courseId" class="mcp-card">
-                  <div class="mcp-card-header" @click="toggleCourseProgressExpanded(course.courseId)">
+                  <div class="mcp-card-header" style="cursor:pointer" @click="router.push({ name: 'subjectsList', params: { courseId: course.courseId } })">
                     <img :src="resolveThumbnail(course.thumbnail)" class="mcp-thumb" alt="" @error="onCourseThumbError" />
                     <div class="mcp-card-info">
                       <h5 class="mcp-course-title">{{ course.courseName }}</h5>
@@ -822,7 +822,7 @@
                         <span v-if="course.status" class="mcp-status-badge" :class="course.status === 'Ganado' ? 'status-won' : course.status === 'Perdido' ? 'status-lost' : ''">{{ course.status }}</span>
                       </div>
                     </div>
-                    <span class="mcp-chevron">{{ expandedCourseProgressIds.has(course.courseId) ? '▲' : '▼' }}</span>
+                    <span class="mcp-chevron">›</span>
                   </div>
                   <div v-if="expandedCourseProgressIds.has(course.courseId)" class="mcp-subjects">
                     <div v-if="course.subjects.length === 0" class="mcp-no-subjects">Sin materias registradas</div>
@@ -4089,7 +4089,7 @@ const toggleSection = (section: 'courses' | 'tasks' | 'submissions' | 'students'
 }
 
 const goToCourse = (courseId: number) => {
-  router.push(`/course/${courseId}`)
+  router.push({ name: 'subjectsList', params: { courseId } })
 }
 
 const goToTask = (task: PendingTask) => {
