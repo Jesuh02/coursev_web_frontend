@@ -330,39 +330,43 @@ function exportPDF() {
   win.onload = () => { win.print(); win.close() }
 }
 
-// ── Excel export (.xls – HTML-based, opens fully formatted in Microsoft Excel) ──────────────────────
+// ── Excel export (SpreadsheetML XML – abre sin advertencia de formato en Microsoft Excel) ──────────────────────
 function exportExcel() {
-  const now = new Date().toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  let tableRows = ''
+  function escX(s: any): string {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+  }
+  function xCell(val: any, style?: string): string {
+    return `<Cell${style ? ` ss:StyleID="${style}"` : ''}><Data ss:Type="String">${escX(val)}</Data></Cell>`
+  }
+  const brd = (c = '#E0DDE8') => `<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="${c}"/></Borders>`
+
+  let dataRows = ''
+  dataRows += `<Row>${xCell('Estudiante', 'hdr')}${xCell('Materia', 'hdr')}${xCell('Tarea', 'hdr')}${xCell('Nota', 'hdrC')}${xCell('Cal. Ponderada', 'hdrC')}${xCell('Fecha de entrega', 'hdr')}${xCell('Docente que calificó', 'hdr')}${xCell('Retroalimentación', 'hdr')}</Row>`
+
   for (const group of reportData.value) {
-    tableRows += `<tr style="background:#f3eafe"><td colspan="7" style="font-size:11pt;font-weight:700;color:#4a0e8f;padding:8px 12px;border-bottom:2px solid #c9a0f5;border-left:4px solid #8b5cf6">${esc_html(group.courseName)}</td></tr>`
+    dataRows += `<Row><Cell ss:StyleID="courseHdr" ss:MergeAcross="7"><Data ss:Type="String">${escX(group.courseName)}</Data></Cell></Row>`
     if (!group.rows.length) {
-      tableRows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding:6px 12px 6px 24px">Sin entregas registradas</td></tr>`
+      dataRows += `<Row><Cell ss:StyleID="empty" ss:MergeAcross="7"><Data ss:Type="String">Sin entregas registradas</Data></Cell></Row>`
     } else {
       for (const subGroup of getSubjectGroups(group)) {
-        tableRows += `<tr style="background:#faf5ff"><td colspan="8" style="font-size:9.5pt;font-weight:600;color:#7B3FA6;padding:6px 12px 6px 24px;border-bottom:1px solid #e8d5f7"><span style="font-size:8pt;font-weight:700;background:#e8d5f5;color:#6A1B9A;padding:1px 6px;border-radius:3px;margin-right:8px">Materia</span>${esc_html(subGroup.subjectName)}</td></tr>`
+        dataRows += `<Row><Cell ss:StyleID="subjHdr" ss:MergeAcross="7"><Data ss:Type="String">Materia: ${escX(subGroup.subjectName)}</Data></Cell></Row>`
         for (let i = 0; i < subGroup.rows.length; i++) {
           const row = subGroup.rows[i]
-          const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
-          const grade = row.notSubmitted ? '0' : (row.grade != null ? row.grade : '—')
-          const gradeColor = (row.notSubmitted || (row.grade != null && row.grade < 3))
-            ? '#b91c1c'
-            : row.grade != null ? (row.grade >= 4 ? '#1a7f37' : '#b45309') : '#999999'
-          const noEntregaBadge = row.notSubmitted ? ' <span style="font-size:8pt;background:#ff453a22;color:#ff453a;padding:1px 5px;border-radius:3px">No entregado</span>' : ''
-          const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null
-            ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
-          const ponderadaColor = subGroup.studentAverages[row.studentUsername ?? ''] != null
-            ? (subGroup.studentAverages[row.studentUsername ?? '']! >= 4 ? '#1a7f37' : subGroup.studentAverages[row.studentUsername ?? '']! >= 3 ? '#b45309' : '#b91c1c')
-            : '#999999'
-          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}${noEntregaBadge}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${row.notSubmitted ? '—' : formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
+          const rs = i % 2 === 0 ? 'r0' : 'r1'
+          const grade = row.notSubmitted ? '0' : (row.grade != null ? String(row.grade) : '—')
+          const ponderada = subGroup.studentAverages[row.studentUsername ?? ''] != null ? subGroup.studentAverages[row.studentUsername ?? '']!.toFixed(1) : '—'
+          const gs = (row.notSubmitted || (row.grade != null && row.grade < 3)) ? 'gR' : row.grade != null ? (row.grade >= 4 ? 'gG' : 'gY') : 'gN'
+          const taskLabel = row.notSubmitted ? `${row.taskName ?? '—'} (No entregado)` : (row.taskName ?? '—')
+          dataRows += `<Row>${xCell(row.studentUsername ?? '—', rs)}${xCell(subGroup.subjectName, rs)}${xCell(taskLabel, rs)}${xCell(grade, gs)}${xCell(ponderada, 'numC')}${xCell(row.notSubmitted ? '—' : formatDate(row.submission_date), rs)}${xCell(row.gradedByUsername ?? '—', rs)}${xCell(row.feedback ?? '—', rs)}</Row>`
         }
       }
     }
   }
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte Plataforma</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas — Plataforma</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${courseCount.value} cursos&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio: ${averageGrade.value}</p><table><colgroup><col style="width:130pt"><col style="width:130pt"><col style="width:180pt"><col style="width:50pt"><col style="width:70pt"><col style="width:110pt"><col style="width:120pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+  const styles = `<Styles><Style ss:ID="Default"/><Style ss:ID="hdr"><Alignment ss:Horizontal="Left"/><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10" ss:Name="Calibri"/><Interior ss:Color="#3B1060" ss:Pattern="Solid"/>${brd('#2A0A45')}</Style><Style ss:ID="hdrC"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10" ss:Name="Calibri"/><Interior ss:Color="#3B1060" ss:Pattern="Solid"/>${brd('#2A0A45')}</Style><Style ss:ID="courseHdr"><Font ss:Bold="1" ss:Color="#4A0E8F" ss:Size="11" ss:Name="Calibri"/><Interior ss:Color="#F3EAFE" ss:Pattern="Solid"/>${brd('#C9A0F5')}</Style><Style ss:ID="subjHdr"><Font ss:Bold="1" ss:Color="#7B3FA6" ss:Size="9" ss:Name="Calibri"/><Interior ss:Color="#FAF5FF" ss:Pattern="Solid"/>${brd('#E8D5F7')}</Style><Style ss:ID="empty"><Font ss:Italic="1" ss:Color="#999999" ss:Name="Calibri"/></Style><Style ss:ID="r0"><Font ss:Name="Calibri"/><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>${brd()}</Style><Style ss:ID="r1"><Font ss:Name="Calibri"/><Interior ss:Color="#F9F7FC" ss:Pattern="Solid"/>${brd()}</Style><Style ss:ID="gR"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#B91C1C" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gG"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#1A7F37" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gY"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#B45309" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="gN"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#999999" ss:Name="Calibri"/>${brd()}</Style><Style ss:ID="numC"><Alignment ss:Horizontal="Center"/><Font ss:Name="Calibri"/>${brd()}</Style></Styles>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${styles}<Worksheet ss:Name="Reporte Plataforma"><Table><Column ss:Width="130"/><Column ss:Width="130"/><Column ss:Width="180"/><Column ss:Width="50"/><Column ss:Width="70"/><Column ss:Width="110"/><Column ss:Width="120"/><Column ss:Width="200"/>${dataRows}</Table></Worksheet></Workbook>`
 
-  downloadBlob('\uFEFF' + html, `reporte_plataforma_${Date.now()}.xls`, 'application/vnd.ms-excel;charset=utf-8;')
+  downloadBlob(xml, `reporte_plataforma_${Date.now()}.xls`, 'application/vnd.ms-excel;charset=utf-8;')
 }
 
 // ── Word export (.doc as HTML) ──────────────────────────────────────────
