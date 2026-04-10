@@ -1818,11 +1818,14 @@
 
         <!-- Institution cards -->
         <div class="inst-list">
-          <div v-for="inst in filteredInstitutions" :key="inst.id" class="inst-card" :class="{ 'inst-suspended': inst.is_suspended }">
+          <div v-for="inst in filteredInstitutions" :key="`${inst.tenantId || '_'}-${inst.id}`" class="inst-card" :class="{ 'inst-suspended': inst.is_suspended }">
             <div class="inst-card-header">
               <div class="inst-info">
                 <h4 class="inst-name">{{ inst.nombre }}</h4>
-                <p class="inst-meta">{{ inst.ciudad || 'Sin ciudad' }}, {{ inst.departamento || 'Sin depto' }} · Código: {{ inst.codigo || 'N/A' }}</p>
+                <p class="inst-meta">
+                  {{ inst.ciudad || 'Sin ciudad' }}, {{ inst.departamento || 'Sin depto' }} · Código: {{ inst.codigo || 'N/A' }}
+                  <span v-if="inst.tenantName" class="inst-tenant-badge">{{ inst.tenantName }}</span>
+                </p>
               </div>
               <span class="inst-status-badge" :class="inst.is_suspended ? 'badge-red' : 'badge-green'">
                 {{ inst.is_suspended ? 'Suspendida' : 'Activa' }}
@@ -4436,7 +4439,8 @@ const filteredInstitutions = computed(() => {
     (i.nombre || '').toLowerCase().includes(q) ||
     (i.codigo || '').toLowerCase().includes(q) ||
     (i.ciudad || '').toLowerCase().includes(q) ||
-    (i.departamento || '').toLowerCase().includes(q)
+    (i.departamento || '').toLowerCase().includes(q) ||
+    (i.tenantName || '').toLowerCase().includes(q)
   )
 })
 
@@ -4489,9 +4493,9 @@ const savePaymentDueDate = async () => {
   if (!inst) return
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
-    const updated = await institucionAdapter.setPaymentDueDate(inst.id, datePickerValue.value || null)
-    const idx = institutions.value.findIndex(i => i.id === inst.id)
-    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated }
+    const updated = await institucionAdapter.setPaymentDueDate(inst.id, datePickerValue.value || null, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
     datePickerTarget.value = null
   } catch (e) {
     console.error('Error setting payment due date:', e)
@@ -4510,9 +4514,9 @@ const confirmSuspend = async () => {
   if (!inst) return
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
-    const updated = await institucionAdapter.suspendInstitution(inst.id, suspendReason.value || undefined)
-    const idx = institutions.value.findIndex(i => i.id === inst.id)
-    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated }
+    const updated = await institucionAdapter.suspendInstitution(inst.id, suspendReason.value || undefined, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
     suspendTarget.value = null
   } catch (e) {
     console.error('Error suspending institution:', e)
@@ -4524,9 +4528,9 @@ const confirmSuspend = async () => {
 const handleUnsuspend = async (inst: InstitutionAdmin) => {
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
-    const updated = await institucionAdapter.unsuspendInstitution(inst.id)
-    const idx = institutions.value.findIndex(i => i.id === inst.id)
-    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated }
+    const updated = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
   } catch (e) {
     console.error('Error unsuspending institution:', e)
   } finally {
@@ -8709,6 +8713,19 @@ watch(() => route.query, () => {
   margin: 4px 0 0;
   font-size: 12.5px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.inst-tenant-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(94, 92, 230, 0.2);
+  color: #8E8CE6;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
 }
 
 .inst-status-badge {

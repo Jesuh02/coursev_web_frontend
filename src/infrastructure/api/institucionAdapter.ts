@@ -53,6 +53,8 @@ export interface InstitutionAdmin extends Institucion {
   is_suspended?: boolean
   suspended_at?: string | null
   suspended_reason?: string | null
+  tenantId?: string
+  tenantName?: string
 }
 
 export interface InstitutionPayment {
@@ -75,9 +77,9 @@ export interface InstitutionPayment {
 export const institucionAdapter: InstitucionPort & {
   getMyBillingStatus(): Promise<InstitutionBillingStatus>
   getAllAdmin(): Promise<InstitutionAdmin[]>
-  setPaymentDueDate(id: number, dueDate: string | null): Promise<InstitutionAdmin>
-  suspendInstitution(id: number, reason?: string): Promise<InstitutionAdmin>
-  unsuspendInstitution(id: number): Promise<InstitutionAdmin>
+  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string): Promise<InstitutionAdmin>
+  suspendInstitution(id: number, reason?: string, tenantId?: string): Promise<InstitutionAdmin>
+  unsuspendInstitution(id: number, tenantId?: string): Promise<InstitutionAdmin>
   initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
   getBillingPayments(id: number): Promise<InstitutionPayment[]>
   getAllServicePayments(): Promise<InstitutionPayment[]>
@@ -101,14 +103,14 @@ export const institucionAdapter: InstitucionPort & {
 
   getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
 
-  setPaymentDueDate: (id: number, dueDate: string | null) =>
-    api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, { payment_due_date: dueDate }),
+  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string) =>
+    api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, { payment_due_date: dueDate, tenantId }),
 
-  suspendInstitution: (id: number, reason?: string) =>
-    api.post<InstitutionAdmin>(`/instituciones/${id}/suspend`, { reason }),
+  suspendInstitution: (id: number, reason?: string, tenantId?: string) =>
+    api.post<InstitutionAdmin>(`/instituciones/${id}/suspend`, { reason, tenantId }),
 
-  unsuspendInstitution: (id: number) =>
-    api.post<InstitutionAdmin>(`/instituciones/${id}/unsuspend`, {}),
+  unsuspendInstitution: (id: number, tenantId?: string) =>
+    api.post<InstitutionAdmin>(`/instituciones/${id}/unsuspend`, { tenantId }),
 
   initiateBillingPayment: (id: number, amount: number) =>
     api.post<{ checkoutUrl: string; reference: string }>(`/instituciones/${id}/billing/initiate`, { amount }),
