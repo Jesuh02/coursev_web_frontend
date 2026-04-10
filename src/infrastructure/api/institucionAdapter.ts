@@ -39,13 +39,46 @@ async function fetchAllCrossTenant(): Promise<Institucion[]> {
   return all
 }
 
-export const institucionAdapter: InstitucionPort = {
+export interface InstitutionBillingStatus {
+  allowed: boolean
+  paymentOverdue?: boolean
+  paymentDueDate?: string | null
+  suspended?: boolean
+  reason?: string
+}
+
+export interface InstitutionAdmin extends Institucion {
+  is_active?: boolean
+  payment_due_date?: string | null
+  is_suspended?: boolean
+  suspended_at?: string | null
+  suspended_reason?: string | null
+}
+
+export interface InstitutionPayment {
+  id: number
+  institution_id: number
+  amount: number
+  currency: string
+  status: string
+  external_reference?: string
+  billing_period_start?: string
+  billing_period_end?: string
+  created_at: string
+}
+
+export const institucionAdapter: InstitucionPort & {
+  getMyBillingStatus(): Promise<InstitutionBillingStatus>
+  getAllAdmin(): Promise<InstitutionAdmin[]>
+  setPaymentDueDate(id: number, dueDate: string | null): Promise<InstitutionAdmin>
+  suspendInstitution(id: number, reason?: string): Promise<InstitutionAdmin>
+  unsuspendInstitution(id: number): Promise<InstitutionAdmin>
+  initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
+  getBillingPayments(id: number): Promise<InstitutionPayment[]>
+  checkInstitutionStatus(id: number): Promise<InstitutionBillingStatus>
+} = {
   getAll: () => api.publicGet<Institucion[]>('/instituciones'),
 
-  /**
-   * Fetches institutions from ALL tenants across all servers.
-   * Falls back to single-tenant getAll if cross-tenant fails.
-   */
   async getAllCrossTenant(): Promise<Institucion[]> {
     try {
       const results = await fetchAllCrossTenant()
@@ -55,4 +88,28 @@ export const institucionAdapter: InstitucionPort = {
   },
 
   search: (query: string) => api.publicGet<Institucion[]>(`/instituciones/search?q=${encodeURIComponent(query)}`),
+
+  // ═══ SuperAdmin / Billing endpoints ═══
+
+  getMyBillingStatus: () => api.get<InstitutionBillingStatus>('/instituciones/my/billing-status'),
+
+  getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
+
+  setPaymentDueDate: (id: number, dueDate: string | null) =>
+    api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, { payment_due_date: dueDate }),
+
+  suspendInstitution: (id: number, reason?: string) =>
+    api.post<InstitutionAdmin>(`/instituciones/${id}/suspend`, { reason }),
+
+  unsuspendInstitution: (id: number) =>
+    api.post<InstitutionAdmin>(`/instituciones/${id}/unsuspend`, {}),
+
+  initiateBillingPayment: (id: number, amount: number) =>
+    api.post<{ checkoutUrl: string; reference: string }>(`/instituciones/${id}/billing/initiate`, { amount }),
+
+  getBillingPayments: (id: number) =>
+    api.get<InstitutionPayment[]>(`/instituciones/${id}/billing/payments`),
+
+  checkInstitutionStatus: (id: number) =>
+    api.publicGet<InstitutionBillingStatus>(`/instituciones/status/${id}`),
 }
