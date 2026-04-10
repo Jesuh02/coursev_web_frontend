@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="report-fade">
-      <div v-if="modelValue" class="report-overlay" @click.self="$emit('update:modelValue', false)">
-        <div class="report-modal">
+      <div v-if="modelValue" class="report-overlay" :class="{ 'report-overlay--fs': isFullscreen }" @click.self="!isFullscreen && $emit('update:modelValue', false)">
+        <div class="report-modal" :class="{ 'report-modal--fs': isFullscreen }">
           <!-- Header -->
           <div class="report-header">
             <div class="report-header-icon">
@@ -15,6 +15,10 @@
               </svg>
             </div>
             <h2 class="report-title">Reporte de Notas</h2>
+            <button class="report-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+            </button>
             <button class="report-close" @click="$emit('update:modelValue', false)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -123,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -161,6 +165,12 @@ interface SubjectReport {
 
 const loading = ref(false)
 const reportData = ref<SubjectReport[]>([])
+const isFullscreen = ref(false)
+
+function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
+
+onUnmounted(() => { isFullscreen.value = false })
+watch(() => props.modelValue, (v) => { if (!v) isFullscreen.value = false })
 
 const totalSubmissions = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.length, 0))
 const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0))
@@ -554,6 +564,20 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 }
 .report-close:hover { background: rgba(255, 255, 255, 0.12); }
 
+.report-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.report-action-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
 .report-loading {
   display: flex;
   flex-direction: column;
@@ -806,4 +830,12 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.report-overlay--fs { padding: 0; }
+.report-modal--fs {
+  max-width: 100% !important;
+  max-height: 100vh !important;
+  height: 100vh;
+  border-radius: 0;
+}
 </style>

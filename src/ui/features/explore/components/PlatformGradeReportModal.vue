@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="report-fade">
-      <div v-if="modelValue" class="report-overlay" @click.self="$emit('update:modelValue', false)">
-        <div class="report-modal">
+      <div v-if="modelValue" class="report-overlay" :class="{ 'report-overlay--fs': isFullscreen }" @click.self="!isFullscreen && $emit('update:modelValue', false)">
+        <div class="report-modal" :class="{ 'report-modal--fs': isFullscreen }">
           <!-- Header -->
           <div class="report-header">
             <div class="report-header-icon">
@@ -17,6 +17,10 @@
               <h2 class="report-title">Reporte de Notas</h2>
               <p class="report-subtitle">Registro completo de todos los cursos de la plataforma</p>
             </div>
+            <button class="report-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+            </button>
             <button class="report-close" @click="$emit('update:modelValue', false)" aria-label="Cerrar">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -152,11 +156,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { api, courseAdapter } from '@/infrastructure/api'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
+
+const isFullscreen = ref(false)
+function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
+onUnmounted(() => { isFullscreen.value = false })
+watch(() => props.modelValue, (v) => { if (!v) isFullscreen.value = false })
 
 interface ReportRow {
   id: number
@@ -489,6 +498,20 @@ function esc_html(s: string): string {
 }
 .report-close:hover { background: rgba(255, 255, 255, 0.14); }
 
+.report-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  margin-right: 4px;
+}
+.report-action-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
 /* ── Loading / Error ── */
 .report-loading, .report-error {
   display: flex;
@@ -706,5 +729,13 @@ function esc_html(s: string): string {
   .report-overlay { align-items: flex-end; padding: 0; }
   .col-feedback { display: none; }
   .col-date { display: none; }
+}
+
+.report-overlay--fs { padding: 0; }
+.report-modal--fs {
+  max-width: 100% !important;
+  max-height: 100vh !important;
+  height: 100vh;
+  border-radius: 0;
 }
 </style>
