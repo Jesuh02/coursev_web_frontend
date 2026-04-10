@@ -1867,6 +1867,25 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>{{ inst.suspended_reason || 'Sin motivo especificado' }} · {{ inst.suspended_at ? formatDate(inst.suspended_at) : '' }}</span>
             </div>
+
+            <!-- Service payment history -->
+            <div v-if="servicePaymentsForInstitution(inst.id).length > 0" class="inst-payments-section">
+              <h5 class="inst-payments-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Pagos de servicio
+              </h5>
+              <div class="inst-payments-list">
+                <div v-for="pay in servicePaymentsForInstitution(inst.id).slice(0, 5)" :key="pay.id" class="inst-payment-item">
+                  <span class="inst-pay-status" :class="'pay-' + (pay.status || 'PENDING').toLowerCase()">{{ pay.status }}</span>
+                  <span class="inst-pay-amount">${{ Number(pay.amount || 0).toLocaleString('es-CO') }}</span>
+                  <span class="inst-pay-date">{{ pay.created_at ? formatDate(pay.created_at) : '—' }}</span>
+                  <span v-if="pay.billing_period_end" class="inst-pay-period">→ {{ formatDate(pay.billing_period_end) }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="inst-payments-section inst-no-payments">
+              <span class="inst-no-pay-text">Sin pagos de servicio registrados</span>
+            </div>
           </div>
 
           <div v-if="filteredInstitutions.length === 0" class="empty-state">
@@ -1927,7 +1946,7 @@ import { subscriptionAdapter } from '@/infrastructure/api/subscriptionAdapter'
 import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
-import { institucionAdapter, type InstitutionAdmin } from '@/infrastructure/api/institucionAdapter'
+import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
 
 type EnrollmentTone = 'student' | 'teacher' | 'admin' | 'neutral'
 
@@ -4421,10 +4440,36 @@ const filteredInstitutions = computed(() => {
   )
 })
 
+// ─── Service payments (all institutions) ─────────────────────────────────
+const servicePayments = ref<InstitutionPayment[]>([])
+const servicePaymentsLoading = ref(false)
+
+const servicePaymentsForInstitution = (instId: number) =>
+  servicePayments.value.filter(p => p.institution_id === instId)
+
+const lastApprovedPayment = (instId: number) =>
+  servicePaymentsForInstitution(instId).find(p => p.status === 'APPROVED')
+
+const loadServicePayments = async () => {
+  servicePaymentsLoading.value = true
+  try {
+    const data = await institucionAdapter.getAllServicePayments()
+    servicePayments.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error loading service payments:', e)
+    servicePayments.value = []
+  } finally {
+    servicePaymentsLoading.value = false
+  }
+}
+
 const loadInstitutions = async () => {
   institutionsLoading.value = true
   try {
-    const data = await institucionAdapter.getAllAdmin()
+    const [data] = await Promise.all([
+      institucionAdapter.getAllAdmin(),
+      loadServicePayments(),
+    ])
     institutions.value = Array.isArray(data) ? data : []
   } catch (e) {
     console.error('Error loading institutions:', e)
@@ -8771,6 +8816,77 @@ watch(() => route.query, () => {
   background: rgba(255, 69, 58, 0.08);
   font-size: 12px;
   color: rgba(255, 69, 58, 0.85);
+}
+
+/* ─── Service Payments ─── */
+.inst-payments-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inst-payments-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.inst-payments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.inst-payment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12px;
+}
+.inst-pay-status {
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.inst-pay-status.pay-approved {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+.inst-pay-status.pay-pending {
+  background: rgba(255, 214, 10, 0.15);
+  color: #FFD60A;
+}
+.inst-pay-status.pay-declined, .inst-pay-status.pay-failed {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+}
+.inst-pay-amount {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+.inst-pay-date {
+  color: rgba(255, 255, 255, 0.4);
+}
+.inst-pay-period {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+}
+.inst-no-payments {
+  padding-top: 8px;
+}
+.inst-no-pay-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
 }
 
 /* ─── Modals ─── */

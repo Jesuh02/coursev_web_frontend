@@ -57,14 +57,19 @@ export interface InstitutionAdmin extends Institucion {
 
 export interface InstitutionPayment {
   id: number
-  institution_id: number
+  institution_id: number | null
+  user_id: number | null
   amount: number
   currency: string
   status: string
+  payment_type: 'course' | 'service'
+  payment_method?: string
   external_reference?: string
-  billing_period_start?: string
-  billing_period_end?: string
-  created_at: string
+  wompi_transaction_id?: string
+  billing_period_start?: string | null
+  billing_period_end?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export const institucionAdapter: InstitucionPort & {
@@ -75,6 +80,7 @@ export const institucionAdapter: InstitucionPort & {
   unsuspendInstitution(id: number): Promise<InstitutionAdmin>
   initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
   getBillingPayments(id: number): Promise<InstitutionPayment[]>
+  getAllServicePayments(): Promise<InstitutionPayment[]>
   checkInstitutionStatus(id: number): Promise<InstitutionBillingStatus>
 } = {
   getAll: () => api.publicGet<Institucion[]>('/instituciones'),
@@ -109,6 +115,9 @@ export const institucionAdapter: InstitucionPort & {
 
   getBillingPayments: (id: number) =>
     api.get<InstitutionPayment[]>(`/instituciones/${id}/billing/payments`),
+
+  getAllServicePayments: () =>
+    api.get<InstitutionPayment[]>('/instituciones/admin/service-payments'),
 
   checkInstitutionStatus: (id: number) =>
     api.publicGet<InstitutionBillingStatus>(`/instituciones/status/${id}`),
