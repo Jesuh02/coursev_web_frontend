@@ -121,6 +121,28 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Botón reporte de notas plataforma (solo rol 3) -->
+    <Teleport to="body">
+      <button
+        v-if="userRole === 3"
+        class="platform-report-fab"
+        title="Reporte de notas — plataforma"
+        @click="showPlatformReport = true"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span class="fab-label">Reporte</span>
+      </button>
+    </Teleport>
+
+    <!-- Modal reporte plataforma -->
+    <PlatformGradeReportModal v-model="showPlatformReport" />
   </div>
 </template>
 
@@ -138,6 +160,7 @@ import ExploreSkeleton from './components/ExploreSkeleton.vue'
 import CourseCard from './components/CourseCard.vue'
 import FilterBottomSheet from './components/FilterBottomSheet.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
+import PlatformGradeReportModal from './components/PlatformGradeReportModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -153,6 +176,7 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null
 const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
+const showPlatformReport = ref(false)
 
 // ── Teacher counts (collaborators per course) ─────────────────────────────
 const teacherCounts = ref<Record<number, number>>({})
@@ -866,5 +890,35 @@ onUnmounted(() => observer?.disconnect())
 
 .info-item:last-child {
   border-bottom: none;
+}
+
+/* ── Botón FAB reporte plataforma ── */
+.platform-report-fab {
+  position: fixed;
+  bottom: 88px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  color: #fff;
+  border-radius: 28px;
+  box-shadow: 0 4px 18px rgba(191, 90, 242, 0.45);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 90;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.platform-report-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(191, 90, 242, 0.55);
+}
+.platform-report-fab:active { transform: scale(0.95); }
+.fab-label { letter-spacing: 0.2px; }
+
+@media (max-width: 560px) {
+  .platform-report-fab { bottom: 80px; right: 14px; padding: 10px 13px; font-size: 13px; }
+  .fab-label { display: none; }
 }
 </style>

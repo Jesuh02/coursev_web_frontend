@@ -7,7 +7,7 @@
         </button>
         <h1 class="header-title">Mis Materias</h1>
         <button
-          v-if="allSubjects.length"
+          v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente)"
           class="report-btn"
           :class="{ 'report-btn--pulse': reportPulse }"
           @click="showReport = true"

@@ -36,8 +36,8 @@
               </div>
               <div class="summary-divider" />
               <div class="summary-stat">
-                <span class="summary-value">{{ totalTasks }}</span>
-                <span class="summary-label">Tareas</span>
+                <span class="summary-value">{{ totalSubmissions }}</span>
+                <span class="summary-label">Entregas</span>
               </div>
               <div class="summary-divider" />
               <div class="summary-stat">
@@ -51,20 +51,48 @@
               </div>
             </div>
 
-            <!-- Subject rows -->
+            <!-- Subject sections with table -->
             <div class="report-table">
               <div v-for="group in reportData" :key="group.subjectId" class="report-subject-group">
+                <!-- Subject header with teacher name and average -->
                 <div class="subject-row-header">
-                  <span class="subject-name">{{ group.subjectName }}</span>
+                  <div class="subject-info">
+                    <span class="subject-name">{{ group.subjectName }}</span>
+                    <span class="subject-teacher">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      {{ group.teacherName }}
+                    </span>
+                  </div>
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ group.average ?? '—' }}</span>
                 </div>
-                <div v-if="group.tasks.length" class="task-rows">
-                  <div v-for="task in group.tasks" :key="task.id" class="task-row">
-                    <span class="task-name">{{ task.title }}</span>
-                    <span class="task-grade" :class="gradeClass(task.grade)">{{ task.grade ?? 'Sin nota' }}</span>
-                  </div>
+
+                <!-- Grade table -->
+                <div v-if="group.rows.length" class="table-wrapper">
+                  <table class="grade-table">
+                    <thead>
+                      <tr>
+                        <th>Estudiante</th>
+                        <th>Tarea</th>
+                        <th>Nota</th>
+                        <th>Fecha de entrega</th>
+                        <th>Retroalimentación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, i) in group.rows" :key="i" class="grade-row">
+                        <td class="cell-student">{{ row.studentName }}</td>
+                        <td class="cell-task">{{ row.taskName }}</td>
+                        <td class="cell-grade" :class="gradeClass(row.grade)">{{ row.grade ?? '—' }}</td>
+                        <td class="cell-date">{{ formatDate(row.submissionDate) }}</td>
+                        <td class="cell-feedback">
+                          <span v-if="row.feedback" :title="stripHtml(row.feedback)">{{ truncate(stripHtml(row.feedback), 80) }}</span>
+                          <span v-else class="no-feedback">—</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div v-else class="no-tasks">Sin tareas</div>
+                <div v-else class="no-tasks">Sin entregas</div>
               </div>
             </div>
           </div>
@@ -72,11 +100,11 @@
           <!-- Export bar -->
           <div v-if="!loading" class="report-export-bar">
             <button class="export-btn export-pdf" @click="exportPDF">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
               PDF
             </button>
             <button class="export-btn export-excel" @click="exportExcel">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
               Excel
             </button>
             <button class="export-btn export-share" @click="shareReport">
@@ -92,9 +120,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Subject, Task, TaskSubmission } from '@/domain/models'
+import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
+import { userAdapter } from '@/infrastructure/api/userAdapter'
+import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps<{
   modelValue: boolean
@@ -104,27 +134,56 @@ const props = defineProps<{
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
-interface TaskReport { id: number; title: string; grade: number | null }
-interface SubjectReport { subjectId: number; subjectName: string; tasks: TaskReport[]; average: number | null }
+const authStore = useAuthStore()
+
+interface SubmissionRow {
+  studentName: string
+  taskName: string
+  grade: number | null
+  submissionDate: number | null
+  feedback: string | null
+}
+
+interface SubjectReport {
+  subjectId: number
+  subjectName: string
+  teacherName: string
+  rows: SubmissionRow[]
+  average: number | null
+}
 
 const loading = ref(false)
 const reportData = ref<SubjectReport[]>([])
 
-const totalTasks = computed(() => reportData.value.reduce((sum, g) => sum + g.tasks.length, 0))
-const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.tasks.filter(t => t.grade !== null).length, 0))
+const totalSubmissions = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.length, 0))
+const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0))
 const averageGrade = computed(() => {
-  const graded = reportData.value.flatMap(g => g.tasks).filter(t => t.grade !== null)
+  const graded = reportData.value.flatMap(g => g.rows).filter(r => r.grade !== null)
   if (!graded.length) return '—'
-  const avg = graded.reduce((s, t) => s + t.grade!, 0) / graded.length
+  const avg = graded.reduce((s, r) => s + r.grade!, 0) / graded.length
   return avg.toFixed(1)
 })
 const averageClass = computed(() => gradeClass(parseFloat(averageGrade.value) || null))
 
 function gradeClass(grade: number | null): string {
-  if (grade === null || isNaN(grade)) return ''
-  if (grade >= 4) return 'grade-good'
-  if (grade >= 3) return 'grade-ok'
+  if (grade === null || isNaN(grade as number)) return ''
+  if ((grade as number) >= 4) return 'grade-good'
+  if ((grade as number) >= 3) return 'grade-ok'
   return 'grade-low'
+}
+
+function formatDate(ts: number | null): string {
+  if (!ts) return '—'
+  const d = new Date(ts)
+  return d.toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+}
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? text.slice(0, max) + '…' : text
 }
 
 watch(() => props.modelValue, async (open) => {
@@ -134,42 +193,77 @@ watch(() => props.modelValue, async (open) => {
 async function fetchReport() {
   loading.value = true
   try {
-    const [topics, tasks, submissions] = await Promise.all([
+    // Collect teacher IDs from subjects
+    const teacherIds = [...new Set(props.subjects.map(s => s.createdBy).filter((id): id is number => id != null))]
+
+    const [topics, tasks, submissions, teachers] = await Promise.all([
       topicAdapter.getTopicsByCourse(props.courseId).catch(() => []),
       taskAdapter.getTasksByCourse(props.courseId).catch(() => []),
-      submissionAdapter.getMySubmissions(1, 500).catch(() => []),
+      // Admins and docentes use the by-course endpoint (returns all students)
+      (authStore.isAdmin || authStore.isDocente)
+        ? submissionAdapter.getSubmissionByCourse(props.courseId).catch(() => [])
+        : submissionAdapter.getMySubmissions(1, 500).catch(() => []),
+      teacherIds.length
+        ? userAdapter.getUsersByIds(teacherIds).catch(() => [])
+        : Promise.resolve([]),
     ])
 
-    const topicMap = new Map<number, number>() // topicId -> subjectId
+    // task id → task
+    const taskMap = new Map<number, any>()
+    for (const t of (tasks as any[])) taskMap.set(t.id, t)
+
+    // topic id → subject id
+    const topicSubjectMap = new Map<number, number>()
     for (const t of (topics as any[])) {
-      topicMap.set(t.id, t.courseId ?? t.course_id ?? t.subjectId ?? t.subject_id ?? 0)
+      const sid = t.subjectId ?? t.subject_id ?? t.courseId ?? t.course_id
+      if (sid) topicSubjectMap.set(t.id, sid)
     }
 
-    const submissionMap = new Map<number, number | null>() // taskId -> grade
-    for (const s of (submissions as any[])) {
-      const taskId = s.task_id ?? s.taskId
-      submissionMap.set(taskId, s.grade ?? null)
+    // teacher user id → username
+    const teacherMap = new Map<number, string>()
+    for (const u of (teachers as any[])) {
+      const username = u.username ?? u.usuario ?? `#${u.id}`
+      teacherMap.set(Number(u.id), username)
     }
 
-    const data: SubjectReport[] = props.subjects.map(subject => {
-      const subjectTopicIds = new Set(
-        (topics as any[]).filter(t => (t.courseId ?? t.course_id ?? t.subjectId ?? t.subject_id) === subject.id).map(t => t.id)
-      )
-      const subjectTasks = (tasks as any[]).filter(t => subjectTopicIds.has(t.topicId ?? t.topic_id))
+    // Group submission rows by subject
+    const subjectRowsMap = new Map<number, SubmissionRow[]>()
+    for (const sub of (submissions as any[])) {
+      const taskId = sub.task_id ?? sub.taskId
+      const task = taskMap.get(taskId)
+      if (!task) continue
+      const topicId = task.topicId ?? task.topic_id
+      const subjectId = topicSubjectMap.get(topicId)
+      if (!subjectId) continue
 
-      const taskReports: TaskReport[] = subjectTasks.map(t => ({
-        id: t.id,
-        title: t.title ?? t.name ?? 'Sin título',
-        grade: submissionMap.get(t.id) ?? null,
-      }))
+      if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, [])
+      subjectRowsMap.get(subjectId)!.push({
+        studentName: sub.studentUsername ?? sub.student_username ?? `Estudiante #${sub.student_id ?? sub.studentId}`,
+        taskName: sub.taskName ?? task.title ?? task.name ?? 'Sin título',
+        grade: sub.grade ?? null,
+        submissionDate: sub.submission_date ?? sub.submissionDate ?? null,
+        feedback: sub.feedback ?? null,
+      })
+    }
 
-      const graded = taskReports.filter(t => t.grade !== null)
-      const avg = graded.length ? graded.reduce((s, t) => s + t.grade!, 0) / graded.length : null
+    // Build per-subject report
+    reportData.value = props.subjects.map(subject => {
+      const rows = subjectRowsMap.get(subject.id) ?? []
+      const graded = rows.filter(r => r.grade !== null)
+      const avg = graded.length ? graded.reduce((s, r) => s + r.grade!, 0) / graded.length : null
 
-      return { subjectId: subject.id, subjectName: subject.name, tasks: taskReports, average: avg ? parseFloat(avg.toFixed(1)) : null }
+      const teacherName = subject.createdBy != null
+        ? teacherMap.get(subject.createdBy) ?? `Docente #${subject.createdBy}`
+        : '—'
+
+      return {
+        subjectId: subject.id,
+        subjectName: subject.name,
+        teacherName,
+        rows,
+        average: avg != null ? parseFloat(avg.toFixed(1)) : null,
+      }
     })
-
-    reportData.value = data
   } catch { /* silent */ }
   finally { loading.value = false }
 }
@@ -187,16 +281,18 @@ function exportPDF() {
 // ── Excel/CSV export ──
 function exportExcel() {
   const BOM = '\uFEFF'
-  let csv = BOM + 'Materia,Tarea,Nota\n'
+  let csv = BOM + 'Materia,Docente,Estudiante,Tarea,Nota,Fecha de entrega,Retroalimentación\n'
   for (const group of reportData.value) {
-    if (!group.tasks.length) {
-      csv += `"${esc(group.subjectName)}","Sin tareas",""\n`
+    if (!group.rows.length) {
+      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","","Sin entregas","","",""\n`
     }
-    for (const task of group.tasks) {
-      csv += `"${esc(group.subjectName)}","${esc(task.title)}","${task.grade ?? ''}"\n`
+    for (const row of group.rows) {
+      const date = formatDate(row.submissionDate)
+      const feedback = row.feedback ? esc(stripHtml(row.feedback)) : ''
+      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","${esc(row.studentName)}","${esc(row.taskName)}","${row.grade ?? ''}","${date}","${feedback}"\n`
     }
   }
-  csv += `\n"Promedio general","","${averageGrade.value}"\n`
+  csv += `\n"Promedio general","","","","${averageGrade.value}","",""\n`
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -226,28 +322,35 @@ function esc(s: string) { return s.replace(/"/g, '""') }
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   for (const group of reportData.value) {
-    text += `📘 ${group.subjectName} (Promedio: ${group.average ?? '—'})\n`
-    for (const task of group.tasks) {
-      text += `   • ${task.title}: ${task.grade ?? 'Sin nota'}\n`
+    text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
+    for (const row of group.rows) {
+      text += `   • [${row.studentName}] ${row.taskName}: ${row.grade ?? 'Sin nota'}\n`
     }
     text += '\n'
   }
   text += `📈 Promedio general: ${averageGrade.value}\n`
-  text += `📋 Total tareas: ${totalTasks.value} | Calificadas: ${gradedCount.value}`
+  text += `📋 Total entregas: ${totalSubmissions.value} | Calificadas: ${gradedCount.value}`
   return text
 }
 
 function buildPrintableHTML(): string {
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="subject-header"><td colspan="3">${group.subjectName}</td></tr>`
-    if (!group.tasks.length) {
-      rows += `<tr><td></td><td colspan="2" style="color:#999">Sin tareas</td></tr>`
+    rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
+    if (!group.rows.length) {
+      rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     }
-    for (const task of group.tasks) {
-      const g = task.grade !== null ? task.grade : '—'
-      const color = task.grade !== null ? (task.grade >= 4 ? '#34C759' : task.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
-      rows += `<tr><td></td><td>${task.title}</td><td style="color:${color};font-weight:600;text-align:center">${g}</td></tr>`
+    for (const row of group.rows) {
+      const g = row.grade !== null ? row.grade : '—'
+      const color = row.grade !== null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
+      const fb = row.feedback ? truncate(stripHtml(row.feedback), 120) : '—'
+      rows += `<tr>
+        <td>${row.studentName}</td>
+        <td>${row.taskName}</td>
+        <td style="color:${color};font-weight:600;text-align:center">${g}</td>
+        <td>${formatDate(row.submissionDate)}</td>
+        <td colspan="2" class="feedback-col">${fb}</td>
+      </tr>`
     }
   }
 
@@ -262,22 +365,25 @@ h1{font-size:22px;margin-bottom:4px}
 .summary .val{font-size:20px;font-weight:700;display:block}
 .summary .lbl{font-size:11px;color:#666;text-transform:uppercase}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:12px;color:#666;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid #eee}
-td{padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
-.subject-header td{font-weight:700;font-size:14px;background:#f9f9f9;padding-top:14px}
+th{text-align:left;font-size:11px;color:#666;text-transform:uppercase;padding:8px 10px;border-bottom:2px solid #eee;background:#f9f9f9}
+td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-align:top}
+.subject-header td{font-weight:700;font-size:13px;background:#f0e6ff;padding-top:12px;color:#3d0e6e}
+.teacher-tag{font-weight:400;font-size:12px;color:#666}
+.feedback-col{font-size:11px;color:#555;max-width:300px;word-break:break-word}
 @media print{body{padding:20px}}
 </style></head><body>
 <h1>📊 Reporte de Notas</h1>
 <p class="subtitle">Generado el ${new Date().toLocaleDateString('es')}</p>
 <div class="summary">
 <div><span class="val">${props.subjects.length}</span><span class="lbl">Materias</span></div>
-<div><span class="val">${totalTasks.value}</span><span class="lbl">Tareas</span></div>
+<div><span class="val">${totalSubmissions.value}</span><span class="lbl">Entregas</span></div>
 <div><span class="val">${gradedCount.value}</span><span class="lbl">Calificadas</span></div>
 <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
-<table><thead><tr><th></th><th>Tarea</th><th style="text-align:center">Nota</th></tr></thead><tbody>
-${rows}
-</tbody></table></body></html>`
+<table>
+<thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha</th><th colspan="2">Retroalimentación</th></tr></thead>
+<tbody>${rows}</tbody>
+</table></body></html>`
 }
 </script>
 
@@ -296,7 +402,7 @@ ${rows}
 
 .report-modal {
   width: 100%;
-  max-width: 560px;
+  max-width: 820px;
   max-height: 85vh;
   background: #1C1C1E;
   border-radius: 24px;
@@ -432,51 +538,112 @@ ${rows}
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: rgba(191, 90, 242, 0.08);
+  gap: 8px;
+}
+
+.subject-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
 .subject-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subject-teacher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8E8E93;
 }
 
 .subject-avg {
   font-size: 15px;
   font-weight: 800;
   color: #8E8E93;
+  flex-shrink: 0;
 }
 
-.task-rows {
-  display: flex;
-  flex-direction: column;
+/* ── Grade table ── */
+.table-wrapper {
+  overflow-x: auto;
 }
 
-.task-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+.grade-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
 }
 
-.task-name {
-  font-size: 13px;
+.grade-table thead tr {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.grade-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #636366;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.grade-table td {
+  padding: 8px 10px;
   color: #ccc;
-  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: top;
+}
+
+.grade-row:last-child td { border-bottom: none; }
+.grade-row:hover { background: rgba(255, 255, 255, 0.02); }
+
+.cell-student {
+  font-weight: 600;
+  color: #BF5AF2;
+  white-space: nowrap;
+  min-width: 80px;
+}
+.cell-task {
+  min-width: 100px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-right: 12px;
 }
-
-.task-grade {
-  font-size: 14px;
+.cell-grade {
   font-weight: 700;
-  color: #8E8E93;
-  flex-shrink: 0;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 44px;
 }
+.cell-date {
+  white-space: nowrap;
+  font-size: 11px;
+  color: #8E8E93;
+  min-width: 80px;
+}
+.cell-feedback {
+  color: #8E8E93;
+  font-size: 11px;
+  min-width: 100px;
+  max-width: 220px;
+  line-height: 1.4;
+}
+.no-feedback { color: #3a3a3c; }
 
 .no-tasks {
   padding: 10px 16px;
