@@ -67,84 +67,77 @@
               </div>
             </div>
 
-            <!-- Search -->
-            <div class="report-search-row">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input
-                v-model="searchQuery"
-                class="report-search"
-                placeholder="Buscar por estudiante, tarea o curso..."
-              />
-              <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
+            <!-- Body: same layout as GradeReportModal -->
+            <div class="report-body">
+              <div class="report-table">
+                <template v-for="group in filteredData" :key="group.courseId">
+                  <!-- Course section header -->
+                  <div class="report-course-group">
+                    <div class="course-row-header">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.75;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                      <span class="course-name">{{ group.courseName }}</span>
+                    </div>
 
-            <!-- Table -->
-            <div class="report-table-wrapper">
-              <p class="platform-caption">Aquí tienes el registro completo de las notas de todos los cursos:</p>
-              <table class="report-table">
-                <thead>
-                  <tr>
-                    <th>Estudiante</th>
-                    <th>Tarea</th>
-                    <th class="col-nota">Nota</th>
-                    <th class="col-ponderada">Cal. Ponderada</th>
-                    <th class="col-date">Fecha de entrega</th>
-                    <th>Docente que calificó</th>
-                    <th>Retroalimentación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template v-for="group in filteredData" :key="group.courseName">
-                    <tr class="course-header-row">
-                      <td colspan="7">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;opacity:.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                        {{ group.courseName }}
-                      </td>
-                    </tr>
-                    <template v-if="group.rows.length">
-                      <template v-for="subGroup in getSubjectGroups(group)" :key="subGroup.subjectName">
-                        <tr class="subject-header-row">
-                          <td colspan="7">
-                            <span class="subject-tag">Materia</span>
-                            {{ subGroup.subjectName }}
-                          </td>
-                        </tr>
-                        <tr v-for="row in subGroup.rows" :key="row.id" class="data-row">
-                          <td class="col-student">{{ row.studentUsername || '—' }}</td>
-                          <td class="col-task">{{ row.taskName || '—' }}</td>
-                          <td class="col-nota" :class="row.grade == null ? 'grade-low' : gradeClass(row.grade)">{{ row.grade != null ? row.grade : '0' }}</td>
-                          <td class="col-ponderada" :class="gradeClass(subGroup.studentAverages[row.studentUsername ?? ''] ?? null)">{{ subGroup.studentAverages[row.studentUsername ?? ''] != null ? Number(subGroup.studentAverages[row.studentUsername ?? '']).toFixed(1) : '—' }}</td>
-                          <td class="col-date">{{ formatDate(row.submission_date) }}</td>
-                          <td class="col-grader">{{ row.gradedByUsername || '—' }}</td>
-                          <td class="col-feedback">{{ row.feedback || '' }}</td>
-                        </tr>
-                      </template>
-                    </template>
-                    <tr v-else class="no-data-row">
-                      <td colspan="7">Sin entregas registradas</td>
-                    </tr>
-                  </template>
-                  <tr v-if="filteredData.length === 0">
-                    <td colspan="7" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
-                  </tr>
-                </tbody>
-              </table>
+                    <!-- Subject groups within this course -->
+                    <div v-for="subGroup in getSubjectGroups(group)" :key="subGroup.subjectName" class="report-subject-group">
+                      <div class="subject-row-header">
+                        <div class="subject-info">
+                          <span class="subject-name">{{ subGroup.subjectName }}</span>
+                        </div>
+                        <span class="subject-avg" :class="gradeClass(subGroup.average)">{{ subGroup.average != null ? subGroup.average.toFixed(1) : '—' }}</span>
+                      </div>
+
+                      <div v-if="subGroup.rows.length" class="table-wrapper">
+                        <table class="grade-table">
+                          <thead>
+                            <tr>
+                              <th class="th-student">Estudiante</th>
+                              <th>Tarea</th>
+                              <th class="th-grade">Nota</th>
+                              <th class="th-ponderada">Cal. Ponderada</th>
+                              <th>Fecha de entrega</th>
+                              <th>Docente que calificó</th>
+                              <th>Retroalimentación</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="row in subGroup.rows" :key="row.id" class="grade-row">
+                              <td class="cell-student">{{ row.studentUsername || '—' }}</td>
+                              <td class="cell-task">{{ row.taskName || '—' }}</td>
+                              <td class="cell-grade" :class="row.grade == null ? 'grade-low' : gradeClass(row.grade)">{{ row.grade != null ? row.grade : '0' }}</td>
+                              <td class="cell-ponderada" :class="gradeClass(subGroup.studentAverages[row.studentUsername ?? ''] ?? null)">{{ subGroup.studentAverages[row.studentUsername ?? ''] != null ? Number(subGroup.studentAverages[row.studentUsername ?? '']).toFixed(1) : '—' }}</td>
+                              <td class="cell-date">{{ formatDate(row.submission_date) }}</td>
+                              <td class="cell-grader">{{ row.gradedByUsername || '—' }}</td>
+                              <td class="cell-feedback">
+                                <span v-if="row.feedback" :title="row.feedback">{{ truncate(row.feedback, 80) }}</span>
+                                <span v-else class="no-feedback">—</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div v-else class="no-tasks">Sin entregas</div>
+                    </div>
+
+                    <div v-if="!group.rows.length" class="no-tasks">Sin entregas registradas</div>
+                  </div>
+                </template>
+                <div v-if="filteredData.length === 0" class="no-tasks" style="padding:40px;text-align:center">Sin datos disponibles</div>
+              </div>
             </div>
 
             <!-- Export bar -->
             <div class="report-export-bar">
               <button class="export-btn export-pdf" @click="exportPDF">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 PDF
               </button>
               <button class="export-btn export-excel" @click="exportExcel">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
                 Excel
               </button>
               <button class="export-btn export-word" @click="exportWord">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 Word
               </button>
             </div>
@@ -189,7 +182,6 @@ const errorMsg = ref('')
 const reportData = ref<CourseGroup[]>([])
 const loadedCourses = ref(0)
 const totalCourses = ref(0)
-const searchQuery = ref('')
 
 const courseCount = computed(() => reportData.value.length)
 const totalSubmissions = computed(() => reportData.value.reduce((s, g) => s + g.rows.length, 0))
@@ -203,31 +195,17 @@ const averageGrade = computed(() => {
 
 const averageClass = computed(() => gradeClass(parseFloat(averageGrade.value) || null))
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return reportData.value
-  return reportData.value
-    .map(group => ({
-      ...group,
-      rows: group.rows.filter(r =>
-        (r.studentUsername ?? '').toLowerCase().includes(q) ||
-        (r.taskName ?? '').toLowerCase().includes(q) ||
-        (r.subjectName ?? '').toLowerCase().includes(q) ||
-        (r.gradedByUsername ?? '').toLowerCase().includes(q) ||
-        group.courseName.toLowerCase().includes(q)
-      ),
-    }))
-    .filter(g => g.rows.length > 0 || group_matches(group_name(g), q))
-})
-
-function group_name(g: CourseGroup) { return g.courseName }
-function group_matches(name: string, q: string) { return name.toLowerCase().includes(q) }
+const filteredData = computed(() => reportData.value)
 
 function gradeClass(grade: number | null): string {
   if (grade == null || isNaN(grade)) return ''
   if (grade >= 4) return 'grade-good'
   if (grade >= 3) return 'grade-ok'
   return 'grade-low'
+}
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? text.slice(0, max) + '…' : text
 }
 
 function formatDate(ts: number | string | null | undefined): string {
@@ -328,7 +306,7 @@ function exportWord() {
 function esc(s: string) { return String(s).replace(/"/g, '""') }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
-function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number> }[] {
+function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
     const key = row.subjectName ?? '—'
@@ -347,7 +325,9 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: Repo
     for (const [student, grades] of studentGradesMap) {
       studentAverages[student] = parseFloat((grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1))
     }
-    return { subjectName, rows, studentAverages }
+    const graded = rows.filter(r => r.grade != null)
+    const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
+    return { subjectName, rows, studentAverages, average }
   })
 }
 
@@ -453,28 +433,38 @@ function esc_html(s: string): string {
   max-width: 940px;
   max-height: 92vh;
   background: #1C1C1E;
-  border-radius: 20px;
+  border-radius: 24px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.7);
+  animation: report-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+@keyframes report-slide-up {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.report-fade-enter-active { transition: opacity 0.2s; }
+.report-fade-leave-active { transition: opacity 0.15s; }
+.report-fade-enter-from, .report-fade-leave-to { opacity: 0; }
 
 /* ── Header ── */
 .report-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .report-header-icon {
   width: 40px;
   height: 40px;
-  background: rgba(191, 90, 242, 0.12);
-  border-radius: 10px;
+  border-radius: 12px;
+  background: rgba(191, 90, 242, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -482,35 +472,34 @@ function esc_html(s: string): string {
 }
 
 .report-header-info { flex: 1; min-width: 0; }
-.report-title { font-size: 16px; font-weight: 700; color: #fff; }
+.report-title { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
 .report-subtitle { font-size: 12px; color: #8E8E93; margin-top: 2px; }
 
 .report-close {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   transition: background 0.15s;
 }
-.report-close:hover { background: rgba(255, 255, 255, 0.14); }
+.report-close:hover { background: rgba(255, 255, 255, 0.12); }
 
 .report-action-btn {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   transition: background 0.15s;
   margin-right: 4px;
+  flex-shrink: 0;
 }
-.report-action-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.report-action-btn:hover { background: rgba(255, 255, 255, 0.12); }
 
 /* ── Loading / Error ── */
 .report-loading, .report-error {
@@ -519,8 +508,10 @@ function esc_html(s: string): string {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
+  color: #8E8E93;
+  font-size: 14px;
 }
 .loading-text { color: #8E8E93; font-size: 14px; }
 .loading-progress { color: #636366; font-size: 12px; }
@@ -536,8 +527,8 @@ function esc_html(s: string): string {
 }
 
 .spinner-report {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border: 3px solid rgba(191, 90, 242, 0.2);
   border-top-color: #BF5AF2;
   border-radius: 50%;
@@ -550,186 +541,196 @@ function esc_html(s: string): string {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.035);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 16px 8px;
+  margin: 16px 20px 0;
   flex-shrink: 0;
 }
 .summary-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.summary-value { font-size: 20px; font-weight: 700; color: #fff; }
-.summary-label { font-size: 10px; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; }
-.summary-divider { width: 1px; height: 26px; background: rgba(255, 255, 255, 0.08); }
+.summary-value { font-size: 22px; font-weight: 800; color: #fff; }
+.summary-label { font-size: 11px; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-divider { width: 1px; height: 32px; background: rgba(255, 255, 255, 0.08); }
+
+/* ── Body ── */
+.report-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.report-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Course section */
+.report-course-group {
+  margin-bottom: 16px;
+}
+
+.course-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(191, 90, 242, 0.14);
+  border-left: 4px solid #BF5AF2;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 4px;
+}
+
+.course-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #BF5AF2;
+}
+
+/* Subject groups (same as GradeReportModal) */
+.report-subject-group {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.subject-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 10px 12px;
+  background: rgba(191, 90, 242, 0.10);
+  gap: 8px;
+  border-left: 3px solid #BF5AF2;
+}
+
+.subject-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.subject-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.1px;
+}
+
+.subject-avg {
+  font-size: 15px;
+  font-weight: 800;
+  color: #8E8E93;
+  flex-shrink: 0;
+}
+
+/* ── Grade table (identical to GradeReportModal) ── */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.grade-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.grade-table thead tr {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.grade-table th {
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8E8E93;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+.th-student { min-width: 90px; }
+.th-grade { text-align: center; }
+.th-ponderada { min-width: 80px; text-align: center; }
+
+.grade-table td {
+  padding: 8px 10px;
+  color: #ccc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: top;
+}
+
+.grade-row:last-child td { border-bottom: none; }
+.grade-row:hover { background: rgba(255, 255, 255, 0.02); }
+
+.cell-student { font-weight: 700; color: #fff; white-space: nowrap; min-width: 80px; }
+.cell-task { min-width: 100px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #C7C7CC; font-size: 11.5px; }
+.cell-grade { font-weight: 700; text-align: center; white-space: nowrap; min-width: 44px; }
+.cell-ponderada { font-weight: 700; text-align: center; white-space: nowrap; min-width: 80px; }
+.cell-date { white-space: nowrap; font-size: 11px; color: #636366; min-width: 80px; }
+.cell-grader { font-size: 11.5px; color: #9E9EA3; white-space: nowrap; }
+.cell-feedback { color: #8E8E93; font-size: 11px; min-width: 100px; max-width: 220px; line-height: 1.4; }
+.no-feedback { color: #3a3a3c; }
+
+.no-tasks {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #636366;
+}
 
 .grade-good { color: #34C759 !important; font-weight: 700; }
 .grade-ok   { color: #FF9500 !important; font-weight: 700; }
 .grade-low  { color: #FF453A !important; font-weight: 700; }
 
-/* ── Search ── */
-.report-search-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px 8px;
-  flex-shrink: 0;
-}
-.report-search {
-  flex: 1;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-}
-.report-search::placeholder { color: #636366; }
-.report-search:focus { border-color: rgba(191, 90, 242, 0.45); }
-.search-clear {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* ── Table ── */
-.report-table-wrapper {
-  flex: 1;
-  overflow: auto;
-  padding: 0 0 4px;
-  min-height: 0;
-}
-
-.platform-caption {
-  font-size: 13px;
-  color: #8E8E93;
-  padding: 8px 16px 4px;
-  font-style: italic;
-}
-
-.report-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.report-table thead th {
-  position: sticky;
-  top: 0;
-  background: #2C2C2E;
-  color: #8E8E93;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  padding: 9px 14px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 1;
-  white-space: nowrap;
-}
-
-.report-table tbody td {
-  padding: 7px 14px;
-  color: #E5E5EA;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  vertical-align: top;
-}
-
-.course-header-row td {
-  background: rgba(106, 27, 154, 0.18);
-  color: #BF5AF2;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 10px 14px;
-  border-top: 1px solid rgba(191, 90, 242, 0.15);
-  border-bottom: 1px solid rgba(191, 90, 242, 0.2);
-  border-left: 3px solid #BF5AF2;
-}
-
-.subject-header-row td {
-  background: rgba(106, 27, 154, 0.08);
-  color: #C3A4E8;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 7px 14px 7px 30px;
-  border-top: 1px solid rgba(191, 90, 242, 0.08);
-  border-bottom: 1px solid rgba(191, 90, 242, 0.06);
-  border-left: 2px solid rgba(191, 90, 242, 0.35);
-}
-
-.subject-tag {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  background: rgba(191, 90, 242, 0.18);
-  color: #BF5AF2;
-  padding: 1px 6px;
-  border-radius: 4px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-.data-row td {
-  padding-left: 30px;
-}
-
-.no-data-row td { color: #636366; font-style: italic; padding-left: 28px; }
-
-.col-nota { text-align: center; width: 64px; }
-.col-date { color: #636366; font-size: 12px; white-space: nowrap; width: 140px; }
-.col-feedback { max-width: 220px; word-break: break-word; color: #AEAEB2; font-size: 12px; }
-/* Estudiante: entidad principal de la fila — blanco+negrita */
-.col-student { font-weight: 700; color: #fff !important; }
-/* Tarea: secundario — gris medio */
-.col-task { color: #C7C7CC; font-size: 12px; }
-.col-grader { color: #9E9EA3; font-size: 12px; }
-
-.no-results {
-  text-align: center;
-  padding: 40px;
-  color: #636366;
-  font-style: italic;
-}
-
 /* ── Export bar ── */
 .report-export-bar {
   display: flex;
   gap: 10px;
-  padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .export-btn {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  transition: opacity 0.15s;
+  padding: 12px 8px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 0.15s, opacity 0.15s;
 }
-.export-btn:hover { opacity: 0.85; }
-.export-pdf   { background: rgba(255, 105, 97, 0.15); color: #FF6961; }
-.export-excel { background: rgba(52, 199, 89, 0.15);  color: #34C759; }
-.export-word  { background: rgba(10, 132, 255, 0.15);  color: #0A84FF; }
+.export-btn:active { transform: scale(0.96); }
+.export-pdf   { background: rgba(255, 69, 58, 0.12); color: #FF6961; }
+.export-excel { background: rgba(52, 199, 89, 0.12); color: #34C759; }
+.export-word  { background: rgba(10, 132, 255, 0.12); color: #0A84FF; }
 
-/* ── Transitions ── */
-.report-fade-enter-active, .report-fade-leave-active { transition: opacity 0.2s; }
-.report-fade-enter-from, .report-fade-leave-to { opacity: 0; }
+/* ── Fullscreen ── */
+.report-overlay--fs { padding: 0; }
+.report-modal--fs {
+  max-width: 100% !important;
+  max-height: 100vh !important;
+  height: 100vh;
+  border-radius: 0;
+}
 
 @media (max-width: 600px) {
   .report-modal { max-height: 98vh; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; left: 0; right: 0; }
   .report-overlay { align-items: flex-end; padding: 0; }
-  .col-feedback { display: none; }
-  .col-date { display: none; }
+  .cell-feedback { display: none; }
+  .cell-date { display: none; }
 }
+</style>
 
 .report-overlay--fs { padding: 0; }
 .report-modal--fs {
