@@ -146,6 +146,8 @@ export interface TaskSubmission {
   updated_at: string
   studentUsername?: string | null
   studentAvatar?: string | null
+  studentFullName?: string | null
+  studentCedula?: string | null
 }
 
 export interface Subscription {

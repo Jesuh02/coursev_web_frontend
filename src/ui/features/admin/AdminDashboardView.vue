@@ -777,6 +777,76 @@
           </div>
         </div>
 
+        <div class="section-card moderation-card" :class="{ 'is-open': expandedSections.myProgress }">
+          <div class="section-header moderation-header" @click="toggleSection('myProgress')">
+            <div class="header-left">
+              <div class="section-icon moderation-icon" style="background: #30D158">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div>
+                <h4>Mi Progreso en Cursos</h4>
+                <p>Notas y avance por materia</p>
+              </div>
+            </div>
+            <div class="section-header-actions">
+              <span class="badge badge-mint">{{ myCoursesProgress.length }} curso{{ myCoursesProgress.length !== 1 ? 's' : '' }}</span>
+              <span class="chevron" :class="{ expanded: expandedSections.myProgress }">▼</span>
+            </div>
+          </div>
+          <div v-if="expandedSections.myProgress" class="section-content">
+            <div v-if="loadingMyCoursesProgress" class="loading-center"><div class="spinner-lg"></div></div>
+            <template v-else>
+              <div v-if="myCoursesProgress.length === 0" class="empty-state">
+                <span class="emoji">📚</span>
+                <p>No estás inscrito en ningún curso</p>
+              </div>
+              <div v-else class="mcp-list">
+                <div v-for="course in myCoursesProgress" :key="course.courseId" class="mcp-card">
+                  <div class="mcp-card-header" @click="toggleCourseProgressExpanded(course.courseId)">
+                    <img :src="resolveThumbnail(course.thumbnail)" class="mcp-thumb" alt="" @error="onCourseThumbError" />
+                    <div class="mcp-card-info">
+                      <h5 class="mcp-course-title">{{ course.courseName }}</h5>
+                      <div class="progress-bar">
+                        <div class="progress-fill" :style="{ width: course.progressPercentage + '%' }"></div>
+                      </div>
+                      <div class="mcp-meta">
+                        <span class="mcp-pct">{{ course.progressPercentage }}%</span>
+                        <span class="mcp-sep">·</span>
+                        <span class="mcp-grade-val" :class="course.averageGrade !== null && Number(course.averageGrade) >= 6 ? 'grade-pass' : 'grade-fail'">
+                          Nota: {{ course.averageGrade !== null ? Number(course.averageGrade).toFixed(1) : '—' }}
+                        </span>
+                        <span class="mcp-sep">·</span>
+                        <span class="mcp-tasks">{{ course.completedTasks }}/{{ course.totalTasks }} tareas</span>
+                        <span v-if="course.status" class="mcp-status-badge" :class="course.status === 'Ganado' ? 'status-won' : course.status === 'Perdido' ? 'status-lost' : ''">{{ course.status }}</span>
+                      </div>
+                    </div>
+                    <span class="mcp-chevron">{{ expandedCourseProgressIds.has(course.courseId) ? '▲' : '▼' }}</span>
+                  </div>
+                  <div v-if="expandedCourseProgressIds.has(course.courseId)" class="mcp-subjects">
+                    <div v-if="course.subjects.length === 0" class="mcp-no-subjects">Sin materias registradas</div>
+                    <div v-for="subj in course.subjects" :key="subj.subjectId" class="mcp-subject-row">
+                      <div class="mcp-subject-left">
+                        <span class="mcp-subject-name">{{ subj.subjectName }}</span>
+                        <div class="progress-bar mcp-subject-bar">
+                          <div class="progress-fill" :style="{ width: subj.progressPercentage + '%' }"></div>
+                        </div>
+                        <span class="mcp-subject-meta">{{ subj.completedTasks }}/{{ subj.totalTasks }} tareas · {{ subj.progressPercentage }}%</span>
+                      </div>
+                      <div class="mcp-subject-right">
+                        <span class="mcp-grade-val" :class="subj.averageGrade !== null && Number(subj.averageGrade) >= 6 ? 'grade-pass' : 'grade-fail'">
+                          {{ subj.averageGrade !== null ? Number(subj.averageGrade).toFixed(1) : '—' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
         <div class="section-card moderation-card" :class="{ 'is-open': expandedSections.courses }">
           <div class="section-header moderation-header" @click="toggleSection('courses')">
             <div class="header-left">
@@ -3378,6 +3448,7 @@ const expandedSections = ref({
   students: false,
   reinforcement: false,
   subjectProgress: false,
+  myProgress: true,
 })
 
 // ─── Progreso por Materia (admin) ────────────────────────────────────────
@@ -3482,6 +3553,125 @@ const loadSubjectProgress = async () => {
 const togglingSpEnrollStatus = ref<Record<string, boolean>>({})
 
 const toggleSpEnrollmentStatus = async (row: SubjectProgressItem) => {
+  const newStatus = row.enrollmentStatus === 'activo' ? 'inactivo' : 'activo'
+  const key = `${row.userId}-${row.courseId}-${row.subjectId}`
+  togglingSpEnrollStatus.value[key] = true
+  try {
+    await progressAdapter.setSubjectEnrollmentStatus(row.userId, row.courseId, row.subjectId!, newStatus)
+    row.enrollmentStatus = newStatus
+  } catch (e: any) {
+    if (e?.statusCode !== 401) console.error('Error toggling subject enrollment status:', e)
+  } finally {
+    delete togglingSpEnrollStatus.value[key]
+  }
+}
+
+// ─── Mi Progreso en Cursos (rol 1) ───────────────────────────────────────
+interface MySubjectProgressItem {
+  subjectId: number
+  subjectName: string
+  progressPercentage: number
+  averageGrade: number | null
+  completedTasks: number
+  totalTasks: number
+  status: string
+}
+
+interface MyCourseProgressItem {
+  courseId: number
+  courseName: string
+  thumbnail: string
+  status: string
+  progressPercentage: number
+  averageGrade: number | null
+  completedTasks: number
+  totalTasks: number
+  subjects: MySubjectProgressItem[]
+}
+
+const myCoursesProgress = ref<MyCourseProgressItem[]>([])
+const loadingMyCoursesProgress = ref(false)
+const expandedCourseProgressIds = ref(new Set<number>())
+
+const toggleCourseProgressExpanded = (courseId: number) => {
+  const s = new Set(expandedCourseProgressIds.value)
+  if (s.has(courseId)) s.delete(courseId)
+  else s.add(courseId)
+  expandedCourseProgressIds.value = s
+}
+
+const loadMyCoursesProgressData = async () => {
+  if (loadingMyCoursesProgress.value) return
+  loadingMyCoursesProgress.value = true
+  try {
+    const myProgress = await progressAdapter.getMyProgress()
+    if (!Array.isArray(myProgress) || myProgress.length === 0) {
+      myCoursesProgress.value = []
+      return
+    }
+    const items = await Promise.all(
+      myProgress.map(async (p: any) => {
+        const courseId = Number(p.courseId || p.curso_id) || 0
+        if (!courseId) return null
+        const [courseRes, subjectProgressRes, subjectsRes] = await Promise.allSettled([
+          courseAdapter.getCourseById(courseId).catch(() => null),
+          progressAdapter.getSubjectProgress(courseId).catch(() => []),
+          subjectAdapter.getSubjectsByCourse(courseId).catch(() => []),
+        ])
+        const course = courseRes.status === 'fulfilled' ? (courseRes.value as any) : null
+        const subjectProgressList: any[] =
+          subjectProgressRes.status === 'fulfilled' ? ((subjectProgressRes.value as any[]) ?? []) : []
+        const subjectsList: any[] =
+          subjectsRes.status === 'fulfilled' ? ((subjectsRes.value as any[]) ?? []) : []
+
+        const subjectMap = new Map<number, string>(
+          subjectsList.map((s: any) => [Number(s.id), s.name || s.nombre || ''])
+        )
+
+        const subjects: MySubjectProgressItem[] = subjectProgressList.map((sp: any) => {
+          const sid = Number(sp.subjectId || sp.materia_id || sp.materiaId) || 0
+          return {
+            subjectId: sid,
+            subjectName:
+              sp.subjectName || sp.nombre_materia || subjectMap.get(sid) || `Materia ${sid}`,
+            progressPercentage: Math.round(Number(sp.progressPercentage || sp.porcentaje_progreso) || 0),
+            averageGrade: sp.averageGrade ?? sp.promedio ?? sp.calificacionPonderada ?? null,
+            completedTasks: Number(sp.completedTasks || sp.tareas_completadas) || 0,
+            totalTasks: Number(sp.totalTasks || sp.tareas_totales) || 0,
+            status: sp.status || sp.estado || '',
+          }
+        })
+
+        const tt = Number(p.totalTasks || p.tareas_totales) || 0
+        const tc = Number(p.completedTasks || p.tareas_completadas) || 0
+        return {
+          courseId,
+          courseName:
+            course?.title || course?.nombre || p.courseName || p.curso_nombre || p.course_name || `Curso ${courseId}`,
+          thumbnail:
+            course?.thumbnail || course?.thumbnailUrl || p.thumbnail || p.course_thumbnail || '',
+          status: p.status || p.estado || '',
+          progressPercentage: Math.round(
+            tt > 0 ? (tc / tt) * 100 : Number(p.progressPercentage || p.porcentaje_progreso) || 0
+          ),
+          averageGrade: p.averageGrade ?? p.promedio ?? p.calificacionPonderada ?? null,
+          completedTasks: tc,
+          totalTasks: tt,
+          subjects,
+        } as MyCourseProgressItem
+      })
+    )
+    myCoursesProgress.value = items.filter((c): c is MyCourseProgressItem => c !== null)
+  } catch (e) {
+    console.error('Error loading my courses progress:', e)
+    myCoursesProgress.value = []
+  } finally {
+    loadingMyCoursesProgress.value = false
+  }
+}
+
+// ═══════ Analytics Data ═══════
+interface CreatorMetricsData {
   const newStatus = row.enrollmentStatus === 'activo' ? 'inactivo' : 'activo'
   const key = `${row.userId}-${row.courseId}-${row.subjectId}`
   togglingSpEnrollStatus.value[key] = true
@@ -3909,7 +4099,7 @@ const moderationWeeklyActivity = computed(() => {
   }).length
 })
 
-const toggleSection = (section: 'courses' | 'tasks' | 'submissions' | 'students' | 'reinforcement' | 'subjectProgress') => {
+const toggleSection = (section: 'courses' | 'tasks' | 'submissions' | 'students' | 'reinforcement' | 'subjectProgress' | 'myProgress') => {
   expandedSections.value[section] = !expandedSections.value[section]
 }
 
@@ -4076,7 +4266,7 @@ onMounted(async () => {
   }
 
   // Launch all independent loads in parallel
-  const promises: Promise<any>[] = [loadData(), loadAnalyticsData()]
+  const promises: Promise<any>[] = [loadData(), loadAnalyticsData(), loadMyCoursesProgressData()]
   if (canViewActivation.value) promises.push(loadUsers())
   if (canViewCertificates.value) promises.push(loadCertificates())
   if (hasAdminRole.value) promises.push(loadEnrollments())
@@ -4585,6 +4775,79 @@ watch(() => route.query, () => {
   width: 52px; height: 38px; border-radius: 8px;
   object-fit: cover; flex-shrink: 0;
   background: rgba(255,255,255,0.05);
+}
+
+/* ═══════ Mi Progreso en Cursos (rol 1) ═══════ */
+.mcp-list { display: flex; flex-direction: column; gap: 10px; }
+.mcp-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  border: 0.5px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.mcp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mcp-card-header:hover { background: rgba(255,255,255,0.04); }
+.mcp-thumb {
+  width: 44px; height: 44px; border-radius: 8px;
+  object-fit: cover; flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.mcp-card-info { flex: 1; min-width: 0; }
+.mcp-course-title {
+  font-size: 13px; font-weight: 600; color: #fff;
+  margin: 0 0 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mcp-meta {
+  display: flex; align-items: center; gap: 5px;
+  flex-wrap: wrap; margin-top: 4px; font-size: 11px; color: #8E8E93;
+}
+.mcp-pct { color: #EBEBF5; font-weight: 600; }
+.mcp-sep { color: rgba(255,255,255,0.2); }
+.mcp-grade-val { font-weight: 600; }
+.grade-pass { color: #30D158; }
+.grade-fail { color: #FF453A; }
+.mcp-tasks { color: #8E8E93; }
+.mcp-status-badge {
+  padding: 2px 7px; border-radius: 6px;
+  font-size: 10px; font-weight: 600;
+}
+.status-won { background: rgba(48,209,88,0.15); color: #30D158; }
+.status-lost { background: rgba(255,69,58,0.15); color: #FF453A; }
+.mcp-chevron { color: #636366; font-size: 10px; flex-shrink: 0; }
+.mcp-subjects {
+  background: rgba(0,0,0,0.2);
+  border-top: 0.5px solid rgba(255,255,255,0.06);
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.mcp-no-subjects {
+  color: #636366; font-size: 12px;
+  text-align: center; padding: 8px 0;
+}
+.mcp-subject-row {
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.mcp-subject-left { flex: 1; min-width: 0; }
+.mcp-subject-name {
+  font-size: 12px; color: #EBEBF5;
+  display: block; margin-bottom: 5px;
+}
+.mcp-subject-bar { height: 4px !important; margin-bottom: 3px; }
+.mcp-subject-meta {
+  font-size: 10px; color: #8E8E93;
+  display: block; margin-top: 2px;
+}
+.mcp-subject-right {
+  flex-shrink: 0; padding-top: 2px;
+  font-size: 13px; font-weight: 700;
 }
 
 /* ═══════ Roles Tab ═══════ */

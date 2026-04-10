@@ -76,6 +76,8 @@
                     <thead>
                       <tr>
                         <th class="th-student">Estudiante</th>
+                        <th>Nombre Completo</th>
+                        <th>Cédula</th>
                         <th>Tarea</th>
                         <th class="th-grade">Nota</th>
                         <th class="th-ponderada">Cal. Ponderada</th>
@@ -87,6 +89,8 @@
                     <tbody>
                       <tr v-for="(row, i) in group.rows" :key="i" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
                         <td class="cell-student">{{ row.studentName }}</td>
+                        <td class="cell-fullname">{{ row.studentFullName ?? '—' }}</td>
+                        <td class="cell-cedula">{{ row.studentCedula ?? '—' }}</td>
                         <td class="cell-task">{{ row.taskName }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
                         <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : gradeClass(row.grade)">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
                         <td class="cell-ponderada" :class="gradeClass(group.studentAverages[row.studentName] ?? null)">{{ group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—' }}</td>
@@ -148,6 +152,8 @@ const authStore = useAuthStore()
 
 interface SubmissionRow {
   studentName: string
+  studentFullName: string | null
+  studentCedula: string | null
   taskName: string
   grade: number | null
   submissionDate: number | null
@@ -253,6 +259,8 @@ async function fetchReport() {
     const subjectTaskNames = new Map<number, string[]>()
     // All known students (submitted at least one task)
     const knownStudents = new Set<string>()
+    // Map studentUsername → { fullName, cedula }
+    const studentPersonaMap = new Map<string, { fullName: string | null, cedula: string | null }>()
 
     for (const sub of (submissions as any[])) {
       const taskId = sub.task_id ?? sub.taskId
@@ -266,9 +274,19 @@ async function fetchReport() {
       const taskName = sub.taskName ?? task.title ?? task.name ?? 'Sin título'
       knownStudents.add(studentName)
 
+      // Track persona data for this student
+      if (!studentPersonaMap.has(studentName)) {
+        studentPersonaMap.set(studentName, {
+          fullName: sub.studentFullName ?? null,
+          cedula: sub.studentCedula ?? null,
+        })
+      }
+
       if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, [])
       subjectRowsMap.get(subjectId)!.push({
         studentName,
+        studentFullName: sub.studentFullName ?? null,
+        studentCedula: sub.studentCedula ?? null,
         taskName,
         grade: sub.grade ?? null,
         submissionDate: sub.submission_date ?? sub.submissionDate ?? null,
@@ -303,7 +321,8 @@ async function fetchReport() {
         const submitters = taskSubmissions.get(taskName) ?? new Set()
         for (const studentName of knownStudents) {
           if (!submitters.has(studentName)) {
-            rows.push({ studentName, taskName, grade: 0, submissionDate: null, feedback: null, gradedByUsername: null, notSubmitted: true })
+            const persona = studentPersonaMap.get(studentName) ?? { fullName: null, cedula: null }
+            rows.push({ studentName, studentFullName: persona.fullName, studentCedula: persona.cedula, taskName, grade: 0, submissionDate: null, feedback: null, gradedByUsername: null, notSubmitted: true })
           }
         }
       }
@@ -367,6 +386,8 @@ async function exportExcel() {
   ws.columns = [
     { width: 26 }, // Curso
     { width: 24 }, // Estudiante
+    { width: 28 }, // Nombre Completo
+    { width: 16 }, // Cédula
     { width: 34 }, // Tarea
     { width: 10 }, // Nota
     { width: 14 }, // Cal. Ponderada
@@ -394,21 +415,21 @@ async function exportExcel() {
   }
 
   // Header row
-  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
+  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Nombre Completo', 'Cédula', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
   hdrRow.eachCell((cell: ExcelJS.Cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
     cell.fill = hdrFill
     cell.border = thinBorder
     cell.alignment = { vertical: 'middle', wrapText: true }
   })
-  hdrRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
-  hdrRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
   for (const group of reportData.value) {
     const avg = group.average !== null ? group.average : '—'
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
-    ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 10)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
     grpRow.getCell(1).fill = grpHdrFill
     grpRow.getCell(1).border = thinBorder
@@ -416,7 +437,7 @@ async function exportExcel() {
 
     if (!group.rows.length) {
       const emptyRow = ws.addRow(['Sin entregas registradas'])
-      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
+      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 10)
       emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
       continue
     }
@@ -431,6 +452,8 @@ async function exportExcel() {
       const dataRow = ws.addRow([
         props.courseName ?? `Curso ${props.courseId}`,
         row.studentName,
+        row.studentFullName ?? '—',
+        row.studentCedula ?? '—',
         taskLabel,
         grade !== null ? Number(typeof grade === 'number' ? grade.toFixed(1) : grade) : '—',
         ponderada,
@@ -445,14 +468,14 @@ async function exportExcel() {
         cell.font = { name: 'Calibri' }
         cell.alignment = { vertical: 'middle', wrapText: true }
       })
-      dataRow.getCell(4).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
-      dataRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
+      dataRow.getCell(6).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
+      dataRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
       if (ponderadaNum !== null) {
-        dataRow.getCell(5).font = gradeFont(ponderadaNum)
+        dataRow.getCell(7).font = gradeFont(ponderadaNum)
       } else {
-        dataRow.getCell(5).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
+        dataRow.getCell(7).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
       }
-      dataRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
+      dataRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
       dataRow.height = 16
     })
   }

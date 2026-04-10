@@ -92,6 +92,8 @@
                           <thead>
                             <tr>
                               <th class="th-student">Estudiante</th>
+                              <th>Nombre Completo</th>
+                              <th>Cédula</th>
                               <th>Tarea</th>
                               <th class="th-grade">Nota</th>
                               <th class="th-ponderada">Cal. Ponderada</th>
@@ -103,6 +105,8 @@
                           <tbody>
                             <tr v-for="row in subGroup.rows" :key="row.id" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
                               <td class="cell-student">{{ row.studentUsername || '—' }}</td>
+                              <td class="cell-fullname">{{ row.studentFullName || '—' }}</td>
+                              <td class="cell-cedula">{{ row.studentCedula || '—' }}</td>
                               <td class="cell-task">{{ row.taskName || '—' }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
                               <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : (row.grade == null ? '' : gradeClass(row.grade))">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
                               <td class="cell-ponderada" :class="gradeClass(subGroup.studentAverages[row.studentUsername ?? ''] ?? null)">{{ subGroup.studentAverages[row.studentUsername ?? ''] != null ? Number(subGroup.studentAverages[row.studentUsername ?? '']).toFixed(1) : '—' }}</td>
@@ -164,6 +168,8 @@ watch(() => props.modelValue, (v) => { if (!v) isFullscreen.value = false })
 interface ReportRow {
   id: number
   studentUsername?: string | null
+  studentFullName?: string | null
+  studentCedula?: string | null
   taskName?: string | null
   grade: number | null
   submission_date: number | null
@@ -284,6 +290,8 @@ function addNotSubmittedRows(subs: ReportRow[], enrolledStudents: string[] = [])
   const subjectTaskStudents = new Map<string, Map<string, Set<string>>>()
   // Seed with all enrolled students so even non-submitters appear in the report
   const knownStudents = new Set<string>(enrolledStudents)
+  // Track persona data per username
+  const studentPersonaMap = new Map<string, { fullName: string | null, cedula: string | null }>()
 
   for (const sub of subs) {
     const subjectName = sub.subjectName ?? '—'
@@ -291,6 +299,12 @@ function addNotSubmittedRows(subs: ReportRow[], enrolledStudents: string[] = [])
     const student = sub.studentUsername ?? null
     if (!student) continue
     knownStudents.add(student)
+    if (!studentPersonaMap.has(student)) {
+      studentPersonaMap.set(student, {
+        fullName: sub.studentFullName ?? null,
+        cedula: sub.studentCedula ?? null,
+      })
+    }
     if (!subjectTaskStudents.has(subjectName)) subjectTaskStudents.set(subjectName, new Map())
     const taskMap = subjectTaskStudents.get(subjectName)!
     if (!taskMap.has(taskName)) taskMap.set(taskName, new Set())
@@ -304,9 +318,12 @@ function addNotSubmittedRows(subs: ReportRow[], enrolledStudents: string[] = [])
     for (const [taskName, submitters] of taskMap) {
       for (const student of knownStudents) {
         if (!submitters.has(student)) {
+          const persona = studentPersonaMap.get(student) ?? { fullName: null, cedula: null }
           extra.push({
             id: 0,
             studentUsername: student,
+            studentFullName: persona.fullName,
+            studentCedula: persona.cedula,
             taskName,
             grade: 0,
             submission_date: null,
