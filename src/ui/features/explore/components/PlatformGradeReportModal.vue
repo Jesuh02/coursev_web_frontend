@@ -360,6 +360,8 @@ async function exportExcel() {
   ws.columns = [
     { width: 26 }, // Curso
     { width: 22 }, // Estudiante
+    { width: 28 }, // Nombre Completo
+    { width: 16 }, // Cédula
     { width: 22 }, // Materia
     { width: 32 }, // Tarea
     { width: 10 }, // Nota
@@ -400,15 +402,15 @@ async function exportExcel() {
   }
 
   // Header row
-  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Materia', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
+  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Nombre Completo', 'Cédula', 'Materia', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
   applyHdr(hdrRow)
-  hdrRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
-  hdrRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' }
 
   for (const group of reportData.value) {
     // Course header row (merged)
     const courseRow = ws.addRow([group.courseName])
-    ws.mergeCells(courseRow.number, 1, courseRow.number, 9)
+    ws.mergeCells(courseRow.number, 1, courseRow.number, 11)
     const courseCell = courseRow.getCell(1)
     courseCell.font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
     courseCell.fill = courseHdrFill
@@ -417,7 +419,7 @@ async function exportExcel() {
 
     if (!group.rows.length) {
       const emptyRow = ws.addRow(['Sin entregas registradas'])
-      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 9)
+      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 11)
       emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
       continue
     }
@@ -425,7 +427,7 @@ async function exportExcel() {
     for (const subGroup of getSubjectGroups(group)) {
       // Subject sub-header row (merged)
       const subjRow = ws.addRow([`Materia: ${subGroup.subjectName}`])
-      ws.mergeCells(subjRow.number, 1, subjRow.number, 9)
+      ws.mergeCells(subjRow.number, 1, subjRow.number, 11)
       const subjCell = subjRow.getCell(1)
       subjCell.font = { bold: true, color: { argb: 'FF7B3FA6' }, size: 9, name: 'Calibri' }
       subjCell.fill = subjHdrFill
@@ -442,6 +444,8 @@ async function exportExcel() {
         const dataRow = ws.addRow([
           group.courseName,
           row.studentUsername ?? '—',
+          row.studentFullName ?? '—',
+          row.studentCedula ?? '—',
           subGroup.subjectName,
           taskLabel,
           grade !== null ? Number(typeof grade === 'number' ? grade.toFixed(1) : grade) : '—',
@@ -459,15 +463,15 @@ async function exportExcel() {
           cell.alignment = { vertical: 'middle', wrapText: true }
         })
         // Grade cell styling
-        dataRow.getCell(5).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
-        dataRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
+        dataRow.getCell(7).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
+        dataRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
         // Ponderada cell
         if (ponderadaNum !== null) {
-          dataRow.getCell(6).font = gradeFont(ponderadaNum)
+          dataRow.getCell(8).font = gradeFont(ponderadaNum)
         } else {
-          dataRow.getCell(6).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
+          dataRow.getCell(8).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
         }
-        dataRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
+        dataRow.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' }
         dataRow.height = 16
       })
     }
