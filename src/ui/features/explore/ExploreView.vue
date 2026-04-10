@@ -522,30 +522,35 @@ watch(activeFilter, (filter) => {
   courseStore.fetchByFilter(filter)
 })
 
-async function resolveStudentCounts(courses: Course[]) {
-  const missing = courses.filter(c => c.studentCount === undefined)
+/**
+ * Resuelve en paralelo el conteo de docentes y el conteo de estudiantes para cada curso,
+ * usando la misma fuente que el diálogo de info (getGuests + collaborators) para
+ * garantizar que ambos números sean siempre consistentes: los colaboradores se muestran
+ * en la sección de docentes y quedan excluidos del conteo de estudiantes.
+ */
+async function resolveParticipantCounts(courses: Course[]) {
+  const missing = courses.filter(c =>
+    c.studentCount === undefined || teacherCounts.value[c.id] === undefined,
+  )
   if (!missing.length) return
 
   const results = await Promise.allSettled(
-    missing.map(course => progressAdapter.getEnrolledCount(course.id)),
+    missing.map(c => Promise.all([
+      collaboratorAdapter.getByCourse(c.id),
+      courseAdapter.getGuests(c.id),
+    ])),
   )
 
   results.forEach((result, index) => {
+    const course = missing[index]
     if (result.status === 'fulfilled') {
-      const data = result.value as any
-      missing[index].studentCount = typeof data === 'number' ? data : (data?.count ?? 0)
+      const [collaborators, guests] = result.value
+      teacherCounts.value[course.id] = collaborators.length
+      const collabIds = new Set(collaborators.map(c => c.userId))
+      course.studentCount = guests.filter(g => !collabIds.has(g.userId)).length
+    } else {
+      teacherCounts.value[course.id] = teacherCounts.value[course.id] ?? 0
     }
-  })
-}
-
-async function resolveTeacherCounts(courses: Course[]) {
-  const missing = courses.filter(c => teacherCounts.value[c.id] === undefined)
-  if (!missing.length) return
-  const results = await Promise.allSettled(
-    missing.map(c => collaboratorAdapter.getByCourse(c.id)),
-  )
-  results.forEach((result, index) => {
-    teacherCounts.value[missing[index].id] = result.status === 'fulfilled' ? result.value.length : 0
   })
 }
 
@@ -580,8 +585,7 @@ watch(
   () => courseStore.courses,
   (courses) => {
     void resolveMissingCreatorUsernames(courses)
-    void resolveStudentCounts(courses)
-    void resolveTeacherCounts(courses)
+    void resolveParticipantCounts(courses)
   },
   { immediate: true },
 )
