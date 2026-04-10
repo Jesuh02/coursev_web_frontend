@@ -731,12 +731,3 @@ function esc_html(s: string): string {
   .cell-date { display: none; }
 }
 </style>
-
-.report-overlay--fs { padding: 0; }
-.report-modal--fs {
-  max-width: 100% !important;
-  max-height: 100vh !important;
-  height: 100vh;
-  border-radius: 0;
-}
-</style>
