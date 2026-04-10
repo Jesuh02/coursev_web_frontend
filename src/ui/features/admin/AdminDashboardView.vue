@@ -1080,7 +1080,8 @@
               <img :src="user.avatar || '/default-avatar.png'" class="activation-avatar" alt="" @error="onAvatarError" />
             </div>
             <div class="activation-user-info">
-              <span class="activation-user-name">{{ user.username }}</span>
+              <span class="activation-user-name">{{ user.persona ? `${user.persona.nombres} ${user.persona.apellidos}` : user.username }}</span>
+              <span class="activation-user-username">@{{ user.username }}</span>
               <div class="activation-user-status-row">
                 <span class="activation-status-dot" :class="user.isActive ? 'dot-active' : 'dot-inactive'"></span>
                 <span class="activation-status-label">{{ user.isActive ? 'Activo' : 'Inactivo' }}</span>
@@ -5863,6 +5864,17 @@ watch(() => route.query, () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.activation-user-username {
+  display: block;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
 .activation-user-status-row {
