@@ -274,18 +274,33 @@ function exportPDF() {
   win.onload = () => { win.print(); win.close() }
 }
 
-// ── Excel / CSV export ──────────────────────────────────────────────────
+// ── Excel export (.xls – HTML-based, opens fully formatted in Microsoft Excel) ──────────────────────
 function exportExcel() {
-  const BOM = '\uFEFF'
-  let csv = BOM + 'Curso,Materia,Estudiante,Tarea,Nota,Fecha de entrega,Docente que calificó,Retroalimentación\n'
+  const now = new Date().toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  let tableRows = ''
   for (const group of reportData.value) {
-    for (const subGroup of getSubjectGroups(group)) {
-      for (const row of subGroup.rows) {
-        csv += `"${esc(group.courseName)}","${esc(subGroup.subjectName)}","${esc(row.studentUsername ?? '')}","${esc(row.taskName ?? '')}","${row.grade ?? ''}","${formatDate(row.submission_date)}","${esc(row.gradedByUsername ?? '')}","${esc(row.feedback ?? '')}"\n`
+    tableRows += `<tr style="background:#f3eafe"><td colspan="7" style="font-size:11pt;font-weight:700;color:#4a0e8f;padding:8px 12px;border-bottom:2px solid #c9a0f5;border-left:4px solid #8b5cf6">${esc_html(group.courseName)}</td></tr>`
+    if (!group.rows.length) {
+      tableRows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding:6px 12px 6px 24px">Sin entregas registradas</td></tr>`
+    } else {
+      for (const subGroup of getSubjectGroups(group)) {
+        tableRows += `<tr style="background:#faf5ff"><td colspan="7" style="font-size:9.5pt;font-weight:600;color:#7B3FA6;padding:6px 12px 6px 24px;border-bottom:1px solid #e8d5f7"><span style="font-size:8pt;font-weight:700;background:#e8d5f5;color:#6A1B9A;padding:1px 6px;border-radius:3px;margin-right:8px">Materia</span>${esc_html(subGroup.subjectName)}</td></tr>`
+        for (let i = 0; i < subGroup.rows.length; i++) {
+          const row = subGroup.rows[i]
+          const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
+          const grade = row.grade != null ? row.grade : '—'
+          const gradeColor = row.grade != null
+            ? (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
+            : '#999999'
+          tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${esc_html(row.studentUsername ?? '—')}</td><td style="white-space:nowrap">${esc_html(subGroup.subjectName)}</td><td>${esc_html(row.taskName ?? '—')}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="white-space:nowrap;font-size:9pt;color:#555">${formatDate(row.submission_date)}</td><td>${esc_html(row.gradedByUsername ?? '—')}</td><td style="color:#555;word-break:break-word">${esc_html(row.feedback ?? '—')}</td></tr>`
+        }
       }
     }
   }
-  downloadBlob(csv, `reporte_plataforma_${Date.now()}.csv`, 'text/csv;charset=utf-8;')
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte Plataforma</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas — Plataforma</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${courseCount.value} cursos&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio: ${averageGrade.value}</p><table><colgroup><col style="width:130pt"><col style="width:130pt"><col style="width:180pt"><col style="width:50pt"><col style="width:110pt"><col style="width:120pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+
+  downloadBlob('\uFEFF' + html, `reporte_plataforma_${Date.now()}.xls`, 'application/vnd.ms-excel;charset=utf-8;')
 }
 
 // ── Word export (.doc as HTML) ──────────────────────────────────────────

@@ -282,30 +282,41 @@ function exportPDF() {
   win.onload = () => { win.print(); win.close() }
 }
 
-// ── Excel/CSV export ──
+// ── Excel export (.xls – HTML-based, opens fully formatted in Microsoft Excel) ──
 function exportExcel() {
-  const BOM = '\uFEFF'
-  let csv = BOM + 'Materia,Docente,Estudiante,Tarea,Nota,Fecha de entrega,Calificó,Retroalimentación\n'
+  const now = new Date().toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  let tableRows = ''
   for (const group of reportData.value) {
+    const avg = group.average !== null ? group.average : '—'
+    tableRows += `<tr style="background:#f3eafe"><td colspan="6" style="font-size:11pt;font-weight:700;color:#4a0e8f;padding:8px 12px;border-bottom:2px solid #c9a0f5;border-left:4px solid #8b5cf6">${escH(group.subjectName)}&nbsp;&nbsp;<span style="font-weight:400;color:#888;font-size:9pt">Docente: ${escH(group.teacherName)}</span>&nbsp;&nbsp;<span style="float:right;color:#4a0e8f">Promedio: ${avg}</span></td></tr>`
     if (!group.rows.length) {
-      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","","Sin entregas","","","",""\n`
+      tableRows += `<tr><td colspan="6" style="color:#999;font-style:italic;padding:6px 12px 6px 24px">Sin entregas registradas</td></tr>`
     }
-    for (const row of group.rows) {
-      const date = formatDate(row.submissionDate)
-      const feedback = row.feedback ? esc(stripHtml(row.feedback)) : ''
-      const grader = row.gradedByUsername ? esc(row.gradedByUsername) : ''
-      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","${esc(row.studentName)}","${esc(row.taskName)}","${row.grade ?? ''}","${date}","${grader}","${feedback}"\n`
+    for (let i = 0; i < group.rows.length; i++) {
+      const row = group.rows[i]
+      const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
+      const grade = row.grade !== null ? row.grade : '—'
+      const gradeColor = row.grade !== null
+        ? (row.grade >= 4 ? '#1a7f37' : row.grade >= 3 ? '#b45309' : '#b91c1c')
+        : '#999999'
+      const fb = row.feedback ? escH(stripHtml(row.feedback)) : '—'
+      tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${escH(row.studentName)}</td><td>${escH(row.taskName)}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${grade}</td><td style="white-space:nowrap">${formatDate(row.submissionDate)}</td><td>${escH(row.gradedByUsername ?? '—')}</td><td style="color:#555">${fb}</td></tr>`
     }
   }
-  csv += `\n"Promedio general","","","","${averageGrade.value}","","",""\n`
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte de Notas</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${props.subjects.length} materias&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio general: ${averageGrade.value}</p><table><colgroup><col style="width:140pt"><col style="width:190pt"><col style="width:55pt"><col style="width:110pt"><col style="width:130pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reporte_notas_${Date.now()}.csv`
+  a.download = `reporte_notas_${Date.now()}.xls`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function escH(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 // ── Share (Web Share API + fallback) ──
