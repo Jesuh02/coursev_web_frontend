@@ -138,6 +138,7 @@ import { useAuthStore } from '@/stores/authStore'
 const props = defineProps<{
   modelValue: boolean
   courseId: number
+  courseName?: string
   subjects: Subject[]
 }>()
 
@@ -364,6 +365,7 @@ async function exportExcel() {
   const ws = wb.addWorksheet('Reporte de Notas')
 
   ws.columns = [
+    { width: 26 }, // Curso
     { width: 24 }, // Estudiante
     { width: 34 }, // Tarea
     { width: 10 }, // Nota
@@ -392,21 +394,21 @@ async function exportExcel() {
   }
 
   // Header row
-  const hdrRow = ws.addRow(['Estudiante', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
+  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
   hdrRow.eachCell((cell: ExcelJS.Cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
     cell.fill = hdrFill
     cell.border = thinBorder
     cell.alignment = { vertical: 'middle', wrapText: true }
   })
-  hdrRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
   for (const group of reportData.value) {
     const avg = group.average !== null ? group.average : '—'
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
-    ws.mergeCells(grpRow.number, 1, grpRow.number, 7)
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
     grpRow.getCell(1).fill = grpHdrFill
     grpRow.getCell(1).border = thinBorder
@@ -414,7 +416,7 @@ async function exportExcel() {
 
     if (!group.rows.length) {
       const emptyRow = ws.addRow(['Sin entregas registradas'])
-      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 7)
+      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
       emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
       continue
     }
@@ -427,6 +429,7 @@ async function exportExcel() {
       const fb = row.feedback ? stripHtml(row.feedback) : '—'
 
       const dataRow = ws.addRow([
+        props.courseName ?? `Curso ${props.courseId}`,
         row.studentName,
         taskLabel,
         grade !== null ? Number(typeof grade === 'number' ? grade.toFixed(1) : grade) : '—',
@@ -442,14 +445,14 @@ async function exportExcel() {
         cell.font = { name: 'Calibri' }
         cell.alignment = { vertical: 'middle', wrapText: true }
       })
-      dataRow.getCell(3).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
-      dataRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' }
-      if (ponderadaNum !== null) {
-        dataRow.getCell(4).font = gradeFont(ponderadaNum)
-      } else {
-        dataRow.getCell(4).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
-      }
+      dataRow.getCell(4).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
       dataRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }
+      if (ponderadaNum !== null) {
+        dataRow.getCell(5).font = gradeFont(ponderadaNum)
+      } else {
+        dataRow.getCell(5).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
+      }
+      dataRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }
       dataRow.height = 16
     })
   }
