@@ -3672,21 +3672,6 @@ const loadMyCoursesProgressData = async () => {
 
 // ═══════ Analytics Data ═══════
 interface CreatorMetricsData {
-  const newStatus = row.enrollmentStatus === 'activo' ? 'inactivo' : 'activo'
-  const key = `${row.userId}-${row.courseId}-${row.subjectId}`
-  togglingSpEnrollStatus.value[key] = true
-  try {
-    await progressAdapter.setSubjectEnrollmentStatus(row.userId, row.courseId, row.subjectId!, newStatus)
-    row.enrollmentStatus = newStatus
-  } catch (e: any) {
-    if (e?.statusCode !== 401) console.error('Error toggling subject enrollment status:', e)
-  } finally {
-    delete togglingSpEnrollStatus.value[key]
-  }
-}
-
-// ═══════ Analytics Data ═══════
-interface CreatorMetricsData {
   enrolledUsersCount: number
   totalCourses: number
   certifiedUsersCount: number
