@@ -666,12 +666,8 @@ onUnmounted(() => observer?.disconnect())
 .course-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  margin: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 16px;
+  padding: 16px;
 }
 
 @media (max-width: 900px) {
