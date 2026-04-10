@@ -75,6 +75,7 @@
                         <th>Tarea</th>
                         <th>Nota</th>
                         <th>Fecha de entrega</th>
+                        <th>Calificó</th>
                         <th>Retroalimentación</th>
                       </tr>
                     </thead>
@@ -84,6 +85,7 @@
                         <td class="cell-task">{{ row.taskName }}</td>
                         <td class="cell-grade" :class="gradeClass(row.grade)">{{ row.grade ?? '—' }}</td>
                         <td class="cell-date">{{ formatDate(row.submissionDate) }}</td>
+                        <td class="cell-grader">{{ row.gradedByUsername ?? '—' }}</td>
                         <td class="cell-feedback">
                           <span v-if="row.feedback" :title="stripHtml(row.feedback)">{{ truncate(stripHtml(row.feedback), 80) }}</span>
                           <span v-else class="no-feedback">—</span>
@@ -142,6 +144,7 @@ interface SubmissionRow {
   grade: number | null
   submissionDate: number | null
   feedback: string | null
+  gradedByUsername: string | null
 }
 
 interface SubjectReport {
@@ -243,6 +246,7 @@ async function fetchReport() {
         grade: sub.grade ?? null,
         submissionDate: sub.submission_date ?? sub.submissionDate ?? null,
         feedback: sub.feedback ?? null,
+        gradedByUsername: sub.gradedByUsername ?? null,
       })
     }
 
@@ -281,18 +285,19 @@ function exportPDF() {
 // ── Excel/CSV export ──
 function exportExcel() {
   const BOM = '\uFEFF'
-  let csv = BOM + 'Materia,Docente,Estudiante,Tarea,Nota,Fecha de entrega,Retroalimentación\n'
+  let csv = BOM + 'Materia,Docente,Estudiante,Tarea,Nota,Fecha de entrega,Calificó,Retroalimentación\n'
   for (const group of reportData.value) {
     if (!group.rows.length) {
-      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","","Sin entregas","","",""\n`
+      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","","Sin entregas","","","",""\n`
     }
     for (const row of group.rows) {
       const date = formatDate(row.submissionDate)
       const feedback = row.feedback ? esc(stripHtml(row.feedback)) : ''
-      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","${esc(row.studentName)}","${esc(row.taskName)}","${row.grade ?? ''}","${date}","${feedback}"\n`
+      const grader = row.gradedByUsername ? esc(row.gradedByUsername) : ''
+      csv += `"${esc(group.subjectName)}","${esc(group.teacherName)}","${esc(row.studentName)}","${esc(row.taskName)}","${row.grade ?? ''}","${date}","${grader}","${feedback}"\n`
     }
   }
-  csv += `\n"Promedio general","","","","${averageGrade.value}","",""\n`
+  csv += `\n"Promedio general","","","","${averageGrade.value}","","",""\n`
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -324,7 +329,7 @@ function buildShareText(): string {
   for (const group of reportData.value) {
     text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
     for (const row of group.rows) {
-      text += `   • [${row.studentName}] ${row.taskName}: ${row.grade ?? 'Sin nota'}\n`
+      text += `   • [${row.studentName}] ${row.taskName}: ${row.grade ?? 'Sin nota'}${row.gradedByUsername ? ` (Calificó: ${row.gradedByUsername})` : ''}\n`
     }
     text += '\n'
   }
@@ -336,19 +341,21 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
+    rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
     if (!group.rows.length) {
-      rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
+      rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     }
     for (const row of group.rows) {
       const g = row.grade !== null ? row.grade : '—'
       const color = row.grade !== null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
       const fb = row.feedback ? truncate(stripHtml(row.feedback), 120) : '—'
+      const grader = row.gradedByUsername ?? '—'
       rows += `<tr>
         <td>${row.studentName}</td>
         <td>${row.taskName}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
         <td>${formatDate(row.submissionDate)}</td>
+        <td>${grader}</td>
         <td colspan="2" class="feedback-col">${fb}</td>
       </tr>`
     }
@@ -381,7 +388,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
 <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-<thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha</th><th colspan="2">Retroalimentación</th></tr></thead>
+<thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha</th><th>Calificó</th><th colspan="2">Retroalimentación</th></tr></thead>
 <tbody>${rows}</tbody>
 </table></body></html>`
 }

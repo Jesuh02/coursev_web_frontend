@@ -83,32 +83,36 @@
                 <thead>
                   <tr>
                     <th>Estudiante</th>
+                    <th>Materia</th>
                     <th>Tarea</th>
                     <th class="col-nota">Nota</th>
                     <th class="col-date">Fecha de entrega</th>
+                    <th>Calificó</th>
                     <th>Retroalimentación</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-for="group in filteredData" :key="group.courseName">
                     <tr class="course-header-row">
-                      <td colspan="5">{{ group.courseName }}</td>
+                      <td colspan="7">{{ group.courseName }}</td>
                     </tr>
                     <template v-if="group.rows.length">
                       <tr v-for="row in group.rows" :key="row.id">
                         <td class="col-student">{{ row.studentUsername || '—' }}</td>
+                        <td class="col-subject">{{ row.subjectName || '—' }}</td>
                         <td class="col-task">{{ row.taskName || '—' }}</td>
                         <td class="col-nota" :class="gradeClass(row.grade)">{{ row.grade != null ? row.grade : 'Sin nota' }}</td>
                         <td class="col-date">{{ formatDate(row.submission_date) }}</td>
+                        <td class="col-grader">{{ row.gradedByUsername || '—' }}</td>
                         <td class="col-feedback">{{ row.feedback || '' }}</td>
                       </tr>
                     </template>
                     <tr v-else class="no-data-row">
-                      <td colspan="5">Sin entregas registradas</td>
+                      <td colspan="7">Sin entregas registradas</td>
                     </tr>
                   </template>
                   <tr v-if="filteredData.length === 0">
-                    <td colspan="5" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
+                    <td colspan="7" class="no-results">No se encontraron resultados para "{{ searchQuery }}"</td>
                   </tr>
                 </tbody>
               </table>
@@ -150,6 +154,8 @@ interface ReportRow {
   grade: number | null
   submission_date: number | null
   feedback: string | null
+  subjectName?: string | null
+  gradedByUsername?: string | null
 }
 
 interface CourseGroup {
@@ -186,6 +192,8 @@ const filteredData = computed(() => {
       rows: group.rows.filter(r =>
         (r.studentUsername ?? '').toLowerCase().includes(q) ||
         (r.taskName ?? '').toLowerCase().includes(q) ||
+        (r.subjectName ?? '').toLowerCase().includes(q) ||
+        (r.gradedByUsername ?? '').toLowerCase().includes(q) ||
         group.courseName.toLowerCase().includes(q)
       ),
     }))
@@ -260,10 +268,10 @@ function exportPDF() {
 // ── Excel / CSV export ──────────────────────────────────────────────────
 function exportExcel() {
   const BOM = '\uFEFF'
-  let csv = BOM + 'Curso,Estudiante,Tarea,Nota,Fecha de entrega,Retroalimentación\n'
+  let csv = BOM + 'Curso,Materia,Estudiante,Tarea,Nota,Fecha de entrega,Calificó,Retroalimentación\n'
   for (const group of reportData.value) {
     for (const row of group.rows) {
-      csv += `"${esc(group.courseName)}","${esc(row.studentUsername ?? '')}","${esc(row.taskName ?? '')}","${row.grade ?? ''}","${formatDate(row.submission_date)}","${esc(row.feedback ?? '')}"\n`
+      csv += `"${esc(group.courseName)}","${esc(row.subjectName ?? '')}","${esc(row.studentUsername ?? '')}","${esc(row.taskName ?? '')}","${row.grade ?? ''}","${formatDate(row.submission_date)}","${esc(row.gradedByUsername ?? '')}","${esc(row.feedback ?? '')}"\n`
     }
   }
   downloadBlob(csv, `reporte_plataforma_${Date.now()}.csv`, 'text/csv;charset=utf-8;')
@@ -291,18 +299,20 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="course-header"><td colspan="5">${group.courseName}</td></tr>`
+    rows += `<tr class="course-header"><td colspan="7">${group.courseName}</td></tr>`
     if (!group.rows.length) {
-      rows += `<tr><td colspan="5" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
+      rows += `<tr><td colspan="7" style="color:#999;font-style:italic;padding-left:20px">Sin entregas registradas</td></tr>`
     }
     for (const row of group.rows) {
       const g = row.grade != null ? row.grade : '—'
       const color = row.grade != null ? (row.grade >= 4 ? '#34C759' : row.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
       rows += `<tr>
         <td>${esc_html(row.studentUsername ?? '—')}</td>
+        <td>${esc_html(row.subjectName ?? '—')}</td>
         <td>${esc_html(row.taskName ?? '—')}</td>
         <td style="color:${color};font-weight:600;text-align:center">${g}</td>
         <td style="color:#555;font-size:12px;white-space:nowrap">${formatDate(row.submission_date)}</td>
+        <td>${esc_html(row.gradedByUsername ?? '—')}</td>
         <td style="max-width:240px;word-break:break-word;color:#444">${esc_html(row.feedback ?? '—')}</td>
       </tr>`
     }
@@ -337,7 +347,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
   <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-  <thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Retroalimentación</th></tr></thead>
+  <thead><tr><th>Estudiante</th><th>Materia</th><th>Tarea</th><th style="text-align:center">Nota</th><th>Fecha de entrega</th><th>Calificó</th><th>Retroalimentación</th></tr></thead>
   <tbody>${rows}</tbody>
 </table></body></html>`
 }
