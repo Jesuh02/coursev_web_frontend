@@ -342,10 +342,6 @@ const fillAnswer      = ref('')
 const fillCorrect     = ref(false)
 const orderingUserSeq = ref<number[]>([])
 
-// ─── Abort / cleanup handles ───────────────────────────────────────────────────
-let pollAbort: AbortController | null = null
-let cpuMoveTimer: ReturnType<typeof setTimeout> | null = null
-
 // ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
 const isSpeaking = ref(false)
 
@@ -1133,35 +1129,12 @@ function feScientificNotationSum(text: string): { value: Decimal; steps: string[
 
   if (numbers.length < 2) return null
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // Paso 1: Identificar los números en notación científica
-  // ═══════════════════════════════════════════════════════════════════════
-  steps.push('Paso 1: Identificar los números en notación científica')
-  for (let i = 0; i < numbers.length; i++) {
-    steps.push(`  Número ${i + 1}: ${numbers[i].toExponential(6)}`)
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // Paso 2: Convertir cada número a forma decimal completa
-  // (DEBE hacerse ANTES de alinear/sumar — no se puede alinear por
-  //  punto decimal si los números están en notación científica)
-  // ═══════════════════════════════════════════════════════════════════════
-  steps.push('Paso 2: Convertir a forma decimal')
-  for (let j = 0; j < numbers.length; j++) {
-    const dp = numbers[j].dp() || 0
-    steps.push(`  ${numbers[j].toExponential(6)} = ${numbers[j].toFixed(dp)}`)
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // Paso 3: Sumar los valores decimales
-  // ═══════════════════════════════════════════════════════════════════════
   let sum = new Decimal(0)
-  for (let k = 0; k < numbers.length; k++) {
-    sum = sum.plus(numbers[k])
+  for (let i = 0; i < numbers.length; i++) {
+    sum = sum.plus(numbers[i])
+    steps.push(`Número ${i + 1}: ${numbers[i].toExponential(6)}`)
   }
-  steps.push('Paso 3: Sumar los valores convertidos')
-  steps.push(`  ${numbers.map(n => n.toFixed(n.dp() || 0)).join(' + ')} = ${sum.toFixed(sum.dp() || 0)}`)
-  steps.push(`  Resultado en notación científica: ${sum.toExponential(6)}`)
+  steps.push(`Suma: ${sum.toExponential(6)}`)
 
   // Check for coefficient request
   if (/coeficiente|mantisa/i.test(text)) {
@@ -1170,12 +1143,11 @@ function feScientificNotationSum(text: string): { value: Decimal; steps: string[
     if (mantissa) {
       const sfMatch = text.match(/(\d+)\s*(?:cifras?\s+significativas?|dígitos?\s+significativos?)/i)
       let result = mantissa
-      steps.push('Paso 4: Expresar en notación científica')
       if (sfMatch) {
         result = new Decimal(mantissa.toPrecision(parseInt(sfMatch[1], 10)))
-        steps.push(`  Coeficiente redondeado a ${sfMatch[1]} cifras: ${result}`)
+        steps.push(`Coeficiente redondeado a ${sfMatch[1]} cifras: ${result}`)
       } else {
-        steps.push(`  Coeficiente: ${result}`)
+        steps.push(`Coeficiente: ${result}`)
       }
       return { value: result, steps }
     }
@@ -1489,7 +1461,7 @@ function triquiClick(i: number) {
   if (!empty.length) { triquiIsDraw.value = true; triquiScore.value.draw++; scheduleReset(); return }
 
   triquiPlayerTurn.value = false
-  cpuMoveTimer = setTimeout(() => cpuMove(board), 700)
+  setTimeout(() => cpuMove(board), 700)
 }
 
 function cpuMove(board: Cell[]) {
@@ -1607,11 +1579,6 @@ async function startQuiz() {
   fillAnswer.value   = ''
   fillCorrect.value  = false
 
-  // Cancel any previous polling loop (prevents stacking on re-mount)
-  pollAbort?.abort()
-  pollAbort = new AbortController()
-  const signal = pollAbort.signal
-
   phase.value = 'loading'
   loadingTimer = setInterval(() => loadingTick.value++, 2000)
 
@@ -1633,35 +1600,22 @@ async function startQuiz() {
     let jobId = (startData as unknown as StartResp)?.jobId
     if (!jobId) throw new Error('No se pudo iniciar la generación. Intenta de nuevo.')
 
-    // Poll until done or error.
-    const MAX_POLL_MS   = 5 * 60 * 1000   // 5 minutes
-    const POLL_INTERVAL = 1500             // faster polling for snappier UX
-    const POLL_REQ_TIMEOUT = 15_000        // 15 s per request
+    // Poll until done or error. First-time ingestion can be slow, so keep the UI waiting much longer.
+    const MAX_POLL_MS   = 110 * 60 * 1000
+    const POLL_INTERVAL = 2500
     const pollStart     = Date.now()
     const MAX_GEN_RETRIES = 2
-    const MAX_CONSECUTIVE_ERRORS = 6
     let   genRetries = 0
-    let   consecutiveErrors = 0
 
     type PollResp = { status: 'pending' | 'done' | 'error'; questions?: QuizQuestion[]; error?: string }
 
-    while (phase.value === 'loading' && !signal.aborted) {
+    while (phase.value === 'loading') {
       if (Date.now() - pollStart > MAX_POLL_MS) {
-        throw new Error('La generación tardó demasiado. Intenta de nuevo.')
+        throw new Error('La generación tardó demasiado. Intenta de nuevo o vuelve a abrir la sesión de refuerzo.')
       }
 
-      let pollReqTimer: ReturnType<typeof setTimeout> | null = null
       try {
-        const s = await Promise.race([
-          api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`),
-          new Promise<never>((_, reject) => {
-            pollReqTimer = setTimeout(() => reject(new Error('Timeout de solicitud')), POLL_REQ_TIMEOUT)
-          }),
-        ]).finally(() => {
-          if (pollReqTimer) { clearTimeout(pollReqTimer); pollReqTimer = null }
-        }) as unknown as PollResp
-
-        consecutiveErrors = 0
+        const s = await api.get<PollResp>(`/reinforcement/poll-generation/${jobId}`) as unknown as PollResp
 
         if (s?.status === 'done') {
           const raw: QuizQuestion[] = Array.isArray(s.questions) ? s.questions : []
@@ -1694,36 +1648,30 @@ async function startQuiz() {
           throw new Error(s.error || 'Error al generar preguntas')
         }
       } catch (e: unknown) {
-        if (signal.aborted) break
-
-        consecutiveErrors++
-        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          throw new Error('Demasiados errores consecutivos. Verifica tu conexión e intenta de nuevo.')
-        }
-
         // Only abort the poll loop for terminal job conditions or auth that can't recover.
+        // Network glitches, timeouts, and transient 5xx → continue polling.
         if (e instanceof Error) {
           const msg = e.message || ''
+          // Terminal: explicit job-level errors
           if (/expir[aoó]|no existe|error al generar|generation failed|no se pudieron generar/i.test(msg)) {
             throw e
           }
+          // Terminal: true auth failure (token refresh already attempted by httpClient)
           if (e instanceof HttpError && e.statusCode === 401) {
             throw e
           }
+          // Non-terminal: swallow and keep polling
         }
       }
 
       await wait(POLL_INTERVAL)
     }
   } catch (e: unknown) {
-    // If the component was unmounted (signal aborted), silently exit
-    if (signal.aborted) return
     let msg = 'Error al generar preguntas'
     if (e instanceof Error) msg = e.message
     showError(msg)
     phase.value = 'start'
   } finally {
-    pollAbort = null
     if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null }
   }
 }
@@ -1829,10 +1777,8 @@ function showError(msg: string) {
 }
 
 onUnmounted(() => {
-  pollAbort?.abort()
   if (loadingTimer)       clearInterval(loadingTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
-  if (cpuMoveTimer)       clearTimeout(cpuMoveTimer)
   stopSpeaking()
 })
 </script>
