@@ -7,6 +7,19 @@
         </button>
         <h1 class="header-title">Mis Materias</h1>
         <button
+          v-if="allSubjects.length"
+          class="report-btn"
+          :class="{ 'report-btn--pulse': reportPulse }"
+          @click="showReport = true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+        </button>
+        <button
           v-if="canCreate && allSubjects.length > 1"
           class="sort-btn"
           :class="{ 'sort-btn--active': isDragMode }"
@@ -127,6 +140,8 @@
         </div>
       </div>
     </Teleport>
+
+    <GradeReportModal v-model="showReport" :course-id="courseId" :subjects="allSubjects" />
   </div>
 </template>
 
@@ -141,6 +156,7 @@ import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/p
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 import { useSubjectSocket } from '@/composables/useSubjectSocket'
 import SubjectCard from './components/SubjectCard.vue'
+import GradeReportModal from './components/GradeReportModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,6 +178,11 @@ const courseExpired = ref(false)
 const subjectBlocks = ref<Record<number, string>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
 const enrollmentApproved = ref(false)
+const showReport = ref(false)
+const reportPulse = ref(true)
+
+// Disable pulse animation after first interaction
+watch(showReport, (v) => { if (v) reportPulse.value = false })
 
 // ── Drag & drop ordering ──
 const isDragMode = ref(false)
@@ -687,6 +708,39 @@ useSubjectSocket(courseId.value, {
 .header-title { flex: 1; font-size: 22px; font-weight: 700; color: #fff; }
 .add-btn { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
 .add-btn:hover { transform: scale(1.1); }
+.report-btn {
+  height: 40px;
+  min-width: 40px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BF5AF2;
+  padding: 0 10px;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+  position: relative;
+}
+.report-btn:hover {
+  background: rgba(191,90,242,0.15);
+  transform: scale(1.08);
+}
+.report-btn:active { transform: scale(0.95); }
+.report-btn--pulse::after {
+  content: '';
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #BF5AF2;
+  animation: report-dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes report-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
 .add-btn-placeholder { width: 40px; }
 
 .sort-btn {

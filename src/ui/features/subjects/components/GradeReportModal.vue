@@ -1,0 +1,528 @@
+<template>
+  <Teleport to="body">
+    <Transition name="report-fade">
+      <div v-if="modelValue" class="report-overlay" @click.self="$emit('update:modelValue', false)">
+        <div class="report-modal">
+          <!-- Header -->
+          <div class="report-header">
+            <div class="report-header-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </div>
+            <h2 class="report-title">Reporte de Notas</h2>
+            <button class="report-close" @click="$emit('update:modelValue', false)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+
+          <!-- Loading -->
+          <div v-if="loading" class="report-loading">
+            <div class="spinner-report" />
+            <p>Generando reporte...</p>
+          </div>
+
+          <!-- Content -->
+          <div v-else class="report-body">
+            <!-- Summary card -->
+            <div class="summary-card">
+              <div class="summary-stat">
+                <span class="summary-value">{{ subjects.length }}</span>
+                <span class="summary-label">Materias</span>
+              </div>
+              <div class="summary-divider" />
+              <div class="summary-stat">
+                <span class="summary-value">{{ totalTasks }}</span>
+                <span class="summary-label">Tareas</span>
+              </div>
+              <div class="summary-divider" />
+              <div class="summary-stat">
+                <span class="summary-value">{{ gradedCount }}</span>
+                <span class="summary-label">Calificadas</span>
+              </div>
+              <div class="summary-divider" />
+              <div class="summary-stat">
+                <span class="summary-value" :class="averageClass">{{ averageGrade }}</span>
+                <span class="summary-label">Promedio</span>
+              </div>
+            </div>
+
+            <!-- Subject rows -->
+            <div class="report-table">
+              <div v-for="group in reportData" :key="group.subjectId" class="report-subject-group">
+                <div class="subject-row-header">
+                  <span class="subject-name">{{ group.subjectName }}</span>
+                  <span class="subject-avg" :class="gradeClass(group.average)">{{ group.average ?? '—' }}</span>
+                </div>
+                <div v-if="group.tasks.length" class="task-rows">
+                  <div v-for="task in group.tasks" :key="task.id" class="task-row">
+                    <span class="task-name">{{ task.title }}</span>
+                    <span class="task-grade" :class="gradeClass(task.grade)">{{ task.grade ?? 'Sin nota' }}</span>
+                  </div>
+                </div>
+                <div v-else class="no-tasks">Sin tareas</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Export bar -->
+          <div v-if="!loading" class="report-export-bar">
+            <button class="export-btn export-pdf" @click="exportPDF">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+              PDF
+            </button>
+            <button class="export-btn export-excel" @click="exportExcel">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+              Excel
+            </button>
+            <button class="export-btn export-share" @click="shareReport">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+              Compartir
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import type { Subject, Task, TaskSubmission } from '@/domain/models'
+import { taskAdapter, topicAdapter } from '@/infrastructure/api'
+import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
+
+const props = defineProps<{
+  modelValue: boolean
+  courseId: number
+  subjects: Subject[]
+}>()
+
+defineEmits<{ 'update:modelValue': [value: boolean] }>()
+
+interface TaskReport { id: number; title: string; grade: number | null }
+interface SubjectReport { subjectId: number; subjectName: string; tasks: TaskReport[]; average: number | null }
+
+const loading = ref(false)
+const reportData = ref<SubjectReport[]>([])
+
+const totalTasks = computed(() => reportData.value.reduce((sum, g) => sum + g.tasks.length, 0))
+const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.tasks.filter(t => t.grade !== null).length, 0))
+const averageGrade = computed(() => {
+  const graded = reportData.value.flatMap(g => g.tasks).filter(t => t.grade !== null)
+  if (!graded.length) return '—'
+  const avg = graded.reduce((s, t) => s + t.grade!, 0) / graded.length
+  return avg.toFixed(1)
+})
+const averageClass = computed(() => gradeClass(parseFloat(averageGrade.value) || null))
+
+function gradeClass(grade: number | null): string {
+  if (grade === null || isNaN(grade)) return ''
+  if (grade >= 4) return 'grade-good'
+  if (grade >= 3) return 'grade-ok'
+  return 'grade-low'
+}
+
+watch(() => props.modelValue, async (open) => {
+  if (open && props.courseId) await fetchReport()
+})
+
+async function fetchReport() {
+  loading.value = true
+  try {
+    const [topics, tasks, submissions] = await Promise.all([
+      topicAdapter.getTopicsByCourse(props.courseId).catch(() => []),
+      taskAdapter.getTasksByCourse(props.courseId).catch(() => []),
+      submissionAdapter.getMySubmissions(1, 500).catch(() => []),
+    ])
+
+    const topicMap = new Map<number, number>() // topicId -> subjectId
+    for (const t of (topics as any[])) {
+      topicMap.set(t.id, t.courseId ?? t.course_id ?? t.subjectId ?? t.subject_id ?? 0)
+    }
+
+    const submissionMap = new Map<number, number | null>() // taskId -> grade
+    for (const s of (submissions as any[])) {
+      const taskId = s.task_id ?? s.taskId
+      submissionMap.set(taskId, s.grade ?? null)
+    }
+
+    const data: SubjectReport[] = props.subjects.map(subject => {
+      const subjectTopicIds = new Set(
+        (topics as any[]).filter(t => (t.courseId ?? t.course_id ?? t.subjectId ?? t.subject_id) === subject.id).map(t => t.id)
+      )
+      const subjectTasks = (tasks as any[]).filter(t => subjectTopicIds.has(t.topicId ?? t.topic_id))
+
+      const taskReports: TaskReport[] = subjectTasks.map(t => ({
+        id: t.id,
+        title: t.title ?? t.name ?? 'Sin título',
+        grade: submissionMap.get(t.id) ?? null,
+      }))
+
+      const graded = taskReports.filter(t => t.grade !== null)
+      const avg = graded.length ? graded.reduce((s, t) => s + t.grade!, 0) / graded.length : null
+
+      return { subjectId: subject.id, subjectName: subject.name, tasks: taskReports, average: avg ? parseFloat(avg.toFixed(1)) : null }
+    })
+
+    reportData.value = data
+  } catch { /* silent */ }
+  finally { loading.value = false }
+}
+
+// ── PDF export (print-based) ──
+function exportPDF() {
+  const html = buildPrintableHTML()
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+// ── Excel/CSV export ──
+function exportExcel() {
+  const BOM = '\uFEFF'
+  let csv = BOM + 'Materia,Tarea,Nota\n'
+  for (const group of reportData.value) {
+    if (!group.tasks.length) {
+      csv += `"${esc(group.subjectName)}","Sin tareas",""\n`
+    }
+    for (const task of group.tasks) {
+      csv += `"${esc(group.subjectName)}","${esc(task.title)}","${task.grade ?? ''}"\n`
+    }
+  }
+  csv += `\n"Promedio general","","${averageGrade.value}"\n`
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `reporte_notas_${Date.now()}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Share (Web Share API + fallback) ──
+async function shareReport() {
+  const text = buildShareText()
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Reporte de Notas', text })
+    } catch { /* cancelled */ }
+  } else {
+    await navigator.clipboard.writeText(text)
+    alert('Reporte copiado al portapapeles')
+  }
+}
+
+function esc(s: string) { return s.replace(/"/g, '""') }
+
+function buildShareText(): string {
+  let text = '📊 REPORTE DE NOTAS\n\n'
+  for (const group of reportData.value) {
+    text += `📘 ${group.subjectName} (Promedio: ${group.average ?? '—'})\n`
+    for (const task of group.tasks) {
+      text += `   • ${task.title}: ${task.grade ?? 'Sin nota'}\n`
+    }
+    text += '\n'
+  }
+  text += `📈 Promedio general: ${averageGrade.value}\n`
+  text += `📋 Total tareas: ${totalTasks.value} | Calificadas: ${gradedCount.value}`
+  return text
+}
+
+function buildPrintableHTML(): string {
+  let rows = ''
+  for (const group of reportData.value) {
+    rows += `<tr class="subject-header"><td colspan="3">${group.subjectName}</td></tr>`
+    if (!group.tasks.length) {
+      rows += `<tr><td></td><td colspan="2" style="color:#999">Sin tareas</td></tr>`
+    }
+    for (const task of group.tasks) {
+      const g = task.grade !== null ? task.grade : '—'
+      const color = task.grade !== null ? (task.grade >= 4 ? '#34C759' : task.grade >= 3 ? '#FF9500' : '#FF453A') : '#999'
+      rows += `<tr><td></td><td>${task.title}</td><td style="color:${color};font-weight:600;text-align:center">${g}</td></tr>`
+    }
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Reporte de Notas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:40px;color:#222}
+h1{font-size:22px;margin-bottom:4px}
+.subtitle{font-size:13px;color:#666;margin-bottom:24px}
+.summary{display:flex;gap:24px;margin-bottom:24px;padding:16px;background:#f5f5f5;border-radius:12px}
+.summary div{text-align:center}
+.summary .val{font-size:20px;font-weight:700;display:block}
+.summary .lbl{font-size:11px;color:#666;text-transform:uppercase}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:#666;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid #eee}
+td{padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
+.subject-header td{font-weight:700;font-size:14px;background:#f9f9f9;padding-top:14px}
+@media print{body{padding:20px}}
+</style></head><body>
+<h1>📊 Reporte de Notas</h1>
+<p class="subtitle">Generado el ${new Date().toLocaleDateString('es')}</p>
+<div class="summary">
+<div><span class="val">${props.subjects.length}</span><span class="lbl">Materias</span></div>
+<div><span class="val">${totalTasks.value}</span><span class="lbl">Tareas</span></div>
+<div><span class="val">${gradedCount.value}</span><span class="lbl">Calificadas</span></div>
+<div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
+</div>
+<table><thead><tr><th></th><th>Tarea</th><th style="text-align:center">Nota</th></tr></thead><tbody>
+${rows}
+</tbody></table></body></html>`
+}
+</script>
+
+<style scoped>
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.report-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  background: #1C1C1E;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: report-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes report-slide-up {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.report-fade-enter-active { transition: opacity 0.2s; }
+.report-fade-leave-active { transition: opacity 0.15s; }
+.report-fade-enter-from, .report-fade-leave-to { opacity: 0; }
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.report-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(191, 90, 242, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.report-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.report-close:hover { background: rgba(255, 255, 255, 0.12); }
+
+.report-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: #8E8E93;
+  font-size: 14px;
+}
+
+.spinner-report {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(191, 90, 242, 0.2);
+  border-top-color: #BF5AF2;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.report-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 16px 8px;
+  margin-bottom: 20px;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.summary-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.report-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-subject-group {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.subject-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(191, 90, 242, 0.08);
+}
+
+.subject-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.subject-avg {
+  font-size: 15px;
+  font-weight: 800;
+  color: #8E8E93;
+}
+
+.task-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.task-name {
+  font-size: 13px;
+  color: #ccc;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.task-grade {
+  font-size: 14px;
+  font-weight: 700;
+  color: #8E8E93;
+  flex-shrink: 0;
+}
+
+.no-tasks {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #636366;
+}
+
+.grade-good { color: #34C759 !important; }
+.grade-ok { color: #FF9500 !important; }
+.grade-low { color: #FF453A !important; }
+
+.report-export-bar {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.export-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.export-btn:active { transform: scale(0.96); }
+
+.export-pdf {
+  background: rgba(255, 69, 58, 0.12);
+  color: #FF6961;
+}
+
+.export-excel {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34C759;
+}
+
+.export-share {
+  background: rgba(0, 122, 255, 0.12);
+  color: #0A84FF;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
