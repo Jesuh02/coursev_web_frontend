@@ -242,15 +242,20 @@ async function fetchReport() {
         loadedCourses.value++
 
         // Build username → averageGrade map from progreso_curso table
+        // Also collect ALL enrolled students (even those with averageGrade = null)
         const progressByUsername: Record<string, number> = {}
+        const enrolledStudents: string[] = []
         for (const p of (progressRaw ?? [])) {
           const username = p.username ?? null
           const avg = p.averageGrade ?? null
-          if (username && avg != null) progressByUsername[username] = avg
+          if (username) {
+            enrolledStudents.push(username)
+            if (avg != null) progressByUsername[username] = Number(avg)
+          }
         }
 
         const subs: ReportRow[] = (subsRaw ?? []) as ReportRow[]
-        const rows = addNotSubmittedRows(subs)
+        const rows = addNotSubmittedRows(subs, enrolledStudents)
 
         return {
           courseId: course.id,
@@ -272,10 +277,12 @@ async function fetchReport() {
   }
 }
 
-// Add grade=0 rows for known students who haven't submitted specific tasks
-function addNotSubmittedRows(subs: ReportRow[]): ReportRow[] {
+// Add grade=0 rows for ALL enrolled students who haven't submitted specific tasks.
+// enrolledStudents: all students registered in the course (from progreso_curso table)
+function addNotSubmittedRows(subs: ReportRow[], enrolledStudents: string[] = []): ReportRow[] {
   const subjectTaskStudents = new Map<string, Map<string, Set<string>>>()
-  const knownStudents = new Set<string>()
+  // Seed with all enrolled students so even non-submitters appear in the report
+  const knownStudents = new Set<string>(enrolledStudents)
 
   for (const sub of subs) {
     const subjectName = sub.subjectName ?? '—'
@@ -289,7 +296,7 @@ function addNotSubmittedRows(subs: ReportRow[]): ReportRow[] {
     taskMap.get(taskName)!.add(student)
   }
 
-  if (!knownStudents.size) return subs
+  if (!knownStudents.size || !subjectTaskStudents.size) return subs
 
   const extra: ReportRow[] = []
   for (const [subjectName, taskMap] of subjectTaskStudents) {
