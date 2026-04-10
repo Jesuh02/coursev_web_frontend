@@ -150,6 +150,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
+import type ExcelJS from 'exceljs'
 import { api, courseAdapter } from '@/infrastructure/api'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -364,7 +365,7 @@ async function exportExcel() {
   }
 
   function applyHdr(row: ExcelJS.Row) {
-    row.eachCell(cell => {
+    row.eachCell((cell: ExcelJS.Cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
       cell.fill = hdrFill
       cell.border = thinBorder
@@ -432,7 +433,7 @@ async function exportExcel() {
         ])
 
         const rowFill = i % 2 === 0 ? row0Fill : row1Fill
-        dataRow.eachCell(cell => {
+        dataRow.eachCell((cell: ExcelJS.Cell) => {
           cell.fill = rowFill
           cell.border = thinBorder
           cell.font = { name: 'Calibri' }

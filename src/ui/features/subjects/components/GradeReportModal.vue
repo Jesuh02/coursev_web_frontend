@@ -128,6 +128,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
+import type ExcelJS from 'exceljs'
 import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -392,7 +393,7 @@ async function exportExcel() {
 
   // Header row
   const hdrRow = ws.addRow(['Estudiante', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
-  hdrRow.eachCell(cell => {
+  hdrRow.eachCell((cell: ExcelJS.Cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
     cell.fill = hdrFill
     cell.border = thinBorder
@@ -435,7 +436,7 @@ async function exportExcel() {
         fb,
       ])
       const rowFill = i % 2 === 0 ? row0Fill : row1Fill
-      dataRow.eachCell(cell => {
+      dataRow.eachCell((cell: ExcelJS.Cell) => {
         cell.fill = rowFill
         cell.border = thinBorder
         cell.font = { name: 'Calibri' }
