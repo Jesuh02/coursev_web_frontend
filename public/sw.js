@@ -48,9 +48,15 @@ self.addEventListener('fetch', (event) => {
                 if (cached) return cached
                 // SPA fallback: para navegación, devolver index.html cacheado
                 if (event.request.mode === 'navigate') {
-                    return caches.match('/index.html')
+                    return caches.match('/index.html').then((index) =>
+                        index || new Response('<!DOCTYPE html><html><body><h1>Offline</h1><p>No hay conexión a internet.</p></body></html>', {
+                            status: 503,
+                            headers: { 'Content-Type': 'text/html' },
+                        })
+                    )
                 }
-                return cached // undefined — deja que el browser muestre su error de red
+                // No devolver undefined — respondWith requiere un Response válido
+                return new Response('', { status: 503, statusText: 'Service Unavailable' })
             })
         )
     )

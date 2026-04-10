@@ -69,6 +69,11 @@ export const useNotificationStore = defineStore('notifications', () => {
     if (connectedUserId === userId && socket?.connected) return
     disconnectSocket()
     connectedUserId = userId
+
+    // No intentar conectar si no hay token de autenticación
+    const token = localStorage.getItem('auth_token')
+    if (!token) return
+
     socket = io(SOCKET_URL, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
