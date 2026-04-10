@@ -113,7 +113,7 @@ function handleClick(notification: Notification) {
 
     case 'video_like': {
       const videoId = extractId(meta, 'video_id', 'videoId') ?? relatedId
-      if (videoId) router.push({ name: 'videoDetails', params: { id: videoId } })
+      if (videoId) router.push({ name: 'videoHome', query: { videoId: String(videoId) } })
       break
     }
 
