@@ -2170,6 +2170,36 @@
             </label>
           </div>
 
+          <!-- Recurrence: once or every month -->
+          <div v-if="cycleType" class="cycle-recurrence-picker">
+            <label class="cycle-day-label">Aplicar:</label>
+            <div class="cycle-recurrence-row">
+              <button
+                class="cycle-recurrence-btn"
+                :class="{ active: cycleRecurrence === 'once' }"
+                @click="cycleRecurrence = 'once'"
+              >📅 Una sola vez</button>
+              <button
+                class="cycle-recurrence-btn"
+                :class="{ active: cycleRecurrence === 'every_month' }"
+                @click="cycleRecurrence = 'every_month'"
+              >🔁 Todos los meses</button>
+            </div>
+          </div>
+
+          <!-- Month selector (only when "once") -->
+          <div v-if="cycleType && cycleRecurrence === 'once'" class="cycle-month-picker">
+            <label class="cycle-day-label">Mes:</label>
+            <div class="cycle-month-grid">
+              <button
+                v-for="(name, idx) in CYCLE_MONTH_NAMES" :key="idx"
+                class="cycle-month-btn"
+                :class="{ selected: cycleSelectedMonth === idx }"
+                @click="cycleSelectedMonth = idx"
+              >{{ name }}</button>
+            </div>
+          </div>
+
           <div v-if="cycleType === 'monthly_day'" class="cycle-day-picker">
             <label class="cycle-day-label">Día del mes:</label>
             <div class="cycle-day-grid">
@@ -4952,6 +4982,9 @@ const datePickerTarget = ref<InstitutionAdmin | null>(null)
 const cycleType = ref<'monthly_start' | 'biweekly' | 'monthly_day' | ''>('')
 const cycleDay = ref(1)
 const cycleHour = ref(8)
+const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
+const cycleSelectedMonth = ref<number>(new Date().getMonth())
+const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
 
@@ -5037,6 +5070,15 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   cycleType.value = inst.billing_cycle_type || ''
   cycleDay.value = inst.billing_cycle_day || 1
   cycleHour.value = inst.billing_cycle_hour ?? 8
+  // If the institution has billing_cycle_months set, use 'once' mode
+  const savedMonths = (inst as any).billing_cycle_months
+  if (Array.isArray(savedMonths) && savedMonths.length > 0 && savedMonths.length < 12) {
+    cycleRecurrence.value = 'once'
+    cycleSelectedMonth.value = savedMonths[0] ?? new Date().getMonth()
+  } else {
+    cycleRecurrence.value = 'every_month'
+    cycleSelectedMonth.value = new Date().getMonth()
+  }
 }
 
 const formatBillingCycle = (inst: InstitutionAdmin) => {
@@ -5044,6 +5086,11 @@ const formatBillingCycle = (inst: InstitutionAdmin) => {
   const hourStr = ` a las ${String(inst.billing_cycle_hour ?? 8).padStart(2, '0')}:00`
   if (inst.billing_cycle_type === 'monthly_start') return `Inicio de mes (día 1)${hourStr}`
   if (inst.billing_cycle_type === 'biweekly') return `Quincenal (1 y 15)${hourStr}`
+  const savedMonths = (inst as any).billing_cycle_months as number[] | null
+  if (inst.billing_cycle_type === 'specific_months' && Array.isArray(savedMonths) && savedMonths.length > 0) {
+    const mLabels = savedMonths.sort((a: number, b: number) => a - b).map((i: number) => CYCLE_MONTH_NAMES[i] || '?').join(', ')
+    return `Día ${inst.billing_cycle_day || 1} de ${mLabels}${hourStr}`
+  }
   if (inst.billing_cycle_type === 'monthly_day') return `Día ${inst.billing_cycle_day || 1} de cada mes${hourStr}`
   return 'No configurado'
 }
@@ -5053,11 +5100,20 @@ const saveBillingCycle = async () => {
   if (!inst || !cycleType.value) return
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
+    const isOnce = cycleRecurrence.value === 'once'
+    const cyclePayload: { type: string; day?: number | null; hour?: number | null; months?: number[] } = {
+      type: isOnce ? 'specific_months' : cycleType.value,
+      day: cycleType.value === 'monthly_day' ? cycleDay.value : null,
+      hour: cycleHour.value,
+    }
+    if (isOnce) {
+      cyclePayload.months = [cycleSelectedMonth.value]
+    }
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
       null,
       inst.tenantId,
-      { type: cycleType.value, day: cycleType.value === 'monthly_day' ? cycleDay.value : null, hour: cycleHour.value },
+      cyclePayload,
     )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
@@ -9704,6 +9760,79 @@ watch(() => route.query, () => {
 }
 
 .cycle-day-btn.selected {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* Recurrence picker (once / every month) */
+.cycle-recurrence-picker {
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+
+.cycle-recurrence-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cycle-recurrence-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.4);
+  color: #8E8E93;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.cycle-recurrence-btn:hover {
+  background: rgba(44, 44, 46, 0.7);
+  color: #EBEBF5;
+}
+
+.cycle-recurrence-btn.active {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: #0A84FF;
+  color: #0A84FF;
+}
+
+/* Month selector grid */
+.cycle-month-picker {
+  margin-top: 14px;
+}
+
+.cycle-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cycle-month-btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.15s ease;
+}
+
+.cycle-month-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cycle-month-btn.selected {
   background: linear-gradient(135deg, #0A84FF, #5E5CE6);
   color: #fff;
   border-color: transparent;
