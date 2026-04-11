@@ -50,6 +50,8 @@ export interface InstitutionBillingStatus {
 export interface InstitutionAdmin extends Institucion {
   is_active?: boolean
   payment_due_date?: string | null
+  billing_cycle_type?: 'monthly_start' | 'biweekly' | 'monthly_day' | null
+  billing_cycle_day?: number | null
   is_suspended?: boolean
   suspended_at?: string | null
   suspended_reason?: string | null
@@ -77,7 +79,7 @@ export interface InstitutionPayment {
 export const institucionAdapter: InstitucionPort & {
   getMyBillingStatus(): Promise<InstitutionBillingStatus>
   getAllAdmin(): Promise<InstitutionAdmin[]>
-  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string): Promise<InstitutionAdmin>
+  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null }): Promise<InstitutionAdmin>
   suspendInstitution(id: number, reason?: string, tenantId?: string): Promise<InstitutionAdmin>
   unsuspendInstitution(id: number, tenantId?: string): Promise<InstitutionAdmin>
   initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
@@ -103,8 +105,12 @@ export const institucionAdapter: InstitucionPort & {
 
   getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
 
-  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string) =>
-    api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, { payment_due_date: dueDate, tenantId }),
+  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null }) =>
+    api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, {
+      payment_due_date: dueDate,
+      tenantId,
+      ...(billingCycle ? { billing_cycle_type: billingCycle.type, billing_cycle_day: billingCycle.day } : {}),
+    }),
 
   suspendInstitution: (id: number, reason?: string, tenantId?: string) =>
     api.post<InstitutionAdmin>(`/instituciones/${id}/suspend`, { reason, tenantId }),

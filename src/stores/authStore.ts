@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
     tokenStorage.username = user.value?.username ?? null
   }
 
-  const isAdmin = computed(() => hasRole(3))
+  const isAdmin = computed(() => hasRole(3) || hasRole(4))
   const isDocente = computed(() => hasRole(2))
   const isAdminOrDocente = computed(() => isAdmin.value || isDocente.value)
   const isCreator = computed(() => isAdmin.value || isDocente.value)

@@ -191,6 +191,7 @@ const infoStudents = ref<{ userId: number; username: string }[]>([])
 const canManageCourses = computed(() => authStore.isAdmin)
 const userRole = computed(() => {
   const roles = authStore.user?.roles ?? []
+  if (roles.some(r => r.id === 4)) return 3
   if (roles.some(r => r.id === 3)) return 3
   if (roles.some(r => r.id === 2)) return 2
   return 1
@@ -229,7 +230,7 @@ const newCoursesStat = computed(() => {
   }).length
 })
 
-const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3))
+const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3) && !authStore.hasRole(4))
 
 const accessDeniedMessage = ref(false)
 const accessDeniedText = ref('No tienes acceso a este curso.')

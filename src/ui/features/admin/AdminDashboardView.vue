@@ -1835,13 +1835,16 @@
             <!-- Payment info -->
             <div class="inst-payment-row">
               <div class="inst-payment-info">
-                <span class="inst-payment-label">Fecha de pago:</span>
+                <span class="inst-payment-label">Ciclo de pago:</span>
                 <span class="inst-payment-value" :class="{ 'is-overdue': inst.payment_due_date && new Date(inst.payment_due_date) < new Date() }">
-                  {{ inst.payment_due_date ? formatDate(inst.payment_due_date) : 'No definida' }}
+                  {{ formatBillingCycle(inst) }}
+                </span>
+                <span v-if="inst.payment_due_date" class="inst-payment-next">
+                  Próximo cobro: {{ formatDate(inst.payment_due_date) }}
                 </span>
               </div>
               <div class="inst-actions">
-                <button class="inst-action-btn inst-date-btn" @click="openDatePicker(inst)" title="Establecer fecha de pago">
+                <button class="inst-action-btn inst-date-btn" @click="openCyclePicker(inst)" title="Configurar ciclo de pago">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </button>
                 <button
@@ -1898,15 +1901,51 @@
         </div>
       </template>
 
-      <!-- Date picker modal -->
+      <!-- Billing cycle picker modal -->
       <div v-if="datePickerTarget" class="inst-modal-overlay" @click.self="datePickerTarget = null">
         <div class="inst-modal">
-          <h3>Fecha de Pago</h3>
+          <h3>Ciclo de Pago</h3>
           <p class="inst-modal-sub">{{ datePickerTarget.nombre }}</p>
-          <input v-model="datePickerValue" type="date" class="inst-date-input" />
+
+          <div class="cycle-options">
+            <label class="cycle-option" :class="{ active: cycleType === 'monthly_start' }">
+              <input type="radio" v-model="cycleType" value="monthly_start" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Inicio de mes</span>
+                <span class="cycle-option-desc">Cobro el día 1 de cada mes</span>
+              </div>
+            </label>
+            <label class="cycle-option" :class="{ active: cycleType === 'biweekly' }">
+              <input type="radio" v-model="cycleType" value="biweekly" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Quincenal</span>
+                <span class="cycle-option-desc">Cobro el 1 y el 15 de cada mes</span>
+              </div>
+            </label>
+            <label class="cycle-option" :class="{ active: cycleType === 'monthly_day' }">
+              <input type="radio" v-model="cycleType" value="monthly_day" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Día específico del mes</span>
+                <span class="cycle-option-desc">Selecciona el día del mes para el cobro</span>
+              </div>
+            </label>
+          </div>
+
+          <div v-if="cycleType === 'monthly_day'" class="cycle-day-picker">
+            <label class="cycle-day-label">Día del mes:</label>
+            <div class="cycle-day-grid">
+              <button
+                v-for="d in 28" :key="d"
+                class="cycle-day-btn"
+                :class="{ selected: cycleDay === d }"
+                @click="cycleDay = d"
+              >{{ d }}</button>
+            </div>
+          </div>
+
           <div class="inst-modal-actions">
             <button class="inst-modal-btn inst-modal-cancel" @click="datePickerTarget = null">Cancelar</button>
-            <button class="inst-modal-btn inst-modal-save" :disabled="institutionProcessing[datePickerTarget.id]" @click="savePaymentDueDate">
+            <button class="inst-modal-btn inst-modal-save" :disabled="institutionProcessing[datePickerTarget.id] || !cycleType" @click="saveBillingCycle">
               {{ institutionProcessing[datePickerTarget.id] ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
@@ -2054,7 +2093,7 @@ const hasAdminRole = computed(() => {
   return authStore.isAdmin || roles.some((role: any) => {
     const roleId = Number(role?.id)
     const roleName = String(role?.nombre || '').toLowerCase()
-    return roleId === 3 || roleName === 'admin'
+    return roleId === 3 || roleId === 4 || roleName === 'admin'
   })
 })
 
@@ -4428,7 +4467,8 @@ const institutionsLoading = ref(false)
 const institutionSearch = ref('')
 const institutionProcessing = ref<Record<number, boolean>>({})
 const datePickerTarget = ref<InstitutionAdmin | null>(null)
-const datePickerValue = ref('')
+const cycleType = ref<'monthly_start' | 'biweekly' | 'monthly_day' | ''>('')
+const cycleDay = ref(1)
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
 
@@ -4483,22 +4523,36 @@ const loadInstitutions = async () => {
   }
 }
 
-const openDatePicker = (inst: InstitutionAdmin) => {
+const openCyclePicker = (inst: InstitutionAdmin) => {
   datePickerTarget.value = inst
-  datePickerValue.value = inst.payment_due_date ? inst.payment_due_date.split('T')[0] : ''
+  cycleType.value = inst.billing_cycle_type || ''
+  cycleDay.value = inst.billing_cycle_day || 1
 }
 
-const savePaymentDueDate = async () => {
+const formatBillingCycle = (inst: InstitutionAdmin) => {
+  if (!inst.billing_cycle_type) return 'No configurado'
+  if (inst.billing_cycle_type === 'monthly_start') return 'Inicio de mes (día 1)'
+  if (inst.billing_cycle_type === 'biweekly') return 'Quincenal (1 y 15)'
+  if (inst.billing_cycle_type === 'monthly_day') return `Día ${inst.billing_cycle_day || 1} de cada mes`
+  return 'No configurado'
+}
+
+const saveBillingCycle = async () => {
   const inst = datePickerTarget.value
-  if (!inst) return
+  if (!inst || !cycleType.value) return
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
-    const updated = await institucionAdapter.setPaymentDueDate(inst.id, datePickerValue.value || null, inst.tenantId)
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      null,
+      inst.tenantId,
+      { type: cycleType.value, day: cycleType.value === 'monthly_day' ? cycleDay.value : null },
+    )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
     datePickerTarget.value = null
   } catch (e) {
-    console.error('Error setting payment due date:', e)
+    console.error('Error setting billing cycle:', e)
   } finally {
     institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
   }
@@ -9005,5 +9059,106 @@ watch(() => route.query, () => {
 .inst-modal-danger {
   background: linear-gradient(135deg, #FF453A, #FF3B30);
   color: #fff;
+}
+
+/* ─── Billing Cycle Picker ─── */
+.cycle-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cycle-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cycle-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cycle-option.active {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.cycle-option input[type="radio"] {
+  accent-color: #8B5CF6;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.cycle-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cycle-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.cycle-option-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.cycle-day-picker {
+  margin-top: 4px;
+}
+
+.cycle-day-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.cycle-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cycle-day-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.cycle-day-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cycle-day-btn.selected {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.inst-payment-next {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
 }
 </style>
