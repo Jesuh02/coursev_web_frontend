@@ -70,7 +70,7 @@
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <p class="payment-suspended-msg">La mensualidad se ha vencido, por favor realiza el pago.</p>
+        <p class="payment-suspended-msg">Tu institución ha sido suspendida. Contacta al administrador.</p>
         <p v-if="suspendedInstitutionName" class="payment-suspended-inst">{{ suspendedInstitutionName }}</p>
         <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
           ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP

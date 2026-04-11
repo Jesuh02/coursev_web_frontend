@@ -1813,15 +1813,15 @@
               <div class="billing-cal-title-row">
                 <select
                   class="billing-select billing-select-sm billing-month-select"
-                  v-model.number="billingCalMonth"
-                  @change="billingSelectedDay = null"
+                  :value="billingCalMonth"
+                  @change="billingCalMonth = +($event.target as any).value; billingSelectedDay = null"
                 >
                   <option v-for="(name, idx) in ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']" :key="idx" :value="idx">{{ name }}</option>
                 </select>
                 <select
                   class="billing-select billing-select-sm billing-year-select"
-                  v-model.number="billingCalYear"
-                  @change="billingSelectedDay = null"
+                  :value="billingCalYear"
+                  @change="billingCalYear = +($event.target as any).value; billingSelectedDay = null"
                 >
                   <option v-for="y in Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)" :key="y" :value="y">{{ y }}</option>
                 </select>
