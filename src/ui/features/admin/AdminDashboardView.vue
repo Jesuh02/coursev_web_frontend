@@ -1810,7 +1810,22 @@
               <button class="billing-cal-nav" @click="billingCalPrevMonth">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <span class="billing-cal-title">{{ billingCalMonthLabel }}</span>
+              <div class="billing-cal-title-row">
+                <select
+                  class="billing-select billing-select-sm billing-month-select"
+                  v-model.number="billingCalMonth"
+                  @change="billingSelectedDay = null"
+                >
+                  <option v-for="(name, idx) in ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']" :key="idx" :value="idx">{{ name }}</option>
+                </select>
+                <select
+                  class="billing-select billing-select-sm billing-year-select"
+                  v-model.number="billingCalYear"
+                  @change="billingSelectedDay = null"
+                >
+                  <option v-for="y in Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)" :key="y" :value="y">{{ y }}</option>
+                </select>
+              </div>
               <button class="billing-cal-nav" @click="billingCalNextMonth">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
@@ -9683,11 +9698,23 @@ watch(() => route.query, () => {
   margin-bottom: 14px;
 }
 
-.billing-cal-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-  text-transform: capitalize;
+.billing-cal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.billing-month-select,
+.billing-year-select {
+  min-width: 0;
+  flex: 1;
+  max-width: 130px;
+}
+
+.billing-year-select {
+  max-width: 80px;
 }
 
 .billing-cal-nav {
