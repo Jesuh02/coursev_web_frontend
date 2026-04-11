@@ -54,6 +54,17 @@ export class GoogleAccountNotFoundError extends Error {
 }
 
 /**
+ * Thrown when the user's institution has been suspended by the super-admin.
+ * Login is blocked until the institution is reactivated.
+ */
+export class InstitutionSuspendedError extends Error {
+  constructor(message?: string) {
+    super(message || 'Tu institución ha sido suspendida. Contacta al administrador.')
+    this.name = 'InstitutionSuspendedError'
+  }
+}
+
+/**
  * Attempts login by probing ALL configured backend servers in parallel.
  * Each server searches its own registered tenant databases via cross-tenant-login.
  * If a user is found on more than one server/tenant, throws MultipleTenantError.
@@ -100,6 +111,10 @@ function isGoogleAccountNotFoundError(err: Error): boolean {
   return /usuario no encontrado en ninguna instituci[oó]n/i.test(err.message)
 }
 
+function isInstitutionSuspendedError(err: Error): boolean {
+  return /suspendida|suspended/i.test(err.message)
+}
+
 async function probeAllServers(
   path: string,
   body: Record<string, unknown>,
@@ -111,6 +126,7 @@ async function probeAllServers(
   let lastError: Error | null = null
   let cedulaRequired = false
   let googleNotFoundCount = 0
+  let suspendedError: InstitutionSuspendedError | null = null
 
   for (const result of settled) {
     if (result.status === 'fulfilled') {
@@ -119,6 +135,8 @@ async function probeAllServers(
       const err = result.reason instanceof Error ? result.reason : new Error(String(result.reason))
       if (err instanceof CedulaRequiredError) {
         cedulaRequired = true
+      } else if (isInstitutionSuspendedError(err)) {
+        suspendedError = new InstitutionSuspendedError(err.message)
       } else if (path === '/auth/cross-tenant-google' && isGoogleAccountNotFoundError(err)) {
         googleNotFoundCount++
       } else {
@@ -131,6 +149,7 @@ async function probeAllServers(
   }
 
   if (allMatches.length === 0) {
+    if (suspendedError) throw suspendedError
     if (cedulaRequired) throw new CedulaRequiredError()
     if (path === '/auth/cross-tenant-google' && googleNotFoundCount === settled.length) {
       throw new GoogleAccountNotFoundError()

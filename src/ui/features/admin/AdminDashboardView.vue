@@ -1760,6 +1760,112 @@
     </div>
 
     <!-- Instituciones Tab (SuperAdmin) -->
+    <!-- Billing / Cobro Tab -->
+    <div v-if="activeTab === 'billing' && hasSuperAdminRole" class="tab-content billing-tab">
+      <div class="a-card">
+        <div class="a-card-header">
+          <h3>Programar Cobro</h3>
+          <span class="a-tag a-tag-red">Facturación</span>
+        </div>
+        <p class="billing-desc">Selecciona la fecha, día del mes y hora en que se iniciará el cobro. Los usuarios con rol administrador de institución verán avisos de pago en toda la aplicación.</p>
+
+        <!-- Institution selector -->
+        <div class="billing-inst-selector">
+          <label class="billing-label">Institución:</label>
+          <select v-model="billingSelectedInstId" class="billing-select" @change="onBillingInstChange">
+            <option :value="null" disabled>Seleccionar institución...</option>
+            <option v-for="inst in institutions" :key="`${inst.tenantId||'_'}-${inst.id}`" :value="inst.id">
+              {{ inst.nombre }} {{ inst.tenantName ? `(${inst.tenantName})` : '' }}
+            </option>
+          </select>
+        </div>
+
+        <template v-if="billingSelectedInstId">
+          <!-- Calendar month picker -->
+          <div class="billing-calendar">
+            <div class="billing-cal-header">
+              <button class="billing-cal-nav" @click="billingCalPrevMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="billing-cal-title">{{ billingCalMonthLabel }}</span>
+              <button class="billing-cal-nav" @click="billingCalNextMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <div class="billing-cal-weekdays">
+              <span v-for="wd in ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']" :key="wd">{{ wd }}</span>
+            </div>
+            <div class="billing-cal-grid">
+              <button
+                v-for="cell in billingCalCells"
+                :key="cell.key"
+                class="billing-cal-day"
+                :class="{
+                  'is-other-month': !cell.currentMonth,
+                  'is-selected': cell.day === billingSelectedDay && cell.currentMonth,
+                  'is-today': cell.isToday && cell.currentMonth,
+                }"
+                :disabled="!cell.currentMonth"
+                @click="billingSelectedDay = cell.day"
+              >{{ cell.day }}</button>
+            </div>
+          </div>
+
+          <!-- Hour picker -->
+          <div class="billing-hour-row">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Hora del cobro:
+            </label>
+            <select v-model="billingSelectedHour" class="billing-select billing-select-sm">
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
+            </select>
+          </div>
+
+          <!-- Summary -->
+          <div class="billing-summary">
+            <div class="billing-summary-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="billing-summary-text">
+              <span class="billing-summary-label">Fecha de cobro programada:</span>
+              <span class="billing-summary-value">{{ billingFormattedDate }}</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="billing-actions">
+            <button
+              class="billing-btn billing-btn-danger"
+              :disabled="billingSaving"
+              @click="clearBillingDate"
+              v-if="billingCurrentInst?.billing_cycle_type || billingCurrentInst?.payment_due_date"
+            >
+              {{ billingSaving ? 'Eliminando...' : 'Eliminar fecha de cobro' }}
+            </button>
+            <button
+              class="billing-btn billing-btn-save"
+              :disabled="billingSaving || !billingSelectedDay"
+              @click="saveBillingDate"
+            >
+              {{ billingSaving ? 'Guardando...' : 'Programar cobro' }}
+            </button>
+          </div>
+
+          <!-- Current status -->
+          <div v-if="billingCurrentInst?.payment_due_date" class="billing-current-status">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Cobro actual configurado: <strong>{{ formatDate(billingCurrentInst.payment_due_date) }}</strong></span>
+          </div>
+        </template>
+
+        <div v-else class="billing-empty">
+          <span class="emoji">📅</span>
+          <p>Selecciona una institución para configurar la fecha de cobro</p>
+        </div>
+      </div>
+    </div>
+
     <div v-if="activeTab === 'institutions' && hasSuperAdminRole" class="tab-content institutions-tab">
       <div v-if="institutionsLoading" class="a-loading">
         <div class="spinner-lg"></div>
@@ -1954,6 +2060,14 @@
           </div>
 
           <div class="inst-modal-actions">
+            <button
+              v-if="datePickerTarget.billing_cycle_type"
+              class="inst-modal-btn inst-modal-danger-soft"
+              :disabled="institutionProcessing[datePickerTarget.id]"
+              @click="removeBillingCycle"
+            >
+              {{ institutionProcessing[datePickerTarget.id] ? 'Eliminando...' : 'Eliminar ciclo' }}
+            </button>
             <button class="inst-modal-btn inst-modal-cancel" @click="datePickerTarget = null">Cancelar</button>
             <button class="inst-modal-btn inst-modal-save" :disabled="institutionProcessing[datePickerTarget.id] || !cycleType" @click="saveBillingCycle">
               {{ institutionProcessing[datePickerTarget.id] ? 'Guardando...' : 'Guardar' }}
@@ -2219,6 +2333,7 @@ const allTabs = [
   { id: 'certificates', label: 'Certificados', adminOnly: true },
   { id: 'activation', label: 'Activación', adminOnly: true },
   { id: 'enrollment', label: 'Matrícula', adminOnly: true },
+  { id: 'billing', label: 'Cobro', adminOnly: true, superAdminOnly: true },
   { id: 'institutions', label: 'Instituciones', adminOnly: true, superAdminOnly: true },
 ]
 
@@ -2252,6 +2367,9 @@ watch(activeTab, (tab) => {
     }
   }
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
+    loadInstitutions()
+  }
+  if (tab === 'billing' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
   }
 })
@@ -4471,6 +4589,128 @@ const loadPendingTasksWithSubjects = async (myProgress: any[], prefetchedSubmiss
   }
 }
 
+// ─── Billing / Cobro tab state ────────────────────────────────────────────
+const billingSelectedInstId = ref<number | null>(null)
+const billingCalMonth = ref(new Date().getMonth())
+const billingCalYear = ref(new Date().getFullYear())
+const billingSelectedDay = ref<number | null>(null)
+const billingSelectedHour = ref(8)
+const billingSaving = ref(false)
+
+const billingCurrentInst = computed(() =>
+  institutions.value.find(i => i.id === billingSelectedInstId.value) ?? null
+)
+
+const billingCalMonthLabel = computed(() => {
+  const d = new Date(billingCalYear.value, billingCalMonth.value, 1)
+  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+})
+
+const billingCalCells = computed(() => {
+  const year = billingCalYear.value
+  const month = billingCalMonth.value
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const daysInPrevMonth = new Date(year, month, 0).getDate()
+  const today = new Date()
+  const cells: { key: string; day: number; currentMonth: boolean; isToday: boolean }[] = []
+
+  // Previous month trailing days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i
+    cells.push({ key: `prev-${d}`, day: d, currentMonth: false, isToday: false })
+  }
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+    cells.push({ key: `cur-${d}`, day: d, currentMonth: true, isToday })
+  }
+  // Next month leading days to fill grid
+  const remaining = 42 - cells.length
+  for (let d = 1; d <= remaining; d++) {
+    cells.push({ key: `next-${d}`, day: d, currentMonth: false, isToday: false })
+  }
+  return cells
+})
+
+const billingFormattedDate = computed(() => {
+  if (!billingSelectedDay.value) return 'Sin fecha seleccionada'
+  const d = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value)
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
+    ` a las ${String(billingSelectedHour.value).padStart(2, '0')}:00`
+})
+
+const billingCalPrevMonth = () => {
+  if (billingCalMonth.value === 0) {
+    billingCalMonth.value = 11
+    billingCalYear.value--
+  } else {
+    billingCalMonth.value--
+  }
+}
+
+const billingCalNextMonth = () => {
+  if (billingCalMonth.value === 11) {
+    billingCalMonth.value = 0
+    billingCalYear.value++
+  } else {
+    billingCalMonth.value++
+  }
+}
+
+const onBillingInstChange = () => {
+  const inst = billingCurrentInst.value
+  if (inst?.payment_due_date) {
+    const d = new Date(inst.payment_due_date)
+    if (!isNaN(d.getTime())) {
+      billingCalYear.value = d.getFullYear()
+      billingCalMonth.value = d.getMonth()
+      billingSelectedDay.value = d.getDate()
+      billingSelectedHour.value = d.getHours()
+      return
+    }
+  }
+  billingSelectedDay.value = null
+  billingSelectedHour.value = 8
+}
+
+const saveBillingDate = async () => {
+  const inst = billingCurrentInst.value
+  if (!inst || !billingSelectedDay.value) return
+  billingSaving.value = true
+  try {
+    const dueDate = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value)
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      dueDate.toISOString(),
+      inst.tenantId,
+      { type: 'monthly_day', day: billingSelectedDay.value, hour: billingSelectedHour.value },
+    )
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+  } catch (e) {
+    console.error('Error saving billing date:', e)
+  } finally {
+    billingSaving.value = false
+  }
+}
+
+const clearBillingDate = async () => {
+  const inst = billingCurrentInst.value
+  if (!inst) return
+  billingSaving.value = true
+  try {
+    const updated = await institucionAdapter.setPaymentDueDate(inst.id, null, inst.tenantId, undefined, true)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    billingSelectedDay.value = null
+  } catch (e) {
+    console.error('Error clearing billing date:', e)
+  } finally {
+    billingSaving.value = false
+  }
+}
+
 // ─── Institutions (SuperAdmin) state ─────────────────────────────────────
 const institutions = ref<InstitutionAdmin[]>([])
 const institutionsLoading = ref(false)
@@ -4566,6 +4806,28 @@ const saveBillingCycle = async () => {
     datePickerTarget.value = null
   } catch (e) {
     console.error('Error setting billing cycle:', e)
+  } finally {
+    institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
+  }
+}
+
+const removeBillingCycle = async () => {
+  const inst = datePickerTarget.value
+  if (!inst) return
+  institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
+  try {
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      null,
+      inst.tenantId,
+      undefined,
+      true,
+    )
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    datePickerTarget.value = null
+  } catch (e) {
+    console.error('Error removing billing cycle:', e)
   } finally {
     institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
   }
@@ -9202,6 +9464,308 @@ watch(() => route.query, () => {
 .cycle-hour-select option {
   background: #2C2C2E;
   color: #fff;
+}
+
+.inst-modal-danger-soft {
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff8a84;
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
+
+.inst-modal-danger-soft:hover {
+  background: rgba(255, 69, 58, 0.18);
+}
+
+/* ═══════ Billing / Cobro Tab ═══════ */
+.billing-tab {
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.billing-desc {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.a-tag-red {
+  background: rgba(255, 59, 48, 0.14);
+  color: #FF3B30;
+}
+
+.billing-inst-selector {
+  margin-bottom: 20px;
+}
+
+.billing-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8E8E93;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.billing-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.billing-select:focus {
+  border-color: rgba(10,132,255,0.5);
+}
+
+.billing-select option {
+  background: #1c1c1e;
+  color: #fff;
+}
+
+.billing-select-sm {
+  width: auto;
+  min-width: 120px;
+}
+
+/* Calendar */
+.billing-calendar {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.billing-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.billing-cal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.billing-cal-nav {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.billing-cal-nav:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.billing-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.billing-cal-weekdays span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #636366;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.billing-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.billing-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.billing-cal-day:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+}
+
+.billing-cal-day.is-other-month {
+  color: #3a3a3c;
+  cursor: default;
+}
+
+.billing-cal-day.is-today {
+  border-color: rgba(10,132,255,0.4);
+  color: #0A84FF;
+}
+
+.billing-cal-day.is-selected {
+  background: #FF3B30;
+  color: #fff;
+  font-weight: 700;
+  border-color: #FF3B30;
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.3);
+}
+
+/* Hour picker */
+.billing-hour-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.billing-hour-row .billing-label {
+  margin-bottom: 0;
+}
+
+/* Summary */
+.billing-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.billing-summary-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 59, 48, 0.15);
+  border-radius: 10px;
+  color: #FF3B30;
+}
+
+.billing-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.billing-summary-label {
+  font-size: 11px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.billing-summary-value {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Actions */
+.billing-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.billing-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.billing-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.billing-btn-save {
+  background: #FF3B30;
+  color: #fff;
+}
+
+.billing-btn-save:hover:not(:disabled) {
+  background: #e0332a;
+}
+
+.billing-btn-danger {
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff8a84;
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
+
+.billing-btn-danger:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.2);
+}
+
+/* Current status */
+.billing-current-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #30D158;
+  padding: 10px 14px;
+  background: rgba(48, 209, 88, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(48, 209, 88, 0.15);
+}
+
+.billing-current-status strong {
+  color: #fff;
+}
+
+.billing-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #636366;
+}
+
+.billing-empty .emoji {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.billing-empty p {
+  font-size: 14px;
+  margin: 0;
 }
 </style>
 

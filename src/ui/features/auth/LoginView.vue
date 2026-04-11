@@ -80,7 +80,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError } from '@/infrastructure/api/tenantResolver'
+import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError, InstitutionSuspendedError } from '@/infrastructure/api/tenantResolver'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
@@ -292,6 +292,8 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
       pendingMatches.value = e.matches
     } else if (e instanceof GoogleAccountNotFoundError) {
       error.value = 'Usuario no encontrado'
+    } else if (e instanceof InstitutionSuspendedError) {
+      error.value = e.message
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
     }
@@ -316,6 +318,8 @@ async function handleLogin(username: string, password: string) {
       error.value = 'Tu cédula es necesaria para identificar tu cuenta entre varias instituciones'
     } else if (e instanceof MultipleTenantError) {
       pendingMatches.value = e.matches
+    } else if (e instanceof InstitutionSuspendedError) {
+      error.value = e.message
     } else {
       error.value = e instanceof Error ? e.message : 'Credenciales incorrectas'
     }

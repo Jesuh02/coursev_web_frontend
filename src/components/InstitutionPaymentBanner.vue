@@ -1,85 +1,54 @@
 <template>
   <Teleport to="body">
+    <!-- Floating red notice bar (non-invasive) -->
     <transition name="notice-fade">
-      <div v-if="showBanner && !dismissed" class="payment-notice">
+      <div v-if="showBanner && !billingStore.dismissed" class="payment-notice">
         <span class="payment-notice-dot"></span>
         <span class="payment-notice-text">
-          Pago vencido{{ dueDate ? ` · ${formattedDueDate}` : '' }}
+          Pago vencido{{ billingStore.formattedDueDate ? ` · ${billingStore.formattedDueDate}` : '' }}
         </span>
         <button class="payment-notice-pay" @click.stop="handlePay">Pagar</button>
-        <button class="payment-notice-close" @click.stop="dismiss" aria-label="Cerrar">
+        <button class="payment-notice-close" @click.stop="billingStore.dismiss()" aria-label="Cerrar">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
+      </div>
+    </transition>
+
+    <!-- Top red stripe banner (always visible when overdue, cannot be dismissed) -->
+    <transition name="stripe-slide">
+      <div v-if="showBanner" class="payment-stripe">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Servicio pendiente de pago{{ billingStore.formattedDueDate ? ` — Vence: ${billingStore.formattedDueDate}` : '' }}</span>
       </div>
     </transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useBillingStore } from '@/stores/billingStore'
 import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
+import { ref } from 'vue'
 
 const authStore = useAuthStore()
-const paymentOverdue = ref(false)
-const dueDate = ref<string | null>(null)
-const institutionId = ref<number | null>(null)
-const dismissed = ref(false)
+const billingStore = useBillingStore()
 const loading = ref(false)
 
-const isAdmin = computed(() => {
-  const roles = authStore.user?.roles ?? []
-  return roles.some((r: any) => Number(r.id) === 3)
-})
-
-const isSuperAdmin = computed(() => {
-  const roles = authStore.user?.roles ?? []
-  return roles.some((r: any) => Number(r.id) === 4)
-})
-
-const showBanner = computed(() =>
-  isAdmin.value && !isSuperAdmin.value && paymentOverdue.value && !dismissed.value
-)
-
-const formattedDueDate = computed(() => {
-  if (!dueDate.value) return ''
-  const d = new Date(dueDate.value)
-  return isNaN(d.getTime())
-    ? dueDate.value
-    : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-})
-
-async function checkBillingStatus() {
-  if (!authStore.isAuthenticated || !isAdmin.value || isSuperAdmin.value) return
-  try {
-    const status = await institucionAdapter.getMyBillingStatus()
-    paymentOverdue.value = Boolean(status.paymentOverdue)
-    dueDate.value = status.paymentDueDate ?? null
-    // Store institution id from user persona
-    institutionId.value = authStore.user?.personaId ? (authStore.user as any).persona?.institucion_id ?? null : null
-  } catch {
-    paymentOverdue.value = false
-  }
-}
-
-function dismiss() {
-  dismissed.value = true
-}
+const showBanner = computed(() => billingStore.shouldShowWarning)
 
 async function handlePay() {
   if (loading.value) return
-  const instId = institutionId.value
+  const instId = authStore.user?.personaId ? (authStore.user as any).persona?.institucion_id ?? null : null
   if (!instId) {
-    // Fallback: try to get id from the billing status
     window.open('https://coursev.com/contacto', '_blank')
     return
   }
   loading.value = true
   try {
-    const result = await institucionAdapter.initiateBillingPayment(instId, 100000) // default amount
+    const result = await institucionAdapter.initiateBillingPayment(instId, 100000)
     window.open(result.checkoutUrl, '_blank')
   } catch {
-    // Fallback
     window.open('https://coursev.com/contacto', '_blank')
   } finally {
     loading.value = false
@@ -87,20 +56,53 @@ async function handlePay() {
 }
 
 onMounted(() => {
-  if (authStore.user?.id) checkBillingStatus()
+  if (authStore.user?.id) billingStore.checkBillingStatus()
 })
 
 watch(() => authStore.user?.id, (newId) => {
   if (newId) {
-    dismissed.value = false
-    checkBillingStatus()
+    billingStore.$reset()
+    billingStore.checkBillingStatus()
   } else {
-    paymentOverdue.value = false
+    billingStore.$reset()
   }
 })
 </script>
 
 <style scoped>
+/* ─── Top stripe banner (always visible, non-dismissible) ─── */
+.payment-stripe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(255, 59, 48, 0.12);
+  border-bottom: 1px solid rgba(255, 59, 48, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 12px;
+  font-weight: 500;
+  color: #FF3B30;
+  letter-spacing: -0.01em;
+}
+
+.stripe-slide-enter-active,
+.stripe-slide-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.stripe-slide-enter-from,
+.stripe-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+/* ─── Floating notice (dismissible) ─── */
 .payment-notice {
   position: fixed;
   bottom: 80px;
