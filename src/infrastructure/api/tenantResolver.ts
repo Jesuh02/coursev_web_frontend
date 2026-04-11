@@ -125,7 +125,7 @@ function isInstitutionSuspendedError(err: Error): boolean {
 }
 
 /** Parse institution metadata from the INSTITUTION_SUSPENDED:JSON error format. */
-function parseInstitutionSuspendedMeta(message: string): { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string } | null {
+export function parseInstitutionSuspendedMeta(message: string): { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string } | null {
   const match = message.match(/INSTITUTION_SUSPENDED:(.+)/)
   if (!match) return null
   try { return JSON.parse(match[1]) } catch { return null }

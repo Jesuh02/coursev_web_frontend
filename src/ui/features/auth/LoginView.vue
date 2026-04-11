@@ -106,7 +106,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError, InstitutionSuspendedError } from '@/infrastructure/api/tenantResolver'
+import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError, InstitutionSuspendedError, parseInstitutionSuspendedMeta } from '@/infrastructure/api/tenantResolver'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
 import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
 import LoginForm from './components/LoginForm.vue'
@@ -318,6 +318,7 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
     await authStore.commitAuth(result, undefined, { idToken: response.credential, displayName, avatarUrl })
     router.push('/video')
   } catch (e) {
+    const suspended = detectSuspendedError(e)
     if (e instanceof MultipleTenantError) {
       // Guardar datos de Google para re-autenticación tras selección de tenant
       pendingGoogleIdToken = response.credential
@@ -327,8 +328,8 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
       pendingMatches.value = e.matches
     } else if (e instanceof GoogleAccountNotFoundError) {
       error.value = 'Usuario no encontrado'
-    } else if (e instanceof InstitutionSuspendedError) {
-      showSuspendedPayment(e)
+    } else if (suspended) {
+      showSuspendedPayment(suspended)
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
     }
@@ -349,13 +350,14 @@ async function handleLogin(username: string, password: string) {
     await authStore.commitAuth(result, { username, password })
     router.push('/video')
   } catch (e) {
+    const suspended = detectSuspendedError(e)
     if (e instanceof CedulaRequiredError) {
       showCedula.value = true
       error.value = 'Tu cédula es necesaria para identificar tu cuenta entre varias instituciones'
     } else if (e instanceof MultipleTenantError) {
       pendingMatches.value = e.matches
-    } else if (e instanceof InstitutionSuspendedError) {
-      showSuspendedPayment(e)
+    } else if (suspended) {
+      showSuspendedPayment(suspended)
     } else {
       error.value = e instanceof Error ? e.message : 'Credenciales incorrectas'
     }
@@ -374,9 +376,12 @@ async function handleCedulaSubmit() {
     await authStore.commitAuth(result, { username: pendingUsername.value, password: pendingPassword.value })
     router.push('/video')
   } catch (e) {
+    const suspended = detectSuspendedError(e)
     if (e instanceof MultipleTenantError) {
       // La cédula coincide en múltiples instituciones → mostrar selección
       pendingMatches.value = e.matches
+    } else if (suspended) {
+      showSuspendedPayment(suspended)
     } else {
       error.value = e instanceof Error ? e.message : 'Cédula no encontrada o inválida'
     }
@@ -406,7 +411,12 @@ async function handleTenantSelect(match: TenantLoginResult) {
     pendingGoogleAvatarUrl = undefined
     router.push('/video')
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Error al iniciar sesión'
+    const suspended = detectSuspendedError(e)
+    if (suspended) {
+      showSuspendedPayment(suspended)
+    } else {
+      error.value = e instanceof Error ? e.message : 'Error al iniciar sesión'
+    }
   } finally {
     loading.value = false
   }
@@ -440,6 +450,24 @@ function showSuspendedPayment(e: InstitutionSuspendedError) {
   suspendedInstitutionName.value = e.institutionName || 'tu institución'
   suspendedMonthlyPrice.value = e.monthlyPrice
   suspendedServerUrl.value = e.serverUrl || ''
+}
+
+/**
+ * Detects institution suspension errors from any error type (InstitutionSuspendedError,
+ * HttpError from commitAuth, or plain Error with INSTITUTION_SUSPENDED pattern).
+ * Returns an InstitutionSuspendedError if detected, null otherwise.
+ */
+function detectSuspendedError(e: unknown): InstitutionSuspendedError | null {
+  if (e instanceof InstitutionSuspendedError) return e
+  const msg = e instanceof Error ? e.message : ''
+  if (/suspendida|suspended|INSTITUTION_SUSPENDED/i.test(msg)) {
+    const meta = parseInstitutionSuspendedMeta(msg)
+    return new InstitutionSuspendedError(
+      'Tu institución ha sido suspendida. Contacta al administrador.',
+      { ...meta },
+    )
+  }
+  return null
 }
 
 async function handleInstitutionPayment() {
