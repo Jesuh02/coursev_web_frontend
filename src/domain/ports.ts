@@ -160,7 +160,7 @@ export interface ProgressPort {
   getCreatorEnrollmentAnalytics(options?: Record<string, unknown>): Promise<Record<string, unknown>>
 
   // ── Matrícula (enrollment) ──
-  requestEnrollment(courseId: number): Promise<Progress>
+  requestEnrollment(courseId: number, requestedRole?: 'student' | 'docente'): Promise<Progress>
   getEnrollmentStatus(courseId: number): Promise<Record<string, unknown>>
   getPendingEnrollments(courseId?: number): Promise<Record<string, unknown>[]>
   approveEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>
