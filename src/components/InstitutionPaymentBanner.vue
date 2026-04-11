@@ -1,30 +1,15 @@
 <template>
   <Teleport to="body">
-    <transition name="banner-slide">
-      <div v-if="showBanner" class="payment-banner" @click.self="collapsed = !collapsed">
-        <div class="banner-glass">
-          <div class="banner-content">
-            <div class="banner-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-            <div class="banner-text">
-              <span class="banner-title">Pago vencido</span>
-              <span v-if="!collapsed" class="banner-desc">
-                La suscripción de tu institución ha vencido{{ dueDate ? ` el ${formattedDueDate}` : '' }}.
-              </span>
-            </div>
-            <button class="banner-pay-btn" @click.stop="handlePay">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              Pagar
-            </button>
-            <button class="banner-close" @click.stop="dismiss" title="Cerrar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
+    <transition name="notice-fade">
+      <div v-if="showBanner && !dismissed" class="payment-notice">
+        <span class="payment-notice-dot"></span>
+        <span class="payment-notice-text">
+          Pago vencido{{ dueDate ? ` · ${formattedDueDate}` : '' }}
+        </span>
+        <button class="payment-notice-pay" @click.stop="handlePay">Pagar</button>
+        <button class="payment-notice-close" @click.stop="dismiss" aria-label="Cerrar">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </transition>
   </Teleport>
@@ -40,7 +25,6 @@ const paymentOverdue = ref(false)
 const dueDate = ref<string | null>(null)
 const institutionId = ref<number | null>(null)
 const dismissed = ref(false)
-const collapsed = ref(true)
 const loading = ref(false)
 
 const isAdmin = computed(() => {
@@ -117,127 +101,101 @@ watch(() => authStore.user?.id, (newId) => {
 </script>
 
 <style scoped>
-.payment-banner {
+.payment-notice {
   position: fixed;
   bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 16px;
   z-index: 9999;
-  width: calc(100% - 32px);
-  max-width: 480px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 12px;
+  background: rgba(28, 28, 30, 0.9);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   pointer-events: auto;
+  max-width: 280px;
 }
 
 @media (min-width: 769px) {
-  .payment-banner {
-    left: calc(50% + 50px);
+  .payment-notice {
     bottom: 24px;
   }
 }
 
-.banner-glass {
-  background: rgba(255, 40, 40, 0.75);
-  backdrop-filter: blur(20px) saturate(1.8);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  border: 1px solid rgba(255, 100, 100, 0.35);
-  border-radius: 18px;
-  padding: 12px 16px;
-  box-shadow:
-    0 8px 32px rgba(255, 40, 40, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.banner-icon {
+.payment-notice-dot {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-}
-
-.banner-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.banner-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.3px;
-}
-
-.banner-desc {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.35;
-}
-
-.banner-pay-btn {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: none;
-  background: rgba(255, 255, 255, 0.95);
-  color: #D32F2F;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
-}
-
-.banner-pay-btn:hover {
-  transform: scale(1.04);
-  background: #fff;
-}
-
-.banner-pay-btn:active {
-  transform: scale(0.97);
-}
-
-.banner-close {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: #FF3B30;
+  animation: notice-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes notice-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.payment-notice-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: #FF3B30;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.payment-notice-pay {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #FF3B30;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  border-radius: 10px;
+  padding: 4px 10px;
   cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
 }
 
-.banner-close:hover {
-  background: rgba(255, 255, 255, 0.25);
+.payment-notice-pay:hover {
+  background: rgba(255, 59, 48, 0.18);
 }
 
-/* Transition */
-.banner-slide-enter-active,
-.banner-slide-leave-active {
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+.payment-notice-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  transition: color 0.15s;
 }
-.banner-slide-enter-from,
-.banner-slide-leave-to {
+
+.payment-notice-close:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.notice-fade-enter-active,
+.notice-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.notice-fade-enter-from,
+.notice-fade-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(20px);
+  transform: translateY(8px);
 }
 </style>

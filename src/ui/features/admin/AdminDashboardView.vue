@@ -1943,6 +1943,16 @@
             </div>
           </div>
 
+          <div v-if="cycleType" class="cycle-hour-picker">
+            <label class="cycle-day-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Hora del cobro:
+            </label>
+            <select v-model="cycleHour" class="cycle-hour-select">
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
+            </select>
+          </div>
+
           <div class="inst-modal-actions">
             <button class="inst-modal-btn inst-modal-cancel" @click="datePickerTarget = null">Cancelar</button>
             <button class="inst-modal-btn inst-modal-save" :disabled="institutionProcessing[datePickerTarget.id] || !cycleType" @click="saveBillingCycle">
@@ -4469,6 +4479,7 @@ const institutionProcessing = ref<Record<number, boolean>>({})
 const datePickerTarget = ref<InstitutionAdmin | null>(null)
 const cycleType = ref<'monthly_start' | 'biweekly' | 'monthly_day' | ''>('')
 const cycleDay = ref(1)
+const cycleHour = ref(8)
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
 
@@ -4527,13 +4538,15 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   datePickerTarget.value = inst
   cycleType.value = inst.billing_cycle_type || ''
   cycleDay.value = inst.billing_cycle_day || 1
+  cycleHour.value = inst.billing_cycle_hour ?? 8
 }
 
 const formatBillingCycle = (inst: InstitutionAdmin) => {
   if (!inst.billing_cycle_type) return 'No configurado'
-  if (inst.billing_cycle_type === 'monthly_start') return 'Inicio de mes (día 1)'
-  if (inst.billing_cycle_type === 'biweekly') return 'Quincenal (1 y 15)'
-  if (inst.billing_cycle_type === 'monthly_day') return `Día ${inst.billing_cycle_day || 1} de cada mes`
+  const hourStr = ` a las ${String(inst.billing_cycle_hour ?? 8).padStart(2, '0')}:00`
+  if (inst.billing_cycle_type === 'monthly_start') return `Inicio de mes (día 1)${hourStr}`
+  if (inst.billing_cycle_type === 'biweekly') return `Quincenal (1 y 15)${hourStr}`
+  if (inst.billing_cycle_type === 'monthly_day') return `Día ${inst.billing_cycle_day || 1} de cada mes${hourStr}`
   return 'No configurado'
 }
 
@@ -4546,7 +4559,7 @@ const saveBillingCycle = async () => {
       inst.id,
       null,
       inst.tenantId,
-      { type: cycleType.value, day: cycleType.value === 'monthly_day' ? cycleDay.value : null },
+      { type: cycleType.value, day: cycleType.value === 'monthly_day' ? cycleDay.value : null, hour: cycleHour.value },
     )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
@@ -9161,4 +9174,34 @@ watch(() => route.query, () => {
   color: rgba(255, 255, 255, 0.4);
   margin-top: 2px;
 }
-</style>
+
+.cycle-hour-picker {
+  margin-top: 16px;
+}
+
+.cycle-hour-select {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s;
+}
+
+.cycle-hour-select:focus {
+  border-color: rgba(10, 132, 255, 0.5);
+}
+
+.cycle-hour-select option {
+  background: #2C2C2E;
+  color: #fff;
+}

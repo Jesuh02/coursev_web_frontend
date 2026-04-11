@@ -52,6 +52,7 @@ export interface InstitutionAdmin extends Institucion {
   payment_due_date?: string | null
   billing_cycle_type?: 'monthly_start' | 'biweekly' | 'monthly_day' | null
   billing_cycle_day?: number | null
+  billing_cycle_hour?: number | null
   is_suspended?: boolean
   suspended_at?: string | null
   suspended_reason?: string | null
@@ -79,7 +80,7 @@ export interface InstitutionPayment {
 export const institucionAdapter: InstitucionPort & {
   getMyBillingStatus(): Promise<InstitutionBillingStatus>
   getAllAdmin(): Promise<InstitutionAdmin[]>
-  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null }): Promise<InstitutionAdmin>
+  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null }): Promise<InstitutionAdmin>
   suspendInstitution(id: number, reason?: string, tenantId?: string): Promise<InstitutionAdmin>
   unsuspendInstitution(id: number, tenantId?: string): Promise<InstitutionAdmin>
   initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
@@ -105,11 +106,11 @@ export const institucionAdapter: InstitucionPort & {
 
   getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
 
-  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null }) =>
+  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null }) =>
     api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, {
       payment_due_date: dueDate,
       tenantId,
-      ...(billingCycle ? { billing_cycle_type: billingCycle.type, billing_cycle_day: billingCycle.day } : {}),
+      ...(billingCycle ? { billing_cycle_type: billingCycle.type, billing_cycle_day: billingCycle.day, billing_cycle_hour: billingCycle.hour ?? 8 } : {}),
     }),
 
   suspendInstitution: (id: number, reason?: string, tenantId?: string) =>
