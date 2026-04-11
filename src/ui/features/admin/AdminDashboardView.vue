@@ -1781,6 +1781,53 @@
         </div>
 
         <template v-if="billingSelectedInstId">
+          <!-- Recurrence mode selector -->
+          <div class="billing-recurrence-selector">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Frecuencia del cobro:
+            </label>
+            <div class="billing-recurrence-options">
+              <button
+                class="billing-recurrence-btn"
+                :class="{ 'is-active': billingRecurrence === 'once' }"
+                @click="billingRecurrence = 'once'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Una sola vez
+              </button>
+              <button
+                class="billing-recurrence-btn"
+                :class="{ 'is-active': billingRecurrence === 'all_months' }"
+                @click="billingRecurrence = 'all_months'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Todos los meses
+              </button>
+            </div>
+          </div>
+
+          <!-- Month chips selector (only in "once" mode) -->
+          <div v-if="billingRecurrence === 'once'" class="billing-months-selector">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Meses a aplicar:
+            </label>
+            <div class="billing-months-actions">
+              <button class="billing-months-action-btn" @click="selectAllBillingMonths">Seleccionar todos</button>
+              <button class="billing-months-action-btn" @click="clearAllBillingMonths">Limpiar</button>
+            </div>
+            <div class="billing-months-grid">
+              <button
+                v-for="(name, idx) in MONTH_NAMES_ES"
+                :key="idx"
+                class="billing-month-chip"
+                :class="{ 'is-selected': billingSelectedMonths.has(idx) }"
+                @click="toggleBillingMonth(idx)"
+              >{{ name.slice(0, 3) }}</button>
+            </div>
+          </div>
+
           <!-- Quick set from now -->
           <div class="billing-quick-row">
             <label class="billing-label">
@@ -1900,6 +1947,8 @@
             <div class="billing-summary-text">
               <span class="billing-summary-label">Fecha de cobro programada:</span>
               <span class="billing-summary-value">{{ billingFormattedDate }}</span>
+              <span class="billing-summary-recurrence" v-if="billingRecurrence === 'all_months'">🔁 Recurrente cada mes</span>
+              <span class="billing-summary-recurrence" v-else-if="billingSelectedMonths.size > 0 && billingSelectedMonths.size < 12">📅 Meses seleccionados: {{ Array.from(billingSelectedMonths).sort((a,b)=>a-b).map(i=>MONTH_NAMES_ES[i].slice(0,3)).join(', ') }}</span>
               <span class="billing-summary-mode" :class="billingActionMode === 'suspension' ? 'mode-suspend-text' : 'mode-warning-text'">{{ billingActionMode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}</span>
             </div>
           </div>
@@ -4713,6 +4762,16 @@ const billingSaving = ref(false)
 const billingQuickMinutes = ref(2)
 const billingActionMode = ref<'warning' | 'suspension'>('warning')
 const billingYearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)
+const billingRecurrence = ref<'once' | 'all_months'>('once')
+const billingSelectedMonths = ref<Set<number>>(new Set())
+const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const toggleBillingMonth = (idx: number) => {
+  const s = new Set(billingSelectedMonths.value)
+  if (s.has(idx)) s.delete(idx); else s.add(idx)
+  billingSelectedMonths.value = s
+}
+const selectAllBillingMonths = () => { billingSelectedMonths.value = new Set(Array.from({ length: 12 }, (_, i) => i)) }
+const clearAllBillingMonths = () => { billingSelectedMonths.value = new Set() }
 
 const onBillingMonthSelectChange = (e: Event) => {
   billingCalMonth.value = Number((e.target as HTMLSelectElement).value)
@@ -4762,9 +4821,18 @@ const billingCalCells = computed(() => {
 
 const billingFormattedDate = computed(() => {
   if (!billingSelectedDay.value) return 'Sin fecha seleccionada'
+  const hh = String(billingSelectedHour.value).padStart(2, '0')
+  const mm = String(billingSelectedMinute.value).padStart(2, '0')
+  if (billingRecurrence.value === 'all_months') {
+    return `Día ${billingSelectedDay.value} de cada mes a las ${hh}:${mm}`
+  }
+  if (billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12) {
+    const mNames = Array.from(billingSelectedMonths.value).sort((a, b) => a - b).map(i => MONTH_NAMES_ES[i])
+    return `Día ${billingSelectedDay.value} de ${mNames.join(', ')} ${billingCalYear.value} a las ${hh}:${mm}`
+  }
   const d = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
   return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
-    ` a las ${String(billingSelectedHour.value).padStart(2, '0')}:${String(billingSelectedMinute.value).padStart(2, '0')}`
+    ` a las ${hh}:${mm}`
 })
 
 const setBillingQuickFromNow = () => {
@@ -4818,12 +4886,22 @@ const saveBillingDate = async () => {
   if (!inst || !billingSelectedDay.value) return
   billingSaving.value = true
   try {
+    const isRecurring = billingRecurrence.value === 'all_months'
+    const selectedMonthsArr = billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12
+      ? Array.from(billingSelectedMonths.value).sort((a, b) => a - b)
+      : null
+
     const dueDate = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
       dueDate.toISOString(),
       inst.tenantId,
-      { type: 'monthly_day', day: billingSelectedDay.value, hour: billingSelectedHour.value },
+      {
+        type: isRecurring ? 'monthly_day' : (selectedMonthsArr ? 'specific_months' : 'monthly_day'),
+        day: billingSelectedDay.value,
+        hour: billingSelectedHour.value,
+        ...(selectedMonthsArr ? { months: selectedMonthsArr } : {}),
+      },
     )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
@@ -10055,6 +10133,110 @@ watch(() => route.query, () => {
   background: rgba(255, 69, 58, 0.06);
   border-left-color: rgba(255, 69, 58, 0.3);
   color: #ff8a84;
+}
+
+/* Recurrence selector */
+.billing-recurrence-selector {
+  margin-bottom: 18px;
+}
+
+.billing-recurrence-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.billing-recurrence-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.4);
+  color: #8E8E93;
+  transition: all 0.2s ease;
+}
+
+.billing-recurrence-btn:hover {
+  background: rgba(44, 44, 46, 0.7);
+  color: #EBEBF5;
+}
+
+.billing-recurrence-btn.is-active {
+  background: rgba(10, 132, 255, 0.12);
+  border-color: #0A84FF;
+  color: #0A84FF;
+}
+
+/* Month chips selector */
+.billing-months-selector {
+  margin-bottom: 18px;
+}
+
+.billing-months-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.billing-months-action-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.3);
+  color: #8E8E93;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.billing-months-action-btn:hover {
+  background: rgba(44, 44, 46, 0.6);
+  color: #EBEBF5;
+}
+
+.billing-months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.billing-month-chip {
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.5);
+  background: rgba(44, 44, 46, 0.3);
+  color: #8E8E93;
+  transition: all 0.15s ease;
+}
+
+.billing-month-chip:hover {
+  background: rgba(44, 44, 46, 0.6);
+  color: #EBEBF5;
+}
+
+.billing-month-chip.is-selected {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: #FF3B30;
+  color: #FF6961;
+}
+
+.billing-summary-recurrence {
+  display: block;
+  font-size: 12px;
+  color: #0A84FF;
+  margin-top: 2px;
 }
 
 /* Actions */
