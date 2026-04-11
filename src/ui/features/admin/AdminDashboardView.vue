@@ -1864,6 +1864,34 @@
             </select>
           </div>
 
+          <!-- Billing action mode selector -->
+          <div class="billing-action-mode">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Acción al vencer:
+            </label>
+            <div class="billing-mode-options">
+              <button
+                class="billing-mode-btn"
+                :class="{ 'is-active': billingActionMode === 'warning', 'mode-warning': billingActionMode === 'warning' }"
+                @click="billingActionMode = 'warning'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Advertencia
+              </button>
+              <button
+                class="billing-mode-btn"
+                :class="{ 'is-active': billingActionMode === 'suspension', 'mode-suspend': billingActionMode === 'suspension' }"
+                @click="billingActionMode = 'suspension'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Suspensión
+              </button>
+            </div>
+            <p class="billing-mode-hint" v-if="billingActionMode === 'warning'">Los usuarios con rol administrador de institución verán un aviso de pago pendiente con botón de pago, pero podrán seguir usando la app.</p>
+            <p class="billing-mode-hint billing-mode-hint-danger" v-else>Se bloqueará el acceso a todos los usuarios (excepto superadmin). Al intentar ingresar verán el mensaje de suspensión con el botón de pago.</p>
+          </div>
+
           <!-- Summary -->
           <div class="billing-summary">
             <div class="billing-summary-icon">
@@ -1872,6 +1900,7 @@
             <div class="billing-summary-text">
               <span class="billing-summary-label">Fecha de cobro programada:</span>
               <span class="billing-summary-value">{{ billingFormattedDate }}</span>
+              <span class="billing-summary-mode" :class="billingActionMode === 'suspension' ? 'mode-suspend-text' : 'mode-warning-text'">{{ billingActionMode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}</span>
             </div>
           </div>
 
@@ -4682,6 +4711,7 @@ const billingSelectedHour = ref(8)
 const billingSelectedMinute = ref(0)
 const billingSaving = ref(false)
 const billingQuickMinutes = ref(2)
+const billingActionMode = ref<'warning' | 'suspension'>('warning')
 const billingYearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)
 
 const onBillingMonthSelectChange = (e: Event) => {
@@ -4774,12 +4804,13 @@ const onBillingInstChange = () => {
       billingSelectedDay.value = d.getDate()
       billingSelectedHour.value = d.getHours()
       billingSelectedMinute.value = d.getMinutes()
-      return
     }
+  } else {
+    billingSelectedDay.value = null
+    billingSelectedHour.value = 8
+    billingSelectedMinute.value = 0
   }
-  billingSelectedDay.value = null
-  billingSelectedHour.value = 8
-  billingSelectedMinute.value = 0
+  billingActionMode.value = inst?.is_suspended ? 'suspension' : 'warning'
 }
 
 const saveBillingDate = async () => {
@@ -4796,6 +4827,15 @@ const saveBillingDate = async () => {
     )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+
+    // Handle suspension/unsuspension based on action mode
+    if (billingActionMode.value === 'suspension' && !inst.is_suspended) {
+      const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    } else if (billingActionMode.value === 'warning' && inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
   } catch (e) {
     console.error('Error saving billing date:', e)
   } finally {
@@ -4811,7 +4851,13 @@ const clearBillingDate = async () => {
     const updated = await institucionAdapter.setPaymentDueDate(inst.id, null, inst.tenantId, undefined, true)
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    // Also unsuspend if institution was suspended
+    if (inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
     billingSelectedDay.value = null
+    billingActionMode.value = 'warning'
   } catch (e) {
     console.error('Error clearing billing date:', e)
   } finally {
@@ -9938,6 +9984,77 @@ watch(() => route.query, () => {
   color: #fff;
   font-weight: 600;
   text-transform: capitalize;
+}
+
+.billing-summary-mode {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.mode-warning-text { color: #FF9F0A; }
+.mode-suspend-text { color: #FF453A; }
+
+/* Billing action mode selector */
+.billing-action-mode {
+  margin-bottom: 20px;
+}
+
+.billing-mode-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.billing-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #8E8E93;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.billing-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.billing-mode-btn.is-active.mode-warning {
+  background: rgba(255, 159, 10, 0.12);
+  border-color: rgba(255, 159, 10, 0.4);
+  color: #FF9F0A;
+}
+
+.billing-mode-btn.is-active.mode-suspend {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.4);
+  color: #FF453A;
+}
+
+.billing-mode-hint {
+  font-size: 12px;
+  color: #8E8E93;
+  margin-top: 8px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(255, 159, 10, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 159, 10, 0.3);
+}
+
+.billing-mode-hint-danger {
+  background: rgba(255, 69, 58, 0.06);
+  border-left-color: rgba(255, 69, 58, 0.3);
+  color: #ff8a84;
 }
 
 /* Actions */
