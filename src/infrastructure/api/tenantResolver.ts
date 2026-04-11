@@ -56,11 +56,20 @@ export class GoogleAccountNotFoundError extends Error {
 /**
  * Thrown when the user's institution has been suspended by the super-admin.
  * Login is blocked until the institution is reactivated.
+ * Carries institution metadata so the UI can show a payment flow.
  */
 export class InstitutionSuspendedError extends Error {
-  constructor(message?: string) {
-    super(message || 'Tu institución ha sido suspendida. Contacta al administrador.')
+  institutionId: number | null
+  institutionName: string | null
+  monthlyPrice: number
+  serverUrl: string | null
+  constructor(message?: string, meta?: { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string }) {
+    super(message || 'La mensualidad se ha vencido, por favor realiza el pago.')
     this.name = 'InstitutionSuspendedError'
+    this.institutionId = meta?.institutionId ?? null
+    this.institutionName = meta?.institutionName ?? null
+    this.monthlyPrice = meta?.monthlyPrice ?? 0
+    this.serverUrl = meta?.serverUrl ?? null
   }
 }
 
@@ -112,7 +121,14 @@ function isGoogleAccountNotFoundError(err: Error): boolean {
 }
 
 function isInstitutionSuspendedError(err: Error): boolean {
-  return /suspendida|suspended/i.test(err.message)
+  return /suspendida|suspended|INSTITUTION_SUSPENDED/i.test(err.message)
+}
+
+/** Parse institution metadata from the INSTITUTION_SUSPENDED:JSON error format. */
+function parseInstitutionSuspendedMeta(message: string): { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string } | null {
+  const match = message.match(/INSTITUTION_SUSPENDED:(.+)/)
+  if (!match) return null
+  try { return JSON.parse(match[1]) } catch { return null }
 }
 
 async function probeAllServers(
@@ -128,7 +144,8 @@ async function probeAllServers(
   let googleNotFoundCount = 0
   let suspendedError: InstitutionSuspendedError | null = null
 
-  for (const result of settled) {
+  for (let i = 0; i < settled.length; i++) {
+    const result = settled[i]
     if (result.status === 'fulfilled') {
       allMatches.push(...result.value)
     } else {
@@ -136,7 +153,11 @@ async function probeAllServers(
       if (err instanceof CedulaRequiredError) {
         cedulaRequired = true
       } else if (isInstitutionSuspendedError(err)) {
-        suspendedError = new InstitutionSuspendedError(err.message)
+        const meta = parseInstitutionSuspendedMeta(err.message)
+        suspendedError = new InstitutionSuspendedError(
+          'La mensualidad se ha vencido, por favor realiza el pago.',
+          { ...meta, serverUrl: meta?.serverUrl || servers[i] },
+        )
       } else if (path === '/auth/cross-tenant-google' && isGoogleAccountNotFoundError(err)) {
         googleNotFoundCount++
       } else {
@@ -148,10 +169,10 @@ async function probeAllServers(
     }
   }
 
-  // Institution suspension ALWAYS blocks login, even if other servers returned matches
-  if (suspendedError) throw suspendedError
-
+  // Only block with institution suspension if there are NO valid matches.
+  // If the user has access to another non-suspended institution, allow login there.
   if (allMatches.length === 0) {
+    if (suspendedError) throw suspendedError
     if (cedulaRequired) throw new CedulaRequiredError()
     if (path === '/auth/cross-tenant-google' && googleNotFoundCount === settled.length) {
       throw new GoogleAccountNotFoundError()

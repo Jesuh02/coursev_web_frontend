@@ -61,6 +61,32 @@
         <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
 
       </div>
+
+      <!-- Sección de pago: institución suspendida por mensualidad vencida -->
+      <div v-if="showPaymentSection" class="payment-suspended-section">
+        <div class="payment-suspended-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <p class="payment-suspended-msg">La mensualidad se ha vencido, por favor realiza el pago.</p>
+        <p v-if="suspendedInstitutionName" class="payment-suspended-inst">{{ suspendedInstitutionName }}</p>
+        <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
+          ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP
+        </p>
+        <button
+          class="btn-pay-institution"
+          :disabled="paymentLoading"
+          @click="handleInstitutionPayment"
+        >
+          <svg v-if="!paymentLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          <span v-if="paymentLoading" class="spinner"></span>
+          <span v-else>Pagar ahora</span>
+        </button>
+      </div>
     </div>
 
     <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
@@ -82,6 +108,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { resolveLogin, resolveGoogleLogin, CedulaRequiredError, MultipleTenantError, GoogleAccountNotFoundError, InstitutionSuspendedError } from '@/infrastructure/api/tenantResolver'
 import type { TenantLoginResult } from '@/infrastructure/api/tenantResolver'
+import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
 import TenantSelectionDialog from './components/TenantSelectionDialog.vue'
@@ -149,6 +176,14 @@ let pendingGoogleDisplayName = ''
 let pendingGoogleAvatarUrl: string | undefined
 let googleInitialized = false
 let googleButtonWidth = 0
+
+// Estado de pago por institución suspendida
+const showPaymentSection = ref(false)
+const suspendedInstitutionId = ref<number | null>(null)
+const suspendedInstitutionName = ref('')
+const suspendedMonthlyPrice = ref(0)
+const suspendedServerUrl = ref('')
+const paymentLoading = ref(false)
 
 function getGoogleAccounts() {
   return window.google?.accounts.id
@@ -293,7 +328,7 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
     } else if (e instanceof GoogleAccountNotFoundError) {
       error.value = 'Usuario no encontrado'
     } else if (e instanceof InstitutionSuspendedError) {
-      error.value = e.message
+      showSuspendedPayment(e)
     } else {
       error.value = e instanceof Error ? e.message : 'Error con Google'
     }
@@ -305,6 +340,7 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
 async function handleLogin(username: string, password: string) {
   loading.value = true
   error.value = ''
+  showPaymentSection.value = false
   // Guardar credenciales por si se necesita retry con cédula
   pendingUsername.value = username
   pendingPassword.value = password
@@ -319,7 +355,7 @@ async function handleLogin(username: string, password: string) {
     } else if (e instanceof MultipleTenantError) {
       pendingMatches.value = e.matches
     } else if (e instanceof InstitutionSuspendedError) {
-      error.value = e.message
+      showSuspendedPayment(e)
     } else {
       error.value = e instanceof Error ? e.message : 'Credenciales incorrectas'
     }
@@ -394,6 +430,39 @@ async function handleGoogle() {
 
   if (!googleButtonEnabled.value) {
     error.value = 'Google Sign-In fue bloqueado por el navegador o no está disponible. Habilita el acceso de terceros para este sitio e inténtalo de nuevo.'
+  }
+}
+
+function showSuspendedPayment(e: InstitutionSuspendedError) {
+  error.value = ''
+  showPaymentSection.value = true
+  suspendedInstitutionId.value = e.institutionId
+  suspendedInstitutionName.value = e.institutionName || 'tu institución'
+  suspendedMonthlyPrice.value = e.monthlyPrice
+  suspendedServerUrl.value = e.serverUrl || ''
+}
+
+async function handleInstitutionPayment() {
+  if (!suspendedInstitutionId.value || !suspendedServerUrl.value) {
+    error.value = 'No se pudo identificar la institución para el pago.'
+    return
+  }
+  paymentLoading.value = true
+  error.value = ''
+  try {
+    const result = await institucionAdapter.publicBillingPayment(
+      suspendedInstitutionId.value,
+      suspendedServerUrl.value,
+    )
+    if (result.checkoutUrl) {
+      window.location.href = result.checkoutUrl
+    } else {
+      error.value = 'No se generó la URL de pago. Intenta de nuevo.'
+    }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Error al iniciar el pago'
+  } finally {
+    paymentLoading.value = false
   }
 }
 
@@ -775,5 +844,84 @@ function particleStyle(i: number) {
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.7); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Pago de institución suspendida ── */
+.payment-suspended-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+  border: 1px solid rgba(245,158,11,0.2);
+  animation: fade-in-up 0.4s ease forwards;
+}
+
+.payment-suspended-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(245,158,11,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-suspended-msg {
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.payment-suspended-inst {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
+}
+
+.payment-suspended-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #7C3AED;
+  margin: 4px 0 0;
+}
+
+.btn-pay-institution {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7C3AED, #5B21B6);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.3);
+}
+
+.btn-pay-institution:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124,58,237,0.4);
+}
+
+.btn-pay-institution:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-pay-institution:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

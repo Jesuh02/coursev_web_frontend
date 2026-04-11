@@ -56,6 +56,7 @@ export interface InstitutionAdmin extends Institucion {
   is_suspended?: boolean
   suspended_at?: string | null
   suspended_reason?: string | null
+  monthly_price?: number
   tenantId?: string
   tenantName?: string
 }
@@ -87,6 +88,8 @@ export const institucionAdapter: InstitucionPort & {
   getBillingPayments(id: number): Promise<InstitutionPayment[]>
   getAllServicePayments(): Promise<InstitutionPayment[]>
   checkInstitutionStatus(id: number): Promise<InstitutionBillingStatus>
+  setMonthlyPrice(id: number, price: number, tenantId?: string): Promise<InstitutionAdmin>
+  publicBillingPayment(institutionId: number, serverUrl: string, redirectUrl?: string): Promise<{ checkoutUrl: string; reference: string }>
 } = {
   getAll: () => api.publicGet<Institucion[]>('/instituciones'),
 
@@ -131,4 +134,19 @@ export const institucionAdapter: InstitucionPort & {
 
   checkInstitutionStatus: (id: number) =>
     api.publicGet<InstitutionBillingStatus>(`/instituciones/status/${id}`),
+
+  setMonthlyPrice: (id: number, price: number, tenantId?: string) =>
+    api.put<InstitutionAdmin>(`/instituciones/${id}/monthly-price`, { monthly_price: price, tenantId }),
+
+  publicBillingPayment: async (institutionId: number, serverUrl: string, redirectUrl?: string) => {
+    const url = `${serverUrl.replace(/\/+$/, '')}/api/v1/instituciones/billing/public-initiate`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ institutionId, redirectUrl }),
+    })
+    const json = await res.json()
+    if (!res.ok || !json.success) throw new Error(json.error?.message || json.message || 'Error al iniciar pago')
+    return json.data as { checkoutUrl: string; reference: string }
+  },
 }

@@ -1968,6 +1968,19 @@
             <!-- Payment info -->
             <div class="inst-payment-row">
               <div class="inst-payment-info">
+                <span class="inst-payment-label">Precio mensual:</span>
+                <span class="inst-monthly-price">
+                  ${{ (inst.monthly_price || 0).toLocaleString('es-CO') }} COP
+                </span>
+                <button class="inst-price-edit-btn" @click="openPriceEditor(inst)" title="Editar precio">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Payment info -->
+            <div class="inst-payment-row">
+              <div class="inst-payment-info">
                 <span class="inst-payment-label">Ciclo de pago:</span>
                 <span class="inst-payment-value" :class="{ 'is-overdue': inst.payment_due_date && new Date(inst.payment_due_date) < new Date() }">
                   {{ formatBillingCycle(inst) }}
@@ -2114,6 +2127,35 @@
             <button class="inst-modal-btn inst-modal-cancel" @click="suspendTarget = null">Cancelar</button>
             <button class="inst-modal-btn inst-modal-danger" :disabled="institutionProcessing[suspendTarget.id]" @click="confirmSuspend">
               {{ institutionProcessing[suspendTarget.id] ? 'Suspendiendo...' : 'Suspender' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly price editor modal -->
+      <div v-if="priceEditorTarget" class="inst-modal-overlay" @click.self="priceEditorTarget = null">
+        <div class="inst-modal">
+          <h3>Precio Mensual</h3>
+          <p class="inst-modal-sub">{{ priceEditorTarget.nombre }}</p>
+          <div style="margin: 12px 0;">
+            <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Valor en COP</label>
+            <input
+              v-model.number="editingPrice"
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="Ej: 50000"
+              class="inst-reason-input"
+              style="font-size: 18px; font-weight: 600; text-align: center;"
+            />
+            <p v-if="editingPrice > 0" style="text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              ${{ Number(editingPrice).toLocaleString('es-CO') }} COP / mes
+            </p>
+          </div>
+          <div class="inst-modal-actions">
+            <button class="inst-modal-btn inst-modal-cancel" @click="priceEditorTarget = null">Cancelar</button>
+            <button class="inst-modal-btn" style="background: #7C3AED; color: #fff;" :disabled="savingPrice" @click="saveMonthlyPrice">
+              {{ savingPrice ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
         </div>
@@ -4762,6 +4804,32 @@ const cycleDay = ref(1)
 const cycleHour = ref(8)
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
+
+// Monthly price editor
+const priceEditorTarget = ref<InstitutionAdmin | null>(null)
+const editingPrice = ref(0)
+const savingPrice = ref(false)
+
+const openPriceEditor = (inst: InstitutionAdmin) => {
+  priceEditorTarget.value = inst
+  editingPrice.value = inst.monthly_price || 0
+}
+
+const saveMonthlyPrice = async () => {
+  const inst = priceEditorTarget.value
+  if (!inst) return
+  savingPrice.value = true
+  try {
+    const updated = await institucionAdapter.setMonthlyPrice(inst.id, editingPrice.value, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    priceEditorTarget.value = null
+  } catch (e) {
+    console.error('Error saving monthly price:', e)
+  } finally {
+    savingPrice.value = false
+  }
+}
 
 const filteredInstitutions = computed(() => {
   const q = institutionSearch.value.toLowerCase().trim()
@@ -9133,6 +9201,30 @@ watch(() => route.query, () => {
 .inst-payment-label {
   font-size: 12.5px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.inst-monthly-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #A78BFA;
+}
+
+.inst-price-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(167, 139, 250, 0.15);
+  color: #A78BFA;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inst-price-edit-btn:hover {
+  background: rgba(167, 139, 250, 0.3);
 }
 
 .inst-payment-value {
