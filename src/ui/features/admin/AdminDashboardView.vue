@@ -1305,6 +1305,12 @@
                 <span class="enroll-course-eyebrow">Curso solicitado</span>
                 <span class="enroll-course-name">{{ req.courseName || `Curso #${req.courseId}` }}</span>
               </div>
+              <div v-if="req.requestedRole === 'docente'" class="enroll-requested-role-row">
+                <span class="enroll-requested-role-badge docente">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  Solicita ingresar como Docente
+                </span>
+              </div>
               <div v-if="req.roleChips.length" class="enroll-roles-row">
                 <span
                   v-for="role in req.roleChips"
@@ -2326,6 +2332,7 @@ interface PendingEnrollmentItem {
   avatar: string | null
   roleChips: EnrollmentRoleChip[]
   identificacion: string | null
+  requestedRole: string | null
 }
 
 interface AdminCertificateItem {
@@ -3011,6 +3018,7 @@ const loadEnrollments = async () => {
           profile?.persona?.identificacion,
           profile?.persona?.cedula,
         ),
+        requestedRole: toNonEmptyString(item.requestedRole, item.requested_role) || 'student',
       }
     })
   } catch (e) {
@@ -7627,6 +7635,22 @@ watch(() => route.query, () => {
 }
 
 .enroll-roles-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.enroll-requested-role-row { margin-top: 6px; }
+.enroll-requested-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.enroll-requested-role-badge.docente {
+  color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.12);
+  border: 1px solid rgba(191, 90, 242, 0.25);
+}
 
 .enroll-role-chip {
   display: inline-flex;
