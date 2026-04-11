@@ -72,20 +72,22 @@
         </div>
         <p class="payment-suspended-msg">Tu institución ha sido suspendida. Contacta al administrador.</p>
         <p v-if="suspendedInstitutionName" class="payment-suspended-inst">{{ suspendedInstitutionName }}</p>
-        <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
-          ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP
-        </p>
-        <button
-          class="btn-pay-institution"
-          :disabled="paymentLoading"
-          @click="handleInstitutionPayment"
-        >
-          <svg v-if="!paymentLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-          </svg>
-          <span v-if="paymentLoading" class="spinner"></span>
-          <span v-else>Pagar ahora</span>
-        </button>
+        <template v-if="suspendedUserIsAdmin">
+          <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
+            ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP
+          </p>
+          <button
+            class="btn-pay-institution"
+            :disabled="paymentLoading"
+            @click="handleInstitutionPayment"
+          >
+            <svg v-if="!paymentLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+            <span v-if="paymentLoading" class="spinner"></span>
+            <span v-else>Pagar ahora</span>
+          </button>
+        </template>
       </div>
     </div>
 
@@ -184,6 +186,7 @@ const suspendedInstitutionName = ref('')
 const suspendedMonthlyPrice = ref(0)
 const suspendedServerUrl = ref('')
 const paymentLoading = ref(false)
+const suspendedUserIsAdmin = ref(false)
 
 function getGoogleAccounts() {
   return window.google?.accounts.id
@@ -450,6 +453,7 @@ function showSuspendedPayment(e: InstitutionSuspendedError) {
   suspendedInstitutionName.value = e.institutionName || 'tu institución'
   suspendedMonthlyPrice.value = e.monthlyPrice
   suspendedServerUrl.value = e.serverUrl || ''
+  suspendedUserIsAdmin.value = Array.isArray(e.roles) && e.roles.includes(3)
 }
 
 /**
@@ -464,7 +468,7 @@ function detectSuspendedError(e: unknown): InstitutionSuspendedError | null {
     const meta = parseInstitutionSuspendedMeta(msg)
     return new InstitutionSuspendedError(
       'Tu institución ha sido suspendida. Contacta al administrador.',
-      { ...meta },
+      { ...meta, roles: meta?.roles },
     )
   }
   return null

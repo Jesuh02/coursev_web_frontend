@@ -1814,16 +1814,16 @@
                 <select
                   class="billing-select billing-select-sm billing-month-select"
                   :value="billingCalMonth"
-                  @change="billingCalMonth = +($event.target as any).value; billingSelectedDay = null"
+                  @change="onBillingMonthSelectChange"
                 >
                   <option v-for="(name, idx) in ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']" :key="idx" :value="idx">{{ name }}</option>
                 </select>
                 <select
                   class="billing-select billing-select-sm billing-year-select"
                   :value="billingCalYear"
-                  @change="billingCalYear = +($event.target as any).value; billingSelectedDay = null"
+                  @change="onBillingYearSelectChange"
                 >
-                  <option v-for="y in Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)" :key="y" :value="y">{{ y }}</option>
+                  <option v-for="y in billingYearOptions" :key="y" :value="y">{{ y }}</option>
                 </select>
               </div>
               <button class="billing-cal-nav" @click="billingCalNextMonth">
@@ -4682,6 +4682,17 @@ const billingSelectedHour = ref(8)
 const billingSelectedMinute = ref(0)
 const billingSaving = ref(false)
 const billingQuickMinutes = ref(2)
+const billingYearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)
+
+const onBillingMonthSelectChange = (e: Event) => {
+  billingCalMonth.value = Number((e.target as HTMLSelectElement).value)
+  billingSelectedDay.value = null
+}
+
+const onBillingYearSelectChange = (e: Event) => {
+  billingCalYear.value = Number((e.target as HTMLSelectElement).value)
+  billingSelectedDay.value = null
+}
 
 const billingCurrentInst = computed(() =>
   institutions.value.find(i => i.id === billingSelectedInstId.value) ?? null

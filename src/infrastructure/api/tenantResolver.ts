@@ -63,13 +63,15 @@ export class InstitutionSuspendedError extends Error {
   institutionName: string | null
   monthlyPrice: number
   serverUrl: string | null
-  constructor(message?: string, meta?: { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string }) {
+  roles: number[]
+  constructor(message?: string, meta?: { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string; roles?: number[] }) {
     super(message || 'La mensualidad se ha vencido, por favor realiza el pago.')
     this.name = 'InstitutionSuspendedError'
     this.institutionId = meta?.institutionId ?? null
     this.institutionName = meta?.institutionName ?? null
     this.monthlyPrice = meta?.monthlyPrice ?? 0
     this.serverUrl = meta?.serverUrl ?? null
+    this.roles = meta?.roles ?? []
   }
 }
 
@@ -125,7 +127,7 @@ function isInstitutionSuspendedError(err: Error): boolean {
 }
 
 /** Parse institution metadata from the INSTITUTION_SUSPENDED:JSON error format. */
-export function parseInstitutionSuspendedMeta(message: string): { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string } | null {
+export function parseInstitutionSuspendedMeta(message: string): { institutionId?: number; institutionName?: string; monthlyPrice?: number; serverUrl?: string; roles?: number[] } | null {
   const match = message.match(/INSTITUTION_SUSPENDED:(.+)/)
   if (!match) return null
   try { return JSON.parse(match[1]) } catch { return null }
