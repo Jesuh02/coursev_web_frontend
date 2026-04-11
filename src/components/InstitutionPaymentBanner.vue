@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useBillingStore } from '@/stores/billingStore'
 import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
@@ -56,13 +56,21 @@ async function handlePay() {
 }
 
 onMounted(() => {
-  if (authStore.user?.id) billingStore.checkBillingStatus()
+  if (authStore.user?.id) {
+    billingStore.checkBillingStatus()
+    billingStore.startPolling()
+  }
+})
+
+onUnmounted(() => {
+  billingStore.stopPolling()
 })
 
 watch(() => authStore.user?.id, (newId) => {
   if (newId) {
     billingStore.$reset()
     billingStore.checkBillingStatus()
+    billingStore.startPolling()
   } else {
     billingStore.$reset()
   }

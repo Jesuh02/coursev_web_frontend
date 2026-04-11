@@ -148,8 +148,10 @@ async function probeAllServers(
     }
   }
 
+  // Institution suspension ALWAYS blocks login, even if other servers returned matches
+  if (suspendedError) throw suspendedError
+
   if (allMatches.length === 0) {
-    if (suspendedError) throw suspendedError
     if (cedulaRequired) throw new CedulaRequiredError()
     if (path === '/auth/cross-tenant-google' && googleNotFoundCount === settled.length) {
       throw new GoogleAccountNotFoundError()

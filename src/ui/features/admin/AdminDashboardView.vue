@@ -1781,6 +1781,29 @@
         </div>
 
         <template v-if="billingSelectedInstId">
+          <!-- Quick set from now -->
+          <div class="billing-quick-row">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Cobro rápido:
+            </label>
+            <div class="billing-quick-controls">
+              <span class="billing-quick-label">En</span>
+              <input
+                type="number"
+                v-model.number="billingQuickMinutes"
+                min="1"
+                max="1440"
+                class="billing-quick-input"
+              />
+              <span class="billing-quick-label">min desde ahora</span>
+              <button class="billing-btn billing-btn-quick" @click="setBillingQuickFromNow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Aplicar
+              </button>
+            </div>
+          </div>
+
           <!-- Calendar month picker -->
           <div class="billing-calendar">
             <div class="billing-cal-header">
@@ -1811,14 +1834,18 @@
             </div>
           </div>
 
-          <!-- Hour picker -->
+          <!-- Hour & Minute picker -->
           <div class="billing-hour-row">
             <label class="billing-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Hora del cobro:
             </label>
             <select v-model="billingSelectedHour" class="billing-select billing-select-sm">
-              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
+            </select>
+            <span class="billing-time-sep">:</span>
+            <select v-model="billingSelectedMinute" class="billing-select billing-select-sm">
+              <option v-for="m in 60" :key="m - 1" :value="m - 1">{{ String(m - 1).padStart(2, '0') }}</option>
             </select>
           </div>
 
@@ -4595,7 +4622,9 @@ const billingCalMonth = ref(new Date().getMonth())
 const billingCalYear = ref(new Date().getFullYear())
 const billingSelectedDay = ref<number | null>(null)
 const billingSelectedHour = ref(8)
+const billingSelectedMinute = ref(0)
 const billingSaving = ref(false)
+const billingQuickMinutes = ref(2)
 
 const billingCurrentInst = computed(() =>
   institutions.value.find(i => i.id === billingSelectedInstId.value) ?? null
@@ -4635,10 +4664,19 @@ const billingCalCells = computed(() => {
 
 const billingFormattedDate = computed(() => {
   if (!billingSelectedDay.value) return 'Sin fecha seleccionada'
-  const d = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value)
+  const d = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
   return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
-    ` a las ${String(billingSelectedHour.value).padStart(2, '0')}:00`
+    ` a las ${String(billingSelectedHour.value).padStart(2, '0')}:${String(billingSelectedMinute.value).padStart(2, '0')}`
 })
+
+const setBillingQuickFromNow = () => {
+  const target = new Date(Date.now() + billingQuickMinutes.value * 60_000)
+  billingCalYear.value = target.getFullYear()
+  billingCalMonth.value = target.getMonth()
+  billingSelectedDay.value = target.getDate()
+  billingSelectedHour.value = target.getHours()
+  billingSelectedMinute.value = target.getMinutes()
+}
 
 const billingCalPrevMonth = () => {
   if (billingCalMonth.value === 0) {
@@ -4667,11 +4705,13 @@ const onBillingInstChange = () => {
       billingCalMonth.value = d.getMonth()
       billingSelectedDay.value = d.getDate()
       billingSelectedHour.value = d.getHours()
+      billingSelectedMinute.value = d.getMinutes()
       return
     }
   }
   billingSelectedDay.value = null
   billingSelectedHour.value = 8
+  billingSelectedMinute.value = 0
 }
 
 const saveBillingDate = async () => {
@@ -4679,7 +4719,7 @@ const saveBillingDate = async () => {
   if (!inst || !billingSelectedDay.value) return
   billingSaving.value = true
   try {
-    const dueDate = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value)
+    const dueDate = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
       dueDate.toISOString(),
@@ -9645,6 +9685,84 @@ watch(() => route.query, () => {
 
 .billing-hour-row .billing-label {
   margin-bottom: 0;
+}
+
+.billing-time-sep {
+  font-size: 18px;
+  font-weight: 700;
+  color: #8E8E93;
+  line-height: 1;
+}
+
+/* Quick billing from-now */
+.billing-quick-row {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: rgba(255, 159, 10, 0.06);
+  border: 1px solid rgba(255, 159, 10, 0.15);
+  border-radius: 12px;
+}
+
+.billing-quick-row .billing-label {
+  margin-bottom: 10px;
+  color: #FF9F0A;
+}
+
+.billing-quick-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-quick-label {
+  font-size: 13px;
+  color: #8E8E93;
+  font-weight: 500;
+}
+
+.billing-quick-input {
+  width: 64px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.billing-quick-input::-webkit-outer-spin-button,
+.billing-quick-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.billing-quick-input:focus {
+  border-color: rgba(255, 159, 10, 0.5);
+}
+
+.billing-btn-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+  transition: background 0.15s;
+}
+
+.billing-btn-quick:hover {
+  background: rgba(255, 159, 10, 0.25);
 }
 
 /* Summary */
