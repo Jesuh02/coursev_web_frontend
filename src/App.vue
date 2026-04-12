@@ -31,6 +31,7 @@
       </router-view>
       <BottomNavigation v-if="showNav" />
     </div>
+    <InstitutionPaymentBanner />
   </div>
 </template>
 
@@ -41,6 +42,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import SideNavigation from '@/components/SideNavigation.vue'
 import BottomNavigation from '@/components/BottomNavigation.vue'
+import InstitutionPaymentBanner from '@/components/InstitutionPaymentBanner.vue'
 import { usePullToRefresh } from '@/composables/usePullToRefresh'
 
 const { pullDistance, isPulling, isRefreshing, THRESHOLD } = usePullToRefresh()

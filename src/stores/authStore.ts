@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
     tokenStorage.username = user.value?.username ?? null
   }
 
-  const isAdmin = computed(() => hasRole(3))
+  const isAdmin = computed(() => hasRole(3) || hasRole(4))
   const isDocente = computed(() => hasRole(2))
   const isAdminOrDocente = computed(() => isAdmin.value || isDocente.value)
   const isCreator = computed(() => isAdmin.value || isDocente.value)
@@ -130,6 +130,8 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     _resetUserStores()
     tokenStorage.clear()
+    // Tell the backend to clear the HttpOnly auth cookies
+    authAdapter.logout().catch(() => { /* best-effort */ })
     router.replace({ name: 'login' })
   }
 

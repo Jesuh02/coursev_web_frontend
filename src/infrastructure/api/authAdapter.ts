@@ -27,4 +27,7 @@ export const authAdapter: AuthPort = {
 
   resetPassword: (email, code, newPassword) =>
     api.post<{ message: string }>('/auth/reset-password', { email, code, newPassword }),
+
+  logout: () =>
+    api.post<void>('/auth/logout', {}).catch(() => { /* ignore errors on logout */ }) as Promise<void>,
 }

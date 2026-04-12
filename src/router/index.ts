@@ -114,7 +114,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.meta.requiresHigherRole) {
-    const isRole1Only = authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3)
+    const isRole1Only = authStore.hasRole(1) && !authStore.hasRole(2) && !authStore.hasRole(3) && !authStore.hasRole(4)
     if (isRole1Only) {
       next({ name: 'explore' })
       return

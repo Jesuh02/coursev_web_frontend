@@ -64,7 +64,8 @@ export const progressAdapter: ProgressPort = {
   },
 
   // ── Matrícula (enrollment) ──
-  requestEnrollment: (courseId) => api.post<Progress>(`/progress/course/${courseId}/request-enrollment`, {}),
+  requestEnrollment: (courseId, requestedRole?: 'student' | 'docente') =>
+    api.post<Progress>(`/progress/course/${courseId}/request-enrollment`, { requestedRole: requestedRole || 'student' }),
   getEnrollmentStatus: (courseId) => api.get<Record<string, unknown>>(`/progress/course/${courseId}/enrollment-status`),
   getPendingEnrollments: (courseId?) => {
     const q = courseId ? `?courseId=${courseId}` : ''

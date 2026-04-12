@@ -101,7 +101,10 @@
                 </div>
                 <p v-if="!infoTeachers.length" class="info-empty">Sin docentes asignados</p>
                 <ul v-else class="info-list">
-                  <li v-for="t in infoTeachers" :key="t.id" class="info-item">{{ t.name }}</li>
+                  <li v-for="t in infoTeachers" :key="t.id" class="info-item">
+                    <span class="info-item-main">{{ t.name }}</span>
+                    <span v-if="t.username" class="info-item-sub">@{{ t.username }}</span>
+                  </li>
                 </ul>
               </div>
               <div class="info-divider" />
@@ -113,7 +116,10 @@
                 </div>
                 <p v-if="!infoStudents.length" class="info-empty">Sin estudiantes registrados</p>
                 <ul v-else class="info-list">
-                  <li v-for="s in infoStudents" :key="s.userId" class="info-item">{{ s.username }}</li>
+                  <li v-for="s in infoStudents" :key="s.userId" class="info-item">
+                    <span class="info-item-main">{{ s.name }}</span>
+                    <span v-if="s.username" class="info-item-sub">@{{ s.username }}</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -143,6 +149,31 @@
 
     <!-- Modal reporte plataforma -->
     <PlatformGradeReportModal v-model="showPlatformReport" />
+
+    <!-- Role selection dialog for docente users -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="roleDialogVisible" class="role-dialog-overlay" @click.self="roleDialogVisible = false">
+          <div class="role-dialog">
+            <h3 class="role-dialog-title">¿Cómo deseas ingresar?</h3>
+            <p class="role-dialog-desc">Selecciona el rol con el que deseas solicitar acceso a este curso.</p>
+            <div class="role-dialog-options">
+              <button class="role-option role-option--student" @click="onRoleDialogSelect('student')">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 016.5 2H20v20H6.5a2.5 2.5 0 010-5H20"/></svg>
+                <span class="role-option-label">Estudiante</span>
+                <span class="role-option-desc">Acceder al contenido como estudiante</span>
+              </button>
+              <button class="role-option role-option--docente" @click="onRoleDialogSelect('docente')">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span class="role-option-label">Docente</span>
+                <span class="role-option-desc">Crear materias y gestionar contenido</span>
+              </button>
+            </div>
+            <button class="role-dialog-cancel" @click="roleDialogVisible = false">Cancelar</button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -185,12 +216,13 @@ const teacherCounts = ref<Record<number, number>>({})
 const infoVisible = ref(false)
 const infoCourse = ref<Course | null>(null)
 const infoLoading = ref(false)
-const infoTeachers = ref<{ id: number; name: string }[]>([])
-const infoStudents = ref<{ userId: number; username: string }[]>([])
+const infoTeachers = ref<{ id: number; name: string; username: string | null }[]>([])
+const infoStudents = ref<{ userId: number; name: string; username: string | null }[]>([])
 
 const canManageCourses = computed(() => authStore.isAdmin)
 const userRole = computed(() => {
   const roles = authStore.user?.roles ?? []
+  if (roles.some(r => r.id === 4)) return 3
   if (roles.some(r => r.id === 3)) return 3
   if (roles.some(r => r.id === 2)) return 2
   return 1
@@ -229,13 +261,32 @@ const newCoursesStat = computed(() => {
   }).length
 })
 
-const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3))
+const requiresEnrollmentApproval = computed(() => !authStore.hasRole(3) && !authStore.hasRole(4))
 
 const accessDeniedMessage = ref(false)
 const accessDeniedText = ref('No tienes acceso a este curso.')
 const requestingEnrollment = ref(false)
 const creatorUsernames = ref<Record<number, string>>({})
 let searchRequestId = 0
+
+// ── Role selection dialog for docente users ──
+const isDocenteUser = computed(() => authStore.hasRole(2))
+const roleDialogVisible = ref(false)
+const roleDialogCourse = ref<Course | null>(null)
+const roleDialogRetry = ref(false)
+
+function showRoleDialog(course: Course, isRetry = false) {
+  roleDialogCourse.value = course
+  roleDialogRetry.value = isRetry
+  roleDialogVisible.value = true
+}
+
+async function onRoleDialogSelect(role: 'student' | 'docente') {
+  roleDialogVisible.value = false
+  const course = roleDialogCourse.value
+  if (!course) return
+  await requestEnrollmentOnAccessAttempt(course, roleDialogRetry.value, role)
+}
 
 function mergeUniqueCourses(...courseLists: Course[][]) {
   const merged = new Map<number, Course>()
@@ -364,16 +415,17 @@ function showAccessMessage(message: string) {
   setTimeout(() => { accessDeniedMessage.value = false }, 3000)
 }
 
-async function requestEnrollmentOnAccessAttempt(course: Course, isRetry = false) {
+async function requestEnrollmentOnAccessAttempt(course: Course, isRetry = false, requestedRole: 'student' | 'docente' = 'student') {
   if (requestingEnrollment.value) return
 
   requestingEnrollment.value = true
   try {
-    await progressAdapter.requestEnrollment(course.id)
+    await progressAdapter.requestEnrollment(course.id, requestedRole)
+    const roleSuffix = requestedRole === 'docente' ? ' como docente' : ''
     showAccessMessage(
       isRetry
-        ? 'Se envio una nueva solicitud. Un administrador debe aprobar tu acceso al curso.'
-        : 'Solicitud enviada. Un administrador debe aprobar tu acceso al curso.',
+        ? `Se envio una nueva solicitud${roleSuffix}. Un administrador debe aprobar tu acceso al curso.`
+        : `Solicitud enviada${roleSuffix}. Un administrador debe aprobar tu acceso al curso.`,
     )
   } catch (err: any) {
     const msg = err?.message || ''
@@ -439,7 +491,12 @@ async function navigateToCourse(course: Course) {
           return
         }
       } catch { /* fallthrough */ }
-      await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
+      // Show role dialog for docente users, otherwise request directly
+      if (isDocenteUser.value) {
+        showRoleDialog(course, status === 'rejected')
+      } else {
+        await requestEnrollmentOnAccessAttempt(course, status === 'rejected')
+      }
     }
   } catch {
     // Si getEnrollmentStatus falla, verificar isEnrolled como fallback
@@ -450,7 +507,11 @@ async function navigateToCourse(course: Course) {
         return
       }
     } catch { /* fallthrough */ }
-    await requestEnrollmentOnAccessAttempt(course)
+    if (isDocenteUser.value) {
+      showRoleDialog(course)
+    } else {
+      await requestEnrollmentOnAccessAttempt(course)
+    }
   }
 }
 
@@ -589,16 +650,50 @@ async function openInfoDialog(course: Course) {
       collaboratorAdapter.getByCourse(course.id),
       courseAdapter.getGuests(course.id),
     ])
+    const collaborators = collabsRes.status === 'fulfilled' ? collabsRes.value : []
+    const guests = guestsRes.status === 'fulfilled' ? guestsRes.value : []
+    const participantIds = Array.from(new Set([
+      ...collaborators.map(c => Number(c.userId)).filter(id => id > 0),
+      ...guests.map(g => Number(g.userId)).filter(id => id > 0),
+    ]))
+
+    let usersById = new Map<number, any>()
+    if (participantIds.length) {
+      try {
+        const users = await userAdapter.getUsersByIds(participantIds)
+        usersById = new Map(users.map(user => [Number(user.id), user]))
+      } catch {
+        usersById = new Map()
+      }
+    }
+
+    const resolveParticipantName = (userId: number, username?: string | null) => {
+      const user = usersById.get(userId)
+      const nombres = user?.persona?.nombres?.trim?.() ?? ''
+      const apellidos = user?.persona?.apellidos?.trim?.() ?? ''
+      const fullName = [nombres, apellidos].filter(Boolean).join(' ').trim()
+      return {
+        name: fullName || username || `Usuario #${userId}`,
+        username: username && username !== fullName ? username : null,
+      }
+    }
+
     if (collabsRes.status === 'fulfilled') {
-      infoTeachers.value = collabsRes.value
+      infoTeachers.value = collaborators
         .filter(c => c.user)
-        .map(c => ({ id: c.userId, name: c.user?.username ?? `Usuario #${c.userId}` }))
+        .map((c) => {
+          const resolved = resolveParticipantName(c.userId, c.user?.username)
+          return { id: c.userId, name: resolved.name, username: resolved.username }
+        })
     }
     if (guestsRes.status === 'fulfilled') {
       const collabIds = new Set(infoTeachers.value.map(t => t.id))
-      infoStudents.value = guestsRes.value
+      infoStudents.value = guests
         .filter(g => !collabIds.has(g.userId))
-        .map(g => ({ userId: g.userId, username: g.username ?? `Usuario #${g.userId}` }))
+        .map((g) => {
+          const resolved = resolveParticipantName(g.userId, g.username)
+          return { userId: g.userId, name: resolved.name, username: resolved.username }
+        })
     }
   } finally {
     infoLoading.value = false
@@ -882,14 +977,25 @@ onUnmounted(() => observer?.disconnect())
 }
 
 .info-item {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 6px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .info-item:last-child {
   border-bottom: none;
+}
+
+.info-item-main {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-item-sub {
+  font-size: 12px;
+  color: #8E8E93;
 }
 
 /* ── Botón FAB reporte plataforma ── */
@@ -921,4 +1027,59 @@ onUnmounted(() => observer?.disconnect())
   .platform-report-fab { bottom: 80px; right: 14px; padding: 10px 13px; font-size: 13px; }
   .fab-label { display: none; }
 }
+
+/* ── Role selection dialog ── */
+.role-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+}
+.role-dialog {
+  background: rgba(28, 28, 30, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 24px 20px;
+  text-align: center;
+}
+.role-dialog-title { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 6px; }
+.role-dialog-desc { font-size: 14px; color: #8E8E93; margin: 0 0 20px; line-height: 1.4; }
+.role-dialog-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.role-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.role-option:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); }
+.role-option--student:hover { border-color: #0A84FF; }
+.role-option--docente:hover { border-color: #BF5AF2; }
+.role-option--student svg { color: #0A84FF; }
+.role-option--docente svg { color: #BF5AF2; }
+.role-option-label { font-size: 16px; font-weight: 600; color: #fff; }
+.role-option-desc { font-size: 12px; color: #8E8E93; }
+.role-dialog-cancel {
+  font-size: 15px;
+  color: #8E8E93;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  width: 100%;
+  transition: background 0.15s;
+}
+.role-dialog-cancel:hover { background: rgba(255, 255, 255, 0.1); }
 </style>

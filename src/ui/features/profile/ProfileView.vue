@@ -29,6 +29,13 @@
         <ProfileMenuItem icon="star" label="Suscripciones" color="#5E5CE6" @click="$router.push('/subscriptions')" />
         <ProfileMenuItem
           icon="message-circle"
+          label="Quejas y dudas"
+          color="#25D366"
+          subtitle="WhatsApp 3053048316"
+          @click="handleSupportWhatsApp"
+        />
+        <ProfileMenuItem
+          icon="message-circle"
           :label="waLabel"
           :color="waIconColor"
           :badge="waBadge"
@@ -165,6 +172,8 @@ type WaState = 'loading' | 'linked' | 'pending' | 'unlinked' | 'unavailable'
 const waState = ref<WaState>('loading')
 const waPhone = ref('')
 const waProviderInfo = ref('')
+const SUPPORT_WHATSAPP_NUMBER = '573053048316'
+const SUPPORT_WHATSAPP_MESSAGE = 'Hola, tengo una duda o queja sobre CourseV.'
 
 // Dialog visibility
 const showLinkDialog = ref(false)
@@ -366,6 +375,11 @@ async function doUnlink() {
 function closeLinkDialog() { showLinkDialog.value = false; dialogError.value = '' }
 function closeVerifyDialog() { showVerifyDialog.value = false; dialogError.value = '' }
 function closeUnlinkDialog() { showUnlinkDialog.value = false }
+
+function handleSupportWhatsApp() {
+  const url = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${encodeURIComponent(SUPPORT_WHATSAPP_MESSAGE)}`
+  window.open(url, '_blank', 'noopener')
+}
 
 // ═══════════════════════════════════════
 // Profile / subscriber count

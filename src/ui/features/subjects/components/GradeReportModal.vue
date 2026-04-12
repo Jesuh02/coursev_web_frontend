@@ -76,6 +76,8 @@
                     <thead>
                       <tr>
                         <th class="th-student">Estudiante</th>
+                        <th>Nombre Completo</th>
+                        <th>Cédula</th>
                         <th>Tarea</th>
                         <th class="th-grade">Nota</th>
                         <th class="th-ponderada">Cal. Ponderada</th>
@@ -87,6 +89,8 @@
                     <tbody>
                       <tr v-for="(row, i) in group.rows" :key="i" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
                         <td class="cell-student">{{ row.studentName }}</td>
+                        <td class="cell-fullname">{{ row.studentFullName ?? '—' }}</td>
+                        <td class="cell-cedula">{{ row.studentCedula ?? '—' }}</td>
                         <td class="cell-task">{{ row.taskName }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
                         <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : gradeClass(row.grade)">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
                         <td class="cell-ponderada" :class="gradeClass(group.studentAverages[row.studentName] ?? null)">{{ group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—' }}</td>
@@ -128,6 +132,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
+import type ExcelJS from 'exceljs'
 import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
@@ -137,6 +142,7 @@ import { useAuthStore } from '@/stores/authStore'
 const props = defineProps<{
   modelValue: boolean
   courseId: number
+  courseName?: string
   subjects: Subject[]
 }>()
 
@@ -146,6 +152,8 @@ const authStore = useAuthStore()
 
 interface SubmissionRow {
   studentName: string
+  studentFullName: string | null
+  studentCedula: string | null
   taskName: string
   grade: number | null
   submissionDate: number | null
@@ -251,6 +259,8 @@ async function fetchReport() {
     const subjectTaskNames = new Map<number, string[]>()
     // All known students (submitted at least one task)
     const knownStudents = new Set<string>()
+    // Map studentUsername → { fullName, cedula }
+    const studentPersonaMap = new Map<string, { fullName: string | null, cedula: string | null }>()
 
     for (const sub of (submissions as any[])) {
       const taskId = sub.task_id ?? sub.taskId
@@ -264,9 +274,19 @@ async function fetchReport() {
       const taskName = sub.taskName ?? task.title ?? task.name ?? 'Sin título'
       knownStudents.add(studentName)
 
+      // Track persona data for this student
+      if (!studentPersonaMap.has(studentName)) {
+        studentPersonaMap.set(studentName, {
+          fullName: sub.studentFullName ?? null,
+          cedula: sub.studentCedula ?? null,
+        })
+      }
+
       if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, [])
       subjectRowsMap.get(subjectId)!.push({
         studentName,
+        studentFullName: sub.studentFullName ?? null,
+        studentCedula: sub.studentCedula ?? null,
         taskName,
         grade: sub.grade ?? null,
         submissionDate: sub.submission_date ?? sub.submissionDate ?? null,
@@ -301,7 +321,8 @@ async function fetchReport() {
         const submitters = taskSubmissions.get(taskName) ?? new Set()
         for (const studentName of knownStudents) {
           if (!submitters.has(studentName)) {
-            rows.push({ studentName, taskName, grade: 0, submissionDate: null, feedback: null, gradedByUsername: null, notSubmitted: true })
+            const persona = studentPersonaMap.get(studentName) ?? { fullName: null, cedula: null }
+            rows.push({ studentName, studentFullName: persona.fullName, studentCedula: persona.cedula, taskName, grade: 0, submissionDate: null, feedback: null, gradedByUsername: null, notSubmitted: true })
           }
         }
       }
@@ -354,42 +375,117 @@ function exportPDF() {
   win.onload = () => { win.print(); win.close() }
 }
 
-// ── Excel export (.xls – HTML-based, opens fully formatted in Microsoft Excel) ──
-function exportExcel() {
-  const now = new Date().toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  let tableRows = ''
-  for (const group of reportData.value) {
-    const avg = group.average !== null ? group.average : '—'
-    tableRows += `<tr style="background:#f3eafe"><td colspan="6" style="font-size:11pt;font-weight:700;color:#4a0e8f;padding:8px 12px;border-bottom:2px solid #c9a0f5;border-left:4px solid #8b5cf6">${escH(group.subjectName)}&nbsp;&nbsp;<span style="font-weight:400;color:#888;font-size:9pt">Docente: ${escH(group.teacherName)}</span>&nbsp;&nbsp;<span style="float:right;color:#4a0e8f">Promedio: ${avg}</span></td></tr>`
-    if (!group.rows.length) {
-      tableRows += `<tr><td colspan="6" style="color:#999;font-style:italic;padding:6px 12px 6px 24px">Sin entregas registradas</td></tr>`
-    }
-    for (let i = 0; i < group.rows.length; i++) {
-      const row = group.rows[i]
-      const bg = i % 2 === 0 ? '#ffffff' : '#f9f7fc'
-      const gradeVal = row.notSubmitted ? '0' : (row.grade !== null ? row.grade : '—')
-      const gradeColor = (row.notSubmitted || (row.grade !== null && row.grade < 3))
-        ? '#b91c1c'
-        : row.grade !== null
-          ? (row.grade >= 4 ? '#1a7f37' : '#b45309')
-          : '#999999'
-      const fb = row.feedback ? escH(stripHtml(row.feedback)) : '—'
-      const ponderada = group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—'
-      const ponderadaColor = group.studentAverages[row.studentName] != null
-        ? (group.studentAverages[row.studentName]! >= 4 ? '#1a7f37' : group.studentAverages[row.studentName]! >= 3 ? '#b45309' : '#b91c1c')
-        : '#999999'
-      const noEntregaBadge = row.notSubmitted ? ' <span style="font-size:8pt;background:#ff453a22;color:#ff453a;padding:1px 5px;border-radius:3px">No entregado</span>' : ''
-      tableRows += `<tr style="background:${bg}"><td style="white-space:nowrap">${escH(row.studentName)}</td><td>${escH(row.taskName)}${noEntregaBadge}</td><td style="text-align:center;font-weight:700;color:${gradeColor}">${gradeVal}</td><td style="text-align:center;font-weight:700;color:${ponderadaColor}">${ponderada}</td><td style="white-space:nowrap">${row.notSubmitted ? '—' : formatDate(row.submissionDate)}</td><td>${escH(row.gradedByUsername ?? '—')}</td><td style="color:#555">${fb}</td></tr>`
-    }
+// ── Excel export (OOXML .xlsx – formato nativo de Excel, sin advertencias) ──
+async function exportExcel() {
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'CourseV'
+  wb.created = new Date()
+  const ws = wb.addWorksheet('Reporte de Notas')
+
+  ws.columns = [
+    { width: 26 }, // Curso
+    { width: 24 }, // Estudiante
+    { width: 28 }, // Nombre Completo
+    { width: 16 }, // Cédula
+    { width: 34 }, // Tarea
+    { width: 10 }, // Nota
+    { width: 14 }, // Cal. Ponderada
+    { width: 20 }, // Fecha de entrega
+    { width: 22 }, // Docente que calificó
+    { width: 38 }, // Retroalimentación
+  ]
+
+  const hdrFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B1060' } }
+  const grpHdrFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3EAFE' } }
+  const row0Fill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+  const row1Fill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F7FC' } }
+  const thinBorder: Partial<ExcelJS.Borders> = {
+    top: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    left: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    bottom: { style: 'thin', color: { argb: 'FFE0DDE8' } },
+    right: { style: 'thin', color: { argb: 'FFE0DDE8' } },
   }
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte de Notas</x:Name><x:WorksheetOptions><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>* { font-family: Calibri, Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th { background: #3b1060; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #2a0a45; white-space: nowrap; } td { padding: 6px 12px; border: 1px solid #e0dde8; vertical-align: top; }</style></head><body><h2 style="font-family:Calibri,Arial;color:#3b1060;margin:0 0 6px">Reporte de Notas</h2><p style="font-size:9pt;color:#666;margin:0 0 16px">Generado el ${now}&nbsp;&nbsp;·&nbsp;&nbsp;${props.subjects.length} materias&nbsp;&nbsp;·&nbsp;&nbsp;${totalSubmissions.value} entregas&nbsp;&nbsp;·&nbsp;&nbsp;${gradedCount.value} calificadas&nbsp;&nbsp;·&nbsp;&nbsp;Promedio general: ${averageGrade.value}</p><table><colgroup><col style="width:140pt"><col style="width:190pt"><col style="width:55pt"><col style="width:70pt"><col style="width:110pt"><col style="width:130pt"><col style="width:260pt"></colgroup><thead><tr><th>Estudiante</th><th>Tarea</th><th style="text-align:center">Nota</th><th style="text-align:center">Cal. Ponderada</th><th>Fecha de entrega</th><th>Docente que calificó</th><th>Retroalimentación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`
+  function gradeFont(grade: number | null, notSubmitted?: boolean): Partial<ExcelJS.Font> {
+    if (notSubmitted || (grade !== null && grade < 3)) return { bold: true, color: { argb: 'FFB91C1C' }, name: 'Calibri' }
+    if (grade !== null && grade >= 4) return { bold: true, color: { argb: 'FF1A7F37' }, name: 'Calibri' }
+    if (grade !== null) return { bold: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+    return { color: { argb: 'FF999999' }, name: 'Calibri' }
+  }
 
-  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+  // Header row
+  const hdrRow = ws.addRow(['Curso', 'Estudiante', 'Nombre Completo', 'Cédula', 'Tarea', 'Nota', 'Cal. Ponderada', 'Fecha de entrega', 'Docente que calificó', 'Retroalimentación'])
+  hdrRow.eachCell((cell: ExcelJS.Cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
+    cell.fill = hdrFill
+    cell.border = thinBorder
+    cell.alignment = { vertical: 'middle', wrapText: true }
+  })
+  hdrRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
+  hdrRow.height = 18
+
+  for (const group of reportData.value) {
+    const avg = group.average !== null ? group.average : '—'
+    const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 10)
+    grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
+    grpRow.getCell(1).fill = grpHdrFill
+    grpRow.getCell(1).border = thinBorder
+    grpRow.height = 20
+
+    if (!group.rows.length) {
+      const emptyRow = ws.addRow(['Sin entregas registradas'])
+      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 10)
+      emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
+      continue
+    }
+
+    group.rows.forEach((row, i) => {
+      const grade = row.notSubmitted ? 0 : (row.grade ?? null)
+      const ponderadaNum = group.studentAverages[row.studentName] ?? null
+      const ponderada = ponderadaNum !== null ? Number(ponderadaNum.toFixed(1)) : '—'
+      const taskLabel = row.notSubmitted ? `${row.taskName} (No entregado)` : row.taskName
+      const fb = row.feedback ? stripHtml(row.feedback) : '—'
+
+      const dataRow = ws.addRow([
+        props.courseName ?? `Curso ${props.courseId}`,
+        row.studentName,
+        row.studentFullName ?? '—',
+        row.studentCedula ?? '—',
+        taskLabel,
+        grade !== null ? Number(typeof grade === 'number' ? grade.toFixed(1) : grade) : '—',
+        ponderada,
+        row.notSubmitted ? '—' : formatDate(row.submissionDate),
+        row.gradedByUsername ?? '—',
+        fb,
+      ])
+      const rowFill = i % 2 === 0 ? row0Fill : row1Fill
+      dataRow.eachCell((cell: ExcelJS.Cell) => {
+        cell.fill = rowFill
+        cell.border = thinBorder
+        cell.font = { name: 'Calibri' }
+        cell.alignment = { vertical: 'middle', wrapText: true }
+      })
+      dataRow.getCell(6).font = gradeFont(typeof grade === 'number' ? grade : null, row.notSubmitted)
+      dataRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }
+      if (ponderadaNum !== null) {
+        dataRow.getCell(7).font = gradeFont(ponderadaNum)
+      } else {
+        dataRow.getCell(7).font = { color: { argb: 'FF999999' }, name: 'Calibri' }
+      }
+      dataRow.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }
+      dataRow.height = 16
+    })
+  }
+
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reporte_notas_${Date.now()}.xls`
+  a.download = `reporte_notas_${Date.now()}.xlsx`
   a.click()
   URL.revokeObjectURL(url)
 }

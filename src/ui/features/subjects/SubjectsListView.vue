@@ -141,7 +141,7 @@
       </div>
     </Teleport>
 
-    <GradeReportModal v-model="showReport" :course-id="courseId" :subjects="allSubjects" />
+    <GradeReportModal v-model="showReport" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
   </div>
 </template>
 
@@ -164,6 +164,7 @@ const authStore = useAuthStore()
 const notifStore = useNotificationStore()
 
 const courseId = computed(() => Number(route.params.courseId) || 0)
+const currentCourseName = ref('')
 const allSubjects = ref<Subject[]>([])
 const search = ref('')
 const loadingSubjects = ref(true)
@@ -440,6 +441,7 @@ async function checkCourseDeadline() {
   if (!courseId.value) return
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
+    currentCourseName.value = (course as any)?.title ?? (course as any)?.name ?? ''
     const isInactive = course?.isActive === false || course?.is_active === false
     const isExpired = Boolean(course?.deadline) && new Date(course.deadline as string).getTime() < Date.now()
     if (isInactive || isExpired) {

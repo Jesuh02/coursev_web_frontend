@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = 'https://mcp-backenddeploy-production-4ed0.up.railway.app'
+const DEFAULT_API_BASE = (import.meta.env.VITE_API_URL_INCAT as string) || 'https://mcp-backenddeploy-production.up.railway.app'
 
 function normalizeApiBase(value: string | undefined): string {
   const raw = value?.trim() || DEFAULT_API_BASE
@@ -24,6 +24,7 @@ const TOKEN_KEY = 'auth_token'
 const REFRESH_KEY = 'refresh_token'
 const USER_ID_KEY = 'user_id'
 const USERNAME_KEY = 'username'
+const SESSION_ACTIVE_KEY = 'session_active'
 
 const MAX_RETRIES = 2
 const INITIAL_BACKOFF_MS = 1000
@@ -54,11 +55,14 @@ export class HttpError extends Error {
 }
 
 export const tokenStorage = {
-  get token() { return localStorage.getItem(TOKEN_KEY) },
-  set token(v: string | null) { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY) },
+  // Token is now stored in an HttpOnly cookie — no longer in localStorage.
+  // The setter keeps the session_active flag so `isAuthenticated` survives page reloads.
+  get token() { return null as string | null },
+  set token(v: string | null) { v ? localStorage.setItem(SESSION_ACTIVE_KEY, 'true') : localStorage.removeItem(SESSION_ACTIVE_KEY) },
 
-  get refreshToken() { return localStorage.getItem(REFRESH_KEY) },
-  set refreshToken(v: string | null) { v ? localStorage.setItem(REFRESH_KEY, v) : localStorage.removeItem(REFRESH_KEY) },
+  // Refresh token is managed entirely via HttpOnly cookie.
+  get refreshToken() { return null as string | null },
+  set refreshToken(_v: string | null) { /* managed via HttpOnly cookie */ },
 
   get userId(): number { return Number(localStorage.getItem(USER_ID_KEY)) || 0 },
   set userId(v: number) { v ? localStorage.setItem(USER_ID_KEY, String(v)) : localStorage.removeItem(USER_ID_KEY) },
@@ -66,11 +70,12 @@ export const tokenStorage = {
   get username(): string | null { return localStorage.getItem(USERNAME_KEY) },
   set username(v: string | null) { v ? localStorage.setItem(USERNAME_KEY, v) : localStorage.removeItem(USERNAME_KEY) },
 
-  get isAuthenticated() { return !!this.token },
+  get isAuthenticated() { return localStorage.getItem(SESSION_ACTIVE_KEY) === 'true' },
 
   clear() {
-    this.token = null
-    this.refreshToken = null
+    localStorage.removeItem(TOKEN_KEY)        // Clean up any legacy values
+    localStorage.removeItem(REFRESH_KEY)      // Clean up any legacy values
+    localStorage.removeItem(SESSION_ACTIVE_KEY)
     this.userId = 0
     this.username = null
   },
@@ -89,22 +94,14 @@ export function setOnUnauthorized(cb: () => void): void {
 async function tryRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
-    const rt = tokenStorage.refreshToken
-    if (!rt) return false
     try {
+      // Refresh token is in the HttpOnly cookie — sent automatically with credentials: 'include'
       const res = await fetch(`${API_V1}/auth/refresh-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: rt }),
+        credentials: 'include',
       })
-      if (!res.ok) return false
-      const json = await res.json() as ApiResponse<{ accessToken: string; refreshToken: string }>
-      if (json.success && json.data.accessToken) {
-        tokenStorage.token = json.data.accessToken
-        tokenStorage.refreshToken = json.data.refreshToken
-        return true
-      }
-      return false
+      return res.ok
     } catch { return false }
     finally { refreshPromise = null }
   })()
@@ -113,7 +110,7 @@ async function tryRefresh(): Promise<boolean> {
 
 function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (tokenStorage.token) h['Authorization'] = `Bearer ${tokenStorage.token}`
+  // Authorization is handled via HttpOnly cookie (credentials: 'include' on each request)
   // Include X-Tenant-ID header to ensure requests target the correct tenant database
   const selectedTenantId = localStorage.getItem('selected_tenant_id')
   if (selectedTenantId) h['X-Tenant-ID'] = selectedTenantId
@@ -132,7 +129,7 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
       ? { 'Content-Type': 'application/json' }
       : authHeaders()
 
-    const execFetch = () => fetch(url, { ...options, cache: cachePolicy, headers: { ...headers, ...options?.headers } })
+    const execFetch = () => fetch(url, { ...options, cache: cachePolicy, credentials: 'include', headers: { ...headers, ...options?.headers } })
     const res = await execFetch()
 
     if (res.status === 401 && !isPublic) {
@@ -153,7 +150,7 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
 
       const refreshed = await tryRefresh()
       if (refreshed) {
-        const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
+        const retryRes = await fetch(url, { ...options, cache: cachePolicy, credentials: 'include', headers: authHeaders() })
         if (retryRes.status === 401) {
           tokenStorage.clear()
           _onUnauthorized?.()
@@ -178,7 +175,7 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
         }
         const refreshed = await tryRefresh()
         if (refreshed) {
-          const retryRes = await fetch(url, { ...options, cache: cachePolicy, headers: authHeaders() })
+          const retryRes = await fetch(url, { ...options, cache: cachePolicy, credentials: 'include', headers: authHeaders() })
           if (retryRes.status === 401) {
             tokenStorage.clear()
             _onUnauthorized?.()
@@ -271,12 +268,11 @@ export const api = {
   },
   upload: <T>(path: string, formData: FormData) => {
     // Don't set Content-Type – the browser sets it automatically with the correct
-    // multipart boundary. Include Authorization + X-Tenant-ID (multi-tenant).
+    // multipart boundary. Authorization is handled via HttpOnly cookie.
     const headers: Record<string, string> = {}
-    if (tokenStorage.token) headers['Authorization'] = `Bearer ${tokenStorage.token}`
     const selectedTenantId = localStorage.getItem('selected_tenant_id')
     if (selectedTenantId) headers['X-Tenant-ID'] = selectedTenantId
-    return fetch(`${API_V1}${path}`, { method: 'POST', headers, body: formData })
+    return fetch(`${API_V1}${path}`, { method: 'POST', headers, body: formData, credentials: 'include' })
       .then(r => r.json())
       .then((json: ApiResponse<T>) => {
         if (json.success === false) throw new HttpError(400, 'UPLOAD_ERROR', (json as unknown as ApiError).error.message)

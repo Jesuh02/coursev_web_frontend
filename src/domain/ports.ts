@@ -13,6 +13,7 @@ export interface AuthPort {
   forgotPassword(email: string): Promise<{ sent: boolean }>
   verifyResetCode(email: string, code: string): Promise<{ valid: boolean }>
   resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }>
+  logout(): Promise<void>
 }
 
 export interface UserPort {
@@ -160,7 +161,7 @@ export interface ProgressPort {
   getCreatorEnrollmentAnalytics(options?: Record<string, unknown>): Promise<Record<string, unknown>>
 
   // ── Matrícula (enrollment) ──
-  requestEnrollment(courseId: number): Promise<Progress>
+  requestEnrollment(courseId: number, requestedRole?: 'student' | 'docente'): Promise<Progress>
   getEnrollmentStatus(courseId: number): Promise<Record<string, unknown>>
   getPendingEnrollments(courseId?: number): Promise<Record<string, unknown>[]>
   approveEnrollment(userId: number, courseId: number): Promise<Record<string, unknown>>

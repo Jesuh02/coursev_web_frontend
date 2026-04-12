@@ -777,6 +777,76 @@
           </div>
         </div>
 
+        <div class="section-card moderation-card" :class="{ 'is-open': expandedSections.myProgress }">
+          <div class="section-header moderation-header" @click="toggleSection('myProgress')">
+            <div class="header-left">
+              <div class="section-icon moderation-icon" style="background: #30D158">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div>
+                <h4>Mi Progreso en Cursos</h4>
+                <p>Notas y avance por materia</p>
+              </div>
+            </div>
+            <div class="section-header-actions">
+              <span class="badge badge-mint">{{ myCoursesProgress.length }} curso{{ myCoursesProgress.length !== 1 ? 's' : '' }}</span>
+              <span class="chevron" :class="{ expanded: expandedSections.myProgress }">▼</span>
+            </div>
+          </div>
+          <div v-if="expandedSections.myProgress" class="section-content">
+            <div v-if="loadingMyCoursesProgress" class="loading-center"><div class="spinner-lg"></div></div>
+            <template v-else>
+              <div v-if="myCoursesProgress.length === 0" class="empty-state">
+                <span class="emoji">📚</span>
+                <p>No estás inscrito en ningún curso</p>
+              </div>
+              <div v-else class="mcp-list">
+                <div v-for="course in myCoursesProgress" :key="course.courseId" class="mcp-card">
+                  <div class="mcp-card-header" style="cursor:pointer" @click="router.push({ name: 'subjectsList', params: { courseId: course.courseId } })">
+                    <img :src="resolveThumbnail(course.thumbnail)" class="mcp-thumb" alt="" @error="onCourseThumbError" />
+                    <div class="mcp-card-info">
+                      <h5 class="mcp-course-title">{{ course.courseName }}</h5>
+                      <div class="progress-bar">
+                        <div class="progress-fill" :style="{ width: course.progressPercentage + '%' }"></div>
+                      </div>
+                      <div class="mcp-meta">
+                        <span class="mcp-pct">{{ course.progressPercentage }}%</span>
+                        <span class="mcp-sep">·</span>
+                        <span class="mcp-grade-val" :class="course.averageGrade !== null && Number(course.averageGrade) >= 6 ? 'grade-pass' : 'grade-fail'">
+                          Nota: {{ course.averageGrade !== null ? Number(course.averageGrade).toFixed(1) : '—' }}
+                        </span>
+                        <span class="mcp-sep">·</span>
+                        <span class="mcp-tasks">{{ course.completedTasks }}/{{ course.totalTasks }} tareas</span>
+                        <span v-if="course.status" class="mcp-status-badge" :class="course.status === 'Ganado' ? 'status-won' : course.status === 'Perdido' ? 'status-lost' : ''">{{ course.status }}</span>
+                      </div>
+                    </div>
+                    <span class="mcp-chevron">›</span>
+                  </div>
+                  <div v-if="expandedCourseProgressIds.has(course.courseId)" class="mcp-subjects">
+                    <div v-if="course.subjects.length === 0" class="mcp-no-subjects">Sin materias registradas</div>
+                    <div v-for="subj in course.subjects" :key="subj.subjectId" class="mcp-subject-row">
+                      <div class="mcp-subject-left">
+                        <span class="mcp-subject-name">{{ subj.subjectName }}</span>
+                        <div class="progress-bar mcp-subject-bar">
+                          <div class="progress-fill" :style="{ width: subj.progressPercentage + '%' }"></div>
+                        </div>
+                        <span class="mcp-subject-meta">{{ subj.completedTasks }}/{{ subj.totalTasks }} tareas · {{ subj.progressPercentage }}%</span>
+                      </div>
+                      <div class="mcp-subject-right">
+                        <span class="mcp-grade-val" :class="subj.averageGrade !== null && Number(subj.averageGrade) >= 6 ? 'grade-pass' : 'grade-fail'">
+                          {{ subj.averageGrade !== null ? Number(subj.averageGrade).toFixed(1) : '—' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
         <div class="section-card moderation-card" :class="{ 'is-open': expandedSections.courses }">
           <div class="section-header moderation-header" @click="toggleSection('courses')">
             <div class="header-left">
@@ -1236,6 +1306,12 @@
                 <span class="enroll-course-eyebrow">Curso solicitado</span>
                 <span class="enroll-course-name">{{ req.courseName || `Curso #${req.courseId}` }}</span>
               </div>
+              <div v-if="req.requestedRole === 'docente'" class="enroll-requested-role-row">
+                <span class="enroll-requested-role-badge docente">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  Solicita ingresar como Docente
+                </span>
+              </div>
               <div v-if="req.roleChips.length" class="enroll-roles-row">
                 <span
                   v-for="role in req.roleChips"
@@ -1689,6 +1765,569 @@
         </div>
       </div>
     </div>
+
+    <!-- Instituciones Tab (SuperAdmin) -->
+    <!-- Billing / Cobro Tab -->
+    <div v-if="activeTab === 'billing' && hasSuperAdminRole" class="tab-content billing-tab">
+      <div class="a-card">
+        <div class="a-card-header">
+          <h3>Programar Cobro</h3>
+          <span class="a-tag a-tag-red">Facturación</span>
+        </div>
+        <p class="billing-desc">Selecciona la fecha, día del mes y hora en que se iniciará el cobro. Los usuarios con rol administrador de institución verán avisos de pago en toda la aplicación.</p>
+
+        <!-- Institution selector -->
+        <div class="billing-inst-selector">
+          <label class="billing-label">Institución:</label>
+          <select v-model="billingSelectedInstId" class="billing-select" @change="onBillingInstChange">
+            <option :value="null" disabled>Seleccionar institución...</option>
+            <option v-for="inst in institutions" :key="`${inst.tenantId||'_'}-${inst.id}`" :value="inst.id">
+              {{ inst.nombre }} {{ inst.tenantName ? `(${inst.tenantName})` : '' }}
+            </option>
+          </select>
+        </div>
+
+        <template v-if="billingSelectedInstId">
+          <!-- Recurrence mode selector -->
+          <div class="billing-recurrence-selector">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Frecuencia del cobro:
+            </label>
+            <div class="billing-recurrence-options">
+              <button
+                class="billing-recurrence-btn"
+                :class="{ 'is-active': billingRecurrence === 'once' }"
+                @click="billingRecurrence = 'once'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Una sola vez
+              </button>
+              <button
+                class="billing-recurrence-btn"
+                :class="{ 'is-active': billingRecurrence === 'all_months' }"
+                @click="billingRecurrence = 'all_months'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Todos los meses
+              </button>
+            </div>
+          </div>
+
+          <!-- Month chips selector (only in "once" mode) -->
+          <div v-if="billingRecurrence === 'once'" class="billing-months-selector">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Meses a aplicar:
+            </label>
+            <div class="billing-months-actions">
+              <button class="billing-months-action-btn" @click="selectAllBillingMonths">Seleccionar todos</button>
+              <button class="billing-months-action-btn" @click="clearAllBillingMonths">Limpiar</button>
+            </div>
+            <div class="billing-months-grid">
+              <button
+                v-for="(name, idx) in MONTH_NAMES_ES"
+                :key="idx"
+                class="billing-month-chip"
+                :class="{ 'is-selected': billingSelectedMonths.has(idx) }"
+                @click="toggleBillingMonth(idx)"
+              >{{ name.slice(0, 3) }}</button>
+            </div>
+          </div>
+
+          <!-- Quick set from now -->
+          <div class="billing-quick-row">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Cobro rápido:
+            </label>
+            <div class="billing-quick-controls">
+              <span class="billing-quick-label">En</span>
+              <input
+                type="number"
+                v-model.number="billingQuickMinutes"
+                min="1"
+                max="1440"
+                class="billing-quick-input"
+              />
+              <span class="billing-quick-label">min desde ahora</span>
+              <button class="billing-btn billing-btn-quick" @click="setBillingQuickFromNow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Aplicar
+              </button>
+            </div>
+          </div>
+
+          <!-- Calendar month picker -->
+          <div class="billing-calendar">
+            <div class="billing-cal-header">
+              <button class="billing-cal-nav" @click="billingCalPrevMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div class="billing-cal-title-row">
+                <select
+                  class="billing-select billing-select-sm billing-month-select"
+                  :value="billingCalMonth"
+                  @change="onBillingMonthSelectChange"
+                >
+                  <option v-for="(name, idx) in ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']" :key="idx" :value="idx">{{ name }}</option>
+                </select>
+                <select
+                  class="billing-select billing-select-sm billing-year-select"
+                  :value="billingCalYear"
+                  @change="onBillingYearSelectChange"
+                >
+                  <option v-for="y in billingYearOptions" :key="y" :value="y">{{ y }}</option>
+                </select>
+              </div>
+              <button class="billing-cal-nav" @click="billingCalNextMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <div class="billing-cal-weekdays">
+              <span v-for="wd in ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']" :key="wd">{{ wd }}</span>
+            </div>
+            <div class="billing-cal-grid">
+              <button
+                v-for="cell in billingCalCells"
+                :key="cell.key"
+                class="billing-cal-day"
+                :class="{
+                  'is-other-month': !cell.currentMonth,
+                  'is-selected': cell.day === billingSelectedDay && cell.currentMonth,
+                  'is-today': cell.isToday && cell.currentMonth,
+                }"
+                :disabled="!cell.currentMonth"
+                @click="billingSelectedDay = cell.day"
+              >{{ cell.day }}</button>
+            </div>
+          </div>
+
+          <!-- Hour & Minute picker -->
+          <div class="billing-hour-row">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Hora del cobro:
+            </label>
+            <select v-model="billingSelectedHour" class="billing-select billing-select-sm">
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
+            </select>
+            <span class="billing-time-sep">:</span>
+            <select v-model="billingSelectedMinute" class="billing-select billing-select-sm">
+              <option v-for="m in 60" :key="m - 1" :value="m - 1">{{ String(m - 1).padStart(2, '0') }}</option>
+            </select>
+          </div>
+
+          <!-- Billing action mode selector -->
+          <div class="billing-action-mode">
+            <label class="billing-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Acción al vencer:
+            </label>
+            <div class="billing-mode-options">
+              <button
+                class="billing-mode-btn"
+                :class="{ 'is-active': billingActionMode === 'warning', 'mode-warning': billingActionMode === 'warning' }"
+                @click="billingActionMode = 'warning'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Advertencia
+              </button>
+              <button
+                class="billing-mode-btn"
+                :class="{ 'is-active': billingActionMode === 'suspension', 'mode-suspend': billingActionMode === 'suspension' }"
+                @click="billingActionMode = 'suspension'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Suspensión
+              </button>
+            </div>
+            <p class="billing-mode-hint" v-if="billingActionMode === 'warning'">Los usuarios con rol administrador de institución verán un aviso de pago pendiente con botón de pago, pero podrán seguir usando la app.</p>
+            <p class="billing-mode-hint billing-mode-hint-danger" v-else>Se bloqueará el acceso a todos los usuarios (excepto superadmin). Al intentar ingresar verán el mensaje de suspensión con el botón de pago.</p>
+          </div>
+
+          <!-- Summary -->
+          <div class="billing-summary">
+            <div class="billing-summary-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="billing-summary-text">
+              <span class="billing-summary-label">Fecha de cobro programada:</span>
+              <span class="billing-summary-value">{{ billingFormattedDate }}</span>
+              <span class="billing-summary-recurrence" v-if="billingRecurrence === 'all_months'">🔁 Recurrente cada mes</span>
+              <span class="billing-summary-recurrence" v-else-if="billingSelectedMonths.size > 0 && billingSelectedMonths.size < 12">📅 Meses seleccionados: {{ Array.from(billingSelectedMonths).sort((a,b)=>a-b).map(i=>MONTH_NAMES_ES[i].slice(0,3)).join(', ') }}</span>
+              <span class="billing-summary-mode" :class="billingActionMode === 'suspension' ? 'mode-suspend-text' : 'mode-warning-text'">{{ billingActionMode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="billing-actions">
+            <button
+              class="billing-btn billing-btn-danger"
+              :disabled="billingSaving"
+              @click="clearBillingDate"
+              v-if="billingCurrentInst?.billing_cycle_type || billingCurrentInst?.payment_due_date"
+            >
+              {{ billingSaving ? 'Eliminando...' : 'Eliminar fecha de cobro' }}
+            </button>
+            <button
+              class="billing-btn billing-btn-save"
+              :disabled="billingSaving || !billingSelectedDay"
+              @click="saveBillingDate"
+            >
+              {{ billingSaving ? 'Guardando...' : 'Programar cobro' }}
+            </button>
+          </div>
+
+          <!-- Current status -->
+          <div v-if="billingCurrentInst?.payment_due_date" class="billing-current-status">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Cobro actual configurado: <strong>{{ formatDateTime(billingCurrentInst.payment_due_date, billingCurrentInst.billing_cycle_hour, billingCurrentInst.billing_cycle_minute) }}</strong></span>
+          </div>
+        </template>
+
+        <div v-else class="billing-empty">
+          <span class="emoji">📅</span>
+          <p>Selecciona una institución para configurar la fecha de cobro</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="activeTab === 'institutions' && hasSuperAdminRole" class="tab-content institutions-tab">
+      <div v-if="institutionsLoading" class="a-loading">
+        <div class="spinner-lg"></div>
+        <p>Cargando instituciones...</p>
+      </div>
+      <template v-else>
+        <!-- Summary cards -->
+        <div class="a-stats-grid">
+          <div class="a-stat-card">
+            <div class="a-stat-icon a-icon-cyan">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
+            </div>
+            <div class="a-stat-body">
+              <span class="a-stat-value">{{ institutions.length }}</span>
+              <span class="a-stat-upper">INSTITUCIONES</span>
+              <span class="a-stat-sub">Total registradas</span>
+            </div>
+          </div>
+          <div class="a-stat-card">
+            <div class="a-stat-icon a-icon-green">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div class="a-stat-body">
+              <span class="a-stat-value">{{ institutions.filter(i => !i.is_suspended).length }}</span>
+              <span class="a-stat-upper">ACTIVAS</span>
+              <span class="a-stat-sub">En funcionamiento</span>
+            </div>
+          </div>
+          <div class="a-stat-card">
+            <div class="a-stat-icon a-icon-gold">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="a-stat-body">
+              <span class="a-stat-value">{{ institutions.filter(i => i.payment_due_date && new Date(i.payment_due_date) < new Date()).length }}</span>
+              <span class="a-stat-upper">VENCIDAS</span>
+              <span class="a-stat-sub">Pago pendiente</span>
+            </div>
+          </div>
+          <div class="a-stat-card">
+            <div class="a-stat-icon" style="background: rgba(255,69,58,0.15); color: #FF453A;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+            <div class="a-stat-body">
+              <span class="a-stat-value">{{ institutions.filter(i => i.is_suspended).length }}</span>
+              <span class="a-stat-upper">SUSPENDIDAS</span>
+              <span class="a-stat-sub">Acceso bloqueado</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="inst-search-bar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input v-model="institutionSearch" type="text" placeholder="Buscar institución..." class="inst-search-input" />
+        </div>
+
+        <!-- Institution cards -->
+        <div class="inst-list">
+          <div v-for="inst in filteredInstitutions" :key="`${inst.tenantId || '_'}-${inst.id}`" class="inst-card" :class="{ 'inst-suspended': inst.is_suspended }">
+            <div class="inst-card-header">
+              <div class="inst-info">
+                <h4 class="inst-name">{{ inst.nombre }}</h4>
+                <p class="inst-meta">
+                  {{ inst.ciudad || 'Sin ciudad' }}, {{ inst.departamento || 'Sin depto' }} · Código: {{ inst.codigo || 'N/A' }}
+                  <span v-if="inst.tenantName" class="inst-tenant-badge">{{ inst.tenantName }}</span>
+                </p>
+              </div>
+              <span class="inst-status-badge" :class="inst.is_suspended ? 'badge-red' : 'badge-green'">
+                {{ inst.is_suspended ? 'Suspendida' : 'Activa' }}
+              </span>
+            </div>
+
+            <!-- Payment info -->
+            <div class="inst-payment-row">
+              <div class="inst-payment-info">
+                <span class="inst-payment-label">Precio mensual:</span>
+                <span class="inst-monthly-price">
+                  ${{ (inst.monthly_price || 0).toLocaleString('es-CO') }} COP
+                </span>
+                <button class="inst-price-edit-btn" @click="openPriceEditor(inst)" title="Editar precio">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Payment info -->
+            <div class="inst-payment-row">
+              <div class="inst-payment-info">
+                <span class="inst-payment-label">Ciclo de pago:</span>
+                <span class="inst-payment-value" :class="{ 'is-overdue': inst.payment_due_date && new Date(inst.payment_due_date) < new Date() }">
+                  {{ formatBillingCycle(inst) }}
+                </span>
+                <span v-if="inst.payment_due_date" class="inst-payment-next">
+                  Próximo cobro: {{ formatDateTime(inst.payment_due_date, inst.billing_cycle_hour, inst.billing_cycle_minute) }}
+                  <span v-if="inst.billing_action_mode" :style="{ color: inst.billing_action_mode === 'suspension' ? '#FF3B30' : '#FF9F0A', fontWeight: '600', marginLeft: '6px' }">
+                    {{ inst.billing_action_mode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}
+                  </span>
+                </span>
+              </div>
+              <div class="inst-actions">
+                <button class="inst-action-btn inst-date-btn" @click="openCyclePicker(inst)" title="Configurar ciclo de pago">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </button>
+                <button
+                  v-if="!inst.is_suspended"
+                  class="inst-action-btn inst-suspend-btn"
+                  :disabled="institutionProcessing[inst.id]"
+                  @click="handleSuspend(inst)"
+                  title="Suspender institución"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                </button>
+                <button
+                  v-else
+                  class="inst-action-btn inst-unsuspend-btn"
+                  :disabled="institutionProcessing[inst.id]"
+                  @click="handleUnsuspend(inst)"
+                  title="Reactivar institución"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Suspended info -->
+            <div v-if="inst.is_suspended" class="inst-suspended-info">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>{{ inst.suspended_reason || 'Sin motivo especificado' }} · {{ inst.suspended_at ? formatDate(inst.suspended_at) : '' }}</span>
+            </div>
+
+            <!-- Service payment history -->
+            <div v-if="servicePaymentsForInstitution(inst.id).length > 0" class="inst-payments-section">
+              <h5 class="inst-payments-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Pagos de servicio
+              </h5>
+              <div class="inst-payments-list">
+                <div v-for="pay in servicePaymentsForInstitution(inst.id).slice(0, 5)" :key="pay.id" class="inst-payment-item">
+                  <span class="inst-pay-status" :class="'pay-' + (pay.status || 'PENDING').toLowerCase()">{{ pay.status }}</span>
+                  <span class="inst-pay-amount">${{ Number(pay.amount || 0).toLocaleString('es-CO') }}</span>
+                  <span class="inst-pay-date">{{ pay.created_at ? formatDate(pay.created_at) : '—' }}</span>
+                  <span v-if="pay.billing_period_end" class="inst-pay-period">→ {{ formatDate(pay.billing_period_end) }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="inst-payments-section inst-no-payments">
+              <span class="inst-no-pay-text">Sin pagos de servicio registrados</span>
+            </div>
+          </div>
+
+          <div v-if="filteredInstitutions.length === 0" class="empty-state">
+            <span class="emoji">🏛️</span>
+            <p>No se encontraron instituciones</p>
+          </div>
+        </div>
+      </template>
+
+      <!-- Billing cycle picker modal -->
+      <div v-if="datePickerTarget" class="inst-modal-overlay" @click.self="datePickerTarget = null">
+        <div class="inst-modal">
+          <h3>Ciclo de Pago</h3>
+          <p class="inst-modal-sub">{{ datePickerTarget.nombre }}</p>
+
+          <div class="cycle-options">
+            <label class="cycle-option" :class="{ active: cycleType === 'monthly_start' }">
+              <input type="radio" v-model="cycleType" value="monthly_start" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Inicio de mes</span>
+                <span class="cycle-option-desc">Cobro el día 1 de cada mes</span>
+              </div>
+            </label>
+            <label class="cycle-option" :class="{ active: cycleType === 'biweekly' }">
+              <input type="radio" v-model="cycleType" value="biweekly" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Quincenal</span>
+                <span class="cycle-option-desc">Cobro el 1 y el 15 de cada mes</span>
+              </div>
+            </label>
+            <label class="cycle-option" :class="{ active: cycleType === 'monthly_day' }">
+              <input type="radio" v-model="cycleType" value="monthly_day" />
+              <div class="cycle-option-content">
+                <span class="cycle-option-title">Día específico del mes</span>
+                <span class="cycle-option-desc">Selecciona el día del mes para el cobro</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Recurrence: en ciclo o desde ese día -->
+          <div v-if="cycleType" class="cycle-recurrence-picker">
+            <label class="cycle-day-label">Aplicar:</label>
+            <div class="cycle-recurrence-row">
+              <button
+                class="cycle-recurrence-btn"
+                :class="{ active: cycleRecurrence === 'every_month' }"
+                @click="cycleRecurrence = 'every_month'"
+              >🔁 En ciclo (todos los meses)</button>
+              <button
+                class="cycle-recurrence-btn"
+                :class="{ active: cycleRecurrence === 'once' }"
+                @click="cycleRecurrence = 'once'"
+              >📅 Desde ese día en adelante</button>
+            </div>
+          </div>
+
+          <!-- Month selector -->
+          <div v-if="cycleType" class="cycle-month-picker">
+            <label class="cycle-day-label">Mes a aplicar:</label>
+            <div class="cycle-month-grid">
+              <button
+                v-for="(name, idx) in CYCLE_MONTH_NAMES" :key="idx"
+                class="cycle-month-btn"
+                :class="{ selected: cycleSelectedMonth === idx }"
+                @click="cycleSelectedMonth = idx"
+              >{{ name }}</button>
+            </div>
+          </div>
+
+          <div v-if="cycleType === 'monthly_day'" class="cycle-day-picker">
+            <label class="cycle-day-label">Día del mes:</label>
+            <div class="cycle-day-grid">
+              <button
+                v-for="d in 28" :key="d"
+                class="cycle-day-btn"
+                :class="{ selected: cycleDay === d }"
+                @click="cycleDay = d"
+              >{{ d }}</button>
+            </div>
+          </div>
+
+          <div v-if="cycleType" class="cycle-hour-picker">
+            <label class="cycle-day-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Hora del cobro:
+            </label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <select v-model="cycleHour" class="cycle-hour-select">
+                <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
+              </select>
+              <span style="color:#8E8E93;font-size:16px;font-weight:600;">:</span>
+              <select v-model="cycleMinute" class="cycle-hour-select">
+                <option v-for="m in [0,5,10,15,20,25,30,35,40,45,50,55]" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action mode: Warning / Suspension -->
+          <div v-if="cycleType" class="cycle-action-mode">
+            <label class="cycle-day-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Acción al vencer:
+            </label>
+            <div class="cycle-action-mode-row">
+              <button
+                class="cycle-action-btn"
+                :class="{ active: cycleActionMode === 'warning', 'mode-warning': cycleActionMode === 'warning' }"
+                @click="cycleActionMode = 'warning'"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Advertencia
+              </button>
+              <button
+                class="cycle-action-btn"
+                :class="{ active: cycleActionMode === 'suspension', 'mode-suspend': cycleActionMode === 'suspension' }"
+                @click="cycleActionMode = 'suspension'"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Suspensión
+              </button>
+            </div>
+            <p class="cycle-action-hint" v-if="cycleActionMode === 'warning'">Los administradores de la institución verán un aviso de pago pendiente, pero podrán seguir usando la app.</p>
+            <p class="cycle-action-hint cycle-action-hint-danger" v-else>Se bloqueará el acceso a todos los usuarios (excepto superadmin). Al ingresar verán el mensaje de suspensión con botón de pago.</p>
+          </div>
+
+          <div class="inst-modal-actions">
+            <button
+              v-if="datePickerTarget.billing_cycle_type"
+              class="inst-modal-btn inst-modal-danger-soft"
+              :disabled="institutionProcessing[datePickerTarget.id]"
+              @click="removeBillingCycle"
+            >
+              {{ institutionProcessing[datePickerTarget.id] ? 'Eliminando...' : 'Eliminar ciclo' }}
+            </button>
+            <button class="inst-modal-btn inst-modal-cancel" @click="datePickerTarget = null">Cancelar</button>
+            <button class="inst-modal-btn inst-modal-save" :disabled="institutionProcessing[datePickerTarget.id] || !cycleType" @click="saveBillingCycle">
+              {{ institutionProcessing[datePickerTarget.id] ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suspend reason modal -->
+      <div v-if="suspendTarget" class="inst-modal-overlay" @click.self="suspendTarget = null">
+        <div class="inst-modal">
+          <h3>Suspender Institución</h3>
+          <p class="inst-modal-sub">{{ suspendTarget.nombre }}</p>
+          <p class="inst-modal-warning">Esta acción bloqueará el acceso de todos los usuarios de esta institución.</p>
+          <input v-model="suspendReason" type="text" placeholder="Motivo de suspensión (opcional)" class="inst-reason-input" />
+          <div class="inst-modal-actions">
+            <button class="inst-modal-btn inst-modal-cancel" @click="suspendTarget = null">Cancelar</button>
+            <button class="inst-modal-btn inst-modal-danger" :disabled="institutionProcessing[suspendTarget.id]" @click="confirmSuspend">
+              {{ institutionProcessing[suspendTarget.id] ? 'Suspendiendo...' : 'Suspender' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly price editor modal -->
+      <div v-if="priceEditorTarget" class="inst-modal-overlay" @click.self="priceEditorTarget = null">
+        <div class="inst-modal">
+          <h3>Precio Mensual</h3>
+          <p class="inst-modal-sub">{{ priceEditorTarget.nombre }}</p>
+          <div style="margin: 12px 0;">
+            <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: block;">Valor en COP</label>
+            <input
+              v-model.number="editingPrice"
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="Ej: 50000"
+              class="inst-reason-input"
+              style="font-size: 18px; font-weight: 600; text-align: center;"
+            />
+            <p v-if="editingPrice > 0" style="text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              ${{ Number(editingPrice).toLocaleString('es-CO') }} COP / mes
+            </p>
+          </div>
+          <div class="inst-modal-actions">
+            <button class="inst-modal-btn inst-modal-cancel" @click="priceEditorTarget = null">Cancelar</button>
+            <button class="inst-modal-btn" style="background: #7C3AED; color: #fff;" :disabled="savingPrice" @click="saveMonthlyPrice">
+              {{ savingPrice ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1709,6 +2348,7 @@ import { subscriptionAdapter } from '@/infrastructure/api/subscriptionAdapter'
 import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
 
 type EnrollmentTone = 'student' | 'teacher' | 'admin' | 'neutral'
 
@@ -1730,6 +2370,7 @@ interface PendingEnrollmentItem {
   avatar: string | null
   roleChips: EnrollmentRoleChip[]
   identificacion: string | null
+  requestedRole: string | null
 }
 
 interface AdminCertificateItem {
@@ -1813,7 +2454,7 @@ const hasAdminRole = computed(() => {
   return authStore.isAdmin || roles.some((role: any) => {
     const roleId = Number(role?.id)
     const roleName = String(role?.nombre || '').toLowerCase()
-    return roleId === 3 || roleName === 'admin'
+    return roleId === 3 || roleId === 4 || roleName === 'admin'
   })
 })
 
@@ -1828,6 +2469,7 @@ const canViewFullModeration = computed(() => hasAdminRole.value || hasTeacherRol
 const canViewCertificates = computed(() => hasAdminRole.value)
 const canViewActivation = computed(() => hasAdminRole.value)
 const canManageRoles = computed(() => hasAdminRole.value)
+const hasSuperAdminRole = computed(() => roleIds.value.includes(4))
 const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
@@ -1864,6 +2506,16 @@ const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return 'Fecha no disponible'
   const d = new Date(dateStr)
   return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+const formatDateTime = (dateStr?: string | null, overrideHour?: number | null, overrideMinute?: number | null) => {
+  if (!dateStr) return 'Fecha no disponible'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const datePart = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const h = String(overrideHour ?? d.getUTCHours()).padStart(2, '0')
+  const m = String(overrideMinute ?? d.getUTCMinutes()).padStart(2, '0')
+  return `${datePart} a las ${h}:${m}`
 }
 
 const loadCertificates = async () => {
@@ -1927,7 +2579,9 @@ const allTabs = [
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },
   { id: 'activation', label: 'Activación', adminOnly: true },
-  { id: 'enrollment', label: 'Matrícula', adminOnly: true }
+  { id: 'enrollment', label: 'Matrícula', adminOnly: true },
+  { id: 'billing', label: 'Cobro', adminOnly: true, superAdminOnly: true },
+  { id: 'institutions', label: 'Instituciones', adminOnly: true, superAdminOnly: true },
 ]
 
 const visibleTabs = computed(() => {
@@ -1935,7 +2589,10 @@ const visibleTabs = computed(() => {
     return allTabs.filter((tab) => tab.id === 'moderation' || tab.id === 'roles')
   }
 
-  return allTabs.filter((tab) => !tab.adminOnly || hasAdminRole.value)
+  return allTabs.filter((tab) => {
+    if ((tab as any).superAdminOnly) return hasSuperAdminRole.value
+    return !tab.adminOnly || hasAdminRole.value
+  })
 })
 
 watch(visibleTabs, (tabs) => {
@@ -1955,6 +2612,12 @@ watch(activeTab, (tab) => {
     } else if (pendingEnrollments.value.length === 0 && !loadingEnrollments.value) {
       loadEnrollments()
     }
+  }
+  if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
+    loadInstitutions()
+  }
+  if (tab === 'billing' && institutions.value.length === 0 && !institutionsLoading.value) {
+    loadInstitutions()
   }
 })
 
@@ -2403,6 +3066,7 @@ const loadEnrollments = async () => {
           profile?.persona?.identificacion,
           profile?.persona?.cedula,
         ),
+        requestedRole: toNonEmptyString(item.requestedRole, item.requested_role) || 'student',
       }
     })
   } catch (e) {
@@ -3379,6 +4043,7 @@ const expandedSections = ref({
   students: false,
   reinforcement: false,
   subjectProgress: false,
+  myProgress: true,
 })
 
 // ─── Progreso por Materia (admin) ────────────────────────────────────────
@@ -3493,6 +4158,110 @@ const toggleSpEnrollmentStatus = async (row: SubjectProgressItem) => {
     if (e?.statusCode !== 401) console.error('Error toggling subject enrollment status:', e)
   } finally {
     delete togglingSpEnrollStatus.value[key]
+  }
+}
+
+// ─── Mi Progreso en Cursos (rol 1) ───────────────────────────────────────
+interface MySubjectProgressItem {
+  subjectId: number
+  subjectName: string
+  progressPercentage: number
+  averageGrade: number | null
+  completedTasks: number
+  totalTasks: number
+  status: string
+}
+
+interface MyCourseProgressItem {
+  courseId: number
+  courseName: string
+  thumbnail: string
+  status: string
+  progressPercentage: number
+  averageGrade: number | null
+  completedTasks: number
+  totalTasks: number
+  subjects: MySubjectProgressItem[]
+}
+
+const myCoursesProgress = ref<MyCourseProgressItem[]>([])
+const loadingMyCoursesProgress = ref(false)
+const expandedCourseProgressIds = ref(new Set<number>())
+
+const toggleCourseProgressExpanded = (courseId: number) => {
+  const s = new Set(expandedCourseProgressIds.value)
+  if (s.has(courseId)) s.delete(courseId)
+  else s.add(courseId)
+  expandedCourseProgressIds.value = s
+}
+
+const loadMyCoursesProgressData = async () => {
+  if (loadingMyCoursesProgress.value) return
+  loadingMyCoursesProgress.value = true
+  try {
+    const myProgress = await progressAdapter.getMyProgress()
+    if (!Array.isArray(myProgress) || myProgress.length === 0) {
+      myCoursesProgress.value = []
+      return
+    }
+    const items = await Promise.all(
+      myProgress.map(async (p: any) => {
+        const courseId = Number(p.courseId || p.curso_id) || 0
+        if (!courseId) return null
+        const [courseRes, subjectProgressRes, subjectsRes] = await Promise.allSettled([
+          courseAdapter.getCourseById(courseId).catch(() => null),
+          progressAdapter.getSubjectProgress(courseId).catch(() => []),
+          subjectAdapter.getSubjectsByCourse(courseId).catch(() => []),
+        ])
+        const course = courseRes.status === 'fulfilled' ? (courseRes.value as any) : null
+        const subjectProgressList: any[] =
+          subjectProgressRes.status === 'fulfilled' ? ((subjectProgressRes.value as any[]) ?? []) : []
+        const subjectsList: any[] =
+          subjectsRes.status === 'fulfilled' ? ((subjectsRes.value as any[]) ?? []) : []
+
+        const subjectMap = new Map<number, string>(
+          subjectsList.map((s: any) => [Number(s.id), s.name || s.nombre || ''])
+        )
+
+        const subjects: MySubjectProgressItem[] = subjectProgressList.map((sp: any) => {
+          const sid = Number(sp.subjectId || sp.materia_id || sp.materiaId) || 0
+          return {
+            subjectId: sid,
+            subjectName:
+              sp.subjectName || sp.nombre_materia || subjectMap.get(sid) || `Materia ${sid}`,
+            progressPercentage: Math.round(Number(sp.progressPercentage || sp.porcentaje_progreso) || 0),
+            averageGrade: sp.averageGrade ?? sp.promedio ?? sp.calificacionPonderada ?? null,
+            completedTasks: Number(sp.completedTasks || sp.tareas_completadas) || 0,
+            totalTasks: Number(sp.totalTasks || sp.tareas_totales) || 0,
+            status: sp.status || sp.estado || '',
+          }
+        })
+
+        const tt = Number(p.totalTasks || p.tareas_totales) || 0
+        const tc = Number(p.completedTasks || p.tareas_completadas) || 0
+        return {
+          courseId,
+          courseName:
+            course?.title || course?.nombre || p.courseName || p.curso_nombre || p.course_name || `Curso ${courseId}`,
+          thumbnail:
+            course?.thumbnail || course?.thumbnailUrl || p.thumbnail || p.course_thumbnail || '',
+          status: p.status || p.estado || '',
+          progressPercentage: Math.round(
+            tt > 0 ? (tc / tt) * 100 : Number(p.progressPercentage || p.porcentaje_progreso) || 0
+          ),
+          averageGrade: p.averageGrade ?? p.promedio ?? p.calificacionPonderada ?? null,
+          completedTasks: tc,
+          totalTasks: tt,
+          subjects,
+        } as MyCourseProgressItem
+      })
+    )
+    myCoursesProgress.value = items.filter((c): c is MyCourseProgressItem => c !== null)
+  } catch (e) {
+    console.error('Error loading my courses progress:', e)
+    myCoursesProgress.value = []
+  } finally {
+    loadingMyCoursesProgress.value = false
   }
 }
 
@@ -3910,12 +4679,12 @@ const moderationWeeklyActivity = computed(() => {
   }).length
 })
 
-const toggleSection = (section: 'courses' | 'tasks' | 'submissions' | 'students' | 'reinforcement' | 'subjectProgress') => {
+const toggleSection = (section: 'courses' | 'tasks' | 'submissions' | 'students' | 'reinforcement' | 'subjectProgress' | 'myProgress') => {
   expandedSections.value[section] = !expandedSections.value[section]
 }
 
 const goToCourse = (courseId: number) => {
-  router.push(`/course/${courseId}`)
+  router.push({ name: 'subjectsList', params: { courseId } })
 }
 
 const goToTask = (task: PendingTask) => {
@@ -4068,6 +4837,434 @@ const loadPendingTasksWithSubjects = async (myProgress: any[], prefetchedSubmiss
   }
 }
 
+// ─── Billing / Cobro tab state ────────────────────────────────────────────
+const billingSelectedInstId = ref<number | null>(null)
+const billingCalMonth = ref(new Date().getMonth())
+const billingCalYear = ref(new Date().getFullYear())
+const billingSelectedDay = ref<number | null>(null)
+const billingSelectedHour = ref(8)
+const billingSelectedMinute = ref(0)
+const billingSaving = ref(false)
+const billingQuickMinutes = ref(2)
+const billingActionMode = ref<'warning' | 'suspension'>('warning')
+const billingYearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)
+const billingRecurrence = ref<'once' | 'all_months'>('once')
+const billingSelectedMonths = ref<Set<number>>(new Set())
+const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const toggleBillingMonth = (idx: number) => {
+  const s = new Set(billingSelectedMonths.value)
+  if (s.has(idx)) s.delete(idx); else s.add(idx)
+  billingSelectedMonths.value = s
+}
+const selectAllBillingMonths = () => { billingSelectedMonths.value = new Set(Array.from({ length: 12 }, (_, i) => i)) }
+const clearAllBillingMonths = () => { billingSelectedMonths.value = new Set() }
+
+const onBillingMonthSelectChange = (e: Event) => {
+  billingCalMonth.value = Number((e.target as HTMLSelectElement).value)
+  billingSelectedDay.value = null
+}
+
+const onBillingYearSelectChange = (e: Event) => {
+  billingCalYear.value = Number((e.target as HTMLSelectElement).value)
+  billingSelectedDay.value = null
+}
+
+const billingCurrentInst = computed(() =>
+  institutions.value.find(i => i.id === billingSelectedInstId.value) ?? null
+)
+
+const billingCalMonthLabel = computed(() => {
+  const d = new Date(billingCalYear.value, billingCalMonth.value, 1)
+  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+})
+
+const billingCalCells = computed(() => {
+  const year = billingCalYear.value
+  const month = billingCalMonth.value
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const daysInPrevMonth = new Date(year, month, 0).getDate()
+  const today = new Date()
+  const cells: { key: string; day: number; currentMonth: boolean; isToday: boolean }[] = []
+
+  // Previous month trailing days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i
+    cells.push({ key: `prev-${d}`, day: d, currentMonth: false, isToday: false })
+  }
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getUTCDate() && month === today.getUTCMonth() && year === today.getUTCFullYear()
+    cells.push({ key: `cur-${d}`, day: d, currentMonth: true, isToday })
+  }
+  // Next month leading days to fill grid
+  const remaining = 42 - cells.length
+  for (let d = 1; d <= remaining; d++) {
+    cells.push({ key: `next-${d}`, day: d, currentMonth: false, isToday: false })
+  }
+  return cells
+})
+
+const billingFormattedDate = computed(() => {
+  if (!billingSelectedDay.value) return 'Sin fecha seleccionada'
+  const hh = String(billingSelectedHour.value).padStart(2, '0')
+  const mm = String(billingSelectedMinute.value).padStart(2, '0')
+  if (billingRecurrence.value === 'all_months') {
+    return `Día ${billingSelectedDay.value} de cada mes a las ${hh}:${mm}`
+  }
+  if (billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12) {
+    const mNames = Array.from(billingSelectedMonths.value).sort((a, b) => a - b).map(i => MONTH_NAMES_ES[i])
+    return `Día ${billingSelectedDay.value} de ${mNames.join(', ')} ${billingCalYear.value} a las ${hh}:${mm}`
+  }
+  const d = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) +
+    ` a las ${hh}:${mm}`
+})
+
+const setBillingQuickFromNow = () => {
+  const target = new Date(Date.now() + billingQuickMinutes.value * 60_000)
+  billingCalYear.value = target.getUTCFullYear()
+  billingCalMonth.value = target.getUTCMonth()
+  billingSelectedDay.value = target.getUTCDate()
+  billingSelectedHour.value = target.getUTCHours()
+  billingSelectedMinute.value = target.getUTCMinutes()
+}
+
+const billingCalPrevMonth = () => {
+  if (billingCalMonth.value === 0) {
+    billingCalMonth.value = 11
+    billingCalYear.value--
+  } else {
+    billingCalMonth.value--
+  }
+}
+
+const billingCalNextMonth = () => {
+  if (billingCalMonth.value === 11) {
+    billingCalMonth.value = 0
+    billingCalYear.value++
+  } else {
+    billingCalMonth.value++
+  }
+}
+
+const onBillingInstChange = () => {
+  const inst = billingCurrentInst.value
+  if (inst?.payment_due_date) {
+    const d = new Date(inst.payment_due_date)
+    if (!isNaN(d.getTime())) {
+      billingCalYear.value = d.getUTCFullYear()
+      billingCalMonth.value = d.getUTCMonth()
+      billingSelectedDay.value = d.getUTCDate()
+      billingSelectedHour.value = d.getUTCHours()
+      billingSelectedMinute.value = d.getUTCMinutes()
+    }
+  } else {
+    billingSelectedDay.value = null
+    billingSelectedHour.value = 8
+    billingSelectedMinute.value = 0
+  }
+  billingActionMode.value = inst?.is_suspended ? 'suspension' : 'warning'
+}
+
+const saveBillingDate = async () => {
+  const inst = billingCurrentInst.value
+  if (!inst || !billingSelectedDay.value) return
+  billingSaving.value = true
+  try {
+    const isRecurring = billingRecurrence.value === 'all_months'
+    const selectedMonthsArr = billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12
+      ? Array.from(billingSelectedMonths.value).sort((a, b) => a - b)
+      : null
+
+    const dueDate = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      dueDate.toISOString(),
+      inst.tenantId,
+      {
+        type: isRecurring ? 'monthly_day' : (selectedMonthsArr ? 'specific_months' : 'monthly_day'),
+        day: billingSelectedDay.value,
+        hour: billingSelectedHour.value,
+        minute: billingSelectedMinute.value,
+        billing_action_mode: billingActionMode.value ?? 'warning',
+        ...(selectedMonthsArr ? { months: selectedMonthsArr } : {}),
+      },
+    )
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+
+    // Handle suspension/unsuspension based on action mode
+    if (billingActionMode.value === 'suspension' && !inst.is_suspended) {
+      const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    } else if (billingActionMode.value === 'warning' && inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
+  } catch (e) {
+    console.error('Error saving billing date:', e)
+  } finally {
+    billingSaving.value = false
+  }
+}
+
+const clearBillingDate = async () => {
+  const inst = billingCurrentInst.value
+  if (!inst) return
+  billingSaving.value = true
+  try {
+    const updated = await institucionAdapter.setPaymentDueDate(inst.id, null, inst.tenantId, undefined, true)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    // Also unsuspend if institution was suspended
+    if (inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
+    billingSelectedDay.value = null
+    billingActionMode.value = 'warning'
+  } catch (e) {
+    console.error('Error clearing billing date:', e)
+  } finally {
+    billingSaving.value = false
+  }
+}
+
+// ─── Institutions (SuperAdmin) state ─────────────────────────────────────
+const institutions = ref<InstitutionAdmin[]>([])
+const institutionsLoading = ref(false)
+const institutionSearch = ref('')
+const institutionProcessing = ref<Record<number, boolean>>({})
+const datePickerTarget = ref<InstitutionAdmin | null>(null)
+const cycleType = ref<'monthly_start' | 'biweekly' | 'monthly_day' | 'specific_months' | ''>('')
+const cycleDay = ref(1)
+const cycleHour = ref(8)
+const cycleMinute = ref(0)
+const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
+const cycleSelectedMonth = ref<number>(new Date().getMonth())
+const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const cycleActionMode = ref<'warning' | 'suspension'>('warning')
+const suspendTarget = ref<InstitutionAdmin | null>(null)
+const suspendReason = ref('')
+
+// Monthly price editor
+const priceEditorTarget = ref<InstitutionAdmin | null>(null)
+const editingPrice = ref(0)
+const savingPrice = ref(false)
+
+const openPriceEditor = (inst: InstitutionAdmin) => {
+  priceEditorTarget.value = inst
+  editingPrice.value = inst.monthly_price || 0
+}
+
+const saveMonthlyPrice = async () => {
+  const inst = priceEditorTarget.value
+  if (!inst) return
+  savingPrice.value = true
+  try {
+    const updated = await institucionAdapter.setMonthlyPrice(inst.id, editingPrice.value, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    priceEditorTarget.value = null
+  } catch (e) {
+    console.error('Error saving monthly price:', e)
+  } finally {
+    savingPrice.value = false
+  }
+}
+
+const filteredInstitutions = computed(() => {
+  const q = institutionSearch.value.toLowerCase().trim()
+  if (!q) return institutions.value
+  return institutions.value.filter(i =>
+    (i.nombre || '').toLowerCase().includes(q) ||
+    (i.codigo || '').toLowerCase().includes(q) ||
+    (i.ciudad || '').toLowerCase().includes(q) ||
+    (i.departamento || '').toLowerCase().includes(q) ||
+    (i.tenantName || '').toLowerCase().includes(q)
+  )
+})
+
+// ─── Service payments (all institutions) ─────────────────────────────────
+const servicePayments = ref<InstitutionPayment[]>([])
+const servicePaymentsLoading = ref(false)
+
+const servicePaymentsForInstitution = (instId: number) =>
+  servicePayments.value.filter(p => p.institution_id === instId)
+
+const lastApprovedPayment = (instId: number) =>
+  servicePaymentsForInstitution(instId).find(p => p.status === 'APPROVED')
+
+const loadServicePayments = async () => {
+  servicePaymentsLoading.value = true
+  try {
+    const data = await institucionAdapter.getAllServicePayments()
+    servicePayments.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error loading service payments:', e)
+    servicePayments.value = []
+  } finally {
+    servicePaymentsLoading.value = false
+  }
+}
+
+const loadInstitutions = async () => {
+  institutionsLoading.value = true
+  try {
+    const [data] = await Promise.all([
+      institucionAdapter.getAllAdmin(),
+      loadServicePayments(),
+    ])
+    institutions.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error loading institutions:', e)
+    institutions.value = []
+  } finally {
+    institutionsLoading.value = false
+  }
+}
+
+const openCyclePicker = (inst: InstitutionAdmin) => {
+  datePickerTarget.value = inst
+  cycleType.value = inst.billing_cycle_type || ''
+  cycleDay.value = inst.billing_cycle_day || 1
+  cycleHour.value = inst.billing_cycle_hour ?? 8
+  cycleMinute.value = inst.billing_cycle_minute ?? 0
+  cycleActionMode.value = (inst.billing_action_mode as 'warning' | 'suspension') || (inst.is_suspended ? 'suspension' : 'warning')
+  // If the institution has billing_cycle_months set, use 'once' mode
+  const savedMonths = (inst as any).billing_cycle_months
+  if (Array.isArray(savedMonths) && savedMonths.length > 0 && savedMonths.length < 12) {
+    cycleRecurrence.value = 'once'
+    cycleSelectedMonth.value = savedMonths[0] ?? new Date().getMonth()
+  } else {
+    cycleRecurrence.value = 'every_month'
+    cycleSelectedMonth.value = new Date().getMonth()
+  }
+}
+
+const formatBillingCycle = (inst: InstitutionAdmin) => {
+  if (!inst.billing_cycle_type) return 'No configurado'
+  const h = String(inst.billing_cycle_hour ?? 8).padStart(2, '0')
+  const m = String(inst.billing_cycle_minute ?? 0).padStart(2, '0')
+  const hourStr = ` a las ${h}:${m}`
+  if (inst.billing_cycle_type === 'monthly_start') return `Inicio de mes (día 1)${hourStr}`
+  if (inst.billing_cycle_type === 'biweekly') return `Quincenal (1 y 15)${hourStr}`
+  const savedMonths = (inst as any).billing_cycle_months as number[] | null
+  if (inst.billing_cycle_type === 'specific_months' && Array.isArray(savedMonths) && savedMonths.length > 0) {
+    const mLabels = savedMonths.sort((a: number, b: number) => a - b).map((i: number) => CYCLE_MONTH_NAMES[i] || '?').join(', ')
+    return `Día ${inst.billing_cycle_day || 1} de ${mLabels}${hourStr}`
+  }
+  if (inst.billing_cycle_type === 'monthly_day') return `Día ${inst.billing_cycle_day || 1} de cada mes${hourStr}`
+  return 'No configurado'
+}
+
+const saveBillingCycle = async () => {
+  const inst = datePickerTarget.value
+  if (!inst || !cycleType.value) return
+  institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
+  try {
+    const isOnce = cycleRecurrence.value === 'once'
+    const cyclePayload: { type: string; day?: number | null; hour?: number | null; minute?: number | null; billing_action_mode?: string; months?: number[]; month?: number } = {
+      type: isOnce ? 'specific_months' : cycleType.value,
+      day: cycleType.value === 'monthly_day' ? cycleDay.value : null,
+      hour: cycleHour.value,
+      minute: cycleMinute.value,
+      billing_action_mode: cycleActionMode.value,
+      month: cycleSelectedMonth.value,
+    }
+    if (isOnce) {
+      cyclePayload.months = [cycleSelectedMonth.value]
+    }
+    // Compute explicit due date so backend doesn't guess with _computeNextDueDate
+    const cycleYear = new Date().getFullYear()
+    const cycleMonth = cycleSelectedMonth.value
+    const cycleD = cycleType.value === 'monthly_day' ? cycleDay.value : (cycleType.value === 'biweekly' ? 15 : 1)
+    const explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value))
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      explicitDueDate.toISOString(),
+      inst.tenantId,
+      cyclePayload,
+    )
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+
+    // Immediate suspend only if the due date is already in the past (or warning→unsuspend).
+    // Future-dated suspensions are handled automatically by the backend scheduler.
+    const dueDatePast = updated.payment_due_date && new Date(updated.payment_due_date) < new Date()
+    if (cycleActionMode.value === 'suspension' && dueDatePast && !updated.is_suspended) {
+      const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    } else if (cycleActionMode.value === 'warning' && inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
+
+    datePickerTarget.value = null
+  } catch (e) {
+    console.error('Error setting billing cycle:', e)
+  } finally {
+    institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
+  }
+}
+
+const removeBillingCycle = async () => {
+  const inst = datePickerTarget.value
+  if (!inst) return
+  institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
+  try {
+    const updated = await institucionAdapter.setPaymentDueDate(
+      inst.id,
+      null,
+      inst.tenantId,
+      undefined,
+      true,
+    )
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    datePickerTarget.value = null
+  } catch (e) {
+    console.error('Error removing billing cycle:', e)
+  } finally {
+    institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
+  }
+}
+
+const handleSuspend = (inst: InstitutionAdmin) => {
+  suspendTarget.value = inst
+  suspendReason.value = ''
+}
+
+const confirmSuspend = async () => {
+  const inst = suspendTarget.value
+  if (!inst) return
+  institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
+  try {
+    const updated = await institucionAdapter.suspendInstitution(inst.id, suspendReason.value || undefined, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    suspendTarget.value = null
+  } catch (e) {
+    console.error('Error suspending institution:', e)
+  } finally {
+    institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
+  }
+}
+
+const handleUnsuspend = async (inst: InstitutionAdmin) => {
+  institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
+  try {
+    const updated = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
+    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+  } catch (e) {
+    console.error('Error unsuspending institution:', e)
+  } finally {
+    institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: false }
+  }
+}
+
 onMounted(async () => {
   // Ensure user profile (with roles) is loaded before role-gated loads.
   // In Vue, child onMounted fires before parent (App.vue), so authStore.user
@@ -4077,10 +5274,11 @@ onMounted(async () => {
   }
 
   // Launch all independent loads in parallel
-  const promises: Promise<any>[] = [loadData(), loadAnalyticsData()]
+  const promises: Promise<any>[] = [loadData(), loadAnalyticsData(), loadMyCoursesProgressData()]
   if (canViewActivation.value) promises.push(loadUsers())
   if (canViewCertificates.value) promises.push(loadCertificates())
   if (hasAdminRole.value) promises.push(loadEnrollments())
+  if (hasSuperAdminRole.value) promises.push(loadInstitutions())
   if (canViewFullModeration.value) {
     promises.push(loadPendingSubmissions())
     promises.push(loadStudentProgressData())
@@ -4586,6 +5784,79 @@ watch(() => route.query, () => {
   width: 52px; height: 38px; border-radius: 8px;
   object-fit: cover; flex-shrink: 0;
   background: rgba(255,255,255,0.05);
+}
+
+/* ═══════ Mi Progreso en Cursos (rol 1) ═══════ */
+.mcp-list { display: flex; flex-direction: column; gap: 10px; }
+.mcp-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  border: 0.5px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.mcp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mcp-card-header:hover { background: rgba(255,255,255,0.04); }
+.mcp-thumb {
+  width: 44px; height: 44px; border-radius: 8px;
+  object-fit: cover; flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.mcp-card-info { flex: 1; min-width: 0; }
+.mcp-course-title {
+  font-size: 13px; font-weight: 600; color: #fff;
+  margin: 0 0 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mcp-meta {
+  display: flex; align-items: center; gap: 5px;
+  flex-wrap: wrap; margin-top: 4px; font-size: 11px; color: #8E8E93;
+}
+.mcp-pct { color: #EBEBF5; font-weight: 600; }
+.mcp-sep { color: rgba(255,255,255,0.2); }
+.mcp-grade-val { font-weight: 600; }
+.grade-pass { color: #30D158; }
+.grade-fail { color: #FF453A; }
+.mcp-tasks { color: #8E8E93; }
+.mcp-status-badge {
+  padding: 2px 7px; border-radius: 6px;
+  font-size: 10px; font-weight: 600;
+}
+.status-won { background: rgba(48,209,88,0.15); color: #30D158; }
+.status-lost { background: rgba(255,69,58,0.15); color: #FF453A; }
+.mcp-chevron { color: #636366; font-size: 10px; flex-shrink: 0; }
+.mcp-subjects {
+  background: rgba(0,0,0,0.2);
+  border-top: 0.5px solid rgba(255,255,255,0.06);
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.mcp-no-subjects {
+  color: #636366; font-size: 12px;
+  text-align: center; padding: 8px 0;
+}
+.mcp-subject-row {
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.mcp-subject-left { flex: 1; min-width: 0; }
+.mcp-subject-name {
+  font-size: 12px; color: #EBEBF5;
+  display: block; margin-bottom: 5px;
+}
+.mcp-subject-bar { height: 4px !important; margin-bottom: 3px; }
+.mcp-subject-meta {
+  font-size: 10px; color: #8E8E93;
+  display: block; margin-top: 2px;
+}
+.mcp-subject-right {
+  flex-shrink: 0; padding-top: 2px;
+  font-size: 13px; font-weight: 700;
 }
 
 /* ═══════ Roles Tab ═══════ */
@@ -6452,6 +7723,22 @@ watch(() => route.query, () => {
 
 .enroll-roles-row { display: flex; gap: 6px; flex-wrap: wrap; }
 
+.enroll-requested-role-row { margin-top: 6px; }
+.enroll-requested-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.enroll-requested-role-badge.docente {
+  color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.12);
+  border: 1px solid rgba(191, 90, 242, 0.25);
+}
+
 .enroll-role-chip {
   display: inline-flex;
   align-items: center;
@@ -8091,4 +9378,1273 @@ watch(() => route.query, () => {
   font-weight: 700;
   flex-shrink: 0;
 }
+
+/* Institutions Tab Styles (SuperAdmin) */
+/* ═══════ Institutions Tab ═══════ */
+.institutions-tab {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.inst-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.inst-search-bar svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.inst-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+}
+
+.inst-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.inst-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inst-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.inst-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.inst-card.inst-suspended {
+  border-color: rgba(255, 69, 58, 0.25);
+  background: rgba(255, 69, 58, 0.04);
+}
+
+.inst-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.inst-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.inst-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  line-height: 1.3;
+}
+
+.inst-meta {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.inst-tenant-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(94, 92, 230, 0.2);
+  color: #8E8CE6;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+.inst-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-green {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+
+.badge-red {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+}
+
+.inst-payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.inst-payment-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inst-payment-label {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.inst-monthly-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #A78BFA;
+}
+
+.inst-price-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(167, 139, 250, 0.15);
+  color: #A78BFA;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inst-price-edit-btn:hover {
+  background: rgba(167, 139, 250, 0.3);
+}
+
+.inst-payment-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #fff);
+}
+
+.inst-payment-value.is-overdue {
+  color: #FF453A;
+  font-weight: 600;
+}
+
+.inst-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.inst-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.inst-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.inst-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.inst-date-btn:hover:not(:disabled) {
+  border-color: rgba(10, 132, 255, 0.5);
+  color: #0A84FF;
+}
+
+.inst-suspend-btn:hover:not(:disabled) {
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #FF453A;
+}
+
+.inst-unsuspend-btn:hover:not(:disabled) {
+  border-color: rgba(48, 209, 88, 0.5);
+  color: #30D158;
+}
+
+.inst-suspended-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 69, 58, 0.08);
+  font-size: 12px;
+  color: rgba(255, 69, 58, 0.85);
+}
+
+/* ─── Service Payments ─── */
+.inst-payments-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inst-payments-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.inst-payments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.inst-payment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12px;
+}
+.inst-pay-status {
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.inst-pay-status.pay-approved {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+.inst-pay-status.pay-pending {
+  background: rgba(255, 214, 10, 0.15);
+  color: #FFD60A;
+}
+.inst-pay-status.pay-declined, .inst-pay-status.pay-failed {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+}
+.inst-pay-amount {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+.inst-pay-date {
+  color: rgba(255, 255, 255, 0.4);
+}
+.inst-pay-period {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+}
+.inst-no-payments {
+  padding-top: 8px;
+}
+.inst-no-pay-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* ─── Modals ─── */
+.inst-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.inst-modal {
+  background: var(--bg-secondary, #1C1C1E);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: auto 0;
+}
+
+.inst-modal h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.inst-modal-sub {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.inst-modal-warning {
+  margin: 0;
+  font-size: 13px;
+  color: #FF453A;
+  background: rgba(255, 69, 58, 0.08);
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.inst-date-input,
+.inst-reason-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.inst-date-input:focus,
+.inst-reason-input:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.inst-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.inst-modal-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.inst-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inst-modal-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.inst-modal-save {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  color: #fff;
+}
+
+.inst-modal-danger {
+  background: linear-gradient(135deg, #FF453A, #FF3B30);
+  color: #fff;
+}
+
+/* ─── Billing Cycle Picker ─── */
+.cycle-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cycle-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cycle-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cycle-option.active {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.cycle-option input[type="radio"] {
+  accent-color: #8B5CF6;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.cycle-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cycle-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.cycle-option-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.cycle-day-picker {
+  margin-top: 4px;
+}
+
+.cycle-day-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.cycle-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cycle-day-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.cycle-day-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cycle-day-btn.selected {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* Recurrence picker (once / every month) */
+.cycle-recurrence-picker {
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+
+.cycle-recurrence-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cycle-recurrence-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.4);
+  color: #8E8E93;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.cycle-recurrence-btn:hover {
+  background: rgba(44, 44, 46, 0.7);
+  color: #EBEBF5;
+}
+
+.cycle-recurrence-btn.active {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: #0A84FF;
+  color: #0A84FF;
+}
+
+/* Month selector grid */
+.cycle-month-picker {
+  margin-top: 14px;
+}
+
+.cycle-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cycle-month-btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.15s ease;
+}
+
+.cycle-month-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cycle-month-btn.selected {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.inst-payment-next {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.cycle-hour-picker {
+  margin-top: 16px;
+}
+
+.cycle-hour-select {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s;
+}
+
+.cycle-hour-select:focus {
+  border-color: rgba(10, 132, 255, 0.5);
+}
+
+.cycle-hour-select option {
+  background: #2C2C2E;
+  color: #fff;
+}
+
+.cycle-action-mode {
+  margin-top: 14px;
+}
+
+.cycle-action-mode-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cycle-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(44, 44, 46, 0.5);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cycle-action-btn:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.cycle-action-btn.active.mode-warning {
+  background: rgba(255, 159, 10, 0.15);
+  border-color: rgba(255, 159, 10, 0.5);
+  color: #FF9F0A;
+}
+
+.cycle-action-btn.active.mode-suspend {
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #FF453A;
+}
+
+.cycle-action-hint {
+  font-size: 11px;
+  color: #FF9F0A;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.cycle-action-hint-danger {
+  color: #FF453A;
+}
+
+.inst-modal-danger-soft {
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff8a84;
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
+
+.inst-modal-danger-soft:hover {
+  background: rgba(255, 69, 58, 0.18);
+}
+
+/* ═══════ Billing / Cobro Tab ═══════ */
+.billing-tab {
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.billing-desc {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.a-tag-red {
+  background: rgba(255, 59, 48, 0.14);
+  color: #FF3B30;
+}
+
+.billing-inst-selector {
+  margin-bottom: 20px;
+}
+
+.billing-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8E8E93;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.billing-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.billing-select:focus {
+  border-color: rgba(10,132,255,0.5);
+}
+
+.billing-select option {
+  background: #1c1c1e;
+  color: #fff;
+}
+
+.billing-select-sm {
+  width: auto;
+  min-width: 120px;
+}
+
+/* Calendar */
+.billing-calendar {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.billing-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.billing-cal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.billing-month-select,
+.billing-year-select {
+  min-width: 0;
+  flex: 1;
+  max-width: 130px;
+}
+
+.billing-year-select {
+  max-width: 80px;
+}
+
+.billing-cal-nav {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.billing-cal-nav:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.billing-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.billing-cal-weekdays span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #636366;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.billing-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.billing-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.billing-cal-day:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+}
+
+.billing-cal-day.is-other-month {
+  color: #3a3a3c;
+  cursor: default;
+}
+
+.billing-cal-day.is-today {
+  border-color: rgba(10,132,255,0.4);
+  color: #0A84FF;
+}
+
+.billing-cal-day.is-selected {
+  background: #FF3B30;
+  color: #fff;
+  font-weight: 700;
+  border-color: #FF3B30;
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.3);
+}
+
+/* Hour picker */
+.billing-hour-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.billing-hour-row .billing-label {
+  margin-bottom: 0;
+}
+
+.billing-time-sep {
+  font-size: 18px;
+  font-weight: 700;
+  color: #8E8E93;
+  line-height: 1;
+}
+
+/* Quick billing from-now */
+.billing-quick-row {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: rgba(255, 159, 10, 0.06);
+  border: 1px solid rgba(255, 159, 10, 0.15);
+  border-radius: 12px;
+}
+
+.billing-quick-row .billing-label {
+  margin-bottom: 10px;
+  color: #FF9F0A;
+}
+
+.billing-quick-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-quick-label {
+  font-size: 13px;
+  color: #8E8E93;
+  font-weight: 500;
+}
+
+.billing-quick-input {
+  width: 64px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.billing-quick-input::-webkit-outer-spin-button,
+.billing-quick-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.billing-quick-input:focus {
+  border-color: rgba(255, 159, 10, 0.5);
+}
+
+.billing-btn-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+  transition: background 0.15s;
+}
+
+.billing-btn-quick:hover {
+  background: rgba(255, 159, 10, 0.25);
+}
+
+/* Summary */
+.billing-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.billing-summary-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 59, 48, 0.15);
+  border-radius: 10px;
+  color: #FF3B30;
+}
+
+.billing-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.billing-summary-label {
+  font-size: 11px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.billing-summary-value {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.billing-summary-mode {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.mode-warning-text { color: #FF9F0A; }
+.mode-suspend-text { color: #FF453A; }
+
+/* Billing action mode selector */
+.billing-action-mode {
+  margin-bottom: 20px;
+}
+
+.billing-mode-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.billing-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #8E8E93;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.billing-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.billing-mode-btn.is-active.mode-warning {
+  background: rgba(255, 159, 10, 0.12);
+  border-color: rgba(255, 159, 10, 0.4);
+  color: #FF9F0A;
+}
+
+.billing-mode-btn.is-active.mode-suspend {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.4);
+  color: #FF453A;
+}
+
+.billing-mode-hint {
+  font-size: 12px;
+  color: #8E8E93;
+  margin-top: 8px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(255, 159, 10, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 159, 10, 0.3);
+}
+
+.billing-mode-hint-danger {
+  background: rgba(255, 69, 58, 0.06);
+  border-left-color: rgba(255, 69, 58, 0.3);
+  color: #ff8a84;
+}
+
+/* Recurrence selector */
+.billing-recurrence-selector {
+  margin-bottom: 18px;
+}
+
+.billing-recurrence-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.billing-recurrence-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.4);
+  color: #8E8E93;
+  transition: all 0.2s ease;
+}
+
+.billing-recurrence-btn:hover {
+  background: rgba(44, 44, 46, 0.7);
+  color: #EBEBF5;
+}
+
+.billing-recurrence-btn.is-active {
+  background: rgba(10, 132, 255, 0.12);
+  border-color: #0A84FF;
+  color: #0A84FF;
+}
+
+/* Month chips selector */
+.billing-months-selector {
+  margin-bottom: 18px;
+}
+
+.billing-months-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.billing-months-action-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(60, 60, 62, 0.6);
+  background: rgba(44, 44, 46, 0.3);
+  color: #8E8E93;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.billing-months-action-btn:hover {
+  background: rgba(44, 44, 46, 0.6);
+  color: #EBEBF5;
+}
+
+.billing-months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.billing-month-chip {
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(60, 60, 62, 0.5);
+  background: rgba(44, 44, 46, 0.3);
+  color: #8E8E93;
+  transition: all 0.15s ease;
+}
+
+.billing-month-chip:hover {
+  background: rgba(44, 44, 46, 0.6);
+  color: #EBEBF5;
+}
+
+.billing-month-chip.is-selected {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: #FF3B30;
+  color: #FF6961;
+}
+
+.billing-summary-recurrence {
+  display: block;
+  font-size: 12px;
+  color: #0A84FF;
+  margin-top: 2px;
+}
+
+/* Actions */
+.billing-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.billing-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.billing-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.billing-btn-save {
+  background: #FF3B30;
+  color: #fff;
+}
+
+.billing-btn-save:hover:not(:disabled) {
+  background: #e0332a;
+}
+
+.billing-btn-danger {
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff8a84;
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
+
+.billing-btn-danger:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.2);
+}
+
+/* Current status */
+.billing-current-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #30D158;
+  padding: 10px 14px;
+  background: rgba(48, 209, 88, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(48, 209, 88, 0.15);
+}
+
+.billing-current-status strong {
+  color: #fff;
+}
+
+.billing-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #636366;
+}
+
+.billing-empty .emoji {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.billing-empty p {
+  font-size: 14px;
+  margin: 0;
+}
 </style>
+
+.cycle-hour-picker {
+  margin-top: 16px;
+}
+
+.cycle-hour-select {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s;
+}
+
+.cycle-hour-select:focus {
+  border-color: rgba(10, 132, 255, 0.5);
+}
+
+.cycle-hour-select option {
+  background: #2C2C2E;
+  color: #fff;
+}
