@@ -50,7 +50,7 @@ export interface InstitutionBillingStatus {
 export interface InstitutionAdmin extends Institucion {
   is_active?: boolean
   payment_due_date?: string | null
-  billing_cycle_type?: 'monthly_start' | 'biweekly' | 'monthly_day' | null
+  billing_cycle_type?: 'monthly_start' | 'biweekly' | 'monthly_day' | 'specific_months' | null
   billing_cycle_day?: number | null
   billing_cycle_hour?: number | null
   is_suspended?: boolean
