@@ -130,6 +130,8 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     _resetUserStores()
     tokenStorage.clear()
+    // Tell the backend to clear the HttpOnly auth cookies
+    authAdapter.logout().catch(() => { /* best-effort */ })
     router.replace({ name: 'login' })
   }
 

@@ -13,6 +13,7 @@ export interface AuthPort {
   forgotPassword(email: string): Promise<{ sent: boolean }>
   verifyResetCode(email: string, code: string): Promise<{ valid: boolean }>
   resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }>
+  logout(): Promise<void>
 }
 
 export interface UserPort {
