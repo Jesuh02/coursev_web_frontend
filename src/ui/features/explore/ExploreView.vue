@@ -101,7 +101,10 @@
                 </div>
                 <p v-if="!infoTeachers.length" class="info-empty">Sin docentes asignados</p>
                 <ul v-else class="info-list">
-                  <li v-for="t in infoTeachers" :key="t.id" class="info-item">{{ t.name }}</li>
+                  <li v-for="t in infoTeachers" :key="t.id" class="info-item">
+                    <span class="info-item-main">{{ t.name }}</span>
+                    <span v-if="t.username" class="info-item-sub">@{{ t.username }}</span>
+                  </li>
                 </ul>
               </div>
               <div class="info-divider" />
@@ -113,7 +116,10 @@
                 </div>
                 <p v-if="!infoStudents.length" class="info-empty">Sin estudiantes registrados</p>
                 <ul v-else class="info-list">
-                  <li v-for="s in infoStudents" :key="s.userId" class="info-item">{{ s.username }}</li>
+                  <li v-for="s in infoStudents" :key="s.userId" class="info-item">
+                    <span class="info-item-main">{{ s.name }}</span>
+                    <span v-if="s.username" class="info-item-sub">@{{ s.username }}</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -210,8 +216,8 @@ const teacherCounts = ref<Record<number, number>>({})
 const infoVisible = ref(false)
 const infoCourse = ref<Course | null>(null)
 const infoLoading = ref(false)
-const infoTeachers = ref<{ id: number; name: string }[]>([])
-const infoStudents = ref<{ userId: number; username: string }[]>([])
+const infoTeachers = ref<{ id: number; name: string; username: string | null }[]>([])
+const infoStudents = ref<{ userId: number; name: string; username: string | null }[]>([])
 
 const canManageCourses = computed(() => authStore.isAdmin)
 const userRole = computed(() => {
@@ -644,16 +650,50 @@ async function openInfoDialog(course: Course) {
       collaboratorAdapter.getByCourse(course.id),
       courseAdapter.getGuests(course.id),
     ])
+    const collaborators = collabsRes.status === 'fulfilled' ? collabsRes.value : []
+    const guests = guestsRes.status === 'fulfilled' ? guestsRes.value : []
+    const participantIds = Array.from(new Set([
+      ...collaborators.map(c => Number(c.userId)).filter(id => id > 0),
+      ...guests.map(g => Number(g.userId)).filter(id => id > 0),
+    ]))
+
+    let usersById = new Map<number, any>()
+    if (participantIds.length) {
+      try {
+        const users = await userAdapter.getUsersByIds(participantIds)
+        usersById = new Map(users.map(user => [Number(user.id), user]))
+      } catch {
+        usersById = new Map()
+      }
+    }
+
+    const resolveParticipantName = (userId: number, username?: string | null) => {
+      const user = usersById.get(userId)
+      const nombres = user?.persona?.nombres?.trim?.() ?? ''
+      const apellidos = user?.persona?.apellidos?.trim?.() ?? ''
+      const fullName = [nombres, apellidos].filter(Boolean).join(' ').trim()
+      return {
+        name: fullName || username || `Usuario #${userId}`,
+        username: username && username !== fullName ? username : null,
+      }
+    }
+
     if (collabsRes.status === 'fulfilled') {
-      infoTeachers.value = collabsRes.value
+      infoTeachers.value = collaborators
         .filter(c => c.user)
-        .map(c => ({ id: c.userId, name: c.user?.username ?? `Usuario #${c.userId}` }))
+        .map((c) => {
+          const resolved = resolveParticipantName(c.userId, c.user?.username)
+          return { id: c.userId, name: resolved.name, username: resolved.username }
+        })
     }
     if (guestsRes.status === 'fulfilled') {
       const collabIds = new Set(infoTeachers.value.map(t => t.id))
-      infoStudents.value = guestsRes.value
+      infoStudents.value = guests
         .filter(g => !collabIds.has(g.userId))
-        .map(g => ({ userId: g.userId, username: g.username ?? `Usuario #${g.userId}` }))
+        .map((g) => {
+          const resolved = resolveParticipantName(g.userId, g.username)
+          return { userId: g.userId, name: resolved.name, username: resolved.username }
+        })
     }
   } finally {
     infoLoading.value = false
@@ -937,14 +977,25 @@ onUnmounted(() => observer?.disconnect())
 }
 
 .info-item {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 6px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .info-item:last-child {
   border-bottom: none;
+}
+
+.info-item-main {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.info-item-sub {
+  font-size: 12px;
+  color: #8E8E93;
 }
 
 /* ── Botón FAB reporte plataforma ── */
