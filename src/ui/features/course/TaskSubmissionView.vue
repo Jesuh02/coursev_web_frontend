@@ -154,12 +154,17 @@
             </span>
           </div>
 
-          <div v-if="sub.file_name" class="file-row-teacher">
-            📎
-            <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">
-              {{ sub.file_name }}
-            </a>
-            <span v-else>{{ sub.file_name }}</span>
+          <div v-if="sub.file_name || (sub.additionalFiles ?? sub.additional_files)?.length" class="submission-files-list">
+            <p v-if="sub.file_name" class="file-row-teacher">
+              📎
+              <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
+              <span v-else>{{ sub.file_name }}</span>
+            </p>
+            <p v-for="(af, i) in (sub.additionalFiles ?? sub.additional_files ?? [])" :key="i" class="file-row-teacher">
+              📎
+              <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener" class="file-link">{{ af.fileName }}</a>
+              <span v-else>{{ af.fileName }}</span>
+            </p>
           </div>
 
           <div v-if="sub.feedback" class="existing-feedback">
@@ -404,10 +409,17 @@
                 {{ sub.grade !== null && sub.grade !== undefined ? `${sub.grade}/10` : 'Sin calificar' }}
               </span>
             </div>
-            <div v-if="sub.file_name" class="file-row-teacher">
-              📎
-              <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
-              <span v-else>{{ sub.file_name }}</span>
+            <div v-if="sub.file_name || (sub.additionalFiles ?? sub.additional_files)?.length" class="submission-files-list">
+              <p v-if="sub.file_name" class="file-row-teacher">
+                📎
+                <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
+                <span v-else>{{ sub.file_name }}</span>
+              </p>
+              <p v-for="(af, i) in (sub.additionalFiles ?? sub.additional_files ?? [])" :key="i" class="file-row-teacher">
+                📎
+                <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener" class="file-link">{{ af.fileName }}</a>
+                <span v-else>{{ af.fileName }}</span>
+              </p>
             </div>
             <div class="grade-form">
               <p class="form-label">Calificar</p>
