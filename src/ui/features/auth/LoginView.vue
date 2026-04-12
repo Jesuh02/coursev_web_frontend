@@ -87,7 +87,7 @@
         <!-- Título desktop dentro del formulario -->
         <div class="desktop-form-header desktop-only">
           <h2 class="desktop-form-title">Hola, bienvenido!</h2>
-          <p class="desktop-form-subtitle">En <strong>CourseV</strong> no somos solo una plataforma, somos el mejor <strong>aliado</strong> en la educación.</p>
+          <p class="desktop-form-subtitle">En <strong class="brand-word">CourseV</strong> no somos solo una plataforma, somos el mejor <strong class="brand-word">aliado</strong> en la educación.</p>
         </div>
 
         <div class="login-card animate-fade-in-up">
@@ -583,12 +583,12 @@ const features = [
     desc: 'Evaluación automática e inteligente de tareas y exámenes.',
   },
   {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
     title: 'Refuerzo Adaptativo',
     desc: 'Contenido de refuerzo generado desde el material de cada docente.',
   },
   {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l1.09 3.26L16 4.24l-1.64 2.86L17.5 8.5l-3.26 1.09L15.76 12l-2.86-1.64L11.5 13.5l-1.09-3.26L8 11.76l1.64-2.86L6.5 7.5l3.26-1.09L8.24 4z"/><path d="M19 13l.62 1.85 1.85.62-1.85.62L19 18l-.62-1.85L16.53 15.53l1.85-.62z"/><path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5z"/></svg>',
     title: 'Preguntas Únicas',
     desc: 'Sin repetir preguntas entre estudiantes. Cada evaluación es única.',
   },
@@ -811,8 +811,13 @@ function heroParticleStyle(i: number) {
   line-height: 1.6;
 }
 
-.desktop-form-subtitle strong {
+.desktop-form-subtitle .brand-word {
   color: var(--purple-light, #8B5CF6);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 92, 246, 0.4);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  font-weight: 600;
 }
 
 /* ── Card principal ── */
@@ -1352,12 +1357,14 @@ function heroParticleStyle(i: number) {
     overflow-y: auto;
     background: var(--bg-secondary);
     position: relative;
+    border-left: 1px solid rgba(139, 92, 246, 0.08);
   }
 
   .login-wrapper {
     max-width: 400px;
     width: 100%;
     padding: 32px 0;
+    animation: form-panel-enter 0.7s 0.15s ease both;
   }
 
   .login-card {
@@ -1367,6 +1374,14 @@ function heroParticleStyle(i: number) {
     padding: 28px 24px;
     border: 1px solid rgba(139, 92, 246, 0.15);
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  .desktop-form-header {
+    animation: fade-in-down 0.6s 0.2s ease both;
+  }
+
+  .desktop-footer {
+    animation: fade-in-up 0.5s 0.6s ease both;
   }
 }
 
@@ -1438,5 +1453,30 @@ function heroParticleStyle(i: number) {
     transform: translate(15px, -12px);
     opacity: 0.7;
   }
+}
+
+@keyframes form-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 </style>
