@@ -7,7 +7,10 @@
         <span class="payment-notice-text">
           Pago vencido{{ billingStore.formattedDueDate ? ` · ${billingStore.formattedDueDate}` : '' }}
         </span>
-        <button class="payment-notice-pay" @click.stop="handlePay">Pagar</button>
+        <button v-if="canPay" class="payment-notice-pay" :disabled="loading" @click.stop="handlePay">
+          <span v-if="loading" class="pay-spinner"></span>
+          <span v-else>Pagar</span>
+        </button>
         <button class="payment-notice-close" @click.stop="billingStore.dismiss()" aria-label="Cerrar">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -18,7 +21,16 @@
     <transition name="stripe-slide">
       <div v-if="showBanner" class="payment-stripe">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>Servicio pendiente de pago{{ billingStore.formattedDueDate ? ` — Vence: ${billingStore.formattedDueDate}` : '' }}</span>
+        <span>
+          Servicio pendiente de pago{{ billingStore.institutionName ? ` — ${billingStore.institutionName}` : '' }}{{ billingStore.formattedDueDate ? ` — Vence: ${billingStore.formattedDueDate}` : '' }}
+        </span>
+        <template v-if="canPay">
+          <span v-if="displayPrice" class="stripe-price">{{ displayPrice }}</span>
+          <button class="stripe-pay-btn" :disabled="loading" @click.stop="handlePay">
+            <span v-if="loading" class="pay-spinner pay-spinner-sm"></span>
+            <span v-else>Pagar ahora</span>
+          </button>
+        </template>
       </div>
     </transition>
   </Teleport>
@@ -37,17 +49,34 @@ const loading = ref(false)
 
 const showBanner = computed(() => billingStore.shouldShowWarning)
 
+// Solo usuarios con rol 3 (admin de institución) pueden ver/usar el botón de pagar
+const canPay = computed(() => {
+  const roles = authStore.user?.roles ?? []
+  return roles.some((r: any) => Number(r.id) === 3)
+})
+
+const displayPrice = computed(() => {
+  const price = billingStore.monthlyPrice
+  if (!price || price <= 0) return ''
+  return `$${price.toLocaleString('es-CO')} COP`
+})
+
 async function handlePay() {
   if (loading.value) return
-  const instId = authStore.user?.personaId ? (authStore.user as any).persona?.institucion_id ?? null : null
+  const instId = billingStore.institutionId
   if (!instId) {
     window.open('https://coursev.com/contacto', '_blank')
     return
   }
   loading.value = true
   try {
-    const result = await institucionAdapter.initiateBillingPayment(instId, 100000)
-    window.open(result.checkoutUrl, '_blank')
+    // amount=0 → el backend usa el monthly_price de la institución
+    const result = await institucionAdapter.initiateBillingPayment(instId, 0)
+    if (result.checkoutUrl) {
+      window.location.href = result.checkoutUrl
+    } else {
+      window.open('https://coursev.com/contacto', '_blank')
+    }
   } catch {
     window.open('https://coursev.com/contacto', '_blank')
   } finally {
@@ -178,6 +207,11 @@ watch(() => authStore.user?.id, (newId) => {
   background: rgba(255, 59, 48, 0.18);
 }
 
+.payment-notice-pay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .payment-notice-close {
   flex-shrink: 0;
   width: 20px;
@@ -207,5 +241,60 @@ watch(() => authStore.user?.id, (newId) => {
 .notice-fade-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+/* ─── Stripe pay button & price ─── */
+.stripe-price {
+  font-weight: 700;
+  font-size: 12px;
+  color: #FF3B30;
+  white-space: nowrap;
+}
+
+.stripe-pay-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #FF3B30;
+  border: none;
+  border-radius: 10px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stripe-pay-btn:hover:not(:disabled) {
+  background: #e0342b;
+}
+
+.stripe-pay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Spinner ─── */
+.pay-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pay-spin 0.6s linear infinite;
+}
+
+.pay-spinner-sm {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+@keyframes pay-spin {
+  to { transform: rotate(360deg); }
 }
 </style>

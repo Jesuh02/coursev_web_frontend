@@ -1981,7 +1981,7 @@
           <!-- Current status -->
           <div v-if="billingCurrentInst?.payment_due_date" class="billing-current-status">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span>Cobro actual configurado: <strong>{{ formatDateTime(billingCurrentInst.payment_due_date) }}</strong></span>
+            <span>Cobro actual configurado: <strong>{{ formatDateTime(billingCurrentInst.payment_due_date, billingCurrentInst.billing_cycle_hour, billingCurrentInst.billing_cycle_minute) }}</strong></span>
           </div>
         </template>
 
@@ -2085,7 +2085,7 @@
                   {{ formatBillingCycle(inst) }}
                 </span>
                 <span v-if="inst.payment_due_date" class="inst-payment-next">
-                  Próximo cobro: {{ formatDateTime(inst.payment_due_date) }}
+                  Próximo cobro: {{ formatDateTime(inst.payment_due_date, inst.billing_cycle_hour, inst.billing_cycle_minute) }}
                   <span v-if="inst.billing_action_mode" :style="{ color: inst.billing_action_mode === 'suspension' ? '#FF3B30' : '#FF9F0A', fontWeight: '600', marginLeft: '6px' }">
                     {{ inst.billing_action_mode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}
                   </span>
@@ -2507,13 +2507,13 @@ const formatDate = (dateStr?: string | null) => {
   return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-const formatDateTime = (dateStr?: string | null) => {
+const formatDateTime = (dateStr?: string | null, overrideHour?: number | null, overrideMinute?: number | null) => {
   if (!dateStr) return 'Fecha no disponible'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
-  const datePart = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-  const h = String(d.getHours()).padStart(2, '0')
-  const m = String(d.getMinutes()).padStart(2, '0')
+  const datePart = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const h = String(overrideHour ?? d.getUTCHours()).padStart(2, '0')
+  const m = String(overrideMinute ?? d.getUTCMinutes()).padStart(2, '0')
   return `${datePart} a las ${h}:${m}`
 }
 

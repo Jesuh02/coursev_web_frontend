@@ -46,6 +46,9 @@ export interface InstitutionBillingStatus {
   billingActionMode?: string | null
   suspended?: boolean
   reason?: string
+  institutionId?: number | null
+  institutionName?: string | null
+  monthlyPrice?: number
 }
 
 export interface InstitutionAdmin extends Institucion {

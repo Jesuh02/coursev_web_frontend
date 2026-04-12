@@ -7,6 +7,9 @@ export const useBillingStore = defineStore('billing', () => {
   const billingDueDate = ref<string | null>(null)
   const paymentOverdue = ref(false)
   const billingActionMode = ref<string | null>(null)
+  const institutionId = ref<number | null>(null)
+  const institutionName = ref<string | null>(null)
+  const monthlyPrice = ref(0)
   const dismissed = ref(false)
   const checked = ref(false)
   let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -68,6 +71,9 @@ export const useBillingStore = defineStore('billing', () => {
       paymentOverdue.value = Boolean(status.paymentOverdue)
       billingDueDate.value = status.paymentDueDate ?? null
       billingActionMode.value = status.billingActionMode ?? null
+      institutionId.value = status.institutionId ?? null
+      institutionName.value = status.institutionName ?? null
+      monthlyPrice.value = status.monthlyPrice ?? 0
       checked.value = true
       // If not overdue yet, schedule local countdown for precise timing
       if (!paymentOverdue.value && billingDueDate.value) {
@@ -102,6 +108,9 @@ export const useBillingStore = defineStore('billing', () => {
     billingDueDate.value = null
     paymentOverdue.value = false
     billingActionMode.value = null
+    institutionId.value = null
+    institutionName.value = null
+    monthlyPrice.value = 0
     dismissed.value = false
     checked.value = false
     stopPolling()
@@ -121,6 +130,9 @@ export const useBillingStore = defineStore('billing', () => {
     billingDueDate,
     paymentOverdue,
     billingActionMode,
+    institutionId,
+    institutionName,
+    monthlyPrice,
     dismissed,
     checked,
     isRole3Only,
