@@ -4893,7 +4893,7 @@ const billingCalCells = computed(() => {
   }
   // Current month days
   for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+    const isToday = d === today.getUTCDate() && month === today.getUTCMonth() && year === today.getUTCFullYear()
     cells.push({ key: `cur-${d}`, day: d, currentMonth: true, isToday })
   }
   // Next month leading days to fill grid
@@ -4915,18 +4915,18 @@ const billingFormattedDate = computed(() => {
     const mNames = Array.from(billingSelectedMonths.value).sort((a, b) => a - b).map(i => MONTH_NAMES_ES[i])
     return `Día ${billingSelectedDay.value} de ${mNames.join(', ')} ${billingCalYear.value} a las ${hh}:${mm}`
   }
-  const d = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
-  return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
+  const d = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) +
     ` a las ${hh}:${mm}`
 })
 
 const setBillingQuickFromNow = () => {
   const target = new Date(Date.now() + billingQuickMinutes.value * 60_000)
-  billingCalYear.value = target.getFullYear()
-  billingCalMonth.value = target.getMonth()
-  billingSelectedDay.value = target.getDate()
-  billingSelectedHour.value = target.getHours()
-  billingSelectedMinute.value = target.getMinutes()
+  billingCalYear.value = target.getUTCFullYear()
+  billingCalMonth.value = target.getUTCMonth()
+  billingSelectedDay.value = target.getUTCDate()
+  billingSelectedHour.value = target.getUTCHours()
+  billingSelectedMinute.value = target.getUTCMinutes()
 }
 
 const billingCalPrevMonth = () => {
@@ -4952,11 +4952,11 @@ const onBillingInstChange = () => {
   if (inst?.payment_due_date) {
     const d = new Date(inst.payment_due_date)
     if (!isNaN(d.getTime())) {
-      billingCalYear.value = d.getFullYear()
-      billingCalMonth.value = d.getMonth()
-      billingSelectedDay.value = d.getDate()
-      billingSelectedHour.value = d.getHours()
-      billingSelectedMinute.value = d.getMinutes()
+      billingCalYear.value = d.getUTCFullYear()
+      billingCalMonth.value = d.getUTCMonth()
+      billingSelectedDay.value = d.getUTCDate()
+      billingSelectedHour.value = d.getUTCHours()
+      billingSelectedMinute.value = d.getUTCMinutes()
     }
   } else {
     billingSelectedDay.value = null
@@ -4976,7 +4976,7 @@ const saveBillingDate = async () => {
       ? Array.from(billingSelectedMonths.value).sort((a, b) => a - b)
       : null
 
-    const dueDate = new Date(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value)
+    const dueDate = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
       dueDate.toISOString(),
@@ -5175,9 +5175,14 @@ const saveBillingCycle = async () => {
     if (isOnce) {
       cyclePayload.months = [cycleSelectedMonth.value]
     }
+    // Compute explicit due date so backend doesn't guess with _computeNextDueDate
+    const cycleYear = new Date().getFullYear()
+    const cycleMonth = cycleSelectedMonth.value
+    const cycleD = cycleType.value === 'monthly_day' ? cycleDay.value : (cycleType.value === 'biweekly' ? 15 : 1)
+    const explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value))
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
-      null,
+      explicitDueDate.toISOString(),
       inst.tenantId,
       cyclePayload,
     )
