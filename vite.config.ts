@@ -30,4 +30,41 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Nunca generar source maps en producción — evita que el código sea legible
+    //  en DevTools
+    sourcemap: false,
+    // Terser: minificación agresiva — ofusca nombres de variables, clases y propiedades
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // Elimina todos los console.* en producción
+        drop_console: true,
+        drop_debugger: true,
+        // Colapsa variables y reduce ramificaciones
+        passes: 3,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+      },
+      mangle: {
+        // Ofusca nombres de propiedades de módulos
+        toplevel: true,
+      },
+      format: {
+        // Elimina todos los comentarios del bundle
+        comments: false,
+      },
+    },
+    rollupOptions: {
+      output: {
+        // Nombres de chunk sin información semántica
+        chunkFileNames: 'assets/[hash].js',
+        entryFileNames: 'assets/[hash].js',
+        assetFileNames: 'assets/[hash].[ext]',
+        // Separar vendors del código de la app
+        manualChunks(id) {
+          if (id.includes('node_modules')) return 'v'
+        },
+      },
+    },
+  },
 })

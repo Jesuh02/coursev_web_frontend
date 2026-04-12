@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { io, Socket } from 'socket.io-client'
 
-const SOCKET_URL = 'https://mcp-backenddeploy-production-4ed0.up.railway.app'
+const SOCKET_URL = (import.meta.env.VITE_API_URL_QA as string)
 
 export interface ChatSocketMessage {
   id: number | string
