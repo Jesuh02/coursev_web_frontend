@@ -9608,6 +9608,8 @@ watch(() => route.query, () => {
   color: #fff;
 }
 
+</style>
+
 .cycle-action-mode {
   margin-top: 14px;
 }

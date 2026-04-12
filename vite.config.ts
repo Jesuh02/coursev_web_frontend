@@ -53,7 +53,7 @@ export default defineConfig({
         // Elimina todos los comentarios del bundle
         comments: false,
       },
-    },
+    } as any,
     rollupOptions: {
       output: {
         // Nombres de chunk sin información semántica
