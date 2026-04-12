@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = import.meta.env.VITE_API_URL_INCAT as string
+const DEFAULT_API_BASE = (import.meta.env.VITE_API_URL_INCAT as string) || 'https://mcp-backenddeploy-production.up.railway.app'
 
 function normalizeApiBase(value: string | undefined): string {
   const raw = value?.trim() || DEFAULT_API_BASE

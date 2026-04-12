@@ -4,7 +4,7 @@ import { io, type Socket } from 'socket.io-client'
 import type { Notification } from '@/domain/models'
 import { notificationAdapter } from '@/infrastructure/api'
 
-const SOCKET_URL = (import.meta.env.VITE_API_URL_QA as string)
+const SOCKET_URL = (import.meta.env.VITE_API_URL_QA as string) || 'https://mcp-backenddeploy-production-4ed0.up.railway.app'
 const MOJIBAKE_PATTERN = /(?:Ã.|Â.|â.|ð.|Ð.|Ñ.)/
 
 function normalizeMojibake(value: string | null | undefined): string | null {

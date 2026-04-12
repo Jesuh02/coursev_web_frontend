@@ -26,13 +26,13 @@ export const TENANTS: TenantConfig[] = [
   {
     id: 'qa-develop',
     name: 'QA - Develop',
-    serverUrl: (import.meta.env.VITE_API_URL_QA as string),
+    serverUrl: (import.meta.env.VITE_API_URL_QA as string) || 'https://mcp-backenddeploy-production-4ed0.up.railway.app',
     supabaseProjectId: 'vxuksizvwrkctrvpciyp',
   },
   {
     id: 'incat',
     name: 'Politécnico Institucional del Caribe Incat',
-    serverUrl: (import.meta.env.VITE_API_URL_INCAT as string),
+    serverUrl: (import.meta.env.VITE_API_URL_INCAT as string) || 'https://mcp-backenddeploy-production.up.railway.app',
     supabaseProjectId: 'gzckzrocfmhsizlrnqep',
   },
 ]
