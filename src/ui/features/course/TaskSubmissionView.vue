@@ -344,12 +344,12 @@
             <div class="file-upload attach-option" @click="openFilePicker">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               <span class="file-upload-label">Archivo</span>
-              <input ref="fileInput" type="file" hidden @change="onFileSelect" />
+              <input ref="fileInput" type="file" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openImagePicker">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <span class="file-upload-label">Imagen</span>
-              <input ref="imageInput" type="file" accept="image/*" hidden @change="onFileSelect" />
+              <input ref="imageInput" type="file" accept="image/*" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openCameraCapture">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
