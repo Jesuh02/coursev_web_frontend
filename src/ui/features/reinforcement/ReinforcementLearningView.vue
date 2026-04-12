@@ -318,6 +318,22 @@ const taskId    = computed(() => route.query.taskId    ? Number(route.query.task
 const topicName = computed(() => (route.query.topicName as string) || '')
 const taskName  = computed(() => (route.query.taskName  as string) || '')
 
+// ─── Math topic detection ───────────────────────────────────────────────────────
+// Math exercises (and their verification/conversion) are only enabled when the
+// topic or task title explicitly indicates mathematical content.
+const MATH_TOPIC_KEYWORDS = [
+  'suma', 'sumas', 'adición', 'sustracción', 'resta', 'multiplicaci', 'divisi',
+  'aritmética', 'álgebra', 'cálculo', 'calculo', 'ecuaci', 'matemática',
+  'matemáticas', 'trigonometría', 'geometría', 'fracción', 'decimal', 'porcentaje',
+  'integral', 'derivada', 'sumatoria', 'logaritmo', 'exponente', 'polinomio',
+  'probabilidad', 'estadística', 'serie aritm', 'serie geom', 'problema matemático',
+  'problemas matemáticos', 'math', 'arithmetic', 'algebra', 'calculus',
+]
+const isMathTopic = computed(() => {
+  const combined = `${topicName.value} ${taskName.value}`.toLowerCase()
+  return MATH_TOPIC_KEYWORDS.some(k => combined.includes(k))
+})
+
 // ─── Config ────────────────────────────────────────────────────────────────────
 const letters = ['A', 'B', 'C', 'D']
 
@@ -1319,6 +1335,16 @@ function feDerivativeExtrema(text: string): { value: Decimal; steps: string[] } 
 }
 
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
+  // Math verification and conversion only apply when the topic is math-related.
+  // For non-math topics, skip to avoid incorrectly rejecting or converting questions
+  // that happen to contain numbers or numerically-phrased answers.
+  if (!isMathTopic.value) {
+    if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
+      return shuffleMultipleChoiceQuestion(question)
+    }
+    return question
+  }
+
   // First: verify math consistency — fix or reject wrong math answers
   const verified = verifyMathConsistency(question)
   if (!verified) return { ...question, _rejected: true } as QuizQuestion & { _rejected?: boolean }
@@ -1464,24 +1490,51 @@ function triquiClick(i: number) {
   setTimeout(() => cpuMove(board), 700)
 }
 
+// ── Minimax (unbeatable) ─────────────────────────────────────────────────────
+function minimaxScore(board: Cell[], depth: number, isMax: boolean, alpha: number, beta: number): number {
+  if (findWinner(board, 'O')) return 10 - depth
+  if (findWinner(board, 'X')) return depth - 10
+  const empty = board.reduce<number[]>((acc, c, i) => (c === '' ? [...acc, i] : acc), [])
+  if (!empty.length) return 0
+
+  if (isMax) {
+    let best = -Infinity
+    for (const i of empty) {
+      const t = [...board]; t[i] = 'O'
+      best = Math.max(best, minimaxScore(t, depth + 1, false, alpha, beta))
+      alpha = Math.max(alpha, best)
+      if (beta <= alpha) break
+    }
+    return best
+  } else {
+    let best = Infinity
+    for (const i of empty) {
+      const t = [...board]; t[i] = 'X'
+      best = Math.min(best, minimaxScore(t, depth + 1, true, alpha, beta))
+      beta = Math.min(beta, best)
+      if (beta <= alpha) break
+    }
+    return best
+  }
+}
+
+function bestMinimax(board: Cell[]): number {
+  const empty = board.reduce<number[]>((acc, c, i) => (c === '' ? [...acc, i] : acc), [])
+  let bestScore = -Infinity
+  let bestMove = empty[0]
+  for (const i of empty) {
+    const t = [...board]; t[i] = 'O'
+    const s = minimaxScore(t, 0, false, -Infinity, Infinity)
+    if (s > bestScore) { bestScore = s; bestMove = i }
+  }
+  return bestMove
+}
+
 function cpuMove(board: Cell[]) {
   const empty = board.reduce<number[]>((acc, c, i) => (c === '' ? [...acc, i] : acc), [])
   if (!empty.length) return
 
-  // Try to win → block → center → random
-  let move = -1
-  for (const idx of empty) {
-    const t = [...board]; t[idx] = 'O'
-    if (findWinner(t, 'O')) { move = idx; break }
-  }
-  if (move === -1) {
-    for (const idx of empty) {
-      const t = [...board]; t[idx] = 'X'
-      if (findWinner(t, 'X')) { move = idx; break }
-    }
-  }
-  if (move === -1 && board[4] === '') move = 4
-  if (move === -1) move = empty[Math.floor(Math.random() * empty.length)]
+  const move = bestMinimax(board)
 
   const nb = [...board]; nb[move] = 'O'
   triquiBoard.value = nb
