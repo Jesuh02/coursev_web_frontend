@@ -11,13 +11,13 @@
       </div>
       <div class="hero-image">
         <img v-if="heroImage" :src="heroImage" alt="" />
-        <div class="hero-gradient" />
-        <div class="hero-info">
-          <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
-          <h1 class="course-title">{{ displayTitle }}</h1>
-        </div>
         <div class="hero-accent" />
       </div>
+    </div>
+
+    <div class="hero-info">
+      <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
+      <h1 class="course-title">{{ displayTitle }}</h1>
     </div>
 
     <div class="course-body">
@@ -1116,13 +1116,10 @@ watch(activeTab, (tab) => {
   }
   .toolbar-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
   .hero-info {
-    top: 0; bottom: 0; left: 0; right: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding-top: 20px;
-    text-align: center; z-index: 6;
+    max-width: 880px;
+    margin: 16px auto 0;
+    padding: 0 40px;
   }
-  .hero-gradient { top: 0; height: 100%; background: rgba(0,0,0,0.35); border-radius: 16px; }
   .hero-accent { height: 3px; background: linear-gradient(90deg, #00D4FF 0%, #BF5AF2 50%, #FF375F 100%); border-radius: 0 0 16px 16px; }
 
   .course-title {
@@ -1130,7 +1127,6 @@ watch(activeTab, (tab) => {
     font-size: 38px;
     font-weight: 700;
     letter-spacing: -0.02em;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.7);
   }
 
   .featured-badge {
@@ -1373,8 +1369,8 @@ watch(activeTab, (tab) => {
   .hero-section { padding-top: 24px; }
   .hero-image { max-width: 960px; height: 240px; border-radius: 18px; }
   .hero-image img { border-radius: 18px; }
-  .hero-gradient { border-radius: 18px; }
   .hero-accent { border-radius: 0 0 18px 18px; }
+  .hero-info { max-width: 960px; padding: 0 48px; }
 
   .course-title { font-size: 44px; letter-spacing: -0.025em; }
   .course-body { max-width: 960px; padding: 0 48px; }
@@ -1401,8 +1397,8 @@ watch(activeTab, (tab) => {
   .hero-section { padding-top: 28px; }
   .hero-image { max-width: 1060px; height: 260px; border-radius: 20px; }
   .hero-image img { border-radius: 20px; }
-  .hero-gradient { border-radius: 20px; }
   .hero-accent { border-radius: 0 0 20px 20px; }
+  .hero-info { max-width: 1060px; padding: 0 56px; }
   .course-title { font-size: 48px; }
 
   .course-body {
@@ -1435,15 +1431,14 @@ watch(activeTab, (tab) => {
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
 .hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background: linear-gradient(transparent, #080C1A); }
 .hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
-.hero-info { position: absolute; bottom: 12px; left: 16px; right: 16px; z-index: 5; }
+.hero-info { padding: 14px 16px 0; }
 
 .course-body { padding: 0 16px; margin-top: 16px; position: relative; }
 
 .featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.15); color: #FFD700; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
-.course-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0; line-height: 1.15; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
+.course-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0; line-height: 1.15; }
 .course-desc { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 14px; }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
