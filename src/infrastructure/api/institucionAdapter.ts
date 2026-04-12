@@ -43,6 +43,7 @@ export interface InstitutionBillingStatus {
   allowed: boolean
   paymentOverdue?: boolean
   paymentDueDate?: string | null
+  billingActionMode?: string | null
   suspended?: boolean
   reason?: string
 }

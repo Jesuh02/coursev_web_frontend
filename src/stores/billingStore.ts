@@ -6,6 +6,7 @@ import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
 export const useBillingStore = defineStore('billing', () => {
   const billingDueDate = ref<string | null>(null)
   const paymentOverdue = ref(false)
+  const billingActionMode = ref<string | null>(null)
   const dismissed = ref(false)
   const checked = ref(false)
   let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -13,14 +14,20 @@ export const useBillingStore = defineStore('billing', () => {
 
   const authStore = useAuthStore()
 
-  const isRole3Only = computed(() => {
+  // Muestra advertencia para cualquier usuario de institucion (roles 1, 2, 3) excepto superadmin (4)
+  const isInstitutionUser = computed(() => {
     const roles = authStore.user?.roles ?? []
-    return roles.some((r: any) => Number(r.id) === 3) && !roles.some((r: any) => Number(r.id) === 4)
+    return roles.some((r: any) => [1, 2, 3].includes(Number(r.id))) && !roles.some((r: any) => Number(r.id) === 4)
   })
 
+  // Compatibilidad: alias del nombre anterior
+  const isRole3Only = isInstitutionUser
+
   const shouldShowWarning = computed(() => {
-    if (!isRole3Only.value) return false
+    if (!isInstitutionUser.value) return false
     if (!paymentOverdue.value) return false
+    // Solo mostrar advertencia cuando el modo es 'warning'; si es 'suspension' ya se bloquea el acceso
+    if (billingActionMode.value === 'suspension') return false
     return true
   })
 
@@ -55,11 +62,12 @@ export const useBillingStore = defineStore('billing', () => {
   }
 
   async function checkBillingStatus() {
-    if (!authStore.isAuthenticated || !isRole3Only.value) return
+    if (!authStore.isAuthenticated || !isInstitutionUser.value) return
     try {
       const status = await institucionAdapter.getMyBillingStatus()
       paymentOverdue.value = Boolean(status.paymentOverdue)
       billingDueDate.value = status.paymentDueDate ?? null
+      billingActionMode.value = status.billingActionMode ?? null
       checked.value = true
       // If not overdue yet, schedule local countdown for precise timing
       if (!paymentOverdue.value && billingDueDate.value) {
@@ -73,7 +81,7 @@ export const useBillingStore = defineStore('billing', () => {
   /** Start periodic polling every 30 seconds to detect billing changes */
   function startPolling() {
     stopPolling()
-    if (!isRole3Only.value) return
+    if (!isInstitutionUser.value) return
     pollTimer = setInterval(() => {
       checkBillingStatus()
     }, 30_000)
@@ -93,14 +101,15 @@ export const useBillingStore = defineStore('billing', () => {
   function $reset() {
     billingDueDate.value = null
     paymentOverdue.value = false
+    billingActionMode.value = null
     dismissed.value = false
     checked.value = false
     stopPolling()
   }
 
   // Auto-start/stop polling when role changes
-  watch(isRole3Only, (is3) => {
-    if (is3) {
+  watch(isInstitutionUser, (isUser) => {
+    if (isUser) {
       checkBillingStatus()
       startPolling()
     } else {
@@ -111,9 +120,11 @@ export const useBillingStore = defineStore('billing', () => {
   return {
     billingDueDate,
     paymentOverdue,
+    billingActionMode,
     dismissed,
     checked,
     isRole3Only,
+    isInstitutionUser,
     shouldShowWarning,
     formattedDueDate,
     checkBillingStatus,
