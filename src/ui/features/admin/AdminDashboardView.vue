@@ -2176,26 +2176,26 @@
             </label>
           </div>
 
-          <!-- Recurrence: once or every month -->
+          <!-- Recurrence: en ciclo o desde ese día -->
           <div v-if="cycleType" class="cycle-recurrence-picker">
             <label class="cycle-day-label">Aplicar:</label>
             <div class="cycle-recurrence-row">
               <button
                 class="cycle-recurrence-btn"
-                :class="{ active: cycleRecurrence === 'once' }"
-                @click="cycleRecurrence = 'once'"
-              >📅 Una sola vez</button>
-              <button
-                class="cycle-recurrence-btn"
                 :class="{ active: cycleRecurrence === 'every_month' }"
                 @click="cycleRecurrence = 'every_month'"
-              >🔁 Todos los meses</button>
+              >🔁 En ciclo (todos los meses)</button>
+              <button
+                class="cycle-recurrence-btn"
+                :class="{ active: cycleRecurrence === 'once' }"
+                @click="cycleRecurrence = 'once'"
+              >📅 Desde ese día en adelante</button>
             </div>
           </div>
 
-          <!-- Month selector (only when "once") -->
-          <div v-if="cycleType && cycleRecurrence === 'once'" class="cycle-month-picker">
-            <label class="cycle-day-label">Mes:</label>
+          <!-- Month selector -->
+          <div v-if="cycleType" class="cycle-month-picker">
+            <label class="cycle-day-label">Mes a aplicar:</label>
             <div class="cycle-month-grid">
               <button
                 v-for="(name, idx) in CYCLE_MONTH_NAMES" :key="idx"
@@ -2226,6 +2226,34 @@
             <select v-model="cycleHour" class="cycle-hour-select">
               <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
             </select>
+          </div>
+
+          <!-- Action mode: Warning / Suspension -->
+          <div v-if="cycleType" class="cycle-action-mode">
+            <label class="cycle-day-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Acción al vencer:
+            </label>
+            <div class="cycle-action-mode-row">
+              <button
+                class="cycle-action-btn"
+                :class="{ active: cycleActionMode === 'warning', 'mode-warning': cycleActionMode === 'warning' }"
+                @click="cycleActionMode = 'warning'"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Advertencia
+              </button>
+              <button
+                class="cycle-action-btn"
+                :class="{ active: cycleActionMode === 'suspension', 'mode-suspend': cycleActionMode === 'suspension' }"
+                @click="cycleActionMode = 'suspension'"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Suspensión
+              </button>
+            </div>
+            <p class="cycle-action-hint" v-if="cycleActionMode === 'warning'">Los administradores de la institución verán un aviso de pago pendiente, pero podrán seguir usando la app.</p>
+            <p class="cycle-action-hint cycle-action-hint-danger" v-else>Se bloqueará el acceso a todos los usuarios (excepto superadmin). Al ingresar verán el mensaje de suspensión con botón de pago.</p>
           </div>
 
           <div class="inst-modal-actions">
@@ -4993,6 +5021,7 @@ const cycleHour = ref(8)
 const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
 const cycleSelectedMonth = ref<number>(new Date().getMonth())
 const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const cycleActionMode = ref<'warning' | 'suspension'>('warning')
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
 
@@ -5078,6 +5107,7 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   cycleType.value = inst.billing_cycle_type || ''
   cycleDay.value = inst.billing_cycle_day || 1
   cycleHour.value = inst.billing_cycle_hour ?? 8
+  cycleActionMode.value = inst.is_suspended ? 'suspension' : 'warning'
   // If the institution has billing_cycle_months set, use 'once' mode
   const savedMonths = (inst as any).billing_cycle_months
   if (Array.isArray(savedMonths) && savedMonths.length > 0 && savedMonths.length < 12) {
@@ -5109,10 +5139,11 @@ const saveBillingCycle = async () => {
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
     const isOnce = cycleRecurrence.value === 'once'
-    const cyclePayload: { type: string; day?: number | null; hour?: number | null; months?: number[] } = {
+    const cyclePayload: { type: string; day?: number | null; hour?: number | null; months?: number[]; month?: number } = {
       type: isOnce ? 'specific_months' : cycleType.value,
       day: cycleType.value === 'monthly_day' ? cycleDay.value : null,
       hour: cycleHour.value,
+      month: cycleSelectedMonth.value,
     }
     if (isOnce) {
       cyclePayload.months = [cycleSelectedMonth.value]
@@ -5125,6 +5156,16 @@ const saveBillingCycle = async () => {
     )
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
+
+    // Handle suspend/unsuspend based on action mode
+    if (cycleActionMode.value === 'suspension' && !inst.is_suspended) {
+      const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    } else if (cycleActionMode.value === 'warning' && inst.is_suspended) {
+      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
+      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
+    }
+
     datePickerTarget.value = null
   } catch (e) {
     console.error('Error setting billing cycle:', e)
@@ -9899,6 +9940,59 @@ watch(() => route.query, () => {
 .cycle-hour-select option {
   background: #2C2C2E;
   color: #fff;
+}
+
+.cycle-action-mode {
+  margin-top: 14px;
+}
+
+.cycle-action-mode-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cycle-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(44, 44, 46, 0.5);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cycle-action-btn:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.cycle-action-btn.active.mode-warning {
+  background: rgba(255, 159, 10, 0.15);
+  border-color: rgba(255, 159, 10, 0.5);
+  color: #FF9F0A;
+}
+
+.cycle-action-btn.active.mode-suspend {
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #FF453A;
+}
+
+.cycle-action-hint {
+  font-size: 11px;
+  color: #FF9F0A;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.cycle-action-hint-danger {
+  color: #FF453A;
 }
 
 .inst-modal-danger-soft {
