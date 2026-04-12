@@ -4966,6 +4966,7 @@ const saveBillingDate = async () => {
         type: isRecurring ? 'monthly_day' : (selectedMonthsArr ? 'specific_months' : 'monthly_day'),
         day: billingSelectedDay.value,
         hour: billingSelectedHour.value,
+        minute: billingSelectedMinute.value,
         ...(selectedMonthsArr ? { months: selectedMonthsArr } : {}),
       },
     )
