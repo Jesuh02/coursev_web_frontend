@@ -1765,233 +1765,6 @@
       </div>
     </div>
 
-    <!-- Instituciones Tab (SuperAdmin) -->
-    <!-- Billing / Cobro Tab -->
-    <div v-if="activeTab === 'billing' && hasSuperAdminRole" class="tab-content billing-tab">
-      <div class="a-card">
-        <div class="a-card-header">
-          <h3>Programar Cobro</h3>
-          <span class="a-tag a-tag-red">Facturación</span>
-        </div>
-        <p class="billing-desc">Selecciona la fecha, día del mes y hora en que se iniciará el cobro. Los usuarios con rol administrador de institución verán avisos de pago en toda la aplicación.</p>
-
-        <!-- Institution selector -->
-        <div class="billing-inst-selector">
-          <label class="billing-label">Institución:</label>
-          <select v-model="billingSelectedInstId" class="billing-select" @change="onBillingInstChange">
-            <option :value="null" disabled>Seleccionar institución...</option>
-            <option v-for="inst in institutions" :key="`${inst.tenantId||'_'}-${inst.id}`" :value="inst.id">
-              {{ inst.nombre }} {{ inst.tenantName ? `(${inst.tenantName})` : '' }}
-            </option>
-          </select>
-        </div>
-
-        <template v-if="billingSelectedInstId">
-          <!-- Recurrence mode selector -->
-          <div class="billing-recurrence-selector">
-            <label class="billing-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-              Frecuencia del cobro:
-            </label>
-            <div class="billing-recurrence-options">
-              <button
-                class="billing-recurrence-btn"
-                :class="{ 'is-active': billingRecurrence === 'once' }"
-                @click="billingRecurrence = 'once'"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Una sola vez
-              </button>
-              <button
-                class="billing-recurrence-btn"
-                :class="{ 'is-active': billingRecurrence === 'all_months' }"
-                @click="billingRecurrence = 'all_months'"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                Todos los meses
-              </button>
-            </div>
-          </div>
-
-          <!-- Month chips selector (only in "once" mode) -->
-          <div v-if="billingRecurrence === 'once'" class="billing-months-selector">
-            <label class="billing-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              Meses a aplicar:
-            </label>
-            <div class="billing-months-actions">
-              <button class="billing-months-action-btn" @click="selectAllBillingMonths">Seleccionar todos</button>
-              <button class="billing-months-action-btn" @click="clearAllBillingMonths">Limpiar</button>
-            </div>
-            <div class="billing-months-grid">
-              <button
-                v-for="(name, idx) in MONTH_NAMES_ES"
-                :key="idx"
-                class="billing-month-chip"
-                :class="{ 'is-selected': billingSelectedMonths.has(idx) }"
-                @click="toggleBillingMonth(idx)"
-              >{{ name.slice(0, 3) }}</button>
-            </div>
-          </div>
-
-          <!-- Quick set from now -->
-          <div class="billing-quick-row">
-            <label class="billing-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Cobro rápido:
-            </label>
-            <div class="billing-quick-controls">
-              <span class="billing-quick-label">En</span>
-              <input
-                type="number"
-                v-model.number="billingQuickMinutes"
-                min="1"
-                max="1440"
-                class="billing-quick-input"
-              />
-              <span class="billing-quick-label">min desde ahora</span>
-              <button class="billing-btn billing-btn-quick" @click="setBillingQuickFromNow">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                Aplicar
-              </button>
-            </div>
-          </div>
-
-          <!-- Calendar month picker -->
-          <div class="billing-calendar">
-            <div class="billing-cal-header">
-              <button class="billing-cal-nav" @click="billingCalPrevMonth">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              <div class="billing-cal-title-row">
-                <select
-                  class="billing-select billing-select-sm billing-month-select"
-                  :value="billingCalMonth"
-                  @change="onBillingMonthSelectChange"
-                >
-                  <option v-for="(name, idx) in ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']" :key="idx" :value="idx">{{ name }}</option>
-                </select>
-                <select
-                  class="billing-select billing-select-sm billing-year-select"
-                  :value="billingCalYear"
-                  @change="onBillingYearSelectChange"
-                >
-                  <option v-for="y in billingYearOptions" :key="y" :value="y">{{ y }}</option>
-                </select>
-              </div>
-              <button class="billing-cal-nav" @click="billingCalNextMonth">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            </div>
-            <div class="billing-cal-weekdays">
-              <span v-for="wd in ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']" :key="wd">{{ wd }}</span>
-            </div>
-            <div class="billing-cal-grid">
-              <button
-                v-for="cell in billingCalCells"
-                :key="cell.key"
-                class="billing-cal-day"
-                :class="{
-                  'is-other-month': !cell.currentMonth,
-                  'is-selected': cell.day === billingSelectedDay && cell.currentMonth,
-                  'is-today': cell.isToday && cell.currentMonth,
-                }"
-                :disabled="!cell.currentMonth"
-                @click="billingSelectedDay = cell.day"
-              >{{ cell.day }}</button>
-            </div>
-          </div>
-
-          <!-- Hour & Minute picker -->
-          <div class="billing-hour-row">
-            <label class="billing-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Hora del cobro:
-            </label>
-            <select v-model="billingSelectedHour" class="billing-select billing-select-sm">
-              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
-            </select>
-            <span class="billing-time-sep">:</span>
-            <select v-model="billingSelectedMinute" class="billing-select billing-select-sm">
-              <option v-for="m in 60" :key="m - 1" :value="m - 1">{{ String(m - 1).padStart(2, '0') }}</option>
-            </select>
-          </div>
-
-          <!-- Billing action mode selector -->
-          <div class="billing-action-mode">
-            <label class="billing-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Acción al vencer:
-            </label>
-            <div class="billing-mode-options">
-              <button
-                class="billing-mode-btn"
-                :class="{ 'is-active': billingActionMode === 'warning', 'mode-warning': billingActionMode === 'warning' }"
-                @click="billingActionMode = 'warning'"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                Advertencia
-              </button>
-              <button
-                class="billing-mode-btn"
-                :class="{ 'is-active': billingActionMode === 'suspension', 'mode-suspend': billingActionMode === 'suspension' }"
-                @click="billingActionMode = 'suspension'"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                Suspensión
-              </button>
-            </div>
-            <p class="billing-mode-hint" v-if="billingActionMode === 'warning'">Los usuarios con rol administrador de institución verán un aviso de pago pendiente con botón de pago, pero podrán seguir usando la app.</p>
-            <p class="billing-mode-hint billing-mode-hint-danger" v-else>Se bloqueará el acceso a todos los usuarios (excepto superadmin). Al intentar ingresar verán el mensaje de suspensión con el botón de pago.</p>
-          </div>
-
-          <!-- Summary -->
-          <div class="billing-summary">
-            <div class="billing-summary-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </div>
-            <div class="billing-summary-text">
-              <span class="billing-summary-label">Fecha de cobro programada:</span>
-              <span class="billing-summary-value">{{ billingFormattedDate }}</span>
-              <span class="billing-summary-recurrence" v-if="billingRecurrence === 'all_months'">🔁 Recurrente cada mes</span>
-              <span class="billing-summary-recurrence" v-else-if="billingSelectedMonths.size > 0 && billingSelectedMonths.size < 12">📅 Meses seleccionados: {{ Array.from(billingSelectedMonths).sort((a,b)=>a-b).map(i=>MONTH_NAMES_ES[i].slice(0,3)).join(', ') }}</span>
-              <span class="billing-summary-mode" :class="billingActionMode === 'suspension' ? 'mode-suspend-text' : 'mode-warning-text'">{{ billingActionMode === 'suspension' ? '⛔ Suspensión' : '⚠️ Advertencia' }}</span>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="billing-actions">
-            <button
-              class="billing-btn billing-btn-danger"
-              :disabled="billingSaving"
-              @click="clearBillingDate"
-              v-if="billingCurrentInst?.billing_cycle_type || billingCurrentInst?.payment_due_date"
-            >
-              {{ billingSaving ? 'Eliminando...' : 'Eliminar fecha de cobro' }}
-            </button>
-            <button
-              class="billing-btn billing-btn-save"
-              :disabled="billingSaving || !billingSelectedDay"
-              @click="saveBillingDate"
-            >
-              {{ billingSaving ? 'Guardando...' : 'Programar cobro' }}
-            </button>
-          </div>
-
-          <!-- Current status -->
-          <div v-if="billingCurrentInst?.payment_due_date" class="billing-current-status">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span>Cobro actual configurado: <strong>{{ formatDateTime(billingCurrentInst.payment_due_date, billingCurrentInst.billing_cycle_hour, billingCurrentInst.billing_cycle_minute) }}</strong></span>
-          </div>
-        </template>
-
-        <div v-else class="billing-empty">
-          <span class="emoji">📅</span>
-          <p>Selecciona una institución para configurar la fecha de cobro</p>
-        </div>
-      </div>
-    </div>
-
     <div v-if="activeTab === 'institutions' && hasSuperAdminRole" class="tab-content institutions-tab">
       <div v-if="institutionsLoading" class="a-loading">
         <div class="spinner-lg"></div>
@@ -2232,8 +2005,31 @@
               </select>
               <span style="color:#8E8E93;font-size:16px;font-weight:600;">:</span>
               <select v-model="cycleMinute" class="cycle-hour-select">
-                <option v-for="m in [0,5,10,15,20,25,30,35,40,45,50,55]" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
+                <option v-for="m in 60" :key="m - 1" :value="m - 1">{{ String(m - 1).padStart(2, '0') }}</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Quick set from now -->
+          <div v-if="cycleType" class="cycle-quick-row">
+            <label class="cycle-day-label" style="color:#FF9F0A;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Cobro rápido:
+            </label>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:13px;color:#8E8E93;font-weight:500;">En</span>
+              <input
+                type="number"
+                v-model.number="cycleQuickMinutes"
+                min="1"
+                max="1440"
+                class="cycle-quick-input"
+              />
+              <span style="font-size:13px;color:#8E8E93;font-weight:500;">min desde ahora</span>
+              <button class="cycle-quick-btn" @click="setCycleQuickFromNow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Aplicar
+              </button>
             </div>
           </div>
 
@@ -2579,7 +2375,6 @@ const allTabs = [
   { id: 'certificates', label: 'Certificados', adminOnly: true },
   { id: 'activation', label: 'Activación', adminOnly: true },
   { id: 'enrollment', label: 'Matrícula', adminOnly: true },
-  { id: 'billing', label: 'Cobro', adminOnly: true, superAdminOnly: true },
   { id: 'institutions', label: 'Instituciones', adminOnly: true, superAdminOnly: true },
 ]
 
@@ -2613,9 +2408,6 @@ watch(activeTab, (tab) => {
     }
   }
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
-    loadInstitutions()
-  }
-  if (tab === 'billing' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
   }
 })
@@ -4836,200 +4628,6 @@ const loadPendingTasksWithSubjects = async (myProgress: any[], prefetchedSubmiss
   }
 }
 
-// ─── Billing / Cobro tab state ────────────────────────────────────────────
-const billingSelectedInstId = ref<number | null>(null)
-const billingCalMonth = ref(new Date().getMonth())
-const billingCalYear = ref(new Date().getFullYear())
-const billingSelectedDay = ref<number | null>(null)
-const billingSelectedHour = ref(8)
-const billingSelectedMinute = ref(0)
-const billingSaving = ref(false)
-const billingQuickMinutes = ref(2)
-const billingActionMode = ref<'warning' | 'suspension'>('warning')
-const billingYearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i - 1)
-const billingRecurrence = ref<'once' | 'all_months'>('once')
-const billingSelectedMonths = ref<Set<number>>(new Set())
-const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-const toggleBillingMonth = (idx: number) => {
-  const s = new Set(billingSelectedMonths.value)
-  if (s.has(idx)) s.delete(idx); else s.add(idx)
-  billingSelectedMonths.value = s
-}
-const selectAllBillingMonths = () => { billingSelectedMonths.value = new Set(Array.from({ length: 12 }, (_, i) => i)) }
-const clearAllBillingMonths = () => { billingSelectedMonths.value = new Set() }
-
-const onBillingMonthSelectChange = (e: Event) => {
-  billingCalMonth.value = Number((e.target as HTMLSelectElement).value)
-  billingSelectedDay.value = null
-}
-
-const onBillingYearSelectChange = (e: Event) => {
-  billingCalYear.value = Number((e.target as HTMLSelectElement).value)
-  billingSelectedDay.value = null
-}
-
-const billingCurrentInst = computed(() =>
-  institutions.value.find(i => i.id === billingSelectedInstId.value) ?? null
-)
-
-const billingCalMonthLabel = computed(() => {
-  const d = new Date(billingCalYear.value, billingCalMonth.value, 1)
-  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-})
-
-const billingCalCells = computed(() => {
-  const year = billingCalYear.value
-  const month = billingCalMonth.value
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const daysInPrevMonth = new Date(year, month, 0).getDate()
-  const today = new Date()
-  const cells: { key: string; day: number; currentMonth: boolean; isToday: boolean }[] = []
-
-  // Previous month trailing days
-  for (let i = firstDay - 1; i >= 0; i--) {
-    const d = daysInPrevMonth - i
-    cells.push({ key: `prev-${d}`, day: d, currentMonth: false, isToday: false })
-  }
-  // Current month days
-  for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = d === today.getUTCDate() && month === today.getUTCMonth() && year === today.getUTCFullYear()
-    cells.push({ key: `cur-${d}`, day: d, currentMonth: true, isToday })
-  }
-  // Next month leading days to fill grid
-  const remaining = 42 - cells.length
-  for (let d = 1; d <= remaining; d++) {
-    cells.push({ key: `next-${d}`, day: d, currentMonth: false, isToday: false })
-  }
-  return cells
-})
-
-const billingFormattedDate = computed(() => {
-  if (!billingSelectedDay.value) return 'Sin fecha seleccionada'
-  const hh = String(billingSelectedHour.value).padStart(2, '0')
-  const mm = String(billingSelectedMinute.value).padStart(2, '0')
-  if (billingRecurrence.value === 'all_months') {
-    return `Día ${billingSelectedDay.value} de cada mes a las ${hh}:${mm}`
-  }
-  if (billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12) {
-    const mNames = Array.from(billingSelectedMonths.value).sort((a, b) => a - b).map(i => MONTH_NAMES_ES[i])
-    return `Día ${billingSelectedDay.value} de ${mNames.join(', ')} ${billingCalYear.value} a las ${hh}:${mm}`
-  }
-  const d = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
-  return d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) +
-    ` a las ${hh}:${mm}`
-})
-
-const setBillingQuickFromNow = () => {
-  const target = new Date(Date.now() + billingQuickMinutes.value * 60_000)
-  billingCalYear.value = target.getUTCFullYear()
-  billingCalMonth.value = target.getUTCMonth()
-  billingSelectedDay.value = target.getUTCDate()
-  billingSelectedHour.value = target.getUTCHours()
-  billingSelectedMinute.value = target.getUTCMinutes()
-}
-
-const billingCalPrevMonth = () => {
-  if (billingCalMonth.value === 0) {
-    billingCalMonth.value = 11
-    billingCalYear.value--
-  } else {
-    billingCalMonth.value--
-  }
-}
-
-const billingCalNextMonth = () => {
-  if (billingCalMonth.value === 11) {
-    billingCalMonth.value = 0
-    billingCalYear.value++
-  } else {
-    billingCalMonth.value++
-  }
-}
-
-const onBillingInstChange = () => {
-  const inst = billingCurrentInst.value
-  if (inst?.payment_due_date) {
-    const d = new Date(inst.payment_due_date)
-    if (!isNaN(d.getTime())) {
-      billingCalYear.value = d.getUTCFullYear()
-      billingCalMonth.value = d.getUTCMonth()
-      billingSelectedDay.value = d.getUTCDate()
-      billingSelectedHour.value = d.getUTCHours()
-      billingSelectedMinute.value = d.getUTCMinutes()
-    }
-  } else {
-    billingSelectedDay.value = null
-    billingSelectedHour.value = 8
-    billingSelectedMinute.value = 0
-  }
-  billingActionMode.value = inst?.is_suspended ? 'suspension' : 'warning'
-}
-
-const saveBillingDate = async () => {
-  const inst = billingCurrentInst.value
-  if (!inst || !billingSelectedDay.value) return
-  billingSaving.value = true
-  try {
-    const isRecurring = billingRecurrence.value === 'all_months'
-    const selectedMonthsArr = billingSelectedMonths.value.size > 0 && billingSelectedMonths.value.size < 12
-      ? Array.from(billingSelectedMonths.value).sort((a, b) => a - b)
-      : null
-
-    const dueDate = new Date(Date.UTC(billingCalYear.value, billingCalMonth.value, billingSelectedDay.value, billingSelectedHour.value, billingSelectedMinute.value))
-    const updated = await institucionAdapter.setPaymentDueDate(
-      inst.id,
-      dueDate.toISOString(),
-      inst.tenantId,
-      {
-        type: isRecurring ? 'monthly_day' : (selectedMonthsArr ? 'specific_months' : 'monthly_day'),
-        day: billingSelectedDay.value,
-        hour: billingSelectedHour.value,
-        minute: billingSelectedMinute.value,
-        billing_action_mode: billingActionMode.value ?? 'warning',
-        ...(selectedMonthsArr ? { months: selectedMonthsArr } : {}),
-      },
-    )
-    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
-    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
-
-    // Handle suspension/unsuspension based on action mode
-    if (billingActionMode.value === 'suspension' && !inst.is_suspended) {
-      const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
-      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
-    } else if (billingActionMode.value === 'warning' && inst.is_suspended) {
-      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
-      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
-    }
-  } catch (e) {
-    console.error('Error saving billing date:', e)
-  } finally {
-    billingSaving.value = false
-  }
-}
-
-const clearBillingDate = async () => {
-  const inst = billingCurrentInst.value
-  if (!inst) return
-  billingSaving.value = true
-  try {
-    const updated = await institucionAdapter.setPaymentDueDate(inst.id, null, inst.tenantId, undefined, true)
-    const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
-    if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
-    // Also unsuspend if institution was suspended
-    if (inst.is_suspended) {
-      const unsuspended = await institucionAdapter.unsuspendInstitution(inst.id, inst.tenantId)
-      if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...unsuspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
-    }
-    billingSelectedDay.value = null
-    billingActionMode.value = 'warning'
-  } catch (e) {
-    console.error('Error clearing billing date:', e)
-  } finally {
-    billingSaving.value = false
-  }
-}
-
 // ─── Institutions (SuperAdmin) state ─────────────────────────────────────
 const institutions = ref<InstitutionAdmin[]>([])
 const institutionsLoading = ref(false)
@@ -5044,6 +4642,7 @@ const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
 const cycleSelectedMonth = ref<number>(new Date().getMonth())
 const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const cycleActionMode = ref<'warning' | 'suspension'>('warning')
+const cycleQuickMinutes = ref(2)
 const suspendTarget = ref<InstitutionAdmin | null>(null)
 const suspendReason = ref('')
 
@@ -5158,6 +4757,15 @@ const formatBillingCycle = (inst: InstitutionAdmin) => {
   return 'No configurado'
 }
 
+const setCycleQuickFromNow = () => {
+  const target = new Date(Date.now() + cycleQuickMinutes.value * 60_000)
+  cycleSelectedMonth.value = target.getUTCMonth()
+  cycleDay.value = target.getUTCDate()
+  cycleHour.value = target.getUTCHours()
+  cycleMinute.value = target.getUTCMinutes()
+  if (!cycleType.value) cycleType.value = 'monthly_day'
+}
+
 const saveBillingCycle = async () => {
   const inst = datePickerTarget.value
   if (!inst || !cycleType.value) return
@@ -5179,7 +4787,12 @@ const saveBillingCycle = async () => {
     const cycleYear = new Date().getFullYear()
     const cycleMonth = cycleSelectedMonth.value
     const cycleD = cycleType.value === 'monthly_day' ? cycleDay.value : (cycleType.value === 'biweekly' ? 15 : 1)
-    const explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value))
+    let explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value))
+    // If the computed date is already in the past and this is a "once" recurrence,
+    // keep it as-is (the user explicitly chose it). For recurring, advance to next month.
+    if (!isOnce && explicitDueDate.getTime() <= Date.now()) {
+      explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth + 1, cycleD, cycleHour.value, cycleMinute.value))
+    }
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
       explicitDueDate.toISOString(),
@@ -10046,226 +9659,16 @@ watch(() => route.query, () => {
   background: rgba(255, 69, 58, 0.18);
 }
 
-/* ═══════ Billing / Cobro Tab ═══════ */
-.billing-tab {
-  overflow-y: auto;
-  padding: 16px;
-  min-height: 0;
-  overscroll-behavior: contain;
-}
-
-.billing-desc {
-  font-size: 13px;
-  color: #8E8E93;
-  margin: 0 0 20px;
-  line-height: 1.5;
-}
-
-.a-tag-red {
-  background: rgba(255, 59, 48, 0.14);
-  color: #FF3B30;
-}
-
-.billing-inst-selector {
-  margin-bottom: 20px;
-}
-
-.billing-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8E8E93;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.billing-select {
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-  -webkit-appearance: none;
-}
-
-.billing-select:focus {
-  border-color: rgba(10,132,255,0.5);
-}
-
-.billing-select option {
-  background: #1c1c1e;
-  color: #fff;
-}
-
-.billing-select-sm {
-  width: auto;
-  min-width: 120px;
-}
-
-/* Calendar */
-.billing-calendar {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.billing-cal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.billing-cal-title-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  justify-content: center;
-}
-
-.billing-month-select,
-.billing-year-select {
-  min-width: 0;
-  flex: 1;
-  max-width: 130px;
-}
-
-.billing-year-select {
-  max-width: 80px;
-}
-
-.billing-cal-nav {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.billing-cal-nav:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-.billing-cal-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-  margin-bottom: 6px;
-}
-
-.billing-cal-weekdays span {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: #636366;
-  padding: 4px 0;
-  text-transform: uppercase;
-}
-
-.billing-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-
-.billing-cal-day {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 500;
-  color: #fff;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.billing-cal-day:hover:not(:disabled) {
-  background: rgba(255,255,255,0.08);
-}
-
-.billing-cal-day.is-other-month {
-  color: #3a3a3c;
-  cursor: default;
-}
-
-.billing-cal-day.is-today {
-  border-color: rgba(10,132,255,0.4);
-  color: #0A84FF;
-}
-
-.billing-cal-day.is-selected {
-  background: #FF3B30;
-  color: #fff;
-  font-weight: 700;
-  border-color: #FF3B30;
-  box-shadow: 0 0 12px rgba(255, 59, 48, 0.3);
-}
-
-/* Hour picker */
-.billing-hour-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.billing-hour-row .billing-label {
-  margin-bottom: 0;
-}
-
-.billing-time-sep {
-  font-size: 18px;
-  font-weight: 700;
-  color: #8E8E93;
-  line-height: 1;
-}
-
-/* Quick billing from-now */
-.billing-quick-row {
-  margin-bottom: 20px;
+/* ═══════ Cycle Quick Billing ═══════ */
+.cycle-quick-row {
+  margin-top: 16px;
   padding: 14px 16px;
   background: rgba(255, 159, 10, 0.06);
   border: 1px solid rgba(255, 159, 10, 0.15);
   border-radius: 12px;
 }
 
-.billing-quick-row .billing-label {
-  margin-bottom: 10px;
-  color: #FF9F0A;
-}
-
-.billing-quick-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.billing-quick-label {
-  font-size: 13px;
-  color: #8E8E93;
-  font-weight: 500;
-}
-
-.billing-quick-input {
+.cycle-quick-input {
   width: 64px;
   padding: 6px 10px;
   background: rgba(255,255,255,0.06);
@@ -10280,17 +9683,17 @@ watch(() => route.query, () => {
   -moz-appearance: textfield;
 }
 
-.billing-quick-input::-webkit-outer-spin-button,
-.billing-quick-input::-webkit-inner-spin-button {
+.cycle-quick-input::-webkit-outer-spin-button,
+.cycle-quick-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.billing-quick-input:focus {
+.cycle-quick-input:focus {
   border-color: rgba(255, 159, 10, 0.5);
 }
 
-.billing-btn-quick {
+.cycle-quick-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -10305,306 +9708,9 @@ watch(() => route.query, () => {
   transition: background 0.15s;
 }
 
-.billing-btn-quick:hover {
+.cycle-quick-btn:hover {
   background: rgba(255, 159, 10, 0.25);
 }
-
-/* Summary */
-.billing-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(255, 59, 48, 0.08);
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-.billing-summary-icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 59, 48, 0.15);
-  border-radius: 10px;
-  color: #FF3B30;
-}
-
-.billing-summary-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.billing-summary-label {
-  font-size: 11px;
-  color: #8E8E93;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
-
-.billing-summary-value {
-  font-size: 14px;
-  color: #fff;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.billing-summary-mode {
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.mode-warning-text { color: #FF9F0A; }
-.mode-suspend-text { color: #FF453A; }
-
-/* Billing action mode selector */
-.billing-action-mode {
-  margin-bottom: 20px;
-}
-
-.billing-mode-options {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.billing-mode-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #8E8E93;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.billing-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.billing-mode-btn.is-active.mode-warning {
-  background: rgba(255, 159, 10, 0.12);
-  border-color: rgba(255, 159, 10, 0.4);
-  color: #FF9F0A;
-}
-
-.billing-mode-btn.is-active.mode-suspend {
-  background: rgba(255, 69, 58, 0.12);
-  border-color: rgba(255, 69, 58, 0.4);
-  color: #FF453A;
-}
-
-.billing-mode-hint {
-  font-size: 12px;
-  color: #8E8E93;
-  margin-top: 8px;
-  line-height: 1.5;
-  padding: 8px 12px;
-  background: rgba(255, 159, 10, 0.06);
-  border-radius: 8px;
-  border-left: 3px solid rgba(255, 159, 10, 0.3);
-}
-
-.billing-mode-hint-danger {
-  background: rgba(255, 69, 58, 0.06);
-  border-left-color: rgba(255, 69, 58, 0.3);
-  color: #ff8a84;
-}
-
-/* Recurrence selector */
-.billing-recurrence-selector {
-  margin-bottom: 18px;
-}
-
-.billing-recurrence-options {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.billing-recurrence-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid rgba(60, 60, 62, 0.6);
-  background: rgba(44, 44, 46, 0.4);
-  color: #8E8E93;
-  transition: all 0.2s ease;
-}
-
-.billing-recurrence-btn:hover {
-  background: rgba(44, 44, 46, 0.7);
-  color: #EBEBF5;
-}
-
-.billing-recurrence-btn.is-active {
-  background: rgba(10, 132, 255, 0.12);
-  border-color: #0A84FF;
-  color: #0A84FF;
-}
-
-/* Month chips selector */
-.billing-months-selector {
-  margin-bottom: 18px;
-}
-
-.billing-months-actions {
-  display: flex;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.billing-months-action-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  border: 1px solid rgba(60, 60, 62, 0.6);
-  background: rgba(44, 44, 46, 0.3);
-  color: #8E8E93;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.billing-months-action-btn:hover {
-  background: rgba(44, 44, 46, 0.6);
-  color: #EBEBF5;
-}
-
-.billing-months-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.billing-month-chip {
-  padding: 8px 4px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  cursor: pointer;
-  border: 1px solid rgba(60, 60, 62, 0.5);
-  background: rgba(44, 44, 46, 0.3);
-  color: #8E8E93;
-  transition: all 0.15s ease;
-}
-
-.billing-month-chip:hover {
-  background: rgba(44, 44, 46, 0.6);
-  color: #EBEBF5;
-}
-
-.billing-month-chip.is-selected {
-  background: rgba(255, 59, 48, 0.15);
-  border-color: #FF3B30;
-  color: #FF6961;
-}
-
-.billing-summary-recurrence {
-  display: block;
-  font-size: 12px;
-  color: #0A84FF;
-  margin-top: 2px;
-}
-
-/* Actions */
-.billing-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-
-.billing-btn {
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-}
-
-.billing-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.billing-btn-save {
-  background: #FF3B30;
-  color: #fff;
-}
-
-.billing-btn-save:hover:not(:disabled) {
-  background: #e0332a;
-}
-
-.billing-btn-danger {
-  background: rgba(255, 69, 58, 0.12);
-  color: #ff8a84;
-  border: 1px solid rgba(255, 69, 58, 0.18);
-}
-
-.billing-btn-danger:hover:not(:disabled) {
-  background: rgba(255, 69, 58, 0.2);
-}
-
-/* Current status */
-.billing-current-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #30D158;
-  padding: 10px 14px;
-  background: rgba(48, 209, 88, 0.08);
-  border-radius: 10px;
-  border: 1px solid rgba(48, 209, 88, 0.15);
-}
-
-.billing-current-status strong {
-  color: #fff;
-}
-
-.billing-empty {
-  text-align: center;
-  padding: 40px 20px;
-  color: #636366;
-}
-
-.billing-empty .emoji {
-  font-size: 40px;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.billing-empty p {
-  font-size: 14px;
-  margin: 0;
-}
-</style>
 
 .cycle-hour-picker {
   margin-top: 16px;
