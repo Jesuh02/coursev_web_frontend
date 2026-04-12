@@ -2223,9 +2223,15 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Hora del cobro:
             </label>
-            <select v-model="cycleHour" class="cycle-hour-select">
-              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <select v-model="cycleHour" class="cycle-hour-select">
+                <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
+              </select>
+              <span style="color:#8E8E93;font-size:16px;font-weight:600;">:</span>
+              <select v-model="cycleMinute" class="cycle-hour-select">
+                <option v-for="m in [0,5,10,15,20,25,30,35,40,45,50,55]" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
+              </select>
+            </div>
           </div>
 
           <!-- Action mode: Warning / Suspension -->
@@ -5019,6 +5025,7 @@ const datePickerTarget = ref<InstitutionAdmin | null>(null)
 const cycleType = ref<'monthly_start' | 'biweekly' | 'monthly_day' | 'specific_months' | ''>('')
 const cycleDay = ref(1)
 const cycleHour = ref(8)
+const cycleMinute = ref(0)
 const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
 const cycleSelectedMonth = ref<number>(new Date().getMonth())
 const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -5108,6 +5115,7 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   cycleType.value = inst.billing_cycle_type || ''
   cycleDay.value = inst.billing_cycle_day || 1
   cycleHour.value = inst.billing_cycle_hour ?? 8
+  cycleMinute.value = inst.billing_cycle_minute ?? 0
   cycleActionMode.value = inst.is_suspended ? 'suspension' : 'warning'
   // If the institution has billing_cycle_months set, use 'once' mode
   const savedMonths = (inst as any).billing_cycle_months
@@ -5122,7 +5130,9 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
 
 const formatBillingCycle = (inst: InstitutionAdmin) => {
   if (!inst.billing_cycle_type) return 'No configurado'
-  const hourStr = ` a las ${String(inst.billing_cycle_hour ?? 8).padStart(2, '0')}:00`
+  const h = String(inst.billing_cycle_hour ?? 8).padStart(2, '0')
+  const m = String(inst.billing_cycle_minute ?? 0).padStart(2, '0')
+  const hourStr = ` a las ${h}:${m}`
   if (inst.billing_cycle_type === 'monthly_start') return `Inicio de mes (día 1)${hourStr}`
   if (inst.billing_cycle_type === 'biweekly') return `Quincenal (1 y 15)${hourStr}`
   const savedMonths = (inst as any).billing_cycle_months as number[] | null
@@ -5140,10 +5150,11 @@ const saveBillingCycle = async () => {
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
     const isOnce = cycleRecurrence.value === 'once'
-    const cyclePayload: { type: string; day?: number | null; hour?: number | null; months?: number[]; month?: number } = {
+    const cyclePayload: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[]; month?: number } = {
       type: isOnce ? 'specific_months' : cycleType.value,
       day: cycleType.value === 'monthly_day' ? cycleDay.value : null,
       hour: cycleHour.value,
+      minute: cycleMinute.value,
       month: cycleSelectedMonth.value,
     }
     if (isOnce) {
