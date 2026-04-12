@@ -1,106 +1,183 @@
 <template>
   <div class="login-page">
-    <div class="particles">
-      <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
-    </div>
-
-    <div class="login-wrapper">
-    <div class="login-header">
-      <div class="header-content">
-        <h1 class="brand">CourseV <span class="brand-emoji">📋</span></h1>
+    <!-- ═══ PANEL IZQUIERDO: Branding + Features (solo desktop) ═══ -->
+    <div class="hero-panel">
+      <!-- Partículas decorativas -->
+      <div class="hero-particles">
+        <div v-for="i in 6" :key="i" class="hero-particle" :style="heroParticleStyle(i)"></div>
       </div>
-    </div>
-
-    <div class="login-avatar">
-      <div class="avatar-glow"></div>
-      <div class="avatar-circle">
-        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-      </div>
-    </div>
-
-    <div class="login-card animate-fade-in-up">
-      <LoginForm @submit="handleLogin" :loading="loading" :error="error" @username-changed="currentUsername = $event">
-        <template #google-button>
-          <div class="google-signin-shell" :class="{ 'is-overlay-active': googleButtonEnabled && !loading }">
-            <button type="button" class="google-signin-facade" :disabled="loading" @click="handleGoogle">
-              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              Continuar con Google
-            </button>
-            <div ref="googleButtonHost" class="google-button-host" aria-hidden="true"></div>
-          </div>
-        </template>
-      </LoginForm>
-
-      <!-- Campo de cédula: aparece cuando dos usuarios comparten credenciales -->
-      <div v-if="showCedula" class="cedula-section">
-        <p class="cedula-hint">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Ingresa tu número de cédula para identificar tu cuenta
-        </p>
-        <div class="cedula-field">
-          <input
-            v-model="cedula"
-            type="text"
-            inputmode="numeric"
-            placeholder="Número de cédula"
-            class="cedula-input"
-            @keydown.enter="handleCedulaSubmit"
-          />
-        </div>
-        <button
-          class="btn-cedula"
-          :disabled="loading || !cedula.trim()"
-          @click="handleCedulaSubmit"
-        >
-          <span v-if="loading" class="spinner"></span>
-          <span v-else>Confirmar identidad</span>
-        </button>
+      <!-- Formas geométricas flotantes -->
+      <div class="hero-shapes">
+        <div class="shape shape--circle"></div>
+        <div class="shape shape--ring"></div>
+        <div class="shape shape--dot-grid"></div>
       </div>
 
-      <div class="login-footer">
-        <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
-
-      </div>
-
-      <!-- Sección de pago: institución suspendida por mensualidad vencida -->
-      <div v-if="showPaymentSection" class="payment-suspended-section">
-        <div class="payment-suspended-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <p class="payment-suspended-msg">Tu institución ha sido suspendida. Contacta al administrador.</p>
-        <p v-if="suspendedInstitutionName" class="payment-suspended-inst">{{ suspendedInstitutionName }}</p>
-        <template v-if="suspendedUserIsAdmin">
-          <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
-            ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP
-          </p>
-          <button
-            class="btn-pay-institution"
-            :disabled="paymentLoading"
-            @click="handleInstitutionPayment"
-          >
-            <svg v-if="!paymentLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+      <div class="hero-content">
+        <div class="hero-logo">
+          <div class="hero-logo-icon">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 7h6M9 11h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <span v-if="paymentLoading" class="spinner"></span>
-            <span v-else>Pagar ahora</span>
-          </button>
-        </template>
+          </div>
+          <h1 class="hero-brand">CourseV</h1>
+        </div>
+
+        <h2 class="hero-title">Plataforma Educativa<br/>con Inteligencia Artificial</h2>
+        <p class="hero-subtitle">Transformando la educación con tecnología inteligente, evaluación adaptativa y procesos eficientes.</p>
+
+        <!-- Asistente IA tip -->
+        <div class="hero-ai-tip">
+          <div class="ai-tip-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="ai-tip-text">
+            <span class="ai-tip-label">Asistente IA</span>
+            <span class="ai-tip-desc">Evaluaciones inteligentes que se adaptan al nivel de cada estudiante.</span>
+          </div>
+        </div>
+
+        <!-- Feature cards -->
+        <div class="hero-features">
+          <div v-for="(feat, idx) in features" :key="idx" class="feature-card" :style="{ animationDelay: `${0.3 + idx * 0.12}s` }">
+            <div class="feature-icon" v-html="feat.icon"></div>
+            <div class="feature-info">
+              <h3 class="feature-title">{{ feat.title }}</h3>
+              <p class="feature-desc">{{ feat.desc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marca de agua decorativa -->
+      <div class="hero-watermark">
+        <svg width="280" height="280" viewBox="0 0 24 24" fill="none" opacity="0.03">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#fff" stroke-width="0.5"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="#fff" stroke-width="0.5"/>
+        </svg>
       </div>
     </div>
 
-    <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
-    <TenantSelectionDialog
-      v-if="pendingMatches.length > 0"
-      :matches="pendingMatches"
-      @select="handleTenantSelect"
-      @close="pendingMatches = []"
-    />
+    <!-- ═══ PANEL DERECHO: Formulario de login ═══ -->
+    <div class="form-panel">
+      <!-- Partículas móviles (solo se ven en móvil) -->
+      <div class="particles mobile-only">
+        <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
+      </div>
 
-    <ForgotPasswordDialog v-if="showForgotPassword" @close="showForgotPassword = false" />
-    </div><!-- /login-wrapper -->
+      <div class="login-wrapper">
+        <!-- Header móvil (oculto en desktop) -->
+        <div class="login-header mobile-only">
+          <div class="header-content">
+            <h1 class="brand">CourseV <span class="brand-emoji">📋</span></h1>
+          </div>
+        </div>
+
+        <div class="login-avatar mobile-only">
+          <div class="avatar-glow"></div>
+          <div class="avatar-circle">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </div>
+        </div>
+
+        <!-- Título desktop dentro del formulario -->
+        <div class="desktop-form-header desktop-only">
+          <h2 class="desktop-form-title">Hola, bienvenido!</h2>
+          <p class="desktop-form-subtitle">En <strong>CourseV</strong> no somos solo una plataforma, somos el mejor <strong>aliado</strong> en la educación.</p>
+        </div>
+
+        <div class="login-card animate-fade-in-up">
+          <LoginForm @submit="handleLogin" :loading="loading" :error="error" @username-changed="currentUsername = $event">
+            <template #google-button>
+              <div class="google-signin-shell" :class="{ 'is-overlay-active': googleButtonEnabled && !loading }">
+                <button type="button" class="google-signin-facade" :disabled="loading" @click="handleGoogle">
+                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                  Continuar con Google
+                </button>
+                <div ref="googleButtonHost" class="google-button-host" aria-hidden="true"></div>
+              </div>
+            </template>
+          </LoginForm>
+
+          <!-- Campo de cédula: aparece cuando dos usuarios comparten credenciales -->
+          <div v-if="showCedula" class="cedula-section">
+            <p class="cedula-hint">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Ingresa tu número de cédula para identificar tu cuenta
+            </p>
+            <div class="cedula-field">
+              <input
+                v-model="cedula"
+                type="text"
+                inputmode="numeric"
+                placeholder="Número de cédula"
+                class="cedula-input"
+                @keydown.enter="handleCedulaSubmit"
+              />
+            </div>
+            <button
+              class="btn-cedula"
+              :disabled="loading || !cedula.trim()"
+              @click="handleCedulaSubmit"
+            >
+              <span v-if="loading" class="spinner"></span>
+              <span v-else>Confirmar identidad</span>
+            </button>
+          </div>
+
+          <div class="login-footer">
+            <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
+          </div>
+
+          <!-- Sección de pago: institución suspendida por mensualidad vencida -->
+          <div v-if="showPaymentSection" class="payment-suspended-section">
+            <div class="payment-suspended-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <p class="payment-suspended-msg">Tu institución ha sido suspendida. Contacta al administrador.</p>
+            <p v-if="suspendedInstitutionName" class="payment-suspended-inst">{{ suspendedInstitutionName }}</p>
+            <template v-if="suspendedUserIsAdmin">
+              <p v-if="suspendedMonthlyPrice > 0" class="payment-suspended-price">
+                ${{ suspendedMonthlyPrice.toLocaleString('es-CO') }} COP
+              </p>
+              <button
+                class="btn-pay-institution"
+                :disabled="paymentLoading"
+                @click="handleInstitutionPayment"
+              >
+                <svg v-if="!paymentLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                <span v-if="paymentLoading" class="spinner"></span>
+                <span v-else>Pagar ahora</span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Footer desktop -->
+        <div class="desktop-footer desktop-only">
+          <p class="desktop-footer-text">Al iniciar sesión, aceptas nuestros <a href="#">Términos de Servicio</a> y <a href="#">Política de Privacidad</a></p>
+        </div>
+
+        <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
+        <TenantSelectionDialog
+          v-if="pendingMatches.length > 0"
+          :matches="pendingMatches"
+          @select="handleTenantSelect"
+          @close="pendingMatches = []"
+        />
+
+        <ForgotPasswordDialog v-if="showForgotPassword" @close="showForgotPassword = false" />
+      </div><!-- /login-wrapper -->
+    </div>
   </div>
 </template>
 
@@ -498,6 +575,30 @@ async function handleInstitutionPayment() {
   }
 }
 
+// Features del panel hero (desktop)
+const features = [
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>',
+    title: 'Calificación con IA',
+    desc: 'Evaluación automática e inteligente de tareas y exámenes.',
+  },
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    title: 'Refuerzo Adaptativo',
+    desc: 'Contenido de refuerzo generado desde el material de cada docente.',
+  },
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+    title: 'Preguntas Únicas',
+    desc: 'Sin repetir preguntas entre estudiantes. Cada evaluación es única.',
+  },
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+    title: 'Machine Learning',
+    desc: 'Progresión adaptativa de menos a más en el conocimiento.',
+  },
+]
+
 function particleStyle(i: number) {
   const positions = [
     { top: '10%', left: '15%', size: 60, delay: 0 },
@@ -512,9 +613,32 @@ function particleStyle(i: number) {
     animationDelay: `${p.delay}s`,
   }
 }
+
+function heroParticleStyle(i: number) {
+  const configs = [
+    { top: '8%', left: '12%', size: 6, delay: 0, dur: 18 },
+    { top: '20%', left: '80%', size: 4, delay: 2, dur: 22 },
+    { top: '55%', left: '6%', size: 5, delay: 4, dur: 20 },
+    { top: '70%', left: '75%', size: 3, delay: 1, dur: 25 },
+    { top: '40%', left: '50%', size: 7, delay: 3, dur: 16 },
+    { top: '85%', left: '30%', size: 4, delay: 5, dur: 19 },
+  ]
+  const c = configs[i - 1]
+  return {
+    top: c.top,
+    left: c.left,
+    width: `${c.size}px`,
+    height: `${c.size}px`,
+    animationDelay: `${c.delay}s`,
+    animationDuration: `${c.dur}s`,
+  }
+}
 </script>
 
 <style scoped>
+/* ═══════════════════════════════════════════════════════
+   LAYOUT PRINCIPAL — Split desktop / stack mobile
+   ═══════════════════════════════════════════════════════ */
 .login-page {
   flex: 1;
   min-height: 0;
@@ -526,6 +650,27 @@ function particleStyle(i: number) {
   justify-content: center;
 }
 
+/* ── Utilidades de visibilidad ── */
+.mobile-only { display: block; }
+.desktop-only { display: none; }
+
+/* ═══════════════════════════════════════════════════════
+   PANEL HERO (solo desktop)
+   ═══════════════════════════════════════════════════════ */
+.hero-panel {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PANEL DEL FORMULARIO
+   ═══════════════════════════════════════════════════════ */
+.form-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
 .login-wrapper {
   width: 100%;
   max-width: 480px;
@@ -535,7 +680,7 @@ function particleStyle(i: number) {
   padding-bottom: max(32px, env(safe-area-inset-bottom, 0px) + 16px);
 }
 
-/* ── Partículas flotantes ── */
+/* ── Partículas flotantes (móvil) ── */
 .particles {
   position: absolute;
   inset: 0;
@@ -551,7 +696,7 @@ function particleStyle(i: number) {
   animation: float 7s ease-in-out infinite;
 }
 
-/* ── Header morado sólido ── */
+/* ── Header móvil ── */
 .login-header {
   position: relative;
   background: linear-gradient(160deg, #7C3AED 0%, #5B21B6 60%, #4C1D95 100%);
@@ -607,7 +752,7 @@ function particleStyle(i: number) {
   font-size: 34px;
 }
 
-/* ── Avatar superpuesto ── */
+/* ── Avatar móvil ── */
 .login-avatar {
   display: flex;
   justify-content: center;
@@ -645,6 +790,31 @@ function particleStyle(i: number) {
   animation: scale-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* ── Desktop form header ── */
+.desktop-form-header {
+  text-align: center;
+  padding: 40px 24px 8px;
+  animation: fade-in-down 0.5s ease forwards;
+}
+
+.desktop-form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--purple-light, #8B5CF6);
+  margin: 0 0 10px;
+}
+
+.desktop-form-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary, #CCCCCC);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.desktop-form-subtitle strong {
+  color: var(--purple-light, #8B5CF6);
+}
+
 /* ── Card principal ── */
 .login-card {
   margin: 0 16px 24px;
@@ -656,7 +826,7 @@ function particleStyle(i: number) {
   animation: fade-in-up 0.55s ease forwards;
 }
 
-/* ── Footer: olvidé contraseña + registro ── */
+/* ── Footer: olvidé contraseña ── */
 .login-footer {
   display: flex;
   flex-direction: column;
@@ -675,32 +845,25 @@ function particleStyle(i: number) {
   opacity: 0.75;
 }
 
-.register-link {
-  width: 100%;
-  padding: 13px;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--purple-light);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
+/* ── Desktop footer ── */
+.desktop-footer {
   text-align: center;
-  transition: background 0.2s, transform 0.15s;
+  padding: 8px 24px 24px;
 }
 
-.register-link:hover {
-  background: rgba(139, 92, 246, 0.1);
+.desktop-footer-text {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin: 0;
 }
 
-.register-link:active {
-  transform: scale(0.98);
+.desktop-footer-text a {
+  color: var(--purple-light, #8B5CF6);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.register-link span {
-  color: var(--purple-light);
-  font-weight: 700;
-}
-
-/* ── Campo de cédula (desambiguación) ── */
+/* ── Campo de cédula ── */
 .cedula-section {
   margin-top: 16px;
   padding: 16px;
@@ -774,6 +937,7 @@ function particleStyle(i: number) {
   transform: scale(0.98);
 }
 
+/* ── Google Sign-In ── */
 .google-signin-shell {
   position: relative;
   width: 100%;
@@ -827,58 +991,7 @@ function particleStyle(i: number) {
   height: 100% !important;
 }
 
-/* ── Responsive móvil ── */
-@media (max-width: 480px) {
-  .login-header {
-    padding: 44px 20px 52px;
-  }
-
-  .brand {
-    font-size: 34px;
-  }
-
-  .brand-emoji {
-    font-size: 28px;
-  }
-
-  .avatar-circle {
-    width: 80px;
-    height: 80px;
-  }
-
-  .login-avatar {
-    margin-top: -40px;
-    margin-bottom: 10px;
-  }
-
-  .login-card {
-    margin: 0 12px 16px;
-    padding: 20px 16px;
-  }
-
-  .login-footer {
-    gap: 12px;
-    margin-top: 16px;
-  }
-}
-
-/* ── Animaciones locales ── */
-@keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.7); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-/* ── Pago de institución suspendida ── */
+/* ── Pago institución suspendida ── */
 .payment-suspended-section {
   display: flex;
   flex-direction: column;
@@ -955,5 +1068,375 @@ function particleStyle(i: number) {
 .btn-pay-institution:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE MÓVIL
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .login-header {
+    padding: 44px 20px 52px;
+  }
+
+  .brand {
+    font-size: 34px;
+  }
+
+  .brand-emoji {
+    font-size: 28px;
+  }
+
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .login-avatar {
+    margin-top: -40px;
+    margin-bottom: 10px;
+  }
+
+  .login-card {
+    margin: 0 12px 16px;
+    padding: 20px 16px;
+  }
+
+  .login-footer {
+    gap: 12px;
+    margin-top: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DESKTOP LAYOUT (>= 900px) — Split view
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  .mobile-only { display: none !important; }
+  .desktop-only { display: block !important; }
+
+  .login-page {
+    flex-direction: row;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── Hero Panel ── */
+  .hero-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    position: relative;
+    background: linear-gradient(160deg, #7C3AED 0%, #5B21B6 40%, #4C1D95 100%);
+    padding: 60px 48px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* Hero partículas */
+  .hero-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    animation: hero-drift linear infinite;
+  }
+
+  /* Formas geométricas decorativas */
+  .hero-shapes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shape {
+    position: absolute;
+  }
+
+  .shape--circle {
+    top: -60px;
+    left: -60px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    animation: float 10s ease-in-out infinite;
+  }
+
+  .shape--ring {
+    bottom: -40px;
+    right: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    animation: float 12s ease-in-out infinite reverse;
+  }
+
+  .shape--dot-grid {
+    top: 30%;
+    right: 10%;
+    width: 80px;
+    height: 80px;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px);
+    background-size: 16px 16px;
+    animation: fade-in-up 1s ease forwards;
+  }
+
+  /* Hero contenido */
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+  }
+
+  .hero-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 32px;
+    animation: fade-in-down 0.6s ease forwards;
+  }
+
+  .hero-logo-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .hero-brand {
+    font-size: 36px;
+    font-weight: 800;
+    font-style: italic;
+    color: #fff;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+
+  .hero-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.25;
+    margin: 0 0 16px;
+    animation: fade-in-up 0.6s 0.1s ease both;
+  }
+
+  .hero-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.65;
+    margin: 0 0 28px;
+    max-width: 420px;
+    animation: fade-in-up 0.6s 0.2s ease both;
+  }
+
+  /* Tip IA */
+  .hero-ai-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(6px);
+    animation: fade-in-up 0.5s 0.25s ease both;
+  }
+
+  .ai-tip-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .ai-tip-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #C4B5FD;
+    margin-bottom: 2px;
+  }
+
+  .ai-tip-desc {
+    display: block;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.45;
+  }
+
+  /* Feature cards */
+  .hero-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .feature-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    transition: background 0.3s, transform 0.25s, box-shadow 0.3s;
+    animation: feature-enter 0.5s ease both;
+  }
+
+  .feature-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .feature-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C4B5FD;
+  }
+
+  .feature-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 3px;
+  }
+
+  .feature-desc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* Marca de agua */
+  .hero-watermark {
+    position: absolute;
+    bottom: -40px;
+    right: -40px;
+    z-index: 0;
+    pointer-events: none;
+    animation: float 14s ease-in-out infinite;
+  }
+
+  /* ── Form Panel ── */
+  .form-panel {
+    width: 480px;
+    min-width: 420px;
+    max-width: 520px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    position: relative;
+  }
+
+  .login-wrapper {
+    max-width: 400px;
+    width: 100%;
+    padding: 32px 0;
+  }
+
+  .login-card {
+    margin: 0 0 16px;
+    background: var(--bg-card-hover);
+    border-radius: var(--radius-xl);
+    padding: 28px 24px;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DESKTOP EXTRA GRANDE (>= 1200px)
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 1200px) {
+  .hero-panel {
+    padding: 80px 72px;
+  }
+
+  .hero-title {
+    font-size: 38px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+  }
+
+  .form-panel {
+    width: 520px;
+    max-width: 560px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMACIONES
+   ═══════════════════════════════════════════════════════ */
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes feature-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hero-drift {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translate(12px, -18px);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-8px, -30px);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translate(15px, -12px);
+    opacity: 0.7;
+  }
 }
 </style>
