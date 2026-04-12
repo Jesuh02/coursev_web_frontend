@@ -9368,6 +9368,9 @@ watch(() => route.query, () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .inst-search-bar {
@@ -9671,9 +9674,10 @@ watch(() => route.query, () => {
   z-index: 999;
   background: rgba(0, 0, 0, 0.65);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .inst-modal {
@@ -9686,6 +9690,9 @@ watch(() => route.query, () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: auto 0;
 }
 
 .inst-modal h3 {
@@ -10037,6 +10044,8 @@ watch(() => route.query, () => {
 .billing-tab {
   overflow-y: auto;
   padding: 16px;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .billing-desc {
