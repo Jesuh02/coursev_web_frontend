@@ -26,11 +26,13 @@ export const useBillingStore = defineStore('billing', () => {
   // Compatibilidad: alias del nombre anterior
   const isRole3Only = isInstitutionUser
 
+  const isSuspended = computed(() => billingActionMode.value === 'suspension')
+
   const shouldShowWarning = computed(() => {
     if (!isInstitutionUser.value) return false
     if (!paymentOverdue.value) return false
-    // Solo mostrar advertencia cuando el modo es 'warning'; si es 'suspension' ya se bloquea el acceso
-    if (billingActionMode.value === 'suspension') return false
+    // Mostrar advertencia tanto en modo 'warning' como en 'suspension'
+    // para que el usuario con rol 3 pueda ver el botón de pago en todas las interfaces
     return true
   })
 
@@ -137,6 +139,7 @@ export const useBillingStore = defineStore('billing', () => {
     checked,
     isRole3Only,
     isInstitutionUser,
+    isSuspended,
     shouldShowWarning,
     formattedDueDate,
     checkBillingStatus,

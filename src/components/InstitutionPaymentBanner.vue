@@ -3,9 +3,9 @@
     <!-- Floating red notice bar (non-invasive) -->
     <transition name="notice-fade">
       <div v-if="showBanner && !billingStore.dismissed" class="payment-notice">
-        <span class="payment-notice-dot"></span>
+        <span class="payment-notice-dot" :class="{ 'dot-suspended': billingStore.isSuspended }"></span>
         <span class="payment-notice-text">
-          Pago vencido{{ billingStore.formattedDueDate ? ` · ${billingStore.formattedDueDate}` : '' }}
+          {{ billingStore.isSuspended ? 'Servicio suspendido — Pago requerido' : `Pago vencido${billingStore.formattedDueDate ? ` · ${billingStore.formattedDueDate}` : ''}` }}
         </span>
         <button v-if="canPay" class="payment-notice-pay" :disabled="loading" @click.stop="handlePay">
           <span v-if="loading" class="pay-spinner"></span>
@@ -22,7 +22,9 @@
       <div v-if="showBanner" class="payment-stripe">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>
-          Servicio pendiente de pago{{ billingStore.institutionName ? ` — ${billingStore.institutionName}` : '' }}{{ billingStore.formattedDueDate ? ` — Vence: ${billingStore.formattedDueDate}` : '' }}
+          {{ billingStore.isSuspended
+            ? `⛔ Institución suspendida por falta de pago${billingStore.institutionName ? ` — ${billingStore.institutionName}` : ''}. Para reactivar el servicio, realice el pago.`
+            : `Servicio pendiente de pago${billingStore.institutionName ? ` — ${billingStore.institutionName}` : ''}${billingStore.formattedDueDate ? ` — Vence: ${billingStore.formattedDueDate}` : ''}` }}
         </span>
         <template v-if="canPay">
           <span v-if="displayPrice" class="stripe-price">{{ displayPrice }}</span>
@@ -173,9 +175,22 @@ watch(() => authStore.user?.id, (newId) => {
   animation: notice-pulse 2.5s ease-in-out infinite;
 }
 
+.payment-notice-dot.dot-suspended {
+  width: 9px;
+  height: 9px;
+  background: #FF3B30;
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.6);
+  animation: notice-pulse-fast 1.2s ease-in-out infinite;
+}
+
 @keyframes notice-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+@keyframes notice-pulse-fast {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(255, 59, 48, 0.6); }
+  50% { opacity: 0.5; box-shadow: 0 0 10px rgba(255, 59, 48, 0.9); }
 }
 
 .payment-notice-text {

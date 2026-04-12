@@ -4986,6 +4986,7 @@ const saveBillingDate = async () => {
         day: billingSelectedDay.value,
         hour: billingSelectedHour.value,
         minute: billingSelectedMinute.value,
+        billing_action_mode: billingActionMode.value ?? 'warning',
         ...(selectedMonthsArr ? { months: selectedMonthsArr } : {}),
       },
     )
