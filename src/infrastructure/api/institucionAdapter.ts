@@ -54,6 +54,7 @@ export interface InstitutionAdmin extends Institucion {
   billing_cycle_day?: number | null
   billing_cycle_hour?: number | null
   billing_cycle_minute?: number | null
+  billing_action_mode?: 'warning' | 'suspension' | null
   is_suspended?: boolean
   suspended_at?: string | null
   suspended_reason?: string | null
@@ -82,7 +83,7 @@ export interface InstitutionPayment {
 export const institucionAdapter: InstitucionPort & {
   getMyBillingStatus(): Promise<InstitutionBillingStatus>
   getAllAdmin(): Promise<InstitutionAdmin[]>
-  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[] }, clearBillingCycle?: boolean): Promise<InstitutionAdmin>
+  setPaymentDueDate(id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[]; billing_action_mode?: string }, clearBillingCycle?: boolean): Promise<InstitutionAdmin>
   suspendInstitution(id: number, reason?: string, tenantId?: string): Promise<InstitutionAdmin>
   unsuspendInstitution(id: number, tenantId?: string): Promise<InstitutionAdmin>
   initiateBillingPayment(id: number, amount: number): Promise<{ checkoutUrl: string; reference: string }>
@@ -110,12 +111,12 @@ export const institucionAdapter: InstitucionPort & {
 
   getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
 
-  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[] }, clearBillingCycle?: boolean) =>
+  setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[]; billing_action_mode?: string }, clearBillingCycle?: boolean) =>
     api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, {
       payment_due_date: dueDate,
       tenantId,
       clear_billing_cycle: Boolean(clearBillingCycle),
-      ...(billingCycle ? { billing_cycle_type: billingCycle.type, billing_cycle_day: billingCycle.day, billing_cycle_hour: billingCycle.hour ?? 8, billing_cycle_minute: billingCycle.minute ?? 0, ...(billingCycle.months ? { billing_cycle_months: billingCycle.months } : {}) } : {}),
+      ...(billingCycle ? { billing_cycle_type: billingCycle.type, billing_cycle_day: billingCycle.day, billing_cycle_hour: billingCycle.hour ?? 8, billing_cycle_minute: billingCycle.minute ?? 0, billing_action_mode: billingCycle.billing_action_mode ?? 'warning', ...(billingCycle.months ? { billing_cycle_months: billingCycle.months } : {}) } : {}),
     }),
 
   suspendInstitution: (id: number, reason?: string, tenantId?: string) =>

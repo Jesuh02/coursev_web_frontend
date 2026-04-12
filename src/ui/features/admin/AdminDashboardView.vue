@@ -5116,7 +5116,7 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   cycleDay.value = inst.billing_cycle_day || 1
   cycleHour.value = inst.billing_cycle_hour ?? 8
   cycleMinute.value = inst.billing_cycle_minute ?? 0
-  cycleActionMode.value = inst.is_suspended ? 'suspension' : 'warning'
+  cycleActionMode.value = (inst.billing_action_mode as 'warning' | 'suspension') || (inst.is_suspended ? 'suspension' : 'warning')
   // If the institution has billing_cycle_months set, use 'once' mode
   const savedMonths = (inst as any).billing_cycle_months
   if (Array.isArray(savedMonths) && savedMonths.length > 0 && savedMonths.length < 12) {
@@ -5150,11 +5150,12 @@ const saveBillingCycle = async () => {
   institutionProcessing.value = { ...institutionProcessing.value, [inst.id]: true }
   try {
     const isOnce = cycleRecurrence.value === 'once'
-    const cyclePayload: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[]; month?: number } = {
+    const cyclePayload: { type: string; day?: number | null; hour?: number | null; minute?: number | null; billing_action_mode?: string; months?: number[]; month?: number } = {
       type: isOnce ? 'specific_months' : cycleType.value,
       day: cycleType.value === 'monthly_day' ? cycleDay.value : null,
       hour: cycleHour.value,
       minute: cycleMinute.value,
+      billing_action_mode: cycleActionMode.value,
       month: cycleSelectedMonth.value,
     }
     if (isOnce) {
@@ -5169,8 +5170,10 @@ const saveBillingCycle = async () => {
     const idx = institutions.value.findIndex(i => i.id === inst.id && i.tenantId === inst.tenantId)
     if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...updated, tenantId: inst.tenantId, tenantName: inst.tenantName }
 
-    // Handle suspend/unsuspend based on action mode
-    if (cycleActionMode.value === 'suspension' && !inst.is_suspended) {
+    // Immediate suspend only if the due date is already in the past (or warning→unsuspend).
+    // Future-dated suspensions are handled automatically by the backend scheduler.
+    const dueDatePast = updated.payment_due_date && new Date(updated.payment_due_date) < new Date()
+    if (cycleActionMode.value === 'suspension' && dueDatePast && !updated.is_suspended) {
       const suspended = await institucionAdapter.suspendInstitution(inst.id, 'Pago vencido', inst.tenantId)
       if (idx >= 0) institutions.value[idx] = { ...institutions.value[idx], ...suspended, tenantId: inst.tenantId, tenantName: inst.tenantName }
     } else if (cycleActionMode.value === 'warning' && inst.is_suspended) {
