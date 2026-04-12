@@ -60,9 +60,10 @@ export const tokenStorage = {
   get token() { return null as string | null },
   set token(v: string | null) { v ? localStorage.setItem(SESSION_ACTIVE_KEY, 'true') : localStorage.removeItem(SESSION_ACTIVE_KEY) },
 
-  // Refresh token is managed entirely via HttpOnly cookie.
-  get refreshToken() { return null as string | null },
-  set refreshToken(_v: string | null) { /* managed via HttpOnly cookie */ },
+  // Refresh token stored in localStorage as fallback for browsers that block
+  // cross-site HttpOnly cookies (third-party cookie deprecation).
+  get refreshToken() { return localStorage.getItem(REFRESH_KEY) },
+  set refreshToken(v: string | null) { v ? localStorage.setItem(REFRESH_KEY, v) : localStorage.removeItem(REFRESH_KEY) },
 
   get userId(): number { return Number(localStorage.getItem(USER_ID_KEY)) || 0 },
   set userId(v: number) { v ? localStorage.setItem(USER_ID_KEY, String(v)) : localStorage.removeItem(USER_ID_KEY) },
@@ -95,12 +96,22 @@ async function tryRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
     try {
-      // Refresh token is in the HttpOnly cookie — sent automatically with credentials: 'include'
+      // Send refresh token both via HttpOnly cookie (credentials: 'include') and
+      // in the request body as fallback for browsers that block cross-site cookies.
+      const rt = tokenStorage.refreshToken
       const res = await fetch(`${API_V1}/auth/refresh-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify(rt ? { refreshToken: rt } : {}),
       })
+      if (res.ok) {
+        // Persist the rotated refresh token so the next refresh also works.
+        try {
+          const json = await res.json() as ApiResponse<{ accessToken: string; refreshToken: string }>
+          if (json.data?.refreshToken) tokenStorage.refreshToken = json.data.refreshToken
+        } catch { /* response already consumed or malformed — ignore */ }
+      }
       return res.ok
     } catch { return false }
     finally { refreshPromise = null }
