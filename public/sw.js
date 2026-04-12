@@ -1,163 +1,40 @@
-const CACHE_NAME = 'coursev-v2'
-const ASSETS = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/descarga.png',
-    '/icon-192.png',
-    '/icon-512.png',
-]
-
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-    )
-    self.skipWaiting()
+const C='coursev-v2',A=['/','index.html','/manifest.json','/descarga.png','/icon-192.png','/icon-512.png']
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)));self.skipWaiting()})
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()})
+self.addEventListener('fetch',e=>{
+if(e.request.method!=='GET')return
+const u=new URL(e.request.url)
+if(u.protocol!=='http:'&&u.protocol!=='https:')return
+if(u.origin!==self.location.origin)return
+e.respondWith(fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>caches.match(e.request).then(cached=>{if(cached)return cached;if(e.request.mode==='navigate'){return caches.match('/index.html').then(i=>i||new Response('<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',{status:503,headers:{'Content-Type':'text/html'}}))}return new Response('',{status:503,statusText:'Service Unavailable'})})))
 })
-
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keys) =>
-            Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-        )
-    )
-    self.clients.claim()
+self.addEventListener('push',e=>{
+if(!e.data)return
+let p={}
+try{p=e.data.json()}catch{p={title:e.data.text()}}
+const t=p.notification?.title??p.title??'Nueva notificación',b=p.notification?.body??p.body??'',d={...(p.data??{}),...(p.notification??{})},ic=d.thumbnailUrl||d.thumbnail_url||'/icon-192.png'
+e.waitUntil(self.registration.showNotification(t,{body:b,icon:ic,badge:'/icon-192.png',data:d,tag:d.notificationId?`notif-${d.notificationId}`:undefined}))
 })
-
-self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET') return
-    // Solo interceptar requests http/https; ignorar chrome-extension://, etc.
-    const url = new URL(event.request.url)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return
-
-    // No interceptar requests a APIs externas (solo cachear assets del propio dominio)
-    if (url.origin !== self.location.origin) return
-
-    event.respondWith(
-        fetch(event.request)
-        .then((response) => {
-            // Solo cachear respuestas válidas (status 200 y tipo basic)
-            if (response.ok && response.type === 'basic') {
-                const clone = response.clone()
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-            }
-            return response
-        })
-        .catch(() =>
-            caches.match(event.request).then((cached) => {
-                if (cached) return cached
-                // SPA fallback: para navegación, devolver index.html cacheado
-                if (event.request.mode === 'navigate') {
-                    return caches.match('/index.html').then((index) =>
-                        index || new Response('<!DOCTYPE html><html><body><h1>Offline</h1><p>No hay conexión a internet.</p></body></html>', {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/html' },
-                        })
-                    )
-                }
-                // No devolver undefined — respondWith requiere un Response válido
-                return new Response('', { status: 503, statusText: 'Service Unavailable' })
-            })
-        )
-    )
+self.addEventListener('notificationclick',e=>{
+e.notification.close()
+const d=e.notification.data??{},url=_rurl(d)
+e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cl=>{for(const c of cl){if('focus'in c){c.postMessage({type:'NAVIGATE',url});return c.focus()}}if(clients.openWindow)return clients.openWindow(self.location.origin+url)}))
 })
-
-// ── Push Notifications (FCM Web Push) ─────────────────────────────
-self.addEventListener('push', (event) => {
-    if (!event.data) return
-    let payload = {}
-    try { payload = event.data.json() } catch { payload = { title: event.data.text() } }
-
-    const title = payload.notification?.title ?? payload.title ?? 'Nueva notificación'
-    const body = payload.notification?.body ?? payload.body ?? ''
-    const data = { ...(payload.data ?? {}), ...(payload.notification ?? {}) }
-    const icon = data.thumbnailUrl || data.thumbnail_url || '/icon-192.png'
-
-    event.waitUntil(
-        self.registration.showNotification(title, {
-            body,
-            icon,
-            badge: '/icon-192.png',
-            data,
-            tag: data.notificationId ? `notif-${data.notificationId}` : undefined,
-        })
-    )
-})
-
-// ── Notification click → navigate ─────────────────────────────────
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close()
-    const data = event.notification.data ?? {}
-    const url = resolveNotificationUrl(data)
-
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            for (const client of clientList) {
-                if ('focus' in client) {
-                    client.postMessage({ type: 'NAVIGATE', url })
-                    return client.focus()
-                }
-            }
-            if (clients.openWindow) return clients.openWindow(self.location.origin + url)
-        })
-    )
-})
-
-function resolveNotificationUrl(data) {
-    const type = String(data.type ?? data.notifType ?? '')
-    const meta = _parseMeta(data.metadata)
-    const courseId = data.courseId ?? data.course_id ?? meta?.courseId ?? meta?.course_id
-    const taskId = data.taskId ?? data.task_id ?? meta?.taskId ?? meta?.task_id
-    const videoId = data.videoId ?? data.video_id ?? meta?.videoId ?? meta?.video_id
-    const relatedId = data.relatedId ?? data.related_id
-
-    switch (type) {
-        case 'new_course':
-        case 'enrollment_approved':
-        case 'collaborator_added':
-        case 'course_invitation':
-            if (courseId) return `/subjects/${courseId}`
-            if (relatedId) return `/subjects/${relatedId}`
-            break
-        case 'new_task':
-        case 'task_submission':
-        case 'task_graded':
-            if (taskId) return `/task-submission/${taskId}`
-            if (relatedId) return `/task-submission/${relatedId}`
-            break
-        case 'new_video':
-            if (courseId) return `/subjects/${courseId}`
-            if (videoId) return `/video/${videoId}`
-            if (relatedId) return `/video/${relatedId}`
-            break
-        case 'video_like':
-        case 'comment':
-        case 'like':
-        case 'video_comment':
-        case 'comment_reply':
-        case 'comment_like':
-            if (videoId) return `/video/${videoId}`
-            if (relatedId) return `/video?openComments=${relatedId}`
-            return '/video'
-        case 'enrollment_request':
-            return '/admin?tab=enrollment&subtab=pre'
-        case 'chat_response':
-            return '/chatbot'
-    }
-    return '/'
+function _rurl(d){
+const t=String(d.type??d.notifType??''),m=_pm(d.metadata),cId=d.courseId??d.course_id??m?.courseId??m?.course_id,tId=d.taskId??d.task_id??m?.taskId??m?.task_id,vId=d.videoId??d.video_id??m?.videoId??m?.video_id,rId=d.relatedId??d.related_id
+switch(t){
+case'new_course':case'enrollment_approved':case'collaborator_added':case'course_invitation':if(cId)return`/subjects/${cId}`;if(rId)return`/subjects/${rId}`;break
+case'new_task':case'task_submission':case'task_graded':if(tId)return`/task-submission/${tId}`;if(rId)return`/task-submission/${rId}`;break
+case'new_video':if(cId)return`/subjects/${cId}`;if(vId)return`/video/${vId}`;if(rId)return`/video/${rId}`;break
+case'video_like':case'comment':case'like':case'video_comment':case'comment_reply':case'comment_like':if(vId)return`/video/${vId}`;if(rId)return`/video?openComments=${rId}`;return'/video'
+case'enrollment_request':return'/admin?tab=enrollment&subtab=pre'
+case'chat_response':return'/chatbot'
 }
-
-function _parseMeta(metadata) {
-    if (!metadata) return null
-    if (typeof metadata === 'object') return metadata
-    if (typeof metadata === 'string') {
-        try {
-            let s = metadata.trim()
-            if (s.startsWith('"') && s.endsWith('"')) {
-                s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\')
-            }
-            return s.startsWith('{') ? JSON.parse(s) : null
-        } catch { return null }
-    }
-    return null
+return'/'
+}
+function _pm(m){
+if(!m)return null
+if(typeof m==='object')return m
+if(typeof m==='string'){try{let s=m.trim();if(s.startsWith('"')&&s.endsWith('"'))s=s.slice(1,-1).replace(/\\"/g,'"').replace(/\\\\/g,'\\');return s.startsWith('{')?JSON.parse(s):null}catch{return null}}
+return null
 }
