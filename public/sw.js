@@ -6,7 +6,13 @@ if(e.request.method!=='GET')return
 const u=new URL(e.request.url)
 if(u.protocol!=='http:'&&u.protocol!=='https:')return
 if(u.origin!==self.location.origin)return
-e.respondWith(fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>caches.match(e.request).then(cached=>{if(cached)return cached;if(e.request.mode==='navigate'){return caches.match('/index.html').then(i=>i||new Response('<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',{status:503,headers:{'Content-Type':'text/html'}}))}return new Response('',{status:503,statusText:'Service Unavailable'})})))
+const isNavigate=e.request.mode==='navigate'
+const isAsset=/\.(png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|css|js)(\?.*)?$/.test(u.pathname)
+if(!isNavigate&&isAsset){
+e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>new Response('',{status:503,statusText:'Service Unavailable'}))}))
+return
+}
+e.respondWith(fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>caches.match(e.request).then(cached=>{if(cached)return cached;if(isNavigate){return caches.match('/index.html').then(i=>i||new Response('<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',{status:503,headers:{'Content-Type':'text/html'}}))}return new Response('',{status:503,statusText:'Service Unavailable'})})))
 })
 self.addEventListener('push',e=>{
 if(!e.data)return
