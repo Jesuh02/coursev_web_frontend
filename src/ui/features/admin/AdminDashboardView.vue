@@ -9608,8 +9608,6 @@ watch(() => route.query, () => {
   color: #fff;
 }
 
-</style>
-
 .cycle-action-mode {
   margin-top: 14px;
 }
@@ -9725,34 +9723,4 @@ watch(() => route.query, () => {
 .cycle-quick-btn:hover {
   background: rgba(255, 159, 10, 0.25);
 }
-
-.cycle-hour-picker {
-  margin-top: 16px;
-}
-
-.cycle-hour-select {
-  width: 100%;
-  padding: 10px 36px 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  transition: border-color 0.15s;
-}
-
-.cycle-hour-select:focus {
-  border-color: rgba(10, 132, 255, 0.5);
-}
-
-.cycle-hour-select option {
-  background: #2C2C2E;
-  color: #fff;
-}
+</style>
