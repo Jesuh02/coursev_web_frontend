@@ -1,49 +1,39 @@
 <template>
   <div class="login-page">
-    <!-- ═══ PANEL IZQUIERDO: Branding + Features (solo desktop) ═══ -->
+    <!-- ═══ PANEL IZQUIERDO: Spline 3D + Features overlay (solo desktop) ═══ -->
     <div class="hero-panel">
-      <!-- Partículas decorativas -->
-      <div class="hero-particles">
-        <div v-for="i in 6" :key="i" class="hero-particle" :style="heroParticleStyle(i)"></div>
-      </div>
-      <!-- Formas geométricas flotantes -->
-      <div class="hero-shapes">
-        <div class="shape shape--circle"></div>
-        <div class="shape shape--ring"></div>
-        <div class="shape shape--dot-grid"></div>
-      </div>
+      <!-- Spline 3D Background -->
+      <iframe
+        class="spline-bg"
+        src="https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode"
+        frameborder="0"
+        loading="lazy"
+        allow="autoplay"
+      ></iframe>
+      <!-- Gradient overlay para legibilidad -->
+      <div class="hero-overlay"></div>
 
+      <!-- Contenido superpuesto -->
       <div class="hero-content">
+        <!-- Logo + Marca -->
         <div class="hero-logo">
           <div class="hero-logo-icon">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M9 7h6M9 11h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </div>
-          <h1 class="hero-brand">CourseV</h1>
+          <span class="hero-brand">CourseV</span>
         </div>
 
+        <!-- Título principal -->
         <h2 class="hero-title">Plataforma Educativa<br/>con Inteligencia Artificial</h2>
         <p class="hero-subtitle">Transformando la educación con tecnología inteligente, evaluación adaptativa y procesos eficientes.</p>
 
-        <!-- Asistente IA tip -->
-        <div class="hero-ai-tip">
-          <div class="ai-tip-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="1.5">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-            </svg>
-          </div>
-          <div class="ai-tip-text">
-            <span class="ai-tip-label">Asistente IA</span>
-            <span class="ai-tip-desc">Evaluaciones inteligentes que se adaptan al nivel de cada estudiante.</span>
-          </div>
-        </div>
-
-        <!-- Feature cards -->
+        <!-- Feature cards — grid 3x2 -->
         <div class="hero-features">
-          <div v-for="(feat, idx) in features" :key="idx" class="feature-card" :style="{ animationDelay: `${0.3 + idx * 0.12}s` }">
+          <div v-for="(feat, idx) in features" :key="idx" class="feature-card" :style="{ animationDelay: `${0.3 + idx * 0.1}s` }">
             <div class="feature-icon" v-html="feat.icon"></div>
             <div class="feature-info">
               <h3 class="feature-title">{{ feat.title }}</h3>
@@ -53,12 +43,13 @@
         </div>
       </div>
 
-      <!-- Marca de agua decorativa -->
-      <div class="hero-watermark">
-        <svg width="280" height="280" viewBox="0 0 24 24" fill="none" opacity="0.03">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#fff" stroke-width="0.5"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="#fff" stroke-width="0.5"/>
-        </svg>
+      <!-- Footer del hero -->
+      <div class="hero-footer">
+        <span>&copy; {{ new Date().getFullYear() }} CourseV. Todos los derechos reservados.</span>
+        <div class="hero-footer-links">
+          <a href="#">Términos</a>
+          <a href="#">Privacidad</a>
+        </div>
       </div>
     </div>
 
@@ -67,13 +58,6 @@
       <!-- Partículas móviles (solo se ven en móvil) -->
       <div class="particles mobile-only">
         <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
-      </div>
-
-      <!-- Orbes animados de fondo (desktop) -->
-      <div class="form-bg-orbs desktop-only">
-        <div class="form-orb form-orb--1"></div>
-        <div class="form-orb form-orb--2"></div>
-        <div class="form-orb form-orb--3"></div>
       </div>
 
       <div class="login-wrapper">
@@ -93,8 +77,8 @@
 
         <!-- Título desktop dentro del formulario -->
         <div class="desktop-form-header desktop-only">
-          <h2 class="desktop-form-title">Hola, bienvenido!</h2>
-          <p class="desktop-form-subtitle">En <strong class="brand-word">CourseV</strong> no somos solo una plataforma, somos el mejor <strong class="brand-word">aliado</strong> en la educación.</p>
+          <h2 class="desktop-form-title">Bienvenido</h2>
+          <p class="desktop-form-subtitle">Inicia sesión en tu cuenta de <strong class="brand-word">CourseV</strong></p>
         </div>
 
         <div class="login-card animate-fade-in-up">
@@ -171,7 +155,7 @@
 
         <!-- Footer desktop -->
         <div class="desktop-footer desktop-only">
-          <p class="desktop-footer-text">Al iniciar sesión, aceptas nuestros <a href="#">Términos de Servicio</a> y <a href="#">Política de Privacidad</a></p>
+          <p class="desktop-footer-text">¿Olvidaste tu contraseña? <a @click.prevent="showForgotPassword = true" href="#">Recupérala aquí</a></p>
         </div>
 
         <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
@@ -582,27 +566,37 @@ async function handleInstitutionPayment() {
   }
 }
 
-// Features del panel hero (desktop)
+// Features del panel hero (desktop) — grid 3x2
 const features = [
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>',
-    title: 'Calificación con IA',
-    desc: 'Evaluación automática e inteligente de tareas y exámenes.',
+    title: 'Asistente IA',
+    desc: 'Evaluaciones inteligentes adaptadas al nivel de cada estudiante',
+  },
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l1.09 3.26L16 4.24l-1.64 2.86L17.5 8.5l-3.26 1.09L15.76 12l-2.86-1.64L11.5 13.5l-1.09-3.26L8 11.76l1.64-2.86L6.5 7.5l3.26-1.09L8.24 4z"/><path d="M19 13l.62 1.85 1.85.62-1.85.62L19 18l-.62-1.85L16.53 15.53l1.85-.62z"/></svg>',
+    title: 'Calificación Automática',
+    desc: 'Evaluación precisa e instantánea de tareas y exámenes',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
     title: 'Refuerzo Adaptativo',
-    desc: 'Contenido de refuerzo generado desde el material de cada docente.',
+    desc: 'Contenido personalizado desde el material de cada docente',
   },
   {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l1.09 3.26L16 4.24l-1.64 2.86L17.5 8.5l-3.26 1.09L15.76 12l-2.86-1.64L11.5 13.5l-1.09-3.26L8 11.76l1.64-2.86L6.5 7.5l3.26-1.09L8.24 4z"/><path d="M19 13l.62 1.85 1.85.62-1.85.62L19 18l-.62-1.85L16.53 15.53l1.85-.62z"/><path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5z"/></svg>',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
     title: 'Preguntas Únicas',
-    desc: 'Sin repetir preguntas entre estudiantes. Cada evaluación es única.',
+    desc: 'Cada evaluación es completamente única para cada estudiante',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
     title: 'Machine Learning',
-    desc: 'Progresión adaptativa de menos a más en el conocimiento.',
+    desc: 'Progresión adaptativa basada en el rendimiento del estudiante',
+  },
+  {
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+    title: 'Tiempo Real',
+    desc: 'Análisis y retroalimentación instantánea del progreso',
   },
 ]
 
