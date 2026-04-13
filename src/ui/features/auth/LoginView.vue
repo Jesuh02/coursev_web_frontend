@@ -584,21 +584,6 @@ const features = [
     title: 'Refuerzo Adaptativo',
     desc: 'Contenido personalizado desde el material de cada docente.',
   },
-  {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
-    title: 'Preguntas Únicas',
-    desc: 'Cada evaluación es completamente única para cada estudiante.',
-  },
-  {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-    title: 'Machine Learning',
-    desc: 'Progresión adaptativa basada en el rendimiento del estudiante.',
-  },
-  {
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
-    title: 'Tiempo Real',
-    desc: 'Análisis y retroalimentación instantánea del progreso.',
-  },
 ]
 
 function particleStyle(i: number) {
