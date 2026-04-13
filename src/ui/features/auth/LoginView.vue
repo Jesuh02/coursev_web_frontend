@@ -1158,6 +1158,18 @@ function loadSplineViewer() {
     display: block;
   }
 
+  /* Ocultar logo/watermark de Spline */
+  .spline-bg :deep(spline-viewer)::part(logo) {
+    display: none !important;
+  }
+  .spline-bg :deep(#logo),
+  .spline-bg :deep([id="logo"]),
+  .spline-bg :deep(a[href*="spline"]) {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
   .hero-overlay {
     position: absolute;
     inset: 0;
