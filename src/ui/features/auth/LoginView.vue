@@ -628,6 +628,22 @@ function loadSplineViewer() {
   const viewer = document.createElement('spline-viewer')
   viewer.setAttribute('url', 'https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode')
   splineContainer.value.appendChild(viewer)
+  hideSplineWatermark(viewer)
+}
+
+function hideSplineWatermark(viewer: HTMLElement) {
+  function inject() {
+    const shadow = viewer.shadowRoot
+    if (!shadow || shadow.querySelector('[data-hide-logo]')) return
+    const style = document.createElement('style')
+    style.setAttribute('data-hide-logo', '')
+    style.textContent = '#logo { display: none !important; }'
+    shadow.appendChild(style)
+  }
+  inject()
+  const observer = new MutationObserver(() => inject())
+  observer.observe(viewer, { childList: true, subtree: true })
+  setTimeout(() => observer.disconnect(), 10000)
 }
 </script>
 
