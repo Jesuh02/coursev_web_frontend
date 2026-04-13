@@ -1,37 +1,27 @@
 <template>
   <div class="login-page">
-    <!-- ═══ PANEL IZQUIERDO: Spline 3D + Features overlay (solo desktop) ═══ -->
+    <!-- ═══ PANEL IZQUIERDO: Branding + Features (solo desktop) ═══ -->
     <div class="hero-panel">
       <!-- Spline 3D Background -->
-      <iframe
-        class="spline-bg"
-        src="https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode"
-        frameborder="0"
-        loading="lazy"
-        allow="autoplay"
-      ></iframe>
-      <!-- Gradient overlay para legibilidad -->
+      <div ref="splineContainer" class="spline-bg"></div>
       <div class="hero-overlay"></div>
 
-      <!-- Contenido superpuesto -->
       <div class="hero-content">
-        <!-- Logo + Marca -->
         <div class="hero-logo">
           <div class="hero-logo-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M9 7h6M9 11h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </div>
-          <span class="hero-brand">CourseV</span>
+          <h1 class="hero-brand">CourseV</h1>
         </div>
 
-        <!-- Título principal -->
         <h2 class="hero-title">Plataforma Educativa<br/>con Inteligencia Artificial</h2>
         <p class="hero-subtitle">Transformando la educación con tecnología inteligente, evaluación adaptativa y procesos eficientes.</p>
 
-        <!-- Feature cards — grid 3x2 -->
+        <!-- Feature cards -->
         <div class="hero-features">
           <div v-for="(feat, idx) in features" :key="idx" class="feature-card" :style="{ animationDelay: `${0.3 + idx * 0.1}s` }">
             <div class="feature-icon" v-html="feat.icon"></div>
@@ -45,7 +35,7 @@
 
       <!-- Footer del hero -->
       <div class="hero-footer">
-        <span>&copy; {{ new Date().getFullYear() }} CourseV. Todos los derechos reservados.</span>
+        <p class="hero-footer-text">&copy; 2026 CourseV. Todos los derechos reservados.</p>
         <div class="hero-footer-links">
           <a href="#">Términos</a>
           <a href="#">Privacidad</a>
@@ -58,6 +48,13 @@
       <!-- Partículas móviles (solo se ven en móvil) -->
       <div class="particles mobile-only">
         <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
+      </div>
+
+      <!-- Orbes animados de fondo (desktop) -->
+      <div class="form-bg-orbs desktop-only">
+        <div class="form-orb form-orb--1"></div>
+        <div class="form-orb form-orb--2"></div>
+        <div class="form-orb form-orb--3"></div>
       </div>
 
       <div class="login-wrapper">
@@ -121,7 +118,7 @@
           </div>
 
           <div class="login-footer">
-            <button class="forgot-link" @click="showForgotPassword = true">¿Olvidaste tu contraseña?</button>
+            <span class="forgot-text">¿Olvidaste tu contraseña? <button class="forgot-link" @click="showForgotPassword = true">Recupérala aquí</button></span>
           </div>
 
           <!-- Sección de pago: institución suspendida por mensualidad vencida -->
@@ -155,7 +152,7 @@
 
         <!-- Footer desktop -->
         <div class="desktop-footer desktop-only">
-          <p class="desktop-footer-text">¿Olvidaste tu contraseña? <a @click.prevent="showForgotPassword = true" href="#">Recupérala aquí</a></p>
+          <p class="desktop-footer-text">Al iniciar sesión, aceptas nuestros <a href="#">Términos de Servicio</a> y <a href="#">Política de Privacidad</a></p>
         </div>
 
         <!-- Selección de institución: cuando la cédula coincide en ambas bases de datos -->
@@ -231,6 +228,7 @@ const error = ref('')
 const showForgotPassword = ref(false)
 const googleButtonHost = ref<HTMLElement | null>(null)
 const googleButtonEnabled = ref(false)
+const splineContainer = ref<HTMLDivElement | null>(null)
 
 // Estado para desambiguación por cédula y selección de institución
 const showCedula = ref(false)
@@ -351,6 +349,9 @@ function handleResize() {
 }
 
 onMounted(async () => {
+  // Cargar Spline 3D viewer en el hero panel
+  loadSplineViewer()
+
   // Si ya hay una sesión activa, redirigir sin mostrar el login (igual que LoginFragment.kt)
   if (authStore.isAuthenticated) {
     await authStore.fetchProfile()
@@ -566,37 +567,37 @@ async function handleInstitutionPayment() {
   }
 }
 
-// Features del panel hero (desktop) — grid 3x2
+// Features del panel hero (desktop)
 const features = [
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>',
     title: 'Asistente IA',
-    desc: 'Evaluaciones inteligentes adaptadas al nivel de cada estudiante',
+    desc: 'Evaluaciones inteligentes adaptadas al nivel de cada estudiante.',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l1.09 3.26L16 4.24l-1.64 2.86L17.5 8.5l-3.26 1.09L15.76 12l-2.86-1.64L11.5 13.5l-1.09-3.26L8 11.76l1.64-2.86L6.5 7.5l3.26-1.09L8.24 4z"/><path d="M19 13l.62 1.85 1.85.62-1.85.62L19 18l-.62-1.85L16.53 15.53l1.85-.62z"/></svg>',
     title: 'Calificación Automática',
-    desc: 'Evaluación precisa e instantánea de tareas y exámenes',
+    desc: 'Evaluación precisa e instantánea de tareas y exámenes.',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
     title: 'Refuerzo Adaptativo',
-    desc: 'Contenido personalizado desde el material de cada docente',
+    desc: 'Contenido personalizado desde el material de cada docente.',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
     title: 'Preguntas Únicas',
-    desc: 'Cada evaluación es completamente única para cada estudiante',
+    desc: 'Cada evaluación es completamente única para cada estudiante.',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
     title: 'Machine Learning',
-    desc: 'Progresión adaptativa basada en el rendimiento del estudiante',
+    desc: 'Progresión adaptativa basada en el rendimiento del estudiante.',
   },
   {
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
     title: 'Tiempo Real',
-    desc: 'Análisis y retroalimentación instantánea del progreso',
+    desc: 'Análisis y retroalimentación instantánea del progreso.',
   },
 ]
 
@@ -615,24 +616,18 @@ function particleStyle(i: number) {
   }
 }
 
-function heroParticleStyle(i: number) {
-  const configs = [
-    { top: '8%', left: '12%', size: 6, delay: 0, dur: 18 },
-    { top: '20%', left: '80%', size: 4, delay: 2, dur: 22 },
-    { top: '55%', left: '6%', size: 5, delay: 4, dur: 20 },
-    { top: '70%', left: '75%', size: 3, delay: 1, dur: 25 },
-    { top: '40%', left: '50%', size: 7, delay: 3, dur: 16 },
-    { top: '85%', left: '30%', size: 4, delay: 5, dur: 19 },
-  ]
-  const c = configs[i - 1]
-  return {
-    top: c.top,
-    left: c.left,
-    width: `${c.size}px`,
-    height: `${c.size}px`,
-    animationDelay: `${c.delay}s`,
-    animationDuration: `${c.dur}s`,
+function loadSplineViewer() {
+  if (!splineContainer.value) return
+  if (!document.getElementById('spline-viewer-script')) {
+    const script = document.createElement('script')
+    script.id = 'spline-viewer-script'
+    script.type = 'module'
+    script.src = 'https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js'
+    document.head.appendChild(script)
   }
+  const viewer = document.createElement('spline-viewer')
+  viewer.setAttribute('url', 'https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode')
+  splineContainer.value.appendChild(viewer)
 }
 </script>
 
@@ -846,9 +841,15 @@ function heroParticleStyle(i: number) {
   margin-top: 20px;
 }
 
+.forgot-text {
+  font-size: 13px;
+  color: var(--text-secondary, #9CA3AF);
+}
+
 .forgot-link {
   color: var(--purple-light);
   font-size: 13px;
+  font-weight: 600;
   transition: opacity 0.2s;
 }
 
@@ -1138,212 +1139,130 @@ function heroParticleStyle(i: number) {
     justify-content: flex-start;
     flex: 1;
     position: relative;
-    background: linear-gradient(145deg, #0c0118 0%, #1a0533 15%, #2d1065 35%, #4C1D95 60%, #3b1280 80%, #150528 100%);
+    background: #050510;
     padding: 60px 48px;
-    padding-top: 60px;
     overflow: hidden;
     min-height: 0;
   }
 
-  .hero-panel::after {
-    content: '';
+  .spline-bg {
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(ellipse at 25% 40%, rgba(139, 92, 246, 0.18) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.1) 0%, transparent 40%);
-    pointer-events: none;
     z-index: 0;
+    overflow: hidden;
   }
 
-  /* Hero partículas */
-  .hero-particles {
+  .spline-bg :deep(spline-viewer) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hero-overlay {
     position: absolute;
     inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 5, 16, 0.25) 0%,
+      rgba(5, 5, 16, 0.05) 35%,
+      rgba(5, 5, 16, 0.15) 65%,
+      rgba(5, 5, 16, 0.5) 100%
+    );
+    z-index: 1;
     pointer-events: none;
-    z-index: 0;
-  }
-
-  .hero-particle {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    animation: hero-drift linear infinite;
-    filter: blur(0.5px);
-  }
-
-  /* Formas geométricas decorativas */
-  .hero-shapes {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .shape {
-    position: absolute;
-  }
-
-  .shape--circle {
-    top: -80px;
-    left: -80px;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.1), rgba(255, 255, 255, 0.02));
-    animation: float 10s ease-in-out infinite;
-    filter: blur(1px);
-  }
-
-  .shape--ring {
-    bottom: -60px;
-    right: -60px;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(139, 92, 246, 0.1);
-    animation: float 12s ease-in-out infinite reverse;
-  }
-
-  .shape--dot-grid {
-    top: 30%;
-    right: 10%;
-    width: 80px;
-    height: 80px;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px);
-    background-size: 16px 16px;
-    animation: fade-in-up 1s ease forwards;
   }
 
   /* Hero contenido */
   .hero-content {
     position: relative;
-    z-index: 1;
-    max-width: 520px;
+    z-index: 2;
+    max-width: 580px;
+    flex: 1;
   }
 
   .hero-logo {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 32px;
+    margin-bottom: 40px;
     animation: fade-in-down 0.6s ease forwards;
   }
 
   .hero-logo-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.07);
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .hero-brand {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 800;
     font-style: italic;
     color: #fff;
     letter-spacing: -0.5px;
     margin: 0;
-    text-shadow: 0 2px 24px rgba(139, 92, 246, 0.3);
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.4);
   }
 
   .hero-title {
-    font-size: 36px;
+    font-size: 42px;
     font-weight: 800;
     color: #fff;
-    line-height: 1.18;
-    margin: 0 0 18px;
+    line-height: 1.12;
+    margin: 0 0 20px;
     letter-spacing: -0.5px;
     animation: fade-in-up 0.7s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    text-shadow: 0 2px 32px rgba(0, 0, 0, 0.4);
   }
 
   .hero-subtitle {
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.7);
     line-height: 1.7;
-    margin: 0 0 30px;
-    max-width: 420px;
+    margin: 0 0 40px;
+    max-width: 460px;
     animation: fade-in-up 0.7s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  /* Tip IA */
-  .hero-ai-tip {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    margin-bottom: 28px;
-    backdrop-filter: blur(16px);
-    animation: fade-in-up 0.6s 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
-    transition: border-color 0.3s, background 0.3s;
-  }
-
-  .hero-ai-tip:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(196, 181, 253, 0.2);
-  }
-
-  .ai-tip-icon {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .ai-tip-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #C4B5FD;
-    margin-bottom: 2px;
-  }
-
-  .ai-tip-desc {
-    display: block;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.65);
-    line-height: 1.45;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
   }
 
   /* Feature cards */
   .hero-features {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
 
   .feature-card {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px 18px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     animation: feature-enter 0.5s ease both;
   }
 
   .feature-card:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(139, 92, 246, 0.25);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(91, 33, 182, 0.2), 0 0 0 1px rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.12);
   }
 
   .feature-icon {
     flex-shrink: 0;
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     background: rgba(139, 92, 246, 0.12);
     display: flex;
@@ -1354,31 +1273,54 @@ function heroParticleStyle(i: number) {
   }
 
   .feature-card:hover .feature-icon {
-    background: rgba(139, 92, 246, 0.2);
+    background: rgba(139, 92, 246, 0.22);
   }
 
   .feature-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: #fff;
-    margin: 0 0 3px;
+    margin: 0 0 2px;
   }
 
   .feature-desc {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.55);
     margin: 0;
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
-  /* Marca de agua */
-  .hero-watermark {
-    position: absolute;
-    bottom: -40px;
-    right: -40px;
-    z-index: 0;
-    pointer-events: none;
-    animation: float 14s ease-in-out infinite;
+  /* Footer del hero */
+  .hero-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 24px;
+    margin-top: auto;
+  }
+
+  .hero-footer-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0;
+  }
+
+  .hero-footer-links {
+    display: flex;
+    gap: 20px;
+  }
+
+  .hero-footer-links a {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.35);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .hero-footer-links a:hover {
+    color: rgba(255, 255, 255, 0.7);
   }
 
   /* ── Form Panel ── */
@@ -1491,12 +1433,11 @@ function heroParticleStyle(i: number) {
    ═══════════════════════════════════════════════════════ */
 @media (min-width: 1200px) {
   .hero-panel {
-    padding: 80px 72px;
-    padding-top: 80px;
+    padding: 72px 64px;
   }
 
   .hero-title {
-    font-size: 44px;
+    font-size: 50px;
   }
 
   .hero-subtitle {
@@ -1549,25 +1490,6 @@ function heroParticleStyle(i: number) {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes hero-drift {
-  0%, 100% {
-    transform: translate(0, 0);
-    opacity: 0.3;
-  }
-  25% {
-    transform: translate(12px, -18px);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translate(-8px, -30px);
-    opacity: 0.4;
-  }
-  75% {
-    transform: translate(15px, -12px);
-    opacity: 0.7;
   }
 }
 
