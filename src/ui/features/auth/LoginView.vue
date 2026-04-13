@@ -798,17 +798,22 @@ function heroParticleStyle(i: number) {
 }
 
 .desktop-form-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--purple-light, #8B5CF6);
-  margin: 0 0 10px;
+  font-size: 30px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #A78BFA 0%, #8B5CF6 50%, #C4B5FD 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 12px;
+  letter-spacing: -0.3px;
 }
 
 .desktop-form-subtitle {
   font-size: 14px;
-  color: var(--text-secondary, #CCCCCC);
-  margin: 0;
-  line-height: 1.6;
+  color: var(--text-secondary, #9CA3AF);
+  margin: 0 auto;
+  line-height: 1.7;
+  max-width: 340px;
 }
 
 .desktop-form-subtitle .brand-word {
@@ -1132,10 +1137,22 @@ function heroParticleStyle(i: number) {
     justify-content: center;
     flex: 1;
     position: relative;
-    background: linear-gradient(160deg, #7C3AED 0%, #5B21B6 40%, #4C1D95 100%);
+    background: linear-gradient(145deg, #0c0118 0%, #1a0533 15%, #2d1065 35%, #4C1D95 60%, #3b1280 80%, #150528 100%);
     padding: 60px 48px;
     overflow: hidden;
     min-height: 0;
+  }
+
+  .hero-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 25% 40%, rgba(139, 92, 246, 0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
   }
 
   /* Hero partículas */
@@ -1149,8 +1166,9 @@ function heroParticleStyle(i: number) {
   .hero-particle {
     position: absolute;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.18);
     animation: hero-drift linear infinite;
+    filter: blur(0.5px);
   }
 
   /* Formas geométricas decorativas */
@@ -1166,22 +1184,23 @@ function heroParticleStyle(i: number) {
   }
 
   .shape--circle {
-    top: -60px;
-    left: -60px;
-    width: 200px;
-    height: 200px;
+    top: -80px;
+    left: -80px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1), rgba(255, 255, 255, 0.02));
     animation: float 10s ease-in-out infinite;
+    filter: blur(1px);
   }
 
   .shape--ring {
-    bottom: -40px;
-    right: -40px;
-    width: 180px;
-    height: 180px;
+    bottom: -60px;
+    right: -60px;
+    width: 240px;
+    height: 240px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(139, 92, 246, 0.1);
     animation: float 12s ease-in-out infinite reverse;
   }
 
@@ -1214,12 +1233,13 @@ function heroParticleStyle(i: number) {
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(139, 92, 246, 0.08);
   }
 
   .hero-brand {
@@ -1229,38 +1249,46 @@ function heroParticleStyle(i: number) {
     color: #fff;
     letter-spacing: -0.5px;
     margin: 0;
+    text-shadow: 0 2px 24px rgba(139, 92, 246, 0.3);
   }
 
   .hero-title {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 36px;
+    font-weight: 800;
     color: #fff;
-    line-height: 1.25;
-    margin: 0 0 16px;
-    animation: fade-in-up 0.6s 0.1s ease both;
+    line-height: 1.18;
+    margin: 0 0 18px;
+    letter-spacing: -0.5px;
+    animation: fade-in-up 0.7s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .hero-subtitle {
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.75);
-    line-height: 1.65;
-    margin: 0 0 28px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.7;
+    margin: 0 0 30px;
     max-width: 420px;
-    animation: fade-in-up 0.6s 0.2s ease both;
+    animation: fade-in-up 0.7s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   /* Tip IA */
   .hero-ai-tip {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
+    gap: 14px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
     margin-bottom: 28px;
-    backdrop-filter: blur(6px);
-    animation: fade-in-up 0.5s 0.25s ease both;
+    backdrop-filter: blur(16px);
+    animation: fade-in-up 0.6s 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  .hero-ai-tip:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(196, 181, 253, 0.2);
   }
 
   .ai-tip-icon {
@@ -1287,38 +1315,44 @@ function heroParticleStyle(i: number) {
   .hero-features {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 14px;
   }
 
   .feature-card {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    backdrop-filter: blur(6px);
-    transition: background 0.3s, transform 0.25s, box-shadow 0.3s;
+    gap: 12px;
+    padding: 16px 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    backdrop-filter: blur(16px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     animation: feature-enter 0.5s ease both;
   }
 
   .feature-card:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(91, 33, 182, 0.2), 0 0 0 1px rgba(139, 92, 246, 0.1);
   }
 
   .feature-icon {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(139, 92, 246, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #C4B5FD;
+    transition: background 0.3s;
+  }
+
+  .feature-card:hover .feature-icon {
+    background: rgba(139, 92, 246, 0.2);
   }
 
   .feature-title {
@@ -1357,23 +1391,43 @@ function heroParticleStyle(i: number) {
     overflow-y: auto;
     background: var(--bg-secondary);
     position: relative;
-    border-left: 1px solid rgba(139, 92, 246, 0.08);
+    border-left: none;
+  }
+
+  .form-panel::before {
+    content: '';
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(40px);
   }
 
   .login-wrapper {
     max-width: 400px;
     width: 100%;
     padding: 32px 0;
-    animation: form-panel-enter 0.7s 0.15s ease both;
+    animation: form-panel-enter 0.8s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    position: relative;
+    z-index: 1;
   }
 
   .login-card {
     margin: 0 0 16px;
     background: var(--bg-card-hover);
-    border-radius: var(--radius-xl);
-    padding: 28px 24px;
-    border: 1px solid rgba(139, 92, 246, 0.15);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    padding: 32px 28px;
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.15),
+      0 0 64px rgba(139, 92, 246, 0.03),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
   }
 
   .desktop-form-header {
@@ -1394,7 +1448,7 @@ function heroParticleStyle(i: number) {
   }
 
   .hero-title {
-    font-size: 38px;
+    font-size: 44px;
   }
 
   .hero-subtitle {
@@ -1410,6 +1464,16 @@ function heroParticleStyle(i: number) {
 /* ═══════════════════════════════════════════════════════
    ANIMACIONES
    ═══════════════════════════════════════════════════════ */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+}
+
 @keyframes fade-in-down {
   from { opacity: 0; transform: translateY(-16px); }
   to   { opacity: 1; transform: translateY(0); }
