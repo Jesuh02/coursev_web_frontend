@@ -1156,7 +1156,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
     flex: 1;
     position: relative;
     background: #050510;
-    padding: 60px 48px;
+    padding: 28px 48px 60px;
     overflow: hidden;
     min-height: 0;
   }
