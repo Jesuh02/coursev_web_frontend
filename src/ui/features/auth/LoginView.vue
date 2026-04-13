@@ -69,6 +69,13 @@
         <div v-for="i in 3" :key="i" class="particle" :style="particleStyle(i)"></div>
       </div>
 
+      <!-- Orbes animados de fondo (desktop) -->
+      <div class="form-bg-orbs desktop-only">
+        <div class="form-orb form-orb--1"></div>
+        <div class="form-orb form-orb--2"></div>
+        <div class="form-orb form-orb--3"></div>
+      </div>
+
       <div class="login-wrapper">
         <!-- Header móvil (oculto en desktop) -->
         <div class="login-header mobile-only">
@@ -1134,11 +1141,12 @@ function heroParticleStyle(i: number) {
   .hero-panel {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     flex: 1;
     position: relative;
     background: linear-gradient(145deg, #0c0118 0%, #1a0533 15%, #2d1065 35%, #4C1D95 60%, #3b1280 80%, #150528 100%);
     padding: 60px 48px;
+    padding-top: 60px;
     overflow: hidden;
     min-height: 0;
   }
@@ -1386,7 +1394,7 @@ function heroParticleStyle(i: number) {
     max-width: 520px;
     flex-shrink: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     background: var(--bg-secondary);
@@ -1397,21 +1405,66 @@ function heroParticleStyle(i: number) {
   .form-panel::before {
     content: '';
     position: absolute;
-    top: 35%;
+    top: 28%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 65%);
     pointer-events: none;
     z-index: 0;
-    filter: blur(40px);
+    filter: blur(50px);
+    animation: orb-pulse 8s ease-in-out infinite;
+  }
+
+  /* Orbes animados de fondo */
+  .form-bg-orbs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .form-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+  }
+
+  .form-orb--1 {
+    width: 200px;
+    height: 200px;
+    background: rgba(139, 92, 246, 0.06);
+    top: 10%;
+    right: -40px;
+    animation: orb-float-1 14s ease-in-out infinite;
+  }
+
+  .form-orb--2 {
+    width: 160px;
+    height: 160px;
+    background: rgba(99, 102, 241, 0.04);
+    bottom: 20%;
+    left: -30px;
+    animation: orb-float-2 18s ease-in-out infinite;
+  }
+
+  .form-orb--3 {
+    width: 120px;
+    height: 120px;
+    background: rgba(168, 85, 247, 0.05);
+    top: 55%;
+    right: 30%;
+    animation: orb-float-3 12s ease-in-out infinite;
   }
 
   .login-wrapper {
     max-width: 400px;
     width: 100%;
-    padding: 32px 0;
+    padding-top: 60px;
+    padding-bottom: 32px;
     animation: form-panel-enter 0.8s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
     position: relative;
     z-index: 1;
@@ -1445,6 +1498,7 @@ function heroParticleStyle(i: number) {
 @media (min-width: 1200px) {
   .hero-panel {
     padding: 80px 72px;
+    padding-top: 80px;
   }
 
   .hero-title {
@@ -1458,6 +1512,10 @@ function heroParticleStyle(i: number) {
   .form-panel {
     width: 520px;
     max-width: 560px;
+  }
+
+  .login-wrapper {
+    padding-top: 80px;
   }
 }
 
@@ -1528,6 +1586,28 @@ function heroParticleStyle(i: number) {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+@keyframes orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-20px, 30px) scale(1.1); }
+  66% { transform: translate(15px, -20px) scale(0.95); }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(25px, -15px) scale(1.05); }
+  70% { transform: translate(-10px, 20px) scale(0.9); }
+}
+
+@keyframes orb-float-3 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.5; }
+  50% { transform: translate(-15px, -25px); opacity: 0.8; }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
 }
 
 @keyframes spin {
