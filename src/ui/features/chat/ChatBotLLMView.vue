@@ -1091,7 +1091,8 @@ async function sendMessage() {
     createdAt: new Date().toISOString(),
   }
   messages.value.push(userMsg)
-  saveMessageToBackend(userMsg.content, true, {
+  // Await the user message save to prevent data loss on immediate reload
+  await saveMessageToBackend(userMsg.content, true, {
     submission_id: ctx?.submissionId ?? null,
   })
   inputText.value = ''

@@ -327,18 +327,21 @@ function esc(s: string) {
   return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
-// ── Save helper (non-blocking) ──
+// ── Save helper ──
 
-function persistMessage(content: string, isFromUser: boolean) {
-  chatAdapter.upsertMessage({
-    content,
-    role: isFromUser ? 'user' : 'assistant',
-    sessionId: sessionId.value,
-    origin: 'db_query',
-    username: tokenStorage.username ?? null,
-  } as any)
-  .then(() => console.log('[DatabaseQuery] Mensaje guardado en backend (origin=db_query)'))
-  .catch((err) => console.error('[DatabaseQuery] Error guardando mensaje:', err))
+async function persistMessage(content: string, isFromUser: boolean) {
+  try {
+    await chatAdapter.upsertMessage({
+      content,
+      role: isFromUser ? 'user' : 'assistant',
+      sessionId: sessionId.value,
+      origin: 'db_query',
+      username: tokenStorage.username ?? null,
+    } as any)
+    console.log('[DatabaseQuery] Mensaje guardado en backend (origin=db_query)')
+  } catch (err) {
+    console.error('[DatabaseQuery] Error guardando mensaje:', err)
+  }
 }
 
 // ── Send ──
@@ -355,8 +358,8 @@ async function sendQuery() {
   })
   scrollToBottom()
 
-  // Persist user message immediately – independent of the LLM call
-  persistMessage(text, true)
+  // Persist user message – await to prevent data loss on immediate reload
+  await persistMessage(text, true)
 
   try {
     // Excel generation is now handled server-side by /llm/process.
