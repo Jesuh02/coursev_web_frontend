@@ -184,8 +184,9 @@ async function loadCourseCollaborators() {
         email: e.user!.email ?? '',
         avatar: e.user!.avatar ?? '',
       }))
-  } catch {
+  } catch (err) {
     courseCollaborators.value = []
+    collabError.value = err instanceof Error ? err.message : 'Error al cargar colaboradores del curso'
   } finally {
     courseCollabsLoaded.value = true
   }
