@@ -23,6 +23,8 @@ export const submissionAdapter: SubmissionPort = {
     api.get<TaskSubmission>(`/submissions/${id}`),
 
   submitWork: (data) => api.post<TaskSubmission>('/submissions', data),
+  // Create a submission in behalf of a student (requires teacher/collaborator permissions)
+  submitWorkForStudent: (data) => api.post<TaskSubmission>('/submissions/for-student', data),
 
   gradeSubmission: (id, grade, feedback) =>
     api.put<TaskSubmission>(`/submissions/${id}/grade`, { grade, feedback }),

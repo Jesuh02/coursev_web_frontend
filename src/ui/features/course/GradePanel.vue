@@ -110,14 +110,12 @@
                 </template>
                 <td v-for="task in tasks" :key="task.id" class="col-task">
                   <input
-                    v-if="getTaskGrade(student.userId, task.id)"
                     :value="getEditedTaskGrade(student.userId, task.id)"
                     class="cell-input"
                     type="number" min="0" max="10" step="0.5"
                     placeholder="—"
                     @change="onTaskGradeChange(student.userId, task.id, $event)"
                   />
-                  <span v-else class="cell-readonly no-submission">—</span>
                 </td>
                 <td class="col-avg">
                   <span class="cell-avg" :class="avgClass(student.userId)">
@@ -183,6 +181,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
+import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import type { ManualGrade, GradeSheetTaskGrade, GradeSheetTask, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
 
 interface GradeColumn {
@@ -479,9 +478,22 @@ async function saveAllGrades() {
       const studentId = Number(parts[0])
       const taskId = Number(parts.slice(1).join('-'))
       const tg = getTaskGrade(studentId, taskId)
-      if (!tg?.submissionId) continue
-      await gradeAdapter.gradeSubmission(tg.submissionId, newGrade)
-      originalTaskGrades.value[key] = newGrade
+      if (tg?.submissionId) {
+        await gradeAdapter.gradeSubmission(tg.submissionId, newGrade)
+        originalTaskGrades.value[key] = newGrade
+        continue
+      }
+
+      // If no submission exists, create one on behalf of the student (requires permissions)
+      try {
+        const created = await submissionAdapter.submitWorkForStudent({ taskId, studentId })
+        if (created && (created as any).id) {
+          await gradeAdapter.gradeSubmission((created as any).id, newGrade)
+          originalTaskGrades.value[key] = newGrade
+        }
+      } catch (err) {
+        console.error('[GradePanel] Error creating submission for student', studentId, 'task', taskId, err)
+      }
     }
 
     emit('saved')
