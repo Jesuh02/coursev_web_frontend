@@ -182,6 +182,8 @@ import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCourseStore } from '@/stores/courseStore'
 import { collaboratorAdapter, courseAdapter, userAdapter } from '@/infrastructure/api'
+import { subjectCollaboratorAdapter } from '@/infrastructure/api/subjectAdapter'
+import { subjectAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import type { Course } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
@@ -623,16 +625,29 @@ async function resolveParticipantCounts(courses: Course[]) {
     missing.map(c => Promise.all([
       collaboratorAdapter.getByCourse(c.id),
       courseAdapter.getGuests(c.id),
+      // Fetch subject collaborators to include them as teachers
+      subjectAdapter.getSubjectsByCourse(c.id).then(async (subjects) => {
+        const allSubjectCollabIds = new Set<number>()
+        await Promise.allSettled(
+          subjects.map(async (s) => {
+            const collabs = await subjectCollaboratorAdapter.getCollaborators(s.id)
+            collabs.forEach(sc => allSubjectCollabIds.add(sc.userId))
+          }),
+        )
+        return allSubjectCollabIds
+      }).catch(() => new Set<number>()),
     ])),
   )
 
   results.forEach((result, index) => {
     const course = missing[index]
     if (result.status === 'fulfilled') {
-      const [collaborators, guests] = result.value
-      teacherCounts.value[course.id] = collaborators.length
-      const collabIds = new Set(collaborators.map(c => c.userId))
-      course.studentCount = guests.filter(g => !collabIds.has(g.userId)).length
+      const [collaborators, guests, subjectCollabIds] = result.value
+      const courseCollabIds = new Set(collaborators.map(c => c.userId))
+      // Merge course + subject collaborators for teacher count
+      const allTeacherIds = new Set([...courseCollabIds, ...subjectCollabIds])
+      teacherCounts.value[course.id] = allTeacherIds.size
+      course.studentCount = guests.filter(g => !allTeacherIds.has(g.userId)).length
     } else {
       teacherCounts.value[course.id] = teacherCounts.value[course.id] ?? 0
     }
@@ -646,14 +661,36 @@ async function openInfoDialog(course: Course) {
   infoTeachers.value = []
   infoStudents.value = []
   try {
-    const [collabsRes, guestsRes] = await Promise.allSettled([
+    const [collabsRes, guestsRes, subjectsRes] = await Promise.allSettled([
       collaboratorAdapter.getByCourse(course.id),
       courseAdapter.getGuests(course.id),
+      subjectAdapter.getSubjectsByCourse(course.id),
     ])
     const collaborators = collabsRes.status === 'fulfilled' ? collabsRes.value : []
     const guests = guestsRes.status === 'fulfilled' ? guestsRes.value : []
-    const participantIds = Array.from(new Set([
+    const subjects = subjectsRes.status === 'fulfilled' ? subjectsRes.value : []
+
+    // Fetch subject collaborators in parallel
+    let subjectCollabUsers: Array<{ userId: number; username: string | null }> = []
+    if (subjects.length) {
+      const scResults = await Promise.allSettled(
+        subjects.map(s => subjectCollaboratorAdapter.getCollaborators(s.id)),
+      )
+      for (const scRes of scResults) {
+        if (scRes.status === 'fulfilled') {
+          for (const sc of scRes.value) {
+            subjectCollabUsers.push({ userId: sc.userId, username: sc.user?.username ?? null })
+          }
+        }
+      }
+    }
+
+    const allTeacherUserIds = new Set([
       ...collaborators.map(c => Number(c.userId)).filter(id => id > 0),
+      ...subjectCollabUsers.map(sc => sc.userId).filter(id => id > 0),
+    ])
+    const participantIds = Array.from(new Set([
+      ...allTeacherUserIds,
       ...guests.map(g => Number(g.userId)).filter(id => id > 0),
     ]))
 
@@ -678,18 +715,23 @@ async function openInfoDialog(course: Course) {
       }
     }
 
-    if (collabsRes.status === 'fulfilled') {
-      infoTeachers.value = collaborators
-        .filter(c => c.user)
-        .map((c) => {
-          const resolved = resolveParticipantName(c.userId, c.user?.username)
-          return { id: c.userId, name: resolved.name, username: resolved.username }
-        })
+    // Build teachers list: course collaborators + subject collaborators (deduped)
+    const teacherMap = new Map<number, { id: number; name: string; username: string | null }>()
+    for (const c of collaborators) {
+      if (!c.user) continue
+      const resolved = resolveParticipantName(c.userId, c.user.username)
+      teacherMap.set(c.userId, { id: c.userId, name: resolved.name, username: resolved.username })
     }
+    for (const sc of subjectCollabUsers) {
+      if (teacherMap.has(sc.userId)) continue
+      const resolved = resolveParticipantName(sc.userId, sc.username)
+      teacherMap.set(sc.userId, { id: sc.userId, name: resolved.name, username: resolved.username })
+    }
+    infoTeachers.value = Array.from(teacherMap.values())
+
     if (guestsRes.status === 'fulfilled') {
-      const collabIds = new Set(infoTeachers.value.map(t => t.id))
       infoStudents.value = guests
-        .filter(g => !collabIds.has(g.userId))
+        .filter(g => !allTeacherUserIds.has(g.userId))
         .map((g) => {
           const resolved = resolveParticipantName(g.userId, g.username)
           return { userId: g.userId, name: resolved.name, username: resolved.username }

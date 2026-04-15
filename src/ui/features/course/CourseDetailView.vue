@@ -353,7 +353,20 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nueva Tarea
         </button>
+        <button v-if="subjectId" class="action-btn grade" @click="showGradePanel = true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Calificar
+        </button>
       </div>
+
+      <GradePanel
+        v-if="showGradePanel && subjectId"
+        :course-id="Number(courseId)"
+        :subject-id="subjectId"
+        :students="memberStudents.map(s => ({ userId: s.userId, username: s.username ?? '', fullName: null, cedula: null, avatar: s.avatar }))"
+        @close="showGradePanel = false"
+        @saved="showGradePanel = false"
+      />
       </template>
     </div>
   </div>
@@ -369,9 +382,11 @@ import {
   submissionAdapter, resolveImageUrl, buildProxyFileUrl, collaboratorAdapter, subjectAdapter,
   courseAdapter, userAdapter, tokenStorage,
 } from '@/infrastructure/api'
+import { subjectCollaboratorAdapter } from '@/infrastructure/api/subjectAdapter'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { useNotificationStore } from '@/stores/notificationStore'
+import GradePanel from './GradePanel.vue'
 
 defineOptions({ name: 'CourseDetailView' })
 
@@ -413,6 +428,7 @@ const heroImage = computed(() => {
 
 const collaboratorAccess = ref(false)
 const isSubjectCreator = ref(false)
+const showGradePanel = ref(false)
 const isCourseCreator = computed(() => {
   const currentUserId = Number(authStore.user?.id ?? 0)
   const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
@@ -526,25 +542,44 @@ async function loadMembers(courseIdNum: number) {
       }
     }
 
-    // Si estamos dentro de una materia, solo mostrar el docente creador de esa materia
+    // Si estamos dentro de una materia, mostrar el docente creador + colaboradores de la materia
     if (subjectId.value) {
+      const teachers: CollaboratorMember[] = []
+      const addedUserIds = new Set<number>()
+
+      // 1. Creador de la materia
       const creatorId = fetchedSubject.value?.createdBy ?? null
       if (creatorId) {
         try {
           const creator = await userAdapter.getUserById(creatorId) as any
-          memberTeachers.value = [{
+          teachers.push({
             id: creatorId,
             userId: creatorId,
             username: creator?.username ?? 'Docente',
             email: creator?.email ?? '',
             avatar: creator?.avatar ?? null,
-          }]
-        } catch {
-          memberTeachers.value = []
-        }
-      } else {
-        memberTeachers.value = []
+          })
+          addedUserIds.add(creatorId)
+        } catch { /* silent */ }
       }
+
+      // 2. Colaboradores de la materia (subject_collaborators)
+      try {
+        const subjectCollabs = await subjectCollaboratorAdapter.getCollaborators(subjectId.value)
+        for (const sc of subjectCollabs) {
+          if (addedUserIds.has(sc.userId)) continue
+          teachers.push({
+            id: sc.id,
+            userId: sc.userId,
+            username: sc.user?.username ?? 'Docente',
+            email: sc.user?.email ?? '',
+            avatar: sc.user?.avatar ?? null,
+          })
+          addedUserIds.add(sc.userId)
+        }
+      } catch { /* silent */ }
+
+      memberTeachers.value = teachers
     } else {
       // Sin materia: mostrar todos los colaboradores del curso
       const collabs = await collaboratorAdapter.getByCourse(courseIdNum).catch(() => [])
@@ -986,6 +1021,17 @@ onMounted(async () => {
     } catch {
       collaboratorAccess.value = false
     }
+
+    // También verificar colaborador a nivel de materia (subject_collaborators)
+    if (!collaboratorAccess.value && subjectId.value) {
+      try {
+        const subjectCollabs = await subjectCollaboratorAdapter.getCollaborators(subjectId.value)
+        const currentUserId = Number(authStore.user?.id ?? 0)
+        if (currentUserId > 0 && subjectCollabs.some(c => c.userId === currentUserId)) {
+          collaboratorAccess.value = true
+        }
+      } catch { /* silent */ }
+    }
   }
 
   const progressPromise = loadStudentProgress(id)
@@ -1051,6 +1097,17 @@ watch(() => authStore.user?.id, async (newId) => {
       collaboratorAccess.value = true
       // Recargar datos en modo docente para obtener entregas pendientes
       await loadTopicsAndTasks(id)
+    }
+    // También verificar colaborador a nivel de materia (subject_collaborators)
+    if (!collaboratorAccess.value && subjectId.value) {
+      try {
+        const subjectCollabs = await subjectCollaboratorAdapter.getCollaborators(subjectId.value)
+        const currentUserId = Number(authStore.user?.id ?? 0)
+        if (currentUserId > 0 && subjectCollabs.some(c => c.userId === currentUserId)) {
+          collaboratorAccess.value = true
+          await loadTopicsAndTasks(id)
+        }
+      } catch { /* silent */ }
     }
   } catch { /* silent */ }
 })
@@ -1752,6 +1809,7 @@ watch(activeTab, (tab) => {
 .action-btn:hover { transform: scale(1.02); }
 .action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .action-btn.task { background: transparent; border: 2px solid #00D4FF; color: #00D4FF; }
+.action-btn.grade { background: transparent; border: 2px solid #30D158; color: #30D158; }
 
 /* Enrollment banner */
 .enrollment-banner {
