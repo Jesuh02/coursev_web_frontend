@@ -109,9 +109,15 @@
                   <td class="col-slot-actions-spacer"></td>
                 </template>
                 <td v-for="task in tasks" :key="task.id" class="col-task">
-                  <span class="cell-readonly" :class="taskGradeClass(student.userId, task.id)">
-                    {{ formatTaskGrade(student.userId, task.id) }}
-                  </span>
+                  <input
+                    v-if="getTaskGrade(student.userId, task.id)"
+                    :value="getEditedTaskGrade(student.userId, task.id)"
+                    class="cell-input"
+                    type="number" min="0" max="10" step="0.5"
+                    placeholder="—"
+                    @change="onTaskGradeChange(student.userId, task.id, $event)"
+                  />
+                  <span v-else class="cell-readonly no-submission">—</span>
                 </td>
                 <td class="col-avg">
                   <span class="cell-avg" :class="avgClass(student.userId)">
@@ -148,8 +154,8 @@
       </div>
 
       <!-- Save -->
-      <div v-if="!loading && dirtyEntries.length > 0" class="panel-footer">
-        <span class="dirty-count">{{ dirtyEntries.length }} cambio(s) sin guardar</span>
+      <div v-if="!loading && (dirtyEntries.length + dirtyTaskEntries.length) > 0" class="panel-footer">
+        <span class="dirty-count">{{ dirtyEntries.length + dirtyTaskEntries.length }} cambio(s) sin guardar</span>
         <button class="save-btn" :disabled="saving" @click="saveAllGrades">
           {{ saving ? 'Guardando...' : 'Guardar Notas' }}
         </button>
@@ -230,6 +236,10 @@ const taskGrades = ref<GradeSheetTaskGrade[]>([])
 // Editable manual grades: key = `${userId}-${gradeType}`, value = grade
 const editedManualGrades = ref<Record<string, number | null>>({})
 const originalManualGrades = ref<Record<string, number | null>>({})
+
+// Editable task grades: key = `${userId}-${taskId}`, value = grade
+const editedTaskGrades = ref<Record<string, number | null>>({})
+const originalTaskGrades = ref<Record<string, number | null>>({})
 
 // Slots per type: tracks how many columns each base type has
 const slotsPerType = reactive<Record<string, number>>({
@@ -349,6 +359,12 @@ const dirtyEntries = computed(() => {
   })
 })
 
+const dirtyTaskEntries = computed(() => {
+  return Object.entries(editedTaskGrades.value).filter(([key, val]) => {
+    return val !== originalTaskGrades.value[key]
+  })
+})
+
 // --- Grade helpers ---
 
 function gradeKey(userId: number, type: string) {
@@ -375,18 +391,20 @@ function getTaskGrade(userId: number, taskId: number): GradeSheetTaskGrade | und
   return taskGrades.value.find(tg => tg.studentId === userId && tg.taskId === taskId)
 }
 
-function formatTaskGrade(userId: number, taskId: number): string {
-  const tg = getTaskGrade(userId, taskId)
-  if (!tg) return '—'
-  if (tg.grade === null || tg.grade === undefined) return 'Pendiente'
-  return String(tg.grade)
+function getEditedTaskGrade(userId: number, taskId: number): number | string {
+  const key = gradeKey(userId, String(taskId))
+  const val = editedTaskGrades.value[key]
+  return val !== null && val !== undefined ? val : ''
 }
 
-function taskGradeClass(userId: number, taskId: number): string {
-  const tg = getTaskGrade(userId, taskId)
-  if (!tg) return 'no-submission'
-  if (tg.grade === null || tg.grade === undefined) return 'pending'
-  return tg.grade >= 6 ? 'pass' : 'fail'
+function onTaskGradeChange(userId: number, taskId: number, event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value)
+  const key = gradeKey(userId, String(taskId))
+  if (Number.isNaN(val) || (event.target as HTMLInputElement).value === '') {
+    editedTaskGrades.value[key] = null
+  } else {
+    editedTaskGrades.value[key] = Math.min(10, Math.max(0, val))
+  }
 }
 
 function computeAverage(userId: number): string {
@@ -397,8 +415,9 @@ function computeAverage(userId: number): string {
     if (val !== null && val !== undefined) values.push(val)
   }
   for (const task of tasks.value) {
-    const tg = getTaskGrade(userId, task.id)
-    if (tg?.grade !== null && tg?.grade !== undefined) values.push(tg!.grade!)
+    const key = gradeKey(userId, String(task.id))
+    const edited = editedTaskGrades.value[key]
+    if (edited !== null && edited !== undefined) values.push(edited)
   }
   if (values.length === 0) return '—'
   const avg = values.reduce((a, b) => a + b, 0) / values.length
@@ -453,6 +472,18 @@ async function saveAllGrades() {
       originalManualGrades.value[key] = val
     }
 
+    // Save dirty task grades
+    for (const [key, newGrade] of dirtyTaskEntries.value) {
+      if (newGrade === null || newGrade === undefined) continue
+      const parts = key.split('-')
+      const studentId = Number(parts[0])
+      const taskId = Number(parts.slice(1).join('-'))
+      const tg = getTaskGrade(studentId, taskId)
+      if (!tg?.submissionId) continue
+      await gradeAdapter.gradeSubmission(tg.submissionId, newGrade)
+      originalTaskGrades.value[key] = newGrade
+    }
+
     emit('saved')
   } catch (err) {
     console.error('[GradePanel] Error saving:', err)
@@ -479,6 +510,15 @@ onMounted(async () => {
       const key = gradeKey(mg.studentId, mg.gradeType)
       editedManualGrades.value[key] = mg.grade
       originalManualGrades.value[key] = mg.grade
+    }
+
+    // Populate editable task grades
+    for (const tg of taskGrades.value) {
+      if (tg.grade !== null && tg.grade !== undefined) {
+        const key = gradeKey(tg.studentId, String(tg.taskId))
+        editedTaskGrades.value[key] = tg.grade
+        originalTaskGrades.value[key] = tg.grade
+      }
     }
   } catch (err) {
     console.error('[GradePanel] Error loading sheet:', err)

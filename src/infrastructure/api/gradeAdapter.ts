@@ -90,4 +90,8 @@ export const gradeAdapter = {
   /** Docente/Admin: get full grade sheet (Excel-like) for a subject */
   getGradeSheet: (subjectId: number) =>
     api.get<GradeSheet>(`/grades/sheet/${subjectId}`),
+
+  /** Docente/Admin: grade a task submission directly (override existing grade) */
+  gradeSubmission: (submissionId: number, grade: number, feedback?: string) =>
+    api.put<GradeSheetTaskGrade>(`/submissions/${submissionId}/grade`, { grade, feedback: feedback ?? null }),
 }
