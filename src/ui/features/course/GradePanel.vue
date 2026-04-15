@@ -195,9 +195,9 @@ interface GradeColumnGroup {
 }
 
 const BASE_TYPE_META = [
-  { baseType: 'comportamiento', label: 'Comportamiento', emoji: '🤝', short: 'C' },
-  { baseType: 'participacion', label: 'Participación', emoji: '🙋', short: 'P' },
-  { baseType: 'examenes', label: 'Exámenes', emoji: '📝', short: 'E' },
+  { baseType: 'comportamiento', label: 'Comportamiento', emoji: '🤝', short: 'Com' },
+  { baseType: 'participacion', label: 'Participación', emoji: '🙋', short: 'Par' },
+  { baseType: 'examenes', label: 'Exámenes', emoji: '📝', short: 'Exa' },
 ] as const
 
 const props = defineProps<{
@@ -297,7 +297,7 @@ const gradeColumnGroups = computed<GradeColumnGroup[]>(() => {
         key: gradeTypeForSlot(meta.baseType, slot),
         baseType: meta.baseType,
         slot,
-        shortLabel: count > 1 ? `${meta.emoji} ${meta.short}.${slot}` : `${meta.emoji} ${meta.short}.`,
+        shortLabel: count > 1 ? `${meta.emoji} ${meta.short}${slot}` : `${meta.emoji} ${meta.short}`,
         fullLabel: count > 1 ? `${meta.label} ${slot}` : meta.label,
       })
     }
