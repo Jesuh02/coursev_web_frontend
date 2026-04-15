@@ -23,6 +23,39 @@ export interface BulkGradeEntry {
   grade: number
 }
 
+export interface GradeSheetTask {
+  id: number
+  title: string
+  topicId: number
+}
+
+export interface GradeSheetTaskGrade {
+  taskId: number
+  studentId: number
+  grade: number | null
+  feedback: string | null
+  submissionId: number
+  submittedAt: string | null
+  gradedAt: string | null
+}
+
+export interface GradeSheetStudent {
+  userId: number
+  username: string | null
+  avatar: string | null
+  fullName: string | null
+  cedula: string | null
+}
+
+export interface GradeSheet {
+  subjectId: number
+  courseId: number
+  students: GradeSheetStudent[]
+  tasks: GradeSheetTask[]
+  manualGrades: ManualGrade[]
+  taskGrades: GradeSheetTaskGrade[]
+}
+
 export const gradeAdapter = {
   /** Docente: set a single grade */
   setGrade: (data: { studentId: number; courseId: number; subjectId: number; gradeType: string; grade: number }) =>
@@ -53,4 +86,8 @@ export const gradeAdapter = {
   /** Student: get own grade averages for a subject */
   getMySubjectAverages: (subjectId: number) =>
     api.get<GradeAverages>(`/grades/my/subject/${subjectId}/averages`),
+
+  /** Docente/Admin: get full grade sheet (Excel-like) for a subject */
+  getGradeSheet: (subjectId: number) =>
+    api.get<GradeSheet>(`/grades/sheet/${subjectId}`),
 }
