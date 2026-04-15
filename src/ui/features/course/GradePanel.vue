@@ -1,16 +1,32 @@
 <template>
-  <div class="grade-overlay" @click.self="$emit('close')">
-    <div class="grade-panel">
+  <div class="grade-overlay" :class="{ expanded: isExpanded }" @click.self="$emit('close')">
+    <div class="grade-panel" :class="{ expanded: isExpanded }">
       <div class="panel-header">
-        <h2 class="panel-title">📊 Planilla de Calificaciones</h2>
+        <div class="header-left">
+          <button class="expand-btn" @click="isExpanded = !isExpanded" :title="isExpanded ? 'Colapsar' : 'Expandir'">
+            <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+              <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+              <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+              <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+              <line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+          </button>
+          <h2 class="panel-title">📊 Planilla de Calificaciones</h2>
+        </div>
         <button class="close-btn" @click="$emit('close')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
 
       <!-- Search filter -->
       <div class="search-bar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
         <input
           v-model="searchQuery"
           class="search-input"
@@ -30,9 +46,23 @@
             <thead>
               <tr>
                 <th class="col-student sticky-col">Estudiante</th>
-                <th class="col-manual" title="Comportamiento">🤝 Comp.</th>
-                <th class="col-manual" title="Participación">🙋 Part.</th>
-                <th class="col-manual" title="Exámenes">📝 Exam.</th>
+                <template v-for="group in gradeColumnGroups" :key="group.baseType">
+                  <th
+                    v-for="col in group.columns"
+                    :key="col.key"
+                    class="col-manual"
+                    :title="col.fullLabel"
+                  >
+                    {{ col.shortLabel }}
+                  </th>
+                  <th class="col-add-slot">
+                    <button
+                      class="add-slot-btn"
+                      @click="addSlot(group.baseType)"
+                      :title="'Agregar columna de ' + group.label"
+                    >+</button>
+                  </th>
+                </template>
                 <th
                   v-for="task in tasks"
                   :key="task.id"
@@ -41,7 +71,7 @@
                 >
                   📋 {{ truncate(task.title, 12) }}
                 </th>
-                <th class="col-avg">Promedio</th>
+                <th class="col-avg">Prom.</th>
               </tr>
             </thead>
             <tbody>
@@ -58,43 +88,23 @@
                     </div>
                   </div>
                 </td>
-                <!-- Comportamiento -->
-                <td class="col-manual">
-                  <input
-                    :value="getManualGrade(student.userId, 'comportamiento')"
-                    class="cell-input"
-                    type="number" min="0" max="10" step="0.5"
-                    placeholder="—"
-                    @change="onManualGradeChange(student.userId, 'comportamiento', $event)"
-                  />
-                </td>
-                <!-- Participación -->
-                <td class="col-manual">
-                  <input
-                    :value="getManualGrade(student.userId, 'participacion')"
-                    class="cell-input"
-                    type="number" min="0" max="10" step="0.5"
-                    placeholder="—"
-                    @change="onManualGradeChange(student.userId, 'participacion', $event)"
-                  />
-                </td>
-                <!-- Exámenes -->
-                <td class="col-manual">
-                  <input
-                    :value="getManualGrade(student.userId, 'examenes')"
-                    class="cell-input"
-                    type="number" min="0" max="10" step="0.5"
-                    placeholder="—"
-                    @change="onManualGradeChange(student.userId, 'examenes', $event)"
-                  />
-                </td>
-                <!-- Task grades (read-only from submissions) -->
+                <template v-for="group in gradeColumnGroups" :key="group.baseType">
+                  <td v-for="col in group.columns" :key="col.key" class="col-manual">
+                    <input
+                      :value="getManualGrade(student.userId, col.key)"
+                      class="cell-input"
+                      type="number" min="0" max="10" step="0.5"
+                      placeholder="—"
+                      @change="onManualGradeChange(student.userId, col.key, $event)"
+                    />
+                  </td>
+                  <td class="col-add-spacer"></td>
+                </template>
                 <td v-for="task in tasks" :key="task.id" class="col-task">
                   <span class="cell-readonly" :class="taskGradeClass(student.userId, task.id)">
                     {{ formatTaskGrade(student.userId, task.id) }}
                   </span>
                 </td>
-                <!-- Average -->
                 <td class="col-avg">
                   <span class="cell-avg" :class="avgClass(student.userId)">
                     {{ computeAverage(student.userId) }}
@@ -110,10 +120,12 @@
       <div v-if="!loading && filteredStudents.length" class="bulk-bar">
         <div class="bulk-section">
           <label class="bulk-label">Asignar nota masiva:</label>
-          <select v-model="bulkType" class="bulk-select">
-            <option value="comportamiento">🤝 Comportamiento</option>
-            <option value="participacion">🙋 Participación</option>
-            <option value="examenes">📝 Exámenes</option>
+          <select v-model="bulkColumnKey" class="bulk-select">
+            <template v-for="group in gradeColumnGroups" :key="group.baseType">
+              <option v-for="col in group.columns" :key="col.key" :value="col.key">
+                {{ col.fullLabel }}
+              </option>
+            </template>
           </select>
           <input
             v-model.number="bulkGrade"
@@ -139,9 +151,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { ManualGrade, GradeSheetTaskGrade, GradeSheetTask, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+
+interface GradeColumn {
+  key: string        // e.g. "comportamiento", "comportamiento_2"
+  baseType: string   // e.g. "comportamiento"
+  slot: number       // 1, 2, 3...
+  shortLabel: string // "🤝 C.1"
+  fullLabel: string  // "Comportamiento 1"
+}
+
+interface GradeColumnGroup {
+  baseType: string
+  label: string
+  emoji: string
+  columns: GradeColumn[]
+}
+
+const BASE_TYPE_META = [
+  { baseType: 'comportamiento', label: 'Comportamiento', emoji: '🤝', short: 'C' },
+  { baseType: 'participacion', label: 'Participación', emoji: '🙋', short: 'P' },
+  { baseType: 'examenes', label: 'Exámenes', emoji: '📝', short: 'E' },
+] as const
 
 const props = defineProps<{
   courseId: number
@@ -157,8 +190,9 @@ const emit = defineEmits<{
 const searchQuery = ref('')
 const loading = ref(true)
 const saving = ref(false)
+const isExpanded = ref(false)
 const bulkGrade = ref<number | null>(null)
-const bulkType = ref<string>('comportamiento')
+const bulkColumnKey = ref<string>('comportamiento')
 
 // Data from backend
 const sheetStudents = ref<GradeSheetStudent[]>([])
@@ -168,11 +202,68 @@ const taskGrades = ref<GradeSheetTaskGrade[]>([])
 
 // Editable manual grades: key = `${userId}-${gradeType}`, value = grade
 const editedManualGrades = ref<Record<string, number | null>>({})
-// Track original values to detect dirty entries
 const originalManualGrades = ref<Record<string, number | null>>({})
 
+// Slots per type: tracks how many columns each base type has
+const slotsPerType = reactive<Record<string, number>>({
+  comportamiento: 1,
+  participacion: 1,
+  examenes: 1,
+})
+
+// --- Slot helpers ---
+
+function parseGradeType(gradeType: string): { baseType: string; slot: number } {
+  const match = gradeType.match(/^(comportamiento|participacion|examenes)(?:_(\d+))?$/)
+  if (!match) return { baseType: gradeType, slot: 1 }
+  return { baseType: match[1], slot: match[2] ? Number(match[2]) : 1 }
+}
+
+function gradeTypeForSlot(baseType: string, slot: number): string {
+  return slot === 1 ? baseType : `${baseType}_${slot}`
+}
+
+function discoverSlots() {
+  for (const mg of manualGradesData.value) {
+    const { baseType, slot } = parseGradeType(mg.gradeType)
+    if (baseType in slotsPerType && slot > slotsPerType[baseType]) {
+      slotsPerType[baseType] = slot
+    }
+  }
+}
+
+function addSlot(baseType: string) {
+  slotsPerType[baseType] = (slotsPerType[baseType] || 1) + 1
+}
+
+// --- Grade column groups (dynamic) ---
+
+const gradeColumnGroups = computed<GradeColumnGroup[]>(() => {
+  return BASE_TYPE_META.map(meta => {
+    const count = slotsPerType[meta.baseType] || 1
+    const columns: GradeColumn[] = []
+    for (let slot = 1; slot <= count; slot++) {
+      columns.push({
+        key: gradeTypeForSlot(meta.baseType, slot),
+        baseType: meta.baseType,
+        slot,
+        shortLabel: count > 1 ? `${meta.emoji} ${meta.short}.${slot}` : `${meta.emoji} ${meta.short}.`,
+        fullLabel: count > 1 ? `${meta.label} ${slot}` : meta.label,
+      })
+    }
+    return { baseType: meta.baseType, label: meta.label, emoji: meta.emoji, columns }
+  })
+})
+
+// --- All grade column keys (flat list) ---
+
+const allGradeColumnKeys = computed(() => {
+  return gradeColumnGroups.value.flatMap(g => g.columns.map(c => c.key))
+})
+
+// --- Students ---
+
 const allStudents = computed(() => {
-  // Merge students from props with those from sheet response
   const map = new Map<number, GradeSheetStudent>()
   for (const s of props.students) {
     map.set(s.userId, { userId: s.userId, username: s.username, fullName: s.fullName, cedula: s.cedula, avatar: s.avatar })
@@ -200,11 +291,15 @@ const filteredStudents = computed(() => {
   })
 })
 
+// --- Dirty tracking ---
+
 const dirtyEntries = computed(() => {
   return Object.entries(editedManualGrades.value).filter(([key, val]) => {
     return val !== originalManualGrades.value[key]
   })
 })
+
+// --- Grade helpers ---
 
 function gradeKey(userId: number, type: string) {
   return `${userId}-${type}`
@@ -246,8 +341,8 @@ function taskGradeClass(userId: number, taskId: number): string {
 
 function computeAverage(userId: number): string {
   const values: number[] = []
-  for (const type of ['comportamiento', 'participacion', 'examenes'] as const) {
-    const key = gradeKey(userId, type)
+  for (const colKey of allGradeColumnKeys.value) {
+    const key = gradeKey(userId, colKey)
     const val = editedManualGrades.value[key]
     if (val !== null && val !== undefined) values.push(val)
   }
@@ -270,18 +365,21 @@ function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + '…' : str
 }
 
+// --- Bulk action ---
+
 function applyBulkGrade() {
   if (bulkGrade.value === null || bulkGrade.value === undefined) return
   const clamped = Math.min(10, Math.max(0, bulkGrade.value))
   for (const s of allStudents.value) {
-    editedManualGrades.value[gradeKey(s.userId, bulkType.value)] = clamped
+    editedManualGrades.value[gradeKey(s.userId, bulkColumnKey.value)] = clamped
   }
 }
+
+// --- Save ---
 
 async function saveAllGrades() {
   saving.value = true
   try {
-    // Group dirty entries by type
     const byType: Record<string, { studentId: number; grade: number }[]> = {}
     for (const [key, val] of dirtyEntries.value) {
       if (val === null || val === undefined) continue
@@ -301,7 +399,6 @@ async function saveAllGrades() {
       })
     }
 
-    // Update originals
     for (const [key, val] of Object.entries(editedManualGrades.value)) {
       originalManualGrades.value[key] = val
     }
@@ -313,6 +410,8 @@ async function saveAllGrades() {
   saving.value = false
 }
 
+// --- Init ---
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -321,6 +420,9 @@ onMounted(async () => {
     tasks.value = sheet.tasks || []
     manualGradesData.value = sheet.manualGrades || []
     taskGrades.value = sheet.taskGrades || []
+
+    // Discover existing multi-slot columns from data
+    discoverSlots()
 
     // Populate editable manual grades
     for (const mg of manualGradesData.value) {
@@ -345,6 +447,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  transition: padding 0.25s ease;
+}
+
+.grade-overlay.expanded {
+  padding: 0;
 }
 
 .grade-panel {
@@ -357,6 +464,15 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.grade-panel.expanded {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
 }
 
 .panel-header {
@@ -365,6 +481,29 @@ onMounted(async () => {
   justify-content: space-between;
   padding: 20px 20px 12px;
   flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expand-btn {
+  background: rgba(191, 90, 242, 0.1);
+  border: 1px solid rgba(191, 90, 242, 0.25);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.expand-btn:hover {
+  background: rgba(191, 90, 242, 0.2);
 }
 
 .panel-title {
@@ -445,6 +584,10 @@ onMounted(async () => {
   max-height: calc(90vh - 260px);
 }
 
+.grade-panel.expanded .sheet-scroll {
+  max-height: calc(100vh - 260px);
+}
+
 .grade-sheet {
   width: max-content;
   min-width: 100%;
@@ -497,9 +640,45 @@ onMounted(async () => {
   background: #1A1E35 !important;
 }
 
-.col-manual { min-width: 80px; }
+.col-manual { min-width: 72px; }
 .col-task { min-width: 90px; }
-.col-avg { min-width: 80px; }
+.col-avg { min-width: 72px; }
+
+/* Add-slot column */
+.col-add-slot {
+  min-width: 32px;
+  max-width: 32px;
+  padding: 4px 2px !important;
+}
+
+.col-add-spacer {
+  min-width: 32px;
+  max-width: 32px;
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.add-slot-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px dashed rgba(191, 90, 242, 0.4);
+  background: rgba(191, 90, 242, 0.08);
+  color: #BF5AF2;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.add-slot-btn:hover {
+  background: rgba(191, 90, 242, 0.2);
+  border-color: #BF5AF2;
+}
 
 /* Student cell */
 .student-cell {
@@ -561,6 +740,14 @@ onMounted(async () => {
   text-align: center;
   outline: none;
   transition: border-color 0.2s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.cell-input::-webkit-inner-spin-button,
+.cell-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .cell-input:focus {
@@ -692,14 +879,87 @@ onMounted(async () => {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
+  .grade-overlay {
+    padding: 0;
+  }
+
   .grade-panel {
     width: 100vw;
     max-width: 100vw;
-    border-radius: 16px 16px 0 0;
-    max-height: 95vh;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
   }
-  .sheet-scroll {
-    max-height: calc(95vh - 280px);
+
+  .grade-panel .sheet-scroll {
+    max-height: calc(100vh - 280px);
+  }
+
+  .panel-header {
+    padding: 14px 14px 10px;
+  }
+
+  .panel-title {
+    font-size: 15px;
+  }
+
+  .search-bar {
+    margin: 0 14px 10px;
+    padding: 8px 12px;
+  }
+
+  .sticky-col {
+    min-width: 130px;
+  }
+
+  .cell-name {
+    font-size: 12px;
+    max-width: 100px;
+  }
+
+  .cell-username {
+    display: none;
+  }
+
+  .student-avatar-sm {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cell-input {
+    width: 48px;
+    padding: 8px 2px;
+    font-size: 13px;
+  }
+
+  .col-manual {
+    min-width: 56px;
+  }
+
+  .bulk-section {
+    gap: 6px;
+  }
+
+  .bulk-label {
+    width: 100%;
+    font-size: 12px;
+  }
+
+  .bulk-select, .bulk-input {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .panel-footer {
+    padding: 10px 14px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .save-btn {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>
