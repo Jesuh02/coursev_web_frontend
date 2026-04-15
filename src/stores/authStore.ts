@@ -27,12 +27,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function hydrateAuthoritativeUser(fallbackUser: User) {
-    try {
-      user.value = await userAdapter.getMyProfile()
-    } catch {
-      user.value = fallbackUser
-    }
-    tokenStorage.username = user.value?.username ?? null
+    // Set user immediately from login response so navigation is not blocked
+    user.value = fallbackUser
+    tokenStorage.username = fallbackUser?.username ?? null
+    // Refresh profile in background for any extra fields (non-blocking)
+    userAdapter.getMyProfile().then(fullUser => {
+      user.value = fullUser
+      tokenStorage.username = fullUser?.username ?? null
+    }).catch(() => { /* keep fallbackUser */ })
   }
 
   const isAdmin = computed(() => hasRole(3) || hasRole(4))
