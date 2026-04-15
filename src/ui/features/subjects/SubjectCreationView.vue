@@ -23,36 +23,29 @@
     <!-- Sección colaboradores: visible sólo en modo edición -->
     <section v-if="isEdit && subjectId" class="collaborators-section">
       <h3 class="collabs-title">Colaboradores de la materia</h3>
-      <p class="collabs-subtitle">Docentes con permisos de dueño: pueden crear, editar y eliminar temas, tareas y calificar.</p>
+      <p class="collabs-subtitle">Docentes del curso con permisos de dueño sobre esta materia: pueden crear, editar y eliminar temas, tareas y calificar.</p>
 
-      <!-- Buscador de usuarios -->
-      <div class="search-row">
-        <input
-          v-model="userSearch"
-          class="search-input"
-          placeholder="Buscar docente por nombre o email…"
-          @input="onSearchInput"
-        />
+      <!-- Lista de colaboradores del curso disponibles para agregar -->
+      <div v-if="availableCourseCollabs.length" class="available-collabs">
+        <p class="available-label">Colaboradores del curso disponibles:</p>
+        <ul class="search-results">
+          <li
+            v-for="u in availableCourseCollabs"
+            :key="u.id"
+            class="search-result-item"
+            @click="addCollaborator(u)"
+          >
+            <img v-if="u.avatar" :src="u.avatar" class="user-avatar" alt="" />
+            <span v-else class="user-avatar-placeholder">{{ u.username?.[0]?.toUpperCase() }}</span>
+            <div class="user-info">
+              <span class="user-name">{{ u.username }}</span>
+              <span class="user-email">{{ u.email }}</span>
+            </div>
+            <span class="add-icon">+</span>
+          </li>
+        </ul>
       </div>
-
-      <!-- Resultados de búsqueda -->
-      <ul v-if="searchResults.length" class="search-results">
-        <li
-          v-for="u in searchResults"
-          :key="u.id"
-          class="search-result-item"
-          @click="addCollaborator(u)"
-        >
-          <img v-if="u.avatar" :src="u.avatar" class="user-avatar" alt="" />
-          <span v-else class="user-avatar-placeholder">{{ u.username?.[0]?.toUpperCase() }}</span>
-          <div class="user-info">
-            <span class="user-name">{{ u.username }}</span>
-            <span class="user-email">{{ u.email }}</span>
-          </div>
-          <span class="add-icon">+</span>
-        </li>
-      </ul>
-      <p v-else-if="userSearch.length > 1 && !searchLoading" class="no-results">Sin resultados</p>
+      <p v-else-if="!collabLoading && courseCollabsLoaded" class="no-results">No hay colaboradores del curso disponibles para agregar</p>
 
       <!-- Lista de colaboradores actuales -->
       <div v-if="collabLoading" class="collabs-loading">Cargando colaboradores…</div>
@@ -76,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -105,10 +98,13 @@ const collaborators = ref<SubjectCollaborator[]>([])
 const collabLoading = ref(false)
 const collabError = ref('')
 const removingId = ref<number | null>(null)
-const userSearch = ref('')
-const searchResults = ref<{ id: number; username: string; email: string; avatar: string }[]>([])
-const searchLoading = ref(false)
-let searchTimer: ReturnType<typeof setTimeout> | null = null
+const courseCollaborators = ref<{ id: number; username: string; email: string; avatar: string }[]>([])
+const courseCollabsLoaded = ref(false)
+
+const availableCourseCollabs = computed(() => {
+  const existingIds = new Set(collaborators.value.map(c => c.userId))
+  return courseCollaborators.value.filter(u => !existingIds.has(u.id))
+})
 
 onMounted(async () => {
   courseId.value = Number(route.query.courseId) || 0
@@ -157,6 +153,7 @@ onMounted(async () => {
     }
 
     loadCollaborators()
+    loadCourseCollaborators()
   }
 })
 
@@ -174,26 +171,23 @@ async function loadCollaborators() {
   }
 }
 
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer)
-  if (userSearch.value.length < 2) { searchResults.value = []; return }
-  searchTimer = setTimeout(searchUsers, 350)
-}
-
-async function searchUsers() {
-  if (userSearch.value.length < 2) return
-  searchLoading.value = true
+async function loadCourseCollaborators() {
+  if (!courseId.value) return
   try {
-    const { userAdapter } = await import('@/infrastructure/api')
-    const users = await userAdapter.searchUsers(userSearch.value)
-    const existingIds = new Set(collaborators.value.map(c => c.userId))
-    searchResults.value = users
-      .filter(u => !existingIds.has(Number(u.id)))
-      .map(u => ({ id: Number(u.id), username: u.username ?? '', email: u.email ?? '', avatar: u.avatar ?? '' }))
+    const { collaboratorAdapter } = await import('@/infrastructure/api')
+    const entries = await collaboratorAdapter.getByCourse(courseId.value)
+    courseCollaborators.value = entries
+      .filter(e => e.user)
+      .map(e => ({
+        id: e.userId,
+        username: e.user!.username ?? '',
+        email: e.user!.email ?? '',
+        avatar: e.user!.avatar ?? '',
+      }))
   } catch {
-    searchResults.value = []
+    courseCollaborators.value = []
   } finally {
-    searchLoading.value = false
+    courseCollabsLoaded.value = true
   }
 }
 
@@ -203,9 +197,6 @@ async function addCollaborator(user: { id: number; username: string; email: stri
     const { subjectCollaboratorAdapter } = await import('@/infrastructure/api/subjectAdapter')
     const collab = await subjectCollaboratorAdapter.addCollaborator(subjectId.value, user.id)
     collaborators.value.push(collab)
-    searchResults.value = searchResults.value.filter(u => u.id !== user.id)
-    userSearch.value = ''
-    searchResults.value = []
   } catch (err) {
     collabError.value = err instanceof Error ? err.message : 'Error al añadir colaborador'
   }
@@ -350,21 +341,13 @@ async function save() {
   line-height: 1.5;
 }
 
-.search-row { margin-bottom: 8px; }
+.available-collabs { margin-bottom: 12px; }
 
-.search-input {
-  width: 100%;
-  background: #1C1C1E;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 10px 14px;
-  color: var(--text-primary, #fff);
-  font-size: 14px;
-  outline: none;
-  box-sizing: border-box;
+.available-label {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0 0 8px;
 }
-
-.search-input::placeholder { color: #636366; }
 
 .search-results {
   list-style: none;
