@@ -1057,6 +1057,22 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* ── Desktop: respect left navigation rail ── */
+@media (min-width: 769px) {
+  .grade-overlay.expanded {
+    left: 100px;
+  }
+
+  .grade-panel.expanded {
+    width: calc(100vw - 100px);
+    max-width: calc(100vw - 100px);
+  }
+
+  .glass-overlay {
+    left: 100px;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .grade-overlay {
