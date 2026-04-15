@@ -55,12 +55,20 @@
                   >
                     {{ col.shortLabel }}
                   </th>
-                  <th class="col-add-slot">
-                    <button
-                      class="add-slot-btn"
-                      @click="addSlot(group.baseType)"
-                      :title="'Agregar columna de ' + group.label"
-                    >+</button>
+                  <th class="col-slot-actions">
+                    <div class="slot-action-btns">
+                      <button
+                        class="add-slot-btn"
+                        @click="addSlot(group.baseType)"
+                        :title="'Agregar columna de ' + group.label"
+                      >+</button>
+                      <button
+                        v-if="group.columns.length > 1"
+                        class="remove-slot-btn"
+                        @click="confirmRemoveSlot(group.baseType, group.label)"
+                        :title="'Eliminar última columna de ' + group.label"
+                      >&minus;</button>
+                    </div>
                   </th>
                 </template>
                 <th
@@ -98,7 +106,7 @@
                       @change="onManualGradeChange(student.userId, col.key, $event)"
                     />
                   </td>
-                  <td class="col-add-spacer"></td>
+                  <td class="col-slot-actions-spacer"></td>
                 </template>
                 <td v-for="task in tasks" :key="task.id" class="col-task">
                   <span class="cell-readonly" :class="taskGradeClass(student.userId, task.id)">
@@ -146,6 +154,22 @@
           {{ saving ? 'Guardando...' : 'Guardar Notas' }}
         </button>
       </div>
+      <!-- Liquidglass confirm modal -->
+      <Teleport to="body">
+        <Transition name="glass-fade">
+          <div v-if="removeConfirm.show" class="glass-overlay" @click.self="removeConfirm.show = false">
+            <div class="glass-dialog">
+              <div class="glass-icon">🗑️</div>
+              <h3 class="glass-title">¿Estás seguro de eliminar la columna de notas?</h3>
+              <p class="glass-desc">Se eliminará la última columna de <strong>{{ removeConfirm.label }}</strong>. Las notas ingresadas en esa columna se perderán si no fueron guardadas.</p>
+              <div class="glass-actions">
+                <button class="glass-btn cancel" @click="removeConfirm.show = false">Cancelar</button>
+                <button class="glass-btn confirm" @click="executeRemoveSlot">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -194,6 +218,9 @@ const isExpanded = ref(false)
 const bulkGrade = ref<number | null>(null)
 const bulkColumnKey = ref<string>('comportamiento')
 
+// Remove slot confirmation
+const removeConfirm = reactive({ show: false, baseType: '', label: '' })
+
 // Data from backend
 const sheetStudents = ref<GradeSheetStudent[]>([])
 const tasks = ref<GradeSheetTask[]>([])
@@ -234,6 +261,29 @@ function discoverSlots() {
 
 function addSlot(baseType: string) {
   slotsPerType[baseType] = (slotsPerType[baseType] || 1) + 1
+}
+
+function confirmRemoveSlot(baseType: string, label: string) {
+  removeConfirm.baseType = baseType
+  removeConfirm.label = label
+  removeConfirm.show = true
+}
+
+function executeRemoveSlot() {
+  const baseType = removeConfirm.baseType
+  const count = slotsPerType[baseType] || 1
+  if (count <= 1) { removeConfirm.show = false; return }
+
+  const removedKey = gradeTypeForSlot(baseType, count)
+  // Clear edited grades for the removed column
+  for (const s of allStudents.value) {
+    const key = gradeKey(s.userId, removedKey)
+    delete editedManualGrades.value[key]
+    delete originalManualGrades.value[key]
+  }
+
+  slotsPerType[baseType] = count - 1
+  removeConfirm.show = false
 }
 
 // --- Grade column groups (dynamic) ---
@@ -644,18 +694,25 @@ onMounted(async () => {
 .col-task { min-width: 90px; }
 .col-avg { min-width: 72px; }
 
-/* Add-slot column */
-.col-add-slot {
-  min-width: 32px;
-  max-width: 32px;
+/* Add-slot / remove-slot column */
+.col-slot-actions {
+  min-width: 38px;
+  max-width: 38px;
   padding: 4px 2px !important;
 }
 
-.col-add-spacer {
-  min-width: 32px;
-  max-width: 32px;
+.col-slot-actions-spacer {
+  min-width: 38px;
+  max-width: 38px;
   padding: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.slot-action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
 }
 
 .add-slot-btn {
@@ -678,6 +735,129 @@ onMounted(async () => {
 .add-slot-btn:hover {
   background: rgba(191, 90, 242, 0.2);
   border-color: #BF5AF2;
+}
+
+.remove-slot-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px dashed rgba(255, 55, 95, 0.4);
+  background: rgba(255, 55, 95, 0.08);
+  color: #FF375F;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.remove-slot-btn:hover {
+  background: rgba(255, 55, 95, 0.2);
+  border-color: #FF375F;
+}
+
+/* ── Liquidglass confirm dialog ── */
+.glass-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.glass-dialog {
+  background: rgba(30, 30, 50, 0.55);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: glass-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes glass-pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.glass-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.glass-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+.glass-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+  margin: 0 0 22px;
+}
+
+.glass-desc strong {
+  color: #fff;
+}
+
+.glass-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.glass-btn {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.glass-btn.cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.glass-btn.confirm {
+  background: rgba(255, 55, 95, 0.25);
+  color: #FF375F;
+  border: 1px solid rgba(255, 55, 95, 0.3);
+}
+
+.glass-btn.confirm:hover {
+  background: rgba(255, 55, 95, 0.4);
+}
+
+.glass-fade-enter-active, .glass-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.glass-fade-enter-from, .glass-fade-leave-to {
+  opacity: 0;
 }
 
 /* Student cell */
