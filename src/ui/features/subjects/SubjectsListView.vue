@@ -6,19 +6,31 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <h1 class="header-title">Mis Materias</h1>
-        <button
-          v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente)"
-          class="report-btn"
-          :class="{ 'report-btn--pulse': reportPulse }"
-          @click="showReport = true"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-        </button>
+        <div v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente)" class="more-menu-wrapper">
+          <button
+            class="more-menu-btn"
+            :class="{ 'more-menu-btn--pulse': reportPulse }"
+            @click="showMoreMenu = !showMoreMenu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+          <Transition name="fade">
+            <div v-if="showMoreMenu" class="more-menu-dropdown" @click.stop>
+              <button class="more-menu-option" @click="showMoreMenu = false; showReport = true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                Reporte de notas
+              </button>
+              <button class="more-menu-option" @click="showMoreMenu = false; showBulletin = true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Generar boletín
+              </button>
+            </div>
+          </Transition>
+        </div>
         <button
           v-if="canCreate && allSubjects.length > 1"
           class="sort-btn"
@@ -142,6 +154,7 @@
     </Teleport>
 
     <GradeReportModal v-model="showReport" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
+    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
   </div>
 </template>
 
@@ -157,6 +170,7 @@ import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 import { useSubjectSocket } from '@/composables/useSubjectSocket'
 import SubjectCard from './components/SubjectCard.vue'
 import GradeReportModal from './components/GradeReportModal.vue'
+import BulletinModal from './components/BulletinModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,10 +194,18 @@ const subjectBlocks = ref<Record<number, string>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
 const enrollmentApproved = ref(false)
 const showReport = ref(false)
+const showBulletin = ref(false)
+const showMoreMenu = ref(false)
 const reportPulse = ref(true)
 
 // Disable pulse animation after first interaction
 watch(showReport, (v) => { if (v) reportPulse.value = false })
+
+// Close menu when clicking outside
+function onDocClick() { showMoreMenu.value = false }
+watch(showMoreMenu, (v) => {
+  if (v) setTimeout(() => document.addEventListener('click', onDocClick, { once: true }), 0)
+})
 
 // ── Drag & drop ordering ──
 const isDragMode = ref(false)
@@ -881,4 +903,62 @@ useSubjectSocket(courseId.value, {
 .block-alert-dialog h3 { color: #FF453A; }
 .block-reason-text { font-size: 15px; color: #ccc; margin-bottom: 20px; }
 .block-alert-dialog .confirm-actions { justify-content: center; }
+
+/* ── Three-dot more menu ── */
+.more-menu-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.more-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BF5AF2;
+  transition: background 0.2s, transform 0.2s;
+}
+.more-menu-btn:hover { background: rgba(191, 90, 242, 0.15); transform: scale(1.08); }
+.more-menu-btn:active { transform: scale(0.95); }
+.more-menu-btn--pulse::after {
+  content: '';
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #BF5AF2;
+  animation: report-dot-pulse 1.8s ease-in-out infinite;
+}
+
+.more-menu-dropdown {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  min-width: 200px;
+  background: #2C2C2E;
+  border-radius: 14px;
+  padding: 6px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 60;
+  overflow: hidden;
+}
+
+.more-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  text-align: left;
+  transition: background 0.15s;
+}
+.more-menu-option:hover { background: rgba(255, 255, 255, 0.06); }
+.more-menu-option svg { flex-shrink: 0; color: #BF5AF2; }
 </style>

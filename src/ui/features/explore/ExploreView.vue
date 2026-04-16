@@ -128,27 +128,40 @@
       </Transition>
     </Teleport>
 
-    <!-- Botón reporte de notas plataforma (solo rol 3) -->
+    <!-- Menú ⋮ de opciones plataforma (solo rol 3) -->
     <Teleport to="body">
-      <button
-        v-if="userRole === 3"
-        class="platform-report-fab"
-        title="Reporte de notas — plataforma"
-        @click="showPlatformReport = true"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
-        </svg>
-        <span class="fab-label">Reporte</span>
-      </button>
+      <div v-if="userRole === 3" class="platform-fab-wrapper">
+        <button
+          class="platform-report-fab"
+          title="Opciones"
+          @click="showPlatformMenu = !showPlatformMenu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="12" cy="19" r="2" />
+          </svg>
+        </button>
+        <Transition name="fade">
+          <div v-if="showPlatformMenu" class="platform-menu-dropdown" @click.stop>
+            <button class="platform-menu-option" @click="showPlatformMenu = false; showPlatformReport = true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+              Reporte de notas
+            </button>
+            <button class="platform-menu-option" @click="showPlatformMenu = false; showExploreBulletin = true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Generar boletín
+            </button>
+          </div>
+        </Transition>
+      </div>
     </Teleport>
 
     <!-- Modal reporte plataforma -->
     <PlatformGradeReportModal v-model="showPlatformReport" />
+
+    <!-- Modal boletín plataforma -->
+    <ExploreBulletinModal v-model="showExploreBulletin" />
 
     <!-- Role selection dialog for docente users -->
     <Teleport to="body">
@@ -194,6 +207,7 @@ import CourseCard from './components/CourseCard.vue'
 import FilterBottomSheet from './components/FilterBottomSheet.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 import PlatformGradeReportModal from './components/PlatformGradeReportModal.vue'
+import ExploreBulletinModal from './components/ExploreBulletinModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -211,6 +225,14 @@ const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 const showPlatformReport = ref(false)
+const showExploreBulletin = ref(false)
+const showPlatformMenu = ref(false)
+
+// Close menu when clicking outside
+function onPlatformMenuDocClick() { showPlatformMenu.value = false }
+watch(showPlatformMenu, (v) => {
+  if (v) setTimeout(() => document.addEventListener('click', onPlatformMenuDocClick, { once: true }), 0)
+})
 const searchPending = ref(false)
 const filterPending = ref(false)
 
@@ -1070,21 +1092,25 @@ onUnmounted(() => observer?.disconnect())
 }
 
 /* ── Botón FAB reporte plataforma ── */
-.platform-report-fab {
+.platform-fab-wrapper {
   position: fixed;
   bottom: 88px;
   right: 20px;
+  z-index: 90;
+}
+
+.platform-report-fab {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 11px 16px;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   color: #fff;
-  border-radius: 28px;
+  border-radius: 50%;
   box-shadow: 0 4px 18px rgba(191, 90, 242, 0.45);
   font-size: 14px;
   font-weight: 600;
-  z-index: 90;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .platform-report-fab:hover {
@@ -1092,11 +1118,37 @@ onUnmounted(() => observer?.disconnect())
   box-shadow: 0 6px 24px rgba(191, 90, 242, 0.55);
 }
 .platform-report-fab:active { transform: scale(0.95); }
-.fab-label { letter-spacing: 0.2px; }
+
+.platform-menu-dropdown {
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  min-width: 200px;
+  background: #2C2C2E;
+  border-radius: 14px;
+  padding: 6px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.platform-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  text-align: left;
+  transition: background 0.15s;
+}
+.platform-menu-option:hover { background: rgba(255, 255, 255, 0.06); }
+.platform-menu-option svg { flex-shrink: 0; color: #BF5AF2; }
 
 @media (max-width: 560px) {
-  .platform-report-fab { bottom: 80px; right: 14px; padding: 10px 13px; font-size: 13px; }
-  .fab-label { display: none; }
+  .platform-fab-wrapper { bottom: 80px; right: 14px; }
 }
 
 /* ── Role selection dialog ── */

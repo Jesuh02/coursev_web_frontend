@@ -1,6 +1,26 @@
 <template>
   <div class="subject-creation">
-    <TopBar :title="isEdit ? 'Editar Materia' : 'Crear Materia'" @back="$router.back()" />
+    <TopBar :title="isEdit ? 'Editar Materia' : 'Crear Materia'" @back="$router.back()">
+      <template v-if="isEdit" #actions>
+        <div class="more-menu-wrapper">
+          <button class="more-menu-btn" @click.stop="showMoreMenu = !showMoreMenu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+          </button>
+          <Transition name="fade">
+            <div v-if="showMoreMenu" class="more-menu-dropdown" @click.stop>
+              <button class="more-menu-option" @click="showMoreMenu = false; openReport()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                Reporte de notas
+              </button>
+              <button class="more-menu-option" @click="showMoreMenu = false; showBulletin = true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Generar boletín
+              </button>
+            </div>
+          </Transition>
+        </div>
+      </template>
+    </TopBar>
 
     <form class="creation-form" @submit.prevent="save">
       <div class="thumb-upload" @click="openFilePicker">
@@ -65,16 +85,22 @@
       <p v-else class="no-collabs">Aún no hay colaboradores.</p>
       <p v-if="collabError" class="save-error">{{ collabError }}</p>
     </section>
+
+    <!-- Modales -->
+    <GradeReportModal v-model="showReport" :course-id="courseId" :subjects="reportSubjects" />
+    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="courseName" :subjects="reportSubjects" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
+import GradeReportModal from './components/GradeReportModal.vue'
+import BulletinModal from './components/BulletinModal.vue'
 import type { SubjectCollaborator } from '@/infrastructure/api/subjectAdapter'
 
 const route = useRoute()
@@ -92,6 +118,32 @@ const subjectId = ref(0)
 const courseId = ref(0)
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
+
+// Three-dot menu & modals
+const showMoreMenu = ref(false)
+const showReport = ref(false)
+const showBulletin = ref(false)
+const courseName = ref('')
+const reportSubjects = ref<{ id: number; name: string; courseId: number }[]>([])
+
+function onDocClickMenu() { showMoreMenu.value = false }
+watch(showMoreMenu, (v) => {
+  if (v) setTimeout(() => document.addEventListener('click', onDocClickMenu, { once: true }), 0)
+})
+
+async function openReport() {
+  await loadReportSubjects()
+  showReport.value = true
+}
+
+async function loadReportSubjects() {
+  if (reportSubjects.value.length) return
+  try {
+    const { subjectAdapter } = await import('@/infrastructure/api')
+    const raw: any[] = await subjectAdapter.getSubjectsByCourse(courseId.value)
+    reportSubjects.value = raw.map((s: any) => ({ id: s.id, name: s.name, courseId: s.courseId ?? s.course_id ?? courseId.value }))
+  } catch { /* ignore */ }
+}
 
 // Collaborators state
 const collaborators = ref<SubjectCollaborator[]>([])
@@ -122,6 +174,7 @@ onMounted(async () => {
 
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
+    courseName.value = course.title || ''
     isCourseCreator = currentUserId > 0 && currentUserId === Number(course.creatorUserId)
 
     if (!isCourseCreator && !authStore.isAdmin) {
@@ -154,6 +207,7 @@ onMounted(async () => {
 
     loadCollaborators()
     loadCourseCollaborators()
+    loadReportSubjects()
   }
 })
 
@@ -464,4 +518,13 @@ async function save() {
 .no-collabs { font-size: 13px; color: #636366; margin: 8px 0 0; }
 
 .collabs-loading { font-size: 13px; color: #8E8E93; padding: 8px 0; }
+
+/* ── Three-dot menu ── */
+.more-menu-wrapper { position: relative; }
+.more-menu-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: transparent; transition: background 0.15s; }
+.more-menu-btn:hover { background: rgba(255,255,255,0.08); }
+.more-menu-dropdown { position: absolute; top: 44px; right: 0; min-width: 200px; background: #2C2C2E; border-radius: 14px; padding: 6px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); z-index: 100; overflow: hidden; }
+.more-menu-option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 500; color: #fff; text-align: left; transition: background 0.15s; }
+.more-menu-option:hover { background: rgba(255,255,255,0.06); }
+.more-menu-option svg { flex-shrink: 0; color: #BF5AF2; }
 </style>
