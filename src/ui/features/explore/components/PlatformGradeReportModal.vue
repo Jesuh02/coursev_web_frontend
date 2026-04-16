@@ -122,7 +122,7 @@
                             </thead>
                             <tbody>
                               <tr v-for="row in subGroup.gradeSummaries" :key="row.studentUsername" class="grade-row">
-                                <td class="cell-student">{{ row.studentUsername }}</td>
+                                <td class="cell-student">{{ row.studentFullName || row.studentUsername }}</td>
                                 <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
                                 <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ row.taskAvg != null ? row.taskAvg.toFixed(1) : '—' }}</td>
                                 <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
@@ -151,7 +151,7 @@
                           </thead>
                           <tbody>
                             <tr v-for="row in subGroup.rows" :key="row.id" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
-                              <td class="cell-student">{{ row.studentUsername || '—' }}</td>
+                              <td class="cell-student">{{ row.studentFullName || row.studentUsername || '—' }}</td>
                               <td class="cell-fullname">{{ row.studentFullName || '—' }}</td>
                               <td class="cell-cedula">{{ row.studentCedula || '—' }}</td>
                               <td class="cell-task">{{ row.taskName || '—' }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
@@ -237,6 +237,7 @@ interface ReportRow {
 
 interface GradeSummaryRow {
   studentUsername: string
+  studentFullName?: string | null
   taskAvg: number | null
   participacionAvg: number | null
   examenesAvg: number | null
@@ -492,6 +493,7 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
     const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
     return {
       studentUsername: student.username ?? `#${student.userId}`,
+      studentFullName: student.fullName?.trim() || null,
       taskAvg: fmt(taskAvg),
       participacionAvg: fmt(participacionAvg),
       examenesAvg: fmt(examenesAvg),
@@ -605,7 +607,7 @@ async function exportExcel() {
 
         const dataRow = ws.addRow([
           group.courseName,
-          row.studentUsername ?? '—',
+          row.studentFullName ?? row.studentUsername ?? '—',
           row.studentFullName ?? '—',
           row.studentCedula ?? '—',
           subGroup.subjectName,

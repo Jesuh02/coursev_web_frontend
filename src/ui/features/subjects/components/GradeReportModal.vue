@@ -546,7 +546,7 @@ async function exportExcel() {
 
       const dataRow = ws.addRow([
         props.courseName ?? `Curso ${props.courseId}`,
-        row.studentName,
+        row.studentFullName ?? row.studentName,
         row.studentFullName ?? '—',
         row.studentCedula ?? '—',
         taskLabel,
@@ -612,7 +612,7 @@ function buildShareText(): string {
     for (const row of group.rows) {
       const gradeStr = row.notSubmitted ? '0 (No entregado)' : (row.grade ?? 'Sin nota')
       const ponderada = group.studentAverages[row.studentName] != null ? ` [Cal. Ponderada: ${group.studentAverages[row.studentName]!.toFixed(1)}]` : ''
-      text += `   • [${row.studentName}] ${row.taskName}: ${gradeStr}${ponderada}${row.gradedByUsername ? ` (Calificó: ${row.gradedByUsername})` : ''}\n`
+      text += `   • [${row.studentFullName?.trim() || row.studentName}] ${row.taskName}: ${gradeStr}${ponderada}${row.gradedByUsername ? ` (Calificó: ${row.gradedByUsername})` : ''}\n`
     }
     text += '\n'
   }
