@@ -113,6 +113,7 @@
                     <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
                   </div>
                 </template>
+                </div>
 
             <div v-if="!loadingAllBulletins && allBulletinData.length" class="bulletin-export-bar">
               <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
@@ -120,6 +121,7 @@
                 PDF todos
               </button>
             </div>
+              </template>
           </div>
 
           <!-- Bulletin preview -->
