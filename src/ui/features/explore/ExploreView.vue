@@ -14,7 +14,7 @@
       @quick-filter="applyQuickFilter"
     />
 
-    <ExploreSkeleton v-if="courseStore.loading" />
+    <ExploreSkeleton v-if="showInitialSkeleton" />
 
     <div v-else-if="courseStore.courses.length" class="course-grid">
       <TransitionGroup name="card">
@@ -33,7 +33,7 @@
 
     <EmptyState v-else icon="search" message="No se encontraron cursos" />
 
-    <div v-if="courseStore.loadingMore" class="loading-more">
+    <div v-if="isInteractiveLoading" class="loading-more">
       <div class="spinner" />
     </div>
 
@@ -205,11 +205,14 @@ const courseStore = useCourseStore()
 const sentinel = ref<HTMLElement>()
 let observer: IntersectionObserver | null = null
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
+let suppressEmptySearchRefresh = false
 
 const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 const showPlatformReport = ref(false)
+const searchPending = ref(false)
+const filterPending = ref(false)
 
 // ── Teacher counts (collaborators per course) ─────────────────────────────
 const teacherCounts = ref<Record<number, number>>({})
@@ -240,6 +243,14 @@ const activeFilterLabel = computed(() => {
   }
   return labels[activeFilter.value] || null
 })
+
+const showInitialSkeleton = computed(() =>
+  courseStore.loading && courseStore.courses.length === 0 && !searchQuery.value.trim(),
+)
+
+const isInteractiveLoading = computed(() =>
+  searchPending.value || filterPending.value || courseStore.loadingMore,
+)
 
 const totalCoursesStat = computed(() => {
   const counts = courseStore.filterCounts || {}
@@ -330,12 +341,12 @@ async function runCourseSearch(query: string, pageNum = 1, limit = 20) {
   const requestId = ++searchRequestId
 
   if (!trimmedQuery) {
-    courseStore.loading = false
+    searchPending.value = false
     courseStore.loadingMore = false
     return
   }
 
-  if (pageNum === 1) courseStore.loading = true
+  if (pageNum === 1) searchPending.value = true
   else courseStore.loadingMore = true
 
   try {
@@ -364,9 +375,51 @@ async function runCourseSearch(query: string, pageNum = 1, limit = 20) {
     courseStore.hasMore = creatorMatches.length === 0 && (directResult.pagination?.hasNext ?? false)
   } finally {
     if (requestId === searchRequestId) {
-      courseStore.loading = false
+      searchPending.value = false
       courseStore.loadingMore = false
     }
+  }
+}
+
+async function refreshCurrentFilter(filter = activeFilter.value) {
+  const requestId = ++searchRequestId
+
+  if (filter === 'all') {
+    searchPending.value = false
+    filterPending.value = false
+    await courseStore.fetchCourses(1, 20, requestId)
+    return
+  }
+
+  filterPending.value = true
+
+  try {
+    if (filter === 'popular' || filter === 'new') {
+      await courseStore.fetchByFilter('all', requestId)
+      if (requestId !== searchRequestId) return
+
+      const baseCourses = [...courseStore.courses]
+      if (filter === 'popular') {
+        courseStore.courses = baseCourses
+          .sort((a, b) => Number(b.studentCount ?? 0) - Number(a.studentCount ?? 0))
+          .slice(0, 12)
+      } else {
+        courseStore.courses = baseCourses
+          .sort((a, b) => {
+            const aDate = new Date((a as any).createdAt ?? (a as any).created_at ?? (a as any).timestamp ?? 0).getTime()
+            const bDate = new Date((b as any).createdAt ?? (b as any).created_at ?? (b as any).timestamp ?? 0).getTime()
+            return bDate - aDate
+          })
+          .slice(0, 12)
+      }
+      courseStore.page = 1
+      courseStore.hasMore = false
+      return
+    }
+
+    await courseStore.fetchByFilter(filter, requestId)
+  } finally {
+    if (requestId === searchRequestId) filterPending.value = false
   }
 }
 
@@ -554,42 +607,18 @@ function loadMore() {
 }
 
 function clearFilter() {
-  activeFilter.value = 'all'
+  if (activeFilter.value !== 'all') {
+    activeFilter.value = 'all'
+    return
+  }
+
   searchQuery.value = ''
-  searchRequestId += 1
-  courseStore.fetchCourses()
+  searchPending.value = false
+  filterPending.value = false
+  void refreshCurrentFilter('all')
 }
 
 function applyQuickFilter(filterKey: string) {
-  if (filterKey === 'all') {
-    clearFilter()
-    return
-  }
-
-  if (filterKey === 'popular' || filterKey === 'new') {
-    activeFilter.value = filterKey
-    searchQuery.value = ''
-    searchRequestId += 1
-    courseStore.fetchByFilter('all').then(() => {
-      const sortedByStudents = [...courseStore.courses]
-        .sort((a, b) => Number(b.studentCount ?? 0) - Number(a.studentCount ?? 0))
-
-      if (filterKey === 'popular') {
-        courseStore.courses = sortedByStudents.slice(0, 12)
-        return
-      }
-
-      courseStore.courses = [...courseStore.courses]
-        .sort((a, b) => {
-          const aDate = new Date((a as any).createdAt ?? (a as any).created_at ?? (a as any).timestamp ?? 0).getTime()
-          const bDate = new Date((b as any).createdAt ?? (b as any).created_at ?? (b as any).timestamp ?? 0).getTime()
-          return bDate - aDate
-        })
-        .slice(0, 12)
-    })
-    return
-  }
-
   activeFilter.value = filterKey
 }
 
@@ -597,16 +626,16 @@ watch(searchQuery, (q) => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     const trimmedQuery = q.trim()
-    searchRequestId += 1
     if (trimmedQuery) void runCourseSearch(trimmedQuery)
-    else courseStore.fetchCourses()
+    else if (suppressEmptySearchRefresh) suppressEmptySearchRefresh = false
+    else void refreshCurrentFilter(activeFilter.value)
   }, 400)
 })
 
 watch(activeFilter, (filter) => {
-  searchQuery.value = ''
-  searchRequestId += 1
-  courseStore.fetchByFilter(filter)
+  suppressEmptySearchRefresh = Boolean(searchQuery.value)
+  if (searchQuery.value) searchQuery.value = ''
+  void refreshCurrentFilter(filter)
 })
 
 /**

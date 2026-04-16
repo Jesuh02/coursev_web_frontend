@@ -12,25 +12,41 @@ export const useCourseStore = defineStore('courses', () => {
   const hasMore = ref(true)
   const filterCounts = ref<Record<string, number>>({})
   const activeFilter = ref('all')
+  let requestToken = 0
 
   const freeCourses = computed(() => courses.value.filter(c => !c.is_premium))
 
-  async function fetchCourses(pageNum = 1, limit = 20) {
+  function startRequest() {
+    requestToken += 1
+    return requestToken
+  }
+
+  function isCurrentRequest(requestId: number) {
+    return requestId === requestToken
+  }
+
+  async function fetchCourses(pageNum = 1, limit = 20, requestId?: number) {
+    const activeRequestId = requestId ?? startRequest()
     if (pageNum === 1) loading.value = true
     else loadingMore.value = true
     try {
       const res = await courseAdapter.getCoursesPaginated(pageNum, limit)
+      if (!isCurrentRequest(activeRequestId)) return
+
       if (pageNum === 1) courses.value = res.data
       else courses.value = [...courses.value, ...res.data]
       page.value = pageNum
       hasMore.value = res.pagination?.hasNext ?? false
     } finally {
-      loading.value = false
-      loadingMore.value = false
+      if (isCurrentRequest(activeRequestId)) {
+        loading.value = false
+        loadingMore.value = false
+      }
     }
   }
 
-  async function fetchByFilter(filter: string) {
+  async function fetchByFilter(filter: string, requestId?: number) {
+    const activeRequestId = requestId ?? startRequest()
     activeFilter.value = filter
     loading.value = true
     page.value = 1
@@ -39,23 +55,32 @@ export const useCourseStore = defineStore('courses', () => {
       const userId = tokenStorage.userId ?? undefined
       switch (filter) {
         case 'created':
-          if (userId) courses.value = await courseAdapter.getCoursesByCreatorId(userId)
+          if (userId) {
+            const result = await courseAdapter.getCoursesByCreatorId(userId)
+            if (isCurrentRequest(activeRequestId)) courses.value = result
+          }
           break
         case 'others': {
           const all = await courseAdapter.getCourses(1, 200)
-          courses.value = userId ? all.filter(c => c.creator_user_id !== userId && c.creatorUserId !== userId) : all
+          if (isCurrentRequest(activeRequestId)) {
+            courses.value = userId ? all.filter(c => c.creator_user_id !== userId && c.creatorUserId !== userId) : all
+          }
           break
         }
         case 'enrolled': {
           const res = await courseAdapter.getEnrolledCoursesPaginated(userId)
-          courses.value = res.data ?? (res as unknown as Course[])
+          if (isCurrentRequest(activeRequestId)) {
+            courses.value = res.data ?? (res as unknown as Course[])
+          }
           break
         }
         default:
-          await fetchCourses()
+          await fetchCourses(1, 20, activeRequestId)
           return
       }
-    } finally { loading.value = false }
+    } finally {
+      if (isCurrentRequest(activeRequestId)) loading.value = false
+    }
   }
 
   async function fetchCourseById(id: number) {
@@ -69,18 +94,23 @@ export const useCourseStore = defineStore('courses', () => {
     catch { /* silent */ }
   }
 
-  async function searchCourses(query: string, pageNum = 1, limit = 20) {
+  async function searchCourses(query: string, pageNum = 1, limit = 20, requestId?: number) {
+    const activeRequestId = requestId ?? startRequest()
     if (pageNum === 1) loading.value = true
     else loadingMore.value = true
     try {
       const res = await courseAdapter.searchCourses(query, pageNum, limit)
+      if (!isCurrentRequest(activeRequestId)) return
+
       if (pageNum === 1) courses.value = res.data
       else courses.value = [...courses.value, ...res.data]
       page.value = pageNum
       hasMore.value = res.pagination?.hasNext ?? false
     } finally {
-      loading.value = false
-      loadingMore.value = false
+      if (isCurrentRequest(activeRequestId)) {
+        loading.value = false
+        loadingMore.value = false
+      }
     }
   }
 
