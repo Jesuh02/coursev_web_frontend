@@ -436,14 +436,14 @@ function computeAverage(userId: number): string {
   const tareasAvg = avgArr(taskValues)
 
   const categoryAvgs = [comportamientoAvg, participacionAvg, examenesAvg, tareasAvg].filter((v): v is number => v !== null)
-  if (categoryAvgs.length === 0) return '—'
+  if (categoryAvgs.length === 0) return '0.0'
   const avg = categoryAvgs.reduce((a, b) => a + b, 0) / categoryAvgs.length
   return avg.toFixed(1)
 }
 
 function avgClass(userId: number): string {
   const avg = computeAverage(userId)
-  if (avg === '—') return ''
+  if (avg === '0.0') return ''
   return parseFloat(avg) >= 6 ? 'pass' : 'fail'
 }
 

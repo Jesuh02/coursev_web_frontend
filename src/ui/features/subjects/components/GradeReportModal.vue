@@ -83,7 +83,7 @@
                       {{ group.teacherName }}
                     </span>
                   </div>
-                  <span class="subject-avg" :class="gradeClass(group.average)">{{ group.average ?? '—' }}</span>
+                  <span class="subject-avg" :class="gradeClass(group.average)">{{ (group.average ?? 0).toFixed(1) }}</span>
                 </div>
 
                 <!-- Promedios por estudiante -->
@@ -105,11 +105,11 @@
                       <tbody>
                         <tr v-for="row in group.gradeSummaries" :key="row.studentId" class="grade-row">
                           <td class="cell-student">{{ row.studentName }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ row.taskAvg != null ? row.taskAvg.toFixed(1) : '—' }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ row.participacionAvg != null ? row.participacionAvg.toFixed(1) : '—' }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
-                          <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ row.notaPonderada != null ? row.notaPonderada.toFixed(1) : '—' }}</strong></td>
+                          <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                          <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
                           <td class="cell-grader">{{ row.gradedBy ?? '—' }}</td>
                           <td class="cell-date">{{ formatGradedAt(row.gradedAt) }}</td>
                         </tr>
@@ -226,7 +226,7 @@ const totalSubmissions = computed(() => reportData.value.reduce((sum, g) => sum 
 const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0))
 const averageGrade = computed(() => {
   const graded = reportData.value.flatMap(g => g.rows).filter(r => r.grade !== null)
-  if (!graded.length) return '—'
+  if (!graded.length) return '0.0'
   const avg = graded.reduce((s, r) => s + r.grade!, 0) / graded.length
   return avg.toFixed(1)
 })
@@ -491,7 +491,7 @@ async function fetchReport() {
         subjectName: subject.name,
         teacherName,
         rows,
-        average: avg != null ? parseFloat(avg.toFixed(1)) : null,
+        average: avg != null ? parseFloat(avg.toFixed(1)) : 0,
         studentAverages,
         gradeSummaries,
       }

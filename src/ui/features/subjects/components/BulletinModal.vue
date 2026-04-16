@@ -497,6 +497,7 @@ td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
 .prom-value{font-size:20px;font-weight:800}
 .footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
 @media print{body{padding:0}.page{padding:10px 0 20px}}
+${institutionHeaderCSS()}
 </style></head><body>${pages.join('')}</body></html>`
 
   const win = window.open('', '_blank')

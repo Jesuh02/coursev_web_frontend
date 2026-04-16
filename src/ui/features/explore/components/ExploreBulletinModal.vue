@@ -93,11 +93,13 @@
                 <div v-else class="bulletin-card">
                   <div class="boletin-header-top">
                     <div class="boletin-logo-placeholder">
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
+                      <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                     </div>
                     <div class="boletin-institution">
-                      <span class="boletin-inst-name">CourseV</span>
-                      <span class="boletin-inst-subtitle">Plataforma Educativa</span>
+                      <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
+                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                      <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                     </div>
                   </div>
                   <div class="boletin-divider" />
@@ -113,13 +115,13 @@
                     <tbody>
                       <tr v-for="row in bulletinRows" :key="row.subjectId">
                         <td class="td-modulo">{{ row.subjectName }}</td>
-                        <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—' }}</td>
+                        <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
                       </tr>
                     </tbody>
                   </table>
                   <div class="boletin-promedio">
                     <span class="promedio-label">PROMEDIO GENERAL</span>
-                    <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral != null ? promedioGeneral.toFixed(1) : '—' }}</span>
+                    <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ (promedioGeneral ?? 0).toFixed(1) }}</span>
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
@@ -151,6 +153,7 @@ import { useCourseStore } from '@/stores/courseStore'
 import { subjectAdapter } from '@/infrastructure/api'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -266,7 +269,7 @@ async function selectStudent(student: GradeSheetStudent) {
     await Promise.allSettled(
       subjectsForCourse.value.map(s =>
         gradeAdapter.getGradeSheet(s.id).then(sheet => {
-          if (!sheet) { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: null }); return }
+          if (!sheet) { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 }); return }
           const totalTasks = sheet.tasks.length
           const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
           const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
@@ -280,9 +283,9 @@ async function selectStudent(student: GradeSheetStudent) {
           }
           const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
           const vals = [taskAvg, avgArr(byType['participacion'] ?? []), avgArr(byType['examenes'] ?? []), avgArr(byType['comportamiento'] ?? [])].filter((v): v is number => v !== null)
-          const nota = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: nota !== null ? Math.round(nota * 10) / 10 : null })
-        }).catch(() => { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: null }) })
+          const nota = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: Math.round(nota * 10) / 10 })
+        }).catch(() => { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 }) })
       )
     )
     const order = new Map(subjectsForCourse.value.map((s, i) => [s.id, i]))
@@ -300,17 +303,19 @@ function exportBulletinPDF() {
   const prom = promedioGeneral.value
   let rows = ''
   for (const row of bulletinRows.value) {
-    const nota = row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—'
-    const color = row.notaDefinitiva != null ? (row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C') : '#999'
+    const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+    const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
     rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
   }
   const promColor = prom != null ? (prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C') : '#999'
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín - ${name}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}</style></head><body>
-<div class="header"><span class="inst-name">CourseV</span><span class="inst-sub">Plataforma Educativa</span></div>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}
+${institutionHeaderCSS()}
+</style></head><body>
+${buildInstitutionHeaderHTML('CourseV')}
 <div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom != null ? prom.toFixed(1) : '—'}</span></div>
+<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></div>
 <div class="footer">Generado el ${generatedDate.value}</div></body></html>`
   const win = window.open('', '_blank')
   if (!win) return
@@ -324,9 +329,9 @@ async function shareBulletin() {
   const name = st?.fullName || st?.username || 'Estudiante'
   let text = `📋 BOLETÍN DE NOTAS\n📌 Programa: ${selectedCourse.value?.title || '—'}\n👤 Estudiante: ${name}\n📅 Periodo: ${currentPeriod.value}\n\n${'─'.repeat(32)}\nMÓDULO                    NOTA\n${'─'.repeat(32)}\n`
   for (const row of bulletinRows.value) {
-    text += `${row.subjectName.padEnd(26)}${row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—'}\n`
+    text += `${row.subjectName.padEnd(26)}${(row.notaDefinitiva ?? 0).toFixed(1)}\n`
   }
-  text += `${'─'.repeat(32)}\nPROMEDIO GENERAL           ${promedioGeneral.value != null ? promedioGeneral.value.toFixed(1) : '—'}\n`
+  text += `${'─'.repeat(32)}\nPROMEDIO GENERAL           ${(promedioGeneral.value ?? 0).toFixed(1)}\n`
   if (navigator.share) {
     try { await navigator.share({ title: 'Boletín de Notas', text }) } catch { /* cancelled */ }
   } else {

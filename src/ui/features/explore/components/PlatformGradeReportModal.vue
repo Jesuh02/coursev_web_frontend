@@ -131,7 +131,7 @@
                         <div class="subject-info">
                           <span class="subject-name">{{ subGroup.subjectName }}</span>
                         </div>
-                        <span class="subject-avg" :class="gradeClass(subGroup.average)">{{ subGroup.average != null ? subGroup.average.toFixed(1) : '—' }}</span>
+                        <span class="subject-avg" :class="gradeClass(subGroup.average)">{{ (subGroup.average ?? 0).toFixed(1) }}</span>
                       </div>
 
                       <!-- Breakdown: promedios por categoría (igual que GradeReportModal) -->
@@ -152,11 +152,11 @@
                             <tbody>
                               <tr v-for="row in subGroup.gradeSummaries" :key="row.studentUsername" class="grade-row">
                                 <td class="cell-student">{{ displayStudentName(row.studentFullName) }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ row.taskAvg != null ? row.taskAvg.toFixed(1) : '—' }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ row.participacionAvg != null ? row.participacionAvg.toFixed(1) : '—' }}</td>
-                                <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ row.notaPonderada != null ? row.notaPonderada.toFixed(1) : '—' }}</strong></td>
+                                <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
                               </tr>
                             </tbody>
                           </table>
@@ -201,6 +201,7 @@ import { api, courseAdapter } from '@/infrastructure/api'
 import { subjectAdapter } from '@/infrastructure/api/subjectAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -316,7 +317,7 @@ const gradedCount = computed(() => reportData.value.reduce((s, g) => s + g.rows.
 
 const averageGrade = computed(() => {
   const graded = reportData.value.flatMap(g => g.rows).filter(r => r.grade != null)
-  if (!graded.length) return '—'
+  if (!graded.length) return '0.0'
   return (graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)
 })
 
@@ -758,8 +759,10 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
 .course-header td{font-weight:700;font-size:13px;background:#f2e8ff;color:#6A1B9A;padding:10px 10px 8px;border-bottom:1px solid #d9baf5}
 .subject-header td{font-size:11.5px;background:#f9f5ff;color:#7B3FA6;padding:7px 10px 7px 22px;border-bottom:1px solid #e8daf5;border-left:3px solid #9B59D9}
 .stag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;background:#e8d5f5;color:#6A1B9A;padding:1px 5px;border-radius:3px;margin-right:7px;vertical-align:middle}
+${institutionHeaderCSS()}
 @media print{body{padding:20px}@page{margin:15mm}}
 </style></head><body>
+${buildInstitutionHeaderHTML()}
 <h1>📊 Reporte de Notas — Plataforma</h1>
 <p class="subtitle">Generado el ${date}</p>
 <div class="summary">
