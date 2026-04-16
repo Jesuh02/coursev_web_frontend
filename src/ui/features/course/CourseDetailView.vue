@@ -11,17 +11,17 @@
       </div>
       <div class="hero-image">
         <img v-if="heroImage" :src="heroImage" alt="" />
-        <div class="hero-gradient" />
-        <div class="hero-overlay-info">
-          <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
-          <h1 class="course-title">{{ displayTitle }}</h1>
-          <p v-if="displayDescription" class="course-desc">{{ displayDescription }}</p>
-        </div>
         <div class="hero-accent" />
       </div>
     </div>
 
+    <div class="hero-info">
+      <span v-if="course?.is_premium || course?.isPremium" class="featured-badge">&#9733; Destacado</span>
+      <h1 class="course-title">{{ displayTitle }}</h1>
+    </div>
+
     <div class="course-body">
+      <p class="course-desc">{{ displayDescription }}</p>
 
       <div class="tags-row">
         <span class="tag purple">Temática: {{ course?.category ?? 'General' }}</span>
@@ -1483,21 +1483,20 @@ watch(activeTab, (tab) => {
   .empty-state { padding: 100px 0; }
 }
 
-.hero-section { position: relative; height: 220px; overflow: hidden; }
+.hero-section { position: relative; height: 160px; overflow: hidden; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
 .hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-.hero-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 70%; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 50%, transparent 100%); pointer-events: none; }
-.hero-overlay-info { position: absolute; bottom: 14px; left: 16px; right: 16px; z-index: 5; }
-.hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); z-index: 6; }
+.hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
+.hero-info { padding: 14px 16px 0; }
 
 .course-body { padding: 0 16px; margin-top: 16px; position: relative; }
 
 .featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.15); color: #FFD700; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
-.course-title { font-size: 26px; font-weight: 800; color: #fff; margin: 0 0 4px; line-height: 1.15; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
-.course-desc { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.4; margin: 0; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+.course-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0; line-height: 1.15; }
+.course-desc { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 14px; }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: #ccc; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
