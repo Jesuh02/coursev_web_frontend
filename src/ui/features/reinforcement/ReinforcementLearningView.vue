@@ -539,6 +539,25 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   const hasSignificantNumbers = /\d{3,}/.test(text.replace(/,/g, ''))
   if (!mathSignals.test(lower) && !hasSignificantNumbers) return question
 
+  // ── Reject multiple_choice with duplicate numeric options ──
+  if (question.type === 'multiple_choice' && Array.isArray(question.options)) {
+    const numVals: { val: Decimal; idx: number }[] = []
+    for (let i = 0; i < question.options.length; i++) {
+      const v = parseDecimal(String(question.options[i]).replace(/[^\d.,-]/g, ''))
+      if (v) numVals.push({ val: v, idx: i })
+    }
+    for (let i = 0; i < numVals.length; i++) {
+      for (let j = i + 1; j < numVals.length; j++) {
+        const diff = numVals[i].val.minus(numVals[j].val).abs()
+        const tol = Decimal.max(numVals[i].val.abs(), numVals[j].val.abs()).times('0.001')
+        if (diff.lte(tol)) {
+          console.warn(`[FE MathVerify] REJECTED: options ${numVals[i].idx} and ${numVals[j].idx} are numerically equivalent (${numVals[i].val} ≈ ${numVals[j].val})`)
+          return null
+        }
+      }
+    }
+  }
+
   // ── Digit-position meta-questions: compute answer properly ──
   const metaPatterns = [
     /d[ií]gito\s+(?:(?:de|en|que\s+ocupa)\s+)?(?:las?\s+)?(?:posici[oó]n\s+(?:de\s+(?:las?\s+)?)?)?(?:centenas?|decenas?|unidades?|miles?|millones?|millares?)/i,
