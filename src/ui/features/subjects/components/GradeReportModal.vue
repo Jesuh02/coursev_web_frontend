@@ -86,9 +86,8 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ group.average ?? '—' }}</span>
                 </div>
 
-                <!-- Breakdown: 4 promedios por estudiante -->
+                <!-- Promedios por estudiante -->
                 <div v-if="group.gradeSummaries.length" class="breakdown-section">
-                  <div class="breakdown-label">Promedios por categoría</div>
                   <div class="table-wrapper">
                     <table class="grade-table">
                       <thead>
@@ -99,6 +98,8 @@
                           <th class="th-grade">Examen</th>
                           <th class="th-grade">Comportamiento</th>
                           <th class="th-ponderada">Nota Ponderada</th>
+                          <th class="th-grader">Docente</th>
+                          <th class="th-date">Fecha Cal.</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -109,45 +110,12 @@
                           <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
                           <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
                           <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ row.notaPonderada != null ? row.notaPonderada.toFixed(1) : '—' }}</strong></td>
+                          <td class="cell-grader">{{ row.gradedBy ?? '—' }}</td>
+                          <td class="cell-date">{{ formatGradedAt(row.gradedAt) }}</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                </div>
-
-                <!-- Grade table -->
-                <div v-if="group.rows.length" class="table-wrapper">
-                  <table class="grade-table">
-                    <thead>
-                      <tr>
-                        <th class="th-student">Estudiante</th>
-                        <th>Nombre Completo</th>
-                        <th>Cédula</th>
-                        <th>Tarea</th>
-                        <th class="th-grade">Nota</th>
-                        <th class="th-ponderada">Cal. Ponderada</th>
-                        <th>Fecha de entrega</th>
-                        <th>Docente que calificó</th>
-                        <th>Retroalimentación</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, i) in group.rows" :key="i" class="grade-row" :class="{ 'row-not-submitted': row.notSubmitted }">
-                        <td class="cell-student">{{ row.studentName }}</td>
-                        <td class="cell-fullname">{{ row.studentFullName ?? '—' }}</td>
-                        <td class="cell-cedula">{{ row.studentCedula ?? '—' }}</td>
-                        <td class="cell-task">{{ row.taskName }}<span v-if="row.notSubmitted" class="badge-no-entrega">No entregado</span></td>
-                        <td class="cell-grade" :class="row.notSubmitted ? 'grade-low' : gradeClass(row.grade)">{{ row.notSubmitted ? '0' : (row.grade ?? '—') }}</td>
-                        <td class="cell-ponderada" :class="gradeClass(group.studentAverages[row.studentName] ?? null)">{{ group.studentAverages[row.studentName] != null ? group.studentAverages[row.studentName]!.toFixed(1) : '—' }}</td>
-                        <td class="cell-date">{{ row.notSubmitted ? '—' : formatDate(row.submissionDate) }}</td>
-                        <td class="cell-grader">{{ row.gradedByUsername ?? '—' }}</td>
-                        <td class="cell-feedback">
-                          <span v-if="row.feedback" :title="stripHtml(row.feedback)">{{ truncate(stripHtml(row.feedback), 80) }}</span>
-                          <span v-else class="no-feedback">—</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
                 <div v-else class="no-tasks">Sin entregas</div>
               </div>
@@ -217,6 +185,8 @@ interface GradeSummaryRow {
   examenesAvg: number | null
   comportamientoAvg: number | null
   notaPonderada: number | null
+  gradedBy: string | null
+  gradedAt: string | null
 }
 
 interface SubjectReport {
@@ -280,7 +250,7 @@ function stripHtml(html: string): string {
 function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + '…' : text
 }
-function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[]): GradeSummaryRow[] {
+function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], teacherName: string): GradeSummaryRow[] {
   const totalTasks = taskNames.length
   const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -300,16 +270,25 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[]): G
     const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
     const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
     const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    const latestGradedAt = stTaskGrades.map(tg => tg.gradedAt).filter((d): d is string => d != null).sort().at(-1) ?? null
     return {
-      studentName: student.username ?? `#${student.userId}`,
+      studentName: student.fullName?.trim() || student.username || `#${student.userId}`,
       studentId: student.userId,
       taskAvg: fmt(taskAvg),
       participacionAvg: fmt(participacionAvg),
       examenesAvg: fmt(examenesAvg),
       comportamientoAvg: fmt(comportamientoAvg),
       notaPonderada: fmt(notaPonderada),
+      gradedBy: teacherName,
+      gradedAt: latestGradedAt,
     }
   })
+}
+
+function formatGradedAt(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 watch(() => props.modelValue, async (open) => {
   if (open && props.courseId) await fetchReport()
@@ -464,7 +443,7 @@ async function fetchReport() {
 
       const sheet = gradeSheetMap.get(subject.id)
       const gradeSummaries = sheet
-        ? computeSubjectGradeSummaries(sheet, subjectTaskNames.get(subject.id) ?? [])
+        ? computeSubjectGradeSummaries(sheet, subjectTaskNames.get(subject.id) ?? [], teacherName)
         : []
 
       return {
