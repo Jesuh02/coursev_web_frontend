@@ -59,12 +59,16 @@
               </div>
 
               <!-- Student selector -->
-              <template v-else-if="!selectedStudent">
+              <template v-else-if="!selectedStudent && !showAllBulletins">
                 <div v-if="loadingStudents" class="bulletin-loading">
                   <div class="spinner-bulletin" />
                   <p>Cargando estudiantes…</p>
                 </div>
                 <template v-else>
+                  <button v-if="allStudents.length" class="view-all-btn" @click="selectAllStudents">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                    Generar boletín de todos ({{ allStudents.length }})
+                  </button>
                   <div class="course-search">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                     <input v-model="studentSearch" type="text" placeholder="Buscar estudiante..." />
@@ -84,9 +88,80 @@
                 </template>
               </template>
 
+              <template v-else-if="showAllBulletins">
+                <button class="back-to-list" @click="showAllBulletins = false; allBulletinData = []">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+                  Volver a estudiantes
+                </button>
+
+                <div v-if="loadingAllBulletins" class="bulletin-loading">
+                  <div class="spinner-bulletin" />
+                  <p>Generando boletines de todos los estudiantes…</p>
+                </div>
+
+                <template v-else>
+                  <div v-for="entry in allBulletinData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
+                    <div class="boletin-header-top">
+                      <div class="boletin-logo-placeholder">
+                        <img v-if="institutionLogoUrl" :src="institutionLogoUrl" alt="Escudo" style="width:50px;height:auto" />
+                        <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      </div>
+                      <div class="boletin-institution">
+                        <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
+                        <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                        <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
+                      </div>
+                    </div>
+                    <div class="boletin-divider" />
+                    <div class="boletin-info-grid">
+                      <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
+                      <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
+                      <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
+                      <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
+                    </div>
+                    <div class="boletin-divider" />
+                    <table class="boletin-table">
+                      <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                      <tbody>
+                        <tr v-for="row in entry.rows" :key="row.subjectId">
+                          <td class="td-modulo">{{ row.subjectName }}</td>
+                          <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="boletin-promedio">
+                      <span class="promedio-label">PROMEDIO GENERAL</span>
+                      <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
+                    </div>
+                    <div class="boletin-divider" />
+                    <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+                    <template v-if="isIncatInstitution()">
+                      <div class="incat-sig-block" style="margin-top:16px">
+                        <div class="incat-sig-line"></div>
+                        <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                        <p class="incat-sig-title">RECOR</p>
+                      </div>
+                      <div class="incat-footer-info">
+                        <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                        <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                        <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                        <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div v-if="allBulletinData.length" class="bulletin-export-bar">
+                    <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                      PDF de todos
+                    </button>
+                  </div>
+                </template>
+              </template>
+
               <!-- Bulletin preview -->
               <template v-else>
-                <button class="back-to-list" @click="selectedStudent = null" style="margin-top:4px">
+                <button class="back-to-list" @click="selectedStudent = null; bulletinRows = []" style="margin-top:4px">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
                   Otro estudiante
                 </button>
@@ -99,7 +174,7 @@
                 <div v-else class="bulletin-card">
                   <div class="boletin-header-top">
                     <div class="boletin-logo-placeholder">
-                      <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
+                      <img v-if="institutionLogoUrl" :src="institutionLogoUrl" alt="Escudo" style="width:50px;height:auto" />
                       <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                     </div>
                     <div class="boletin-institution">
@@ -111,8 +186,8 @@
                   <div class="boletin-divider" />
                   <div class="boletin-info-grid">
                     <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse.title }}</span></div>
-                    <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ selectedStudent.fullName || selectedStudent.username || '—' }}</span></div>
-                    <div v-if="selectedStudent.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ selectedStudent.cedula }}</span></div>
+                    <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span></div>
+                    <div v-if="selectedStudent?.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ selectedStudent?.cedula }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                   </div>
                   <div class="boletin-divider" />
@@ -188,11 +263,15 @@ const allStudents = ref<GradeSheetStudent[]>([])
 const loadingSubjects = ref(false)
 const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
+const loadingAllBulletins = ref(false)
 const allCourses = ref<Course[]>([])
 const loadingCourses = ref(false)
 
 interface BulletinRow { subjectId: number; subjectName: string; notaDefinitiva: number | null }
 const bulletinRows = ref<BulletinRow[]>([])
+interface AllBulletinEntry { student: GradeSheetStudent; rows: BulletinRow[] }
+const allBulletinData = ref<AllBulletinEntry[]>([])
+const showAllBulletins = ref(false)
 
 const filteredCourses = computed(() => {
   const courses = allCourses.value.length > 0 ? allCourses.value : courseStore.courses
@@ -206,7 +285,8 @@ const filteredStudents = computed(() => {
   const q = studentSearch.value.toLowerCase()
   return allStudents.value.filter(s =>
     (s.fullName || '').toLowerCase().includes(q) ||
-    (s.username || '').toLowerCase().includes(q)
+    (s.username || '').toLowerCase().includes(q) ||
+    (s.cedula || '').toLowerCase().includes(q)
   )
 })
 
@@ -219,6 +299,8 @@ const currentPeriod = computed(() => {
 const generatedDate = computed(() =>
   new Date().toLocaleDateString('es', { day: '2-digit', month: 'long', year: 'numeric' })
 )
+
+const institutionLogoUrl = computed(() => getInstitutionLogoUrl())
 
 const promedioGeneral = computed(() => {
   const grades = bulletinRows.value.filter(r => r.notaDefinitiva != null).map(r => r.notaDefinitiva!)
@@ -240,6 +322,8 @@ watch(() => props.modelValue, async (open) => {
     courseSearch.value = ''
     studentSearch.value = ''
     bulletinRows.value = []
+    allBulletinData.value = []
+    showAllBulletins.value = false
     subjectsForCourse.value = []
     // Cargar todos los cursos desde la API para no depender de la paginación del store
     if (allCourses.value.length === 0) {
@@ -257,6 +341,10 @@ watch(() => props.modelValue, async (open) => {
 
 async function pickCourse(course: Course) {
   selectedCourse.value = course
+  selectedStudent.value = null
+  showAllBulletins.value = false
+  bulletinRows.value = []
+  allBulletinData.value = []
   loadingSubjects.value = true
   try {
     const raw: any[] = await subjectAdapter.getSubjectsByCourse(course.id)
@@ -293,39 +381,94 @@ async function loadStudents() {
   finally { loadingStudents.value = false }
 }
 
+async function getGradeSheetsCache() {
+  const cache = new Map<number, GradeSheet | null>()
+  await Promise.allSettled(
+    subjectsForCourse.value.map(subject =>
+      gradeAdapter.getGradeSheet(subject.id).then(sheet => {
+        cache.set(subject.id, sheet ?? null)
+      }).catch(() => {
+        cache.set(subject.id, null)
+      })
+    )
+  )
+  return cache
+}
+
+async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Map<number, GradeSheet | null>) {
+  const rows: BulletinRow[] = []
+
+  for (const subject of subjectsForCourse.value) {
+    const sheet = sheetsCache.get(subject.id) ?? null
+    if (!sheet) {
+      rows.push({ subjectId: subject.id, subjectName: subject.name, notaDefinitiva: 0 })
+      continue
+    }
+
+    const totalTasks = sheet.tasks.length
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+
+    const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+    const byType: Record<string, number[]> = {}
+    for (const mg of stManualGrades) {
+      const base = String(mg.gradeType).replace(/_\d+$/, '')
+      if (!byType[base]) byType[base] = []
+      byType[base].push(Number(mg.grade))
+    }
+
+    const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+    const participacionAvg = byType.participacion?.length ? avgArr(byType.participacion) : (activeCategories.has('participacion') ? 0 : null)
+    const examenesAvg = byType.examenes?.length ? avgArr(byType.examenes) : (activeCategories.has('examenes') ? 0 : null)
+    const comportamientoAvg = byType.comportamiento?.length ? avgArr(byType.comportamiento) : (activeCategories.has('comportamiento') ? 0 : null)
+    const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((value): value is number => value !== null)
+    const nota = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+
+    rows.push({
+      subjectId: subject.id,
+      subjectName: subject.name,
+      notaDefinitiva: Math.round(nota * 10) / 10,
+    })
+  }
+
+  return rows
+}
+
+function computePromedio(rows: BulletinRow[]) {
+  const grades = rows.filter(row => row.notaDefinitiva != null).map(row => row.notaDefinitiva as number)
+  if (!grades.length) return 0
+  return grades.reduce((a, b) => a + b, 0) / grades.length
+}
+
 async function selectStudent(student: GradeSheetStudent) {
   selectedStudent.value = student
+  showAllBulletins.value = false
   loadingBulletin.value = true
   bulletinRows.value = []
   try {
-    const rows: BulletinRow[] = []
-    await Promise.allSettled(
-      subjectsForCourse.value.map(s =>
-        gradeAdapter.getGradeSheet(s.id).then(sheet => {
-          if (!sheet) { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 }); return }
-          const totalTasks = sheet.tasks.length
-          const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
-          const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
-          const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-          const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
-          const byType: Record<string, number[]> = {}
-          for (const mg of stManualGrades) {
-            const base = String(mg.gradeType).replace(/_\d+$/, '')
-            if (!byType[base]) byType[base] = []
-            byType[base].push(Number(mg.grade))
-          }
-          const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-          const vals = [taskAvg, avgArr(byType['participacion'] ?? []), avgArr(byType['examenes'] ?? []), avgArr(byType['comportamiento'] ?? [])].filter((v): v is number => v !== null)
-          const nota = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
-          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: Math.round(nota * 10) / 10 })
-        }).catch(() => { rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 }) })
-      )
-    )
-    const order = new Map(subjectsForCourse.value.map((s, i) => [s.id, i]))
-    rows.sort((a, b) => (order.get(a.subjectId) ?? 0) - (order.get(b.subjectId) ?? 0))
-    bulletinRows.value = rows
+    const sheetsCache = await getGradeSheetsCache()
+    bulletinRows.value = await computeRowsForStudent(student, sheetsCache)
   } catch { /* silent */ }
   finally { loadingBulletin.value = false }
+}
+
+async function selectAllStudents() {
+  showAllBulletins.value = true
+  selectedStudent.value = null
+  loadingAllBulletins.value = true
+  allBulletinData.value = []
+  try {
+    const sheetsCache = await getGradeSheetsCache()
+    const entries: AllBulletinEntry[] = []
+    for (const student of allStudents.value) {
+      const rows = await computeRowsForStudent(student, sheetsCache)
+      entries.push({ student, rows })
+    }
+    allBulletinData.value = entries
+  } catch { /* silent */ }
+  finally { loadingAllBulletins.value = false }
 }
 
 function escH(s: string) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
@@ -351,6 +494,44 @@ ${buildInstitutionHeaderHTML('CourseV')}
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></div>
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportAllBulletinsPDF() {
+  const pages: string[] = []
+
+  for (const entry of allBulletinData.value) {
+    const student = entry.student
+    const name = escH(student.fullName || student.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    let rows = ''
+
+    for (const row of entry.rows) {
+      const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+      const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
+      rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    }
+
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    pages.push(`
+<div class="page">
+${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
+<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${student.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(student.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
+<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
+<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}
+</div>`)
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletines - ${escH(selectedCourse.value?.title || 'Curso')}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:20px;color:#222;max-width:700px;margin:0 auto}.page{page-break-after:always;padding:20px 0 40px}.page:last-child{page-break-after:avoid}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:0}.page{padding:10px 0 20px}}
+${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
+</style></head><body>${pages.join('')}</body></html>`
   const win = window.open('', '_blank')
   if (!win) return
   win.document.write(html)
@@ -413,12 +594,15 @@ async function shareBulletin() {
 .no-courses { text-align: center; color: #636366; font-size: 14px; padding: 24px 0; }
 
 .student-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.view-all-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(48,209,88,0.12); border: 1px solid rgba(48,209,88,0.28); color: #30D158; font-size: 14px; font-weight: 700; }
+.view-all-btn:hover { background: rgba(48,209,88,0.18); }
 
 .back-to-list { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #0A84FF; margin-bottom: 12px; padding: 0; background: none; border: none; cursor: pointer; }
 .back-to-list:hover { text-decoration: underline; }
 
 /* Bulletin card */
 .bulletin-card { background: #2C2C2E; border-radius: 16px; padding: 24px 20px; border: 1px solid rgba(255,255,255,0.08); }
+.bulletin-card--all { margin-bottom: 14px; }
 .boletin-header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
 .boletin-logo-placeholder { width: 52px; height: 52px; border-radius: 12px; background: rgba(106,27,154,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .boletin-institution { display: flex; flex-direction: column; gap: 2px; }
