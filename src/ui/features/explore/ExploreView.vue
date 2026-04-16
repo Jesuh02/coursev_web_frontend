@@ -128,27 +128,47 @@
       </Transition>
     </Teleport>
 
-    <!-- Botón reporte de notas plataforma (solo rol 3) -->
+    <!-- ⋮ Menú reporte/boletín plataforma (solo rol 3) -->
     <Teleport to="body">
-      <button
-        v-if="userRole === 3"
-        class="platform-report-fab"
-        title="Reporte de notas — plataforma"
-        @click="showPlatformReport = true"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
-        </svg>
-        <span class="fab-label">Reporte</span>
-      </button>
+      <div v-if="userRole === 3" class="platform-more-menu">
+        <Transition name="fade">
+          <div v-if="showMoreMenu" class="platform-more-dropdown" @click.stop>
+            <button class="platform-more-option" @click="showMoreMenu = false; showPlatformReport = true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Reporte de notas
+            </button>
+            <button class="platform-more-option" @click="showMoreMenu = false; showBulletin = true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+              Generar boletín
+            </button>
+          </div>
+        </Transition>
+        <button
+          class="platform-more-btn"
+          :class="{ 'platform-more-btn--open': showMoreMenu }"
+          title="Opciones de reportes"
+          @click.stop="showMoreMenu = !showMoreMenu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="12" cy="19" r="2" />
+          </svg>
+        </button>
+      </div>
     </Teleport>
 
-    <!-- Modal reporte plataforma -->
+    <!-- Modales plataforma -->
     <PlatformGradeReportModal v-model="showPlatformReport" />
+    <ExploreBulletinModal v-model="showBulletin" />
 
     <!-- Role selection dialog for docente users -->
     <Teleport to="body">
@@ -194,6 +214,7 @@ import CourseCard from './components/CourseCard.vue'
 import FilterBottomSheet from './components/FilterBottomSheet.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 import PlatformGradeReportModal from './components/PlatformGradeReportModal.vue'
+import ExploreBulletinModal from './components/ExploreBulletinModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -211,6 +232,8 @@ const optionsCourse = ref<Course | null>(null)
 const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 const showPlatformReport = ref(false)
+const showBulletin = ref(false)
+const showMoreMenu = ref(false)
 const searchPending = ref(false)
 const filterPending = ref(false)
 
@@ -796,7 +819,10 @@ useCourseSocket({
   },
 })
 
+function closeMoreMenu() { showMoreMenu.value = false }
+
 onMounted(() => {
+  document.addEventListener('click', closeMoreMenu)
   // Show access denied message from redirect (e.g., revoked enrollment)
   const denied = route.query.accessDenied
   if (denied && typeof denied === 'string') {
@@ -813,7 +839,10 @@ onMounted(() => {
   if (sentinel.value) observer.observe(sentinel.value)
 })
 
-onUnmounted(() => observer?.disconnect())
+onUnmounted(() => {
+  observer?.disconnect()
+  document.removeEventListener('click', closeMoreMenu)
+})
 </script>
 
 <style scoped>
@@ -1069,34 +1098,67 @@ onUnmounted(() => observer?.disconnect())
   color: #8E8E93;
 }
 
-/* ── Botón FAB reporte plataforma ── */
-.platform-report-fab {
+/* ── Menú ⋮ reportes plataforma ── */
+.platform-more-menu {
   position: fixed;
   bottom: 88px;
   right: 20px;
+  z-index: 90;
   display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 11px 16px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.platform-more-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   color: #fff;
-  border-radius: 28px;
   box-shadow: 0 4px 18px rgba(191, 90, 242, 0.45);
-  font-size: 14px;
-  font-weight: 600;
-  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   transition: transform 0.2s, box-shadow 0.2s;
 }
-.platform-report-fab:hover {
+.platform-more-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(191, 90, 242, 0.55);
 }
-.platform-report-fab:active { transform: scale(0.95); }
-.fab-label { letter-spacing: 0.2px; }
+.platform-more-btn:active { transform: scale(0.95); }
+.platform-more-btn--open { background: linear-gradient(135deg, #BF5AF2, #6A1B9A); }
+
+.platform-more-dropdown {
+  position: absolute;
+  bottom: 56px;
+  right: 0;
+  min-width: 210px;
+  background: #2C2C2E;
+  border-radius: 14px;
+  padding: 6px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.platform-more-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  text-align: left;
+  transition: background 0.15s;
+}
+.platform-more-option:hover { background: rgba(255, 255, 255, 0.06); }
+.platform-more-option svg { flex-shrink: 0; color: #BF5AF2; }
 
 @media (max-width: 560px) {
-  .platform-report-fab { bottom: 80px; right: 14px; padding: 10px 13px; font-size: 13px; }
-  .fab-label { display: none; }
+  .platform-more-menu { bottom: 80px; right: 14px; }
 }
 
 /* ── Role selection dialog ── */
