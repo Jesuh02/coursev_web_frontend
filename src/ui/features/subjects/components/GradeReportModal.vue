@@ -699,8 +699,7 @@ function buildShareText(): string {
     }
     text += '\n'
   }
-  text += `📈 Promedio general: ${averageGrade.value}\n`
-  text += `📋 Total entregas: ${totalSubmissions.value} | Calificadas: ${gradedCount.value}`
+  text += ` Total entregas: ${totalSubmissions.value} | Calificadas: ${gradedCount.value}`
   if (isIncatInstitution()) {
     const lines = getInstitutionFooterLines()
     text += '\n\n' + lines.join('\n') + '\n'
@@ -756,7 +755,6 @@ ${buildInstitutionHeaderHTML()}
 <div><span class="val">${props.subjects.length}</span><span class="lbl">Materias</span></div>
 <div><span class="val">${totalSubmissions.value}</span><span class="lbl">Entregas</span></div>
 <div><span class="val">${gradedCount.value}</span><span class="lbl">Calificadas</span></div>
-<div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
 <thead><tr><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>

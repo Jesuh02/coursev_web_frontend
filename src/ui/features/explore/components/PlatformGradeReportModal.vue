@@ -831,7 +831,6 @@ ${buildInstitutionHeaderHTML()}
   <div><span class="val">${courseCount.value}</span><span class="lbl">Cursos</span></div>
   <div><span class="val">${totalSubmissions.value}</span><span class="lbl">Entregas</span></div>
   <div><span class="val">${gradedCount.value}</span><span class="lbl">Calificadas</span></div>
-  <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
   <thead><tr><th>Curso</th><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Final</th></tr></thead>
