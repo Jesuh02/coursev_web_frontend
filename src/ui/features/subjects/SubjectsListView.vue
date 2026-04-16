@@ -95,6 +95,7 @@
           :is-blocked="!!subjectBlocks[subject.id]"
           :can-modify="canModifySubject(subject)"
           :is-drag-mode="isDragMode"
+          :period-count="periodCounts[subject.id] || 0"
           @click="onCardClick(subject)"
           @options="openOptions"
         />
@@ -167,6 +168,7 @@ import type { Subject } from '@/domain/models'
 import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import { useSubjectSocket } from '@/composables/useSubjectSocket'
 import SubjectCard from './components/SubjectCard.vue'
 import GradeReportModal from './components/GradeReportModal.vue'
@@ -191,6 +193,7 @@ const optionsSubject = ref<Subject | null>(null)
 const showDeleteConfirm = ref(false)
 const courseExpired = ref(false)
 const subjectBlocks = ref<Record<number, string>>({})
+const periodCounts = ref<Record<number, number>>({})
 const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason: '' })
 const enrollmentApproved = ref(false)
 const showReport = ref(false)
@@ -426,6 +429,7 @@ onMounted(async () => {
   await loadSubjects()
   await checkCourseDeadline()
   await loadSubjectBlocks()
+  await loadPeriodCounts()
 })
 
 // ── Real-time subject access block / unblock via socket ──
@@ -597,6 +601,18 @@ async function loadSubjectBlocks() {
   } catch { /* silent */ }
 }
 
+async function loadPeriodCounts() {
+  if (!courseId.value) return
+  try {
+    const periods = await periodAdapter.listByCourse(courseId.value)
+    const counts: Record<number, number> = {}
+    for (const p of periods) {
+      counts[p.subjectId] = (counts[p.subjectId] || 0) + 1
+    }
+    periodCounts.value = counts
+  } catch { /* silent */ }
+}
+
 function navigateToCreate() {
   router.push({ path: '/subjects/create', query: { courseId: String(courseId.value) } })
 }
@@ -682,6 +698,7 @@ onActivated(async () => {
   }
   await loadSubjects()
   await loadSubjectBlocks()
+  await loadPeriodCounts()
 })
 
 useSubjectSocket(courseId.value, {

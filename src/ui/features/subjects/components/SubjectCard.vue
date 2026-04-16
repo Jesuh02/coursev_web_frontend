@@ -59,6 +59,12 @@
           </svg>
           {{ stats.taskCount }} tarea{{ stats.taskCount !== 1 ? 's' : '' }}
         </span>
+        <span v-if="periodCount" class="period-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          {{ periodCount }} periodo{{ periodCount !== 1 ? 's' : '' }}
+        </span>
       </div>
     </div>
   </div>
@@ -80,6 +86,7 @@ const props = defineProps<{
   isBlocked?: boolean
   canModify?: boolean
   isDragMode?: boolean
+  periodCount?: number
 }>()
 
 defineEmits<{
@@ -245,6 +252,18 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   font-size: 12px;
   color: #BF5AF2;
   background: rgba(191, 90, 242, 0.12);
+  padding: 4px 10px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.period-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #FFD60A;
+  background: rgba(255, 214, 10, 0.12);
   padding: 4px 10px;
   border-radius: 10px;
   flex-shrink: 0;
