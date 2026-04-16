@@ -110,6 +110,7 @@ export interface SubmissionPort {
   getSubmissionByUserAndTask(taskId: number, studentId?: number): Promise<TaskSubmission | null>
   getSubmissionById(id: number): Promise<TaskSubmission>
   submitWork(data: Record<string, unknown>): Promise<TaskSubmission>
+  submitWorkForStudent(data: Record<string, unknown>): Promise<TaskSubmission>
   gradeSubmission(id: number, grade: number, feedback?: string): Promise<TaskSubmission>
   uploadSubmissionFile(formData: FormData, folder: string): Promise<{ key: string; url: string }>
 }
