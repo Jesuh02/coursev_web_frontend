@@ -21,22 +21,28 @@
             <!-- Step 1: Course selection -->
             <template v-if="!selectedCourse">
               <p class="step-hint">Selecciona un curso para generar el boletín</p>
-              <div class="course-search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                <input v-model="courseSearch" type="text" placeholder="Buscar curso..." />
+              <div v-if="loadingCourses" class="bulletin-loading">
+                <div class="spinner-bulletin" />
+                <p>Cargando cursos…</p>
               </div>
-              <ul v-if="filteredCourses.length" class="course-pick-list">
-                <li v-for="c in filteredCourses" :key="c.id" class="course-pick-item" @click="pickCourse(c)">
-                  <div class="course-pick-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                  </div>
-                  <div class="course-pick-info">
-                    <span class="course-pick-name">{{ c.title }}</span>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
-                </li>
-              </ul>
-              <p v-else class="no-courses">No se encontraron cursos</p>
+              <template v-else>
+                <div class="course-search">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  <input v-model="courseSearch" type="text" placeholder="Buscar curso..." />
+                </div>
+                <ul v-if="filteredCourses.length" class="course-pick-list">
+                  <li v-for="c in filteredCourses" :key="c.id" class="course-pick-item" @click="pickCourse(c)">
+                    <div class="course-pick-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </div>
+                    <div class="course-pick-info">
+                      <span class="course-pick-name">{{ c.title }}</span>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+                  </li>
+                </ul>
+                <p v-else class="no-courses">No se encontraron cursos</p>
+              </template>
             </template>
 
             <!-- Step 2: Delegate to BulletinModal-like flow -->
@@ -164,7 +170,7 @@
 import { ref, computed, watch } from 'vue'
 import type { Course, Subject } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
-import { subjectAdapter } from '@/infrastructure/api'
+import { courseAdapter, subjectAdapter } from '@/infrastructure/api'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
 import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
@@ -182,12 +188,14 @@ const allStudents = ref<GradeSheetStudent[]>([])
 const loadingSubjects = ref(false)
 const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
+const allCourses = ref<Course[]>([])
+const loadingCourses = ref(false)
 
 interface BulletinRow { subjectId: number; subjectName: string; notaDefinitiva: number | null }
 const bulletinRows = ref<BulletinRow[]>([])
 
 const filteredCourses = computed(() => {
-  const courses = courseStore.courses
+  const courses = allCourses.value.length > 0 ? allCourses.value : courseStore.courses
   if (!courseSearch.value.trim()) return courses
   const q = courseSearch.value.toLowerCase()
   return courses.filter(c => (c.title || '').toLowerCase().includes(q))
@@ -225,7 +233,7 @@ function notaClass(grade: number | null): string {
   return 'nota-low'
 }
 
-watch(() => props.modelValue, (open) => {
+watch(() => props.modelValue, async (open) => {
   if (open) {
     selectedCourse.value = null
     selectedStudent.value = null
@@ -233,6 +241,17 @@ watch(() => props.modelValue, (open) => {
     studentSearch.value = ''
     bulletinRows.value = []
     subjectsForCourse.value = []
+    // Cargar todos los cursos desde la API para no depender de la paginación del store
+    if (allCourses.value.length === 0) {
+      loadingCourses.value = true
+      try {
+        allCourses.value = await courseAdapter.getCourses(1, 300)
+      } catch {
+        allCourses.value = []
+      } finally {
+        loadingCourses.value = false
+      }
+    }
   }
 })
 
