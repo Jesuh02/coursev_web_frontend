@@ -167,7 +167,7 @@ import { useCourseStore } from '@/stores/courseStore'
 import { subjectAdapter } from '@/infrastructure/api'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -347,6 +347,10 @@ async function shareBulletin() {
     text += `${row.subjectName.padEnd(26)}${(row.notaDefinitiva ?? 0).toFixed(1)}\n`
   }
   text += `${'─'.repeat(32)}\nPROMEDIO GENERAL           ${(promedioGeneral.value ?? 0).toFixed(1)}\n`
+  if (isIncatInstitution()) {
+    const lines = getInstitutionFooterLines()
+    text += '\n' + lines.join('\n') + '\n'
+  }
   if (navigator.share) {
     try { await navigator.share({ title: 'Boletín de Notas', text }) } catch { /* cancelled */ }
   } else {

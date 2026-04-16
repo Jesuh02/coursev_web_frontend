@@ -240,7 +240,7 @@
 import { ref, computed, watch } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
   id: number
@@ -500,6 +500,7 @@ ${st.cedula ? `<span class="label">Identificación:</span><span class="value">${
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
 <div class="footer">Generado el ${generatedDate.value}</div>
+${buildInstitutionSignatureAndFooterHTML()}
 </div>`)
   }
 
@@ -526,6 +527,7 @@ td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
 .footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
 @media print{body{padding:0}.page{padding:10px 0 20px}}
 ${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
 </style></head><body>${pages.join('')}</body></html>`
 
   const win = window.open('', '_blank')
@@ -571,6 +573,10 @@ function buildShareText(): string {
   text += `${'─'.repeat(32)}\n`
   const prom = promedioGeneral.value
   text += `PROMEDIO GENERAL           ${prom.toFixed(1)}\n`
+  if (isIncatInstitution()) {
+    const lines = getInstitutionFooterLines()
+    text += '\n' + lines.join('\n') + '\n'
+  }
   return text
 }
 

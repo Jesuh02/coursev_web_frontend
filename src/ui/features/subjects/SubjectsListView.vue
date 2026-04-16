@@ -459,11 +459,11 @@ onUnmounted(() => {
 })
 
 async function checkCourseDeadline() {
-  if (authStore.isAdmin) return // rol 3 siempre puede entrar
   if (!courseId.value) return
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
     currentCourseName.value = (course as any)?.title ?? (course as any)?.name ?? ''
+    if (authStore.isAdmin) return // rol 3 siempre puede entrar
     const isInactive = course?.isActive === false || course?.is_active === false
     const isExpired = Boolean(course?.deadline) && new Date(course.deadline as string).getTime() < Date.now()
     if (isInactive || isExpired) {

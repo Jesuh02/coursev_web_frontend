@@ -701,6 +701,10 @@ function buildShareText(): string {
   }
   text += `📈 Promedio general: ${averageGrade.value}\n`
   text += `📋 Total entregas: ${totalSubmissions.value} | Calificadas: ${gradedCount.value}`
+  if (isIncatInstitution()) {
+    const lines = getInstitutionFooterLines()
+    text += '\n\n' + lines.join('\n') + '\n'
+  }
   return text
 }
 
