@@ -774,18 +774,20 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
   for (const group of reportData.value) {
-    rows += `<tr class="course-header"><td colspan="6">${esc_html(group.courseName)}</td></tr>`
+    rows += `<tr class="course-header"><td colspan="8">${esc_html(group.courseName)}</td></tr>`
     const hasSummaries = Object.values(group.gradeSummariesBySubject).some(s => s.length > 0)
     if (!hasSummaries) {
-      rows += `<tr><td colspan="6" style="color:#999;font-style:italic;padding-left:20px">Sin datos disponibles</td></tr>`
+      rows += `<tr><td colspan="8" style="color:#999;font-style:italic;padding-left:20px">Sin datos disponibles</td></tr>`
     } else {
       for (const [subjectName, summaries] of Object.entries(group.gradeSummariesBySubject)) {
         if (!summaries.length) continue
-        rows += `<tr class="subject-header"><td colspan="6"><span class="stag">Materia</span> ${esc_html(subjectName)}</td></tr>`
+        rows += `<tr class="subject-header"><td colspan="8"><span class="stag">Materia</span> ${esc_html(subjectName)}</td></tr>`
         const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
         for (const row of summaries) {
           const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
           rows += `<tr>
+        <td>${esc_html(group.courseName)}</td>
+        <td>${esc_html(subjectName)}</td>
         <td><strong>${esc_html(row.studentFullName || row.studentUsername)}</strong></td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
         <td style="text-align:center">${fmt(row.taskAvg)}</td>
@@ -832,7 +834,7 @@ ${buildInstitutionHeaderHTML()}
   <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-  <thead><tr><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Final</th></tr></thead>
+  <thead><tr><th>Curso</th><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Final</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
 ${buildInstitutionSignatureAndFooterHTML()}</body></html>`

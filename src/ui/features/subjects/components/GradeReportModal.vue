@@ -708,13 +708,14 @@ function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of reportData.value) {
-    rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
+    rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
     if (!group.gradeSummaries.length) {
-      rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
+      rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     }
     for (const row of group.gradeSummaries) {
       const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
       rows += `<tr>
+        <td>${escH(group.subjectName)}</td>
         <td>${row.studentName}</td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
         <td style="text-align:center">${fmt(row.taskAvg)}</td>
@@ -754,7 +755,7 @@ ${buildInstitutionHeaderHTML()}
 <div><span class="val">${averageGrade.value}</span><span class="lbl">Promedio</span></div>
 </div>
 <table>
-<thead><tr><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>
+<thead><tr><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
 ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
