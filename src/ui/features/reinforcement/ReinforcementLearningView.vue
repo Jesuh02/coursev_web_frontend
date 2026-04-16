@@ -1586,6 +1586,85 @@ function optLetterClass(i: number) {
 }
 
 // ─── Ordering helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Reglas de dependencia lógica para validación flexible de ordering.
+ * [prerequisito, dependiente]: el dependiente DEBE ir DESPUÉS del prerequisito.
+ */
+const ORDERING_DEPENDENCY_RULES: [RegExp, RegExp][] = [
+  // Verificar convergencia ANTES de aplicar fórmula
+  [/verificar.*convergencia|comprobar.*convergencia|condici[oó]n.*convergencia|\|r\|\s*<\s*1/i,
+   /aplicar.*f[oó]rmula|calcular.*serie|usar.*f[oó]rmula|sumar.*t[eé]rminos|sustituir.*f[oó]rmula/i],
+  // Verificar dimensiones ANTES de operar matrices
+  [/verificar.*dimension|comprobar.*dimension|verificar.*compatib|comprobar.*compatib|verificar.*matrices.*mismo/i,
+   /sumar.*matri|restar.*matri|multiplicar.*matri|operar.*matri/i],
+  // Alinear ANTES de operar
+  [/alinear|colocar.*columna|organizar.*vertical/i,
+   /\bsumar\b|restar\b|multiplicar\b|dividir\b|operar\b|calcular\b/i],
+  // Operar ANTES de escribir resultado final
+  [/\bsumar\b|\brestar\b|\bmultiplicar\b|\bdividir\b|\bcalcular\b|\boperar\b|\bresolver\b/i,
+   /escribir.*resultado\s+final|anotar.*resultado\s+final/i],
+  // Identificar datos ANTES de calcular
+  [/identificar.*datos|leer.*problema|analizar.*enunciado|extraer.*datos/i,
+   /\bcalcular\b|\boperar\b|\bresolver\b|aplicar.*f[oó]rmula/i],
+  // Calcular ANTES de verificar resultado
+  [/\bcalcular\b|obtener.*resultado|determinar.*resultado/i,
+   /verificar.*resultado|comprobar.*resultado|revisar.*resultado/i],
+  // Resultado provisional ANTES de identificar dígito de redondeo
+  [/resultado.*provisional|resultado.*con.*decimales|resultado.*sin.*redonde/i,
+   /identificar.*d[ií]gito.*redond|aplicar.*redondeo|redonde(?:ar|o)\s+(?:el\s+)?resultado/i],
+  // Identificar dígito ANTES de aplicar redondeo
+  [/identificar.*d[ií]gito|mirar.*d[ií]gito|observar.*d[ií]gito/i,
+   /aplicar.*redondeo|redonde(?:ar|o)\s+hacia/i],
+  // Llevar acarreo ANTES de continuar sumando
+  [/llevar.*acarreo|registrar.*acarreo/i,
+   /continuar.*sumando|pasar.*siguiente.*columna|seguir.*sumando/i],
+  // Convertir a decimal ANTES de alinear
+  [/convertir.*decimal|pasar.*decimal|expandir.*notaci[oó]n|notaci[oó]n.*a.*decimal/i,
+   /alinear|colocar.*columna/i],
+  // Plantear ecuación ANTES de resolver
+  [/plantear.*ecuaci[oó]n|escribir.*ecuaci[oó]n|formular.*ecuaci[oó]n/i,
+   /resolver.*ecuaci[oó]n|despejar|simplificar.*ecuaci[oó]n/i],
+  // Derivar ANTES de igualar a cero
+  [/calcular.*derivada|derivar.*funci[oó]n|obtener.*derivada/i,
+   /igualar.*cero|puntos?.*cr[ií]tic/i],
+  // Operar ANTES de redondear
+  [/\bsumar\b|\brestar\b|\bcalcular\b|\boperar\b|obtener.*resultado/i,
+   /redonde(?:ar|o)\s+(?:(?:el\s+)?resultado|a\s+\d+\s+decimal)/i],
+  // Calcular/sumar ANTES de escribir resultado provisional
+  [/sumar.*columna|calcular.*total|realizar.*(?:suma|operaci[oó]n)/i,
+   /resultado.*provisional|resultado.*con.*todos.*decimales/i],
+  // Leer/analizar problema ANTES de plantear ecuación
+  [/leer.*problema|analizar.*enunciado|comprender.*problema/i,
+   /plantear.*ecuaci[oó]n|formular.*ecuaci[oó]n/i],
+  // Factorizar ANTES de encontrar raíces
+  [/factorizar|simplificar.*expresi[oó]n/i,
+   /encontrar.*ra[ií]ces?|hallar.*ra[ií]ces?|valores?\s+de\s+x/i],
+  // Identificar datos ANTES de plantear ecuación
+  [/identificar.*datos|extraer.*datos|leer.*problema/i,
+   /plantear.*ecuaci[oó]n|escribir.*ecuaci[oó]n|formular.*ecuaci[oó]n/i],
+]
+
+/**
+ * Valida un ordering por dependencias lógicas en lugar de comparación rígida.
+ * Acepta CUALQUIER orden que respete todas las dependencias.
+ */
+function isOrderingCorrectByDependencies(userIndices: number[], items: string[]): boolean {
+  if (!items.length || userIndices.length !== items.length) return false
+  const userTexts = userIndices.map(i => items[i] ?? '')
+  if (userTexts.some(t => !t)) return false
+
+  for (let i = 0; i < userTexts.length; i++) {
+    for (let j = i + 1; j < userTexts.length; j++) {
+      for (const [prereq, dependent] of ORDERING_DEPENDENCY_RULES) {
+        // userTexts[i] es dependiente y userTexts[j] es prerequisito → VIOLACIÓN
+        if (dependent.test(userTexts[i]) && prereq.test(userTexts[j])) return false
+      }
+    }
+  }
+  return true
+}
+
 function toggleOrderItem(i: number) {
   if (answered.value) return
   const idx = orderingUserSeq.value.indexOf(i)
@@ -1599,7 +1678,16 @@ function toggleOrderItem(i: number) {
 function checkOrdering() {
   if (answered.value) return
   const q = currentQ.value
-  const correct = JSON.stringify(orderingUserSeq.value) === JSON.stringify(q.correctOrder ?? [])
+  const items = q.items ?? q.options ?? []
+
+  // Comparación estricta primero
+  let correct = JSON.stringify(orderingUserSeq.value) === JSON.stringify(q.correctOrder ?? [])
+
+  // Si falla la estricta, validar por dependencias lógicas
+  if (!correct && items.length >= 2) {
+    correct = isOrderingCorrectByDependencies(orderingUserSeq.value, items)
+  }
+
   fillCorrect.value = correct
   if (correct) correctCount.value++
   answered.value = true
