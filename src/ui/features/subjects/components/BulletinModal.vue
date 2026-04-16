@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="bulletin-fade">
-      <div v-if="modelValue" class="bulletin-overlay" @click.self="$emit('update:modelValue', false)">
-        <div class="bulletin-modal">
+      <div v-if="modelValue" class="bulletin-overlay" :class="{ 'bulletin-overlay--fs': isFullscreen }" @click.self="!isFullscreen && $emit('update:modelValue', false)">
+        <div class="bulletin-modal" :class="{ 'bulletin-modal--fs': isFullscreen }">
           <!-- Header -->
           <div class="bulletin-header">
             <div class="bulletin-header-icon">
@@ -12,18 +12,26 @@
               </svg>
             </div>
             <h2 class="bulletin-title">Generar Boletín</h2>
+            <button class="bulletin-expand-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+            </button>
             <button class="bulletin-close" @click="$emit('update:modelValue', false)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
           <!-- Student selector -->
-          <div v-if="!selectedStudent" class="bulletin-body">
+          <div v-if="!selectedStudent && !showAllBulletins" class="bulletin-body">
             <div v-if="loadingStudents" class="bulletin-loading">
               <div class="spinner-bulletin" />
               <p>Cargando estudiantes…</p>
             </div>
             <template v-else>
+              <button v-if="allStudents.length" class="view-all-btn" @click="selectAllStudents">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                Ver boletín de todos ({{ allStudents.length }})
+              </button>
               <div class="student-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <input v-model="studentSearch" type="text" placeholder="Buscar estudiante..." />
@@ -41,6 +49,63 @@
               </ul>
               <p v-else class="no-students">No se encontraron estudiantes</p>
             </template>
+          </div>
+
+          <!-- All students bulletin -->
+          <div v-else-if="showAllBulletins" class="bulletin-body">
+            <button class="back-to-list" @click="showAllBulletins = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+              Volver a la lista
+            </button>
+
+            <div v-if="loadingAllBulletins" class="bulletin-loading">
+              <div class="spinner-bulletin" />
+              <p>Generando boletines de todos los estudiantes…</p>
+            </div>
+
+            <template v-else>
+              <div v-for="entry in allBulletinData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
+                <div class="boletin-header-top">
+                  <div class="boletin-logo-placeholder">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  </div>
+                  <div class="boletin-institution">
+                    <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
+                    <span class="boletin-inst-subtitle">Plataforma Educativa</span>
+                  </div>
+                </div>
+                <div class="boletin-divider" />
+                <div class="boletin-info-grid">
+                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ courseName || '—' }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
+                  <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
+                </div>
+                <div class="boletin-divider" />
+                <table class="boletin-table">
+                  <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                  <tbody>
+                    <tr v-for="row in entry.rows" :key="row.subjectId">
+                      <td class="td-modulo">{{ row.subjectName }}</td>
+                      <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="boletin-promedio">
+                  <span class="promedio-label">PROMEDIO GENERAL</span>
+                  <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
+                </div>
+                <div class="boletin-divider" />
+                <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+              </div>
+            </template>
+
+            <div v-if="!loadingAllBulletins && allBulletinData.length" class="bulletin-export-bar">
+              <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                PDF todos
+              </button>
+            </div>
           </div>
 
           <!-- Bulletin preview -->
@@ -102,7 +167,7 @@
                 <tbody>
                   <tr v-for="row in bulletinRows" :key="row.subjectId">
                     <td class="td-modulo">{{ row.subjectName }}</td>
-                    <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—' }}</td>
+                    <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -110,7 +175,7 @@
               <!-- Average -->
               <div class="boletin-promedio">
                 <span class="promedio-label">PROMEDIO GENERAL</span>
-                <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral != null ? promedioGeneral.toFixed(1) : '—' }}</span>
+                <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral.toFixed(1) }}</span>
               </div>
 
               <div class="boletin-divider" />
@@ -158,6 +223,7 @@ const props = defineProps<{
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
+const isFullscreen = ref(false)
 const institutionName = ref('')
 const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
@@ -167,12 +233,20 @@ const selectedStudent = ref<GradeSheetStudent | null>(null)
 interface BulletinRow {
   subjectId: number
   subjectName: string
-  notaDefinitiva: number | null
+  notaDefinitiva: number
 }
 
 const allStudents = ref<GradeSheetStudent[]>([])
 const bulletinRows = ref<BulletinRow[]>([])
 const bulletinContent = ref<HTMLElement>()
+const showAllBulletins = ref(false)
+const loadingAllBulletins = ref(false)
+
+interface AllBulletinEntry {
+  student: GradeSheetStudent
+  rows: BulletinRow[]
+}
+const allBulletinData = ref<AllBulletinEntry[]>([])
 
 const filteredStudents = computed(() => {
   if (!studentSearch.value.trim()) return allStudents.value
@@ -195,10 +269,17 @@ const generatedDate = computed(() =>
 )
 
 const promedioGeneral = computed(() => {
-  const grades = bulletinRows.value.filter(r => r.notaDefinitiva != null).map(r => r.notaDefinitiva!)
-  if (!grades.length) return null
+  const grades = bulletinRows.value.map(r => r.notaDefinitiva)
+  if (!grades.length) return 0
   return grades.reduce((a, b) => a + b, 0) / grades.length
 })
+
+function computePromedio(rows: BulletinRow[]): number {
+  if (!rows.length) return 0
+  return rows.reduce((a, r) => a + r.notaDefinitiva, 0) / rows.length
+}
+
+function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
 
 function notaClass(grade: number | null): string {
   if (grade === null || isNaN(grade)) return ''
@@ -212,6 +293,8 @@ watch(() => props.modelValue, async (open) => {
     selectedStudent.value = null
     studentSearch.value = ''
     bulletinRows.value = []
+    showAllBulletins.value = false
+    allBulletinData.value = []
     await loadStudents()
   }
 })
@@ -248,7 +331,7 @@ async function selectStudent(student: GradeSheetStudent) {
       props.subjects.map(s =>
         gradeAdapter.getGradeSheet(s.id).then(sheet => {
           if (!sheet) {
-            rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: null })
+            rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
             return
           }
           const totalTasks = sheet.tasks.length
@@ -272,15 +355,15 @@ async function selectStudent(student: GradeSheetStudent) {
           const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
 
           const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
-          const notaDefinitiva = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+          const notaDefinitiva = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
 
           rows.push({
             subjectId: s.id,
             subjectName: s.name,
-            notaDefinitiva: notaDefinitiva !== null ? Math.round(notaDefinitiva * 10) / 10 : null,
+            notaDefinitiva: Math.round(notaDefinitiva * 10) / 10,
           })
         }).catch(() => {
-          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: null })
+          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
         })
       )
     )
@@ -290,6 +373,132 @@ async function selectStudent(student: GradeSheetStudent) {
     bulletinRows.value = rows
   } catch { /* silent */ }
   finally { loadingBulletin.value = false }
+}
+
+// ── Grade computation helper for a single student across all subjects ──
+async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Map<number, GradeSheet | null>): Promise<BulletinRow[]> {
+  const rows: BulletinRow[] = []
+  for (const s of props.subjects) {
+    const sheet = sheetsCache.get(s.id) ?? null
+    if (!sheet) {
+      rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
+      continue
+    }
+    const totalTasks = sheet.tasks.length
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+
+    const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+    const activeCategories = new Set(sheet.manualGrades.map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
+    const stManualGrades = sheet.manualGrades.filter((mg: any) => Number(mg.studentId) === student.userId)
+    const byType: Record<string, number[]> = {}
+    for (const mg of stManualGrades) {
+      const base = String(mg.gradeType).replace(/_\d+$/, '')
+      if (!byType[base]) byType[base] = []
+      byType[base].push(Number(mg.grade))
+    }
+    const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
+    const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
+    const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
+
+    const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
+    const notaDefinitiva = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+
+    rows.push({
+      subjectId: s.id,
+      subjectName: s.name,
+      notaDefinitiva: Math.round(notaDefinitiva * 10) / 10,
+    })
+  }
+  return rows
+}
+
+// ── Select all students: generate bulletins for everyone ──
+async function selectAllStudents() {
+  showAllBulletins.value = true
+  loadingAllBulletins.value = true
+  allBulletinData.value = []
+  try {
+    // Fetch all grade sheets once
+    const sheetsCache = new Map<number, GradeSheet | null>()
+    await Promise.allSettled(
+      props.subjects.map(s =>
+        gradeAdapter.getGradeSheet(s.id).then(sheet => {
+          sheetsCache.set(s.id, sheet ?? null)
+        }).catch(() => {
+          sheetsCache.set(s.id, null)
+        })
+      )
+    )
+
+    const entries: AllBulletinEntry[] = []
+    for (const student of allStudents.value) {
+      const rows = await computeRowsForStudent(student, sheetsCache)
+      entries.push({ student, rows })
+    }
+    allBulletinData.value = entries
+  } catch { /* silent */ }
+  finally { loadingAllBulletins.value = false }
+}
+
+function exportAllBulletinsPDF() {
+  const pages: string[] = []
+  for (const entry of allBulletinData.value) {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    let rows = ''
+    for (const row of entry.rows) {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    }
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    pages.push(`
+<div class="page">
+<div class="header"><span class="inst-name">${escH(institutionName.value || 'CourseV')}</span><span class="inst-sub">Plataforma Educativa</span></div>
+<div class="info">
+<span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span>
+<span class="label">Estudiante:</span><span class="value">${name}</span>
+${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}
+<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span>
+</div>
+<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
+<div class="footer">Generado el ${generatedDate.value}</div>
+</div>`)
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletines - Todos</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:20px;color:#222;max-width:700px;margin:0 auto}
+.page{page-break-after:always;padding:20px 0 40px}
+.page:last-child{page-break-after:avoid}
+.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}
+.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}
+.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}
+.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}
+.value{font-size:13px;font-weight:600}
+table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}
+th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
+.td-mod{font-weight:600;text-transform:uppercase}
+.td-nota{text-align:center;font-weight:700;font-size:15px}
+.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}
+.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}
+.prom-value{font-size:20px;font-weight:800}
+.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
+@media print{body{padding:0}.page{padding:10px 0 20px}}
+</style></head><body>${pages.join('')}</body></html>`
+
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
 }
 
 function exportBulletinPDF() {
@@ -322,12 +531,12 @@ function buildShareText(): string {
   text += `MÓDULO                    NOTA\n`
   text += `${'─'.repeat(32)}\n`
   for (const row of bulletinRows.value) {
-    const nota = row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—'
+    const nota = row.notaDefinitiva.toFixed(1)
     text += `${row.subjectName.padEnd(26)}${nota}\n`
   }
   text += `${'─'.repeat(32)}\n`
   const prom = promedioGeneral.value
-  text += `PROMEDIO GENERAL           ${prom != null ? prom.toFixed(1) : '—'}\n`
+  text += `PROMEDIO GENERAL           ${prom.toFixed(1)}\n`
   return text
 }
 
@@ -342,14 +551,12 @@ function buildBulletinPrintHTML(): string {
 
   let rows = ''
   for (const row of bulletinRows.value) {
-    const nota = row.notaDefinitiva != null ? row.notaDefinitiva.toFixed(1) : '—'
-    const color = row.notaDefinitiva != null
-      ? (row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C')
-      : '#999'
+    const nota = row.notaDefinitiva.toFixed(1)
+    const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
     rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
   }
 
-  const promColor = prom != null ? (prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C') : '#999'
+  const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín - ${name}</title>
 <style>
@@ -388,7 +595,7 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
 </table>
 <div class="promedio">
 <span class="prom-label">Promedio General</span>
-<span class="prom-value" style="color:${promColor}">${prom != null ? prom.toFixed(1) : '—'}</span>
+<span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span>
 </div>
 <div class="footer">Generado el ${generatedDate.value}</div>
 </body></html>`
@@ -406,6 +613,11 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
   align-items: center;
   justify-content: center;
   padding: 16px;
+  transition: padding 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bulletin-overlay--fs {
+  padding: 0;
 }
 
 .bulletin-modal {
@@ -418,6 +630,17 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
   display: flex;
   flex-direction: column;
   animation: bulletin-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              max-height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-radius 0.35s ease,
+              height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bulletin-modal--fs {
+  max-width: 100% !important;
+  max-height: 100vh !important;
+  height: 100vh;
+  border-radius: 0;
 }
 
 @keyframes bulletin-slide-up {
@@ -455,6 +678,20 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
   color: #fff;
   margin: 0;
 }
+
+.bulletin-expand-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+}
+.bulletin-expand-btn:hover { background: rgba(48, 209, 88, 0.15); transform: scale(1.1); }
+.bulletin-expand-btn:active { transform: scale(0.92); }
 
 .bulletin-close {
   width: 36px;
@@ -513,6 +750,32 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
   outline: none;
 }
 .student-search input::placeholder { color: #8E8E93; }
+
+.view-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(48, 209, 88, 0.15), rgba(48, 209, 88, 0.08));
+  border: 1px solid rgba(48, 209, 88, 0.3);
+  color: #30D158;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.15s;
+}
+.view-all-btn:hover {
+  background: linear-gradient(135deg, rgba(48, 209, 88, 0.25), rgba(48, 209, 88, 0.15));
+  transform: scale(1.01);
+}
+.view-all-btn:active { transform: scale(0.98); }
+
+.bulletin-card--all {
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 .student-hint {
   font-size: 12px;
