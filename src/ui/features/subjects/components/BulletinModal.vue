@@ -212,7 +212,7 @@
 import { ref, computed, watch } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
   id: number
@@ -585,6 +585,7 @@ td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
 .footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
 @media print{body{padding:20px}table{page-break-inside:avoid}}
 ${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
 </style></head><body>
 ${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
@@ -602,6 +603,7 @@ ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">$
 <span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span>
 </div>
 <div class="footer">Generado el ${generatedDate.value}</div>
+${buildInstitutionSignatureAndFooterHTML()}
 </body></html>`
 }
 </script>
