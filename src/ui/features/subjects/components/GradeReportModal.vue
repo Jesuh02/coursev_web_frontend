@@ -153,7 +153,7 @@ import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { useAuthStore } from '@/stores/authStore'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution } from '@/utils/institutionHeader'
 
 const props = defineProps<{
   modelValue: boolean
@@ -297,7 +297,7 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
     const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
     const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
     const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
-    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
     const latestGradedAt = stTaskGrades.map(tg => tg.gradedAt).filter((d): d is string => d != null).sort().at(-1) ?? null
     return {
       studentName: displayStudentName(student.fullName),
@@ -547,6 +547,32 @@ async function exportExcel() {
     return { color: { argb: 'FF999999' }, name: 'Calibri' }
   }
 
+  // INCAT institution header rows
+  if (isIncatInstitution()) {
+    const incatTitle = ws.addRow(['POLITECNICO INSTITUCIONAL DEL CARIBE "INCAT"'])
+    ws.mergeCells(incatTitle.number, 1, incatTitle.number, 8)
+    incatTitle.getCell(1).font = { bold: true, color: { argb: 'FF8B0000' }, size: 14, name: 'Calibri' }
+    incatTitle.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    incatTitle.height = 22
+    const lic1 = ws.addRow(['Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M'])
+    ws.mergeCells(lic1.number, 1, lic1.number, 8)
+    lic1.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
+    lic1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const lic2 = ws.addRow(['Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.'])
+    ws.mergeCells(lic2.number, 1, lic2.number, 8)
+    lic2.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
+    lic2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const instDesc = ws.addRow(['Institución Educativa De Formación para el trabajo y el desarrollo humano'])
+    ws.mergeCells(instDesc.number, 1, instDesc.number, 8)
+    instDesc.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF333333' } }
+    instDesc.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const nit = ws.addRow(['NIT: 900391687-0'])
+    ws.mergeCells(nit.number, 1, nit.number, 8)
+    nit.getCell(1).font = { bold: true, size: 11, name: 'Calibri', color: { argb: 'FF8B0000' } }
+    nit.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.addRow([]) // blank separator row
+  }
+
   // Header row
   const hdrRow = ws.addRow(['Materia', 'Docente', 'Estudiante', 'Comportamiento', 'Tareas', 'Examen', 'Participación', 'Nota Ponderada'])
   hdrRow.eachCell((cell: ExcelJS.Cell) => {
@@ -559,7 +585,7 @@ async function exportExcel() {
   hdrRow.height = 18
 
   for (const group of reportData.value) {
-    const avg = group.average !== null ? group.average : '—'
+    const avg = group.average !== null ? group.average : 0
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
@@ -579,11 +605,11 @@ async function exportExcel() {
         group.subjectName,
         group.teacherName,
         row.studentName,
-        row.comportamientoAvg ?? '—',
-        row.taskAvg ?? '—',
-        row.examenesAvg ?? '—',
-        row.participacionAvg ?? '—',
-        row.notaPonderada ?? '—',
+        row.comportamientoAvg ?? 0,
+        row.taskAvg ?? 0,
+        row.examenesAvg ?? 0,
+        row.participacionAvg ?? 0,
+        row.notaPonderada ?? 0,
       ])
       const rowFill = i % 2 === 0 ? row0Fill : row1Fill
       dataRow.eachCell((cell: ExcelJS.Cell) => {
@@ -634,9 +660,9 @@ function esc(s: string) { return s.replace(/"/g, '""') }
 
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
-  const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
+  const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of reportData.value) {
-    text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
+    text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
     for (const row of group.gradeSummaries) {
       text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
     }
@@ -649,14 +675,14 @@ function buildShareText(): string {
 
 function buildPrintableHTML(): string {
   let rows = ''
-  const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
+  const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of reportData.value) {
-    rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
+    rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
     if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     }
     for (const row of group.gradeSummaries) {
-      const notaColor = row.notaPonderada != null ? (row.notaPonderada >= 4 ? '#34C759' : row.notaPonderada >= 3 ? '#FF9500' : '#FF453A') : '#999'
+      const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
       rows += `<tr>
         <td>${row.studentName}</td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>

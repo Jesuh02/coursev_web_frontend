@@ -201,7 +201,7 @@ import { api, courseAdapter } from '@/infrastructure/api'
 import { subjectAdapter } from '@/infrastructure/api/subjectAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -505,6 +505,7 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
   const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
   const totalTasks = sheet.tasks.length
+  const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
@@ -516,11 +517,11 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
       if (!byType[base]) byType[base] = []
       byType[base].push(Number(mg.grade))
     }
-    const participacionAvg = avgArr(byType['participacion'] ?? [])
-    const examenesAvg = avgArr(byType['examenes'] ?? [])
-    const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+    const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
+    const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
+    const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
     const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
-    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
     return {
       studentUsername: student.username ?? `#${student.userId}`,
       studentFullName: normalizePersonName(student.fullName),
@@ -592,6 +593,32 @@ async function exportExcel() {
     return { color: { argb: 'FF999999' }, name: 'Calibri' }
   }
 
+  // INCAT institution header rows
+  if (isIncatInstitution()) {
+    const incatTitle = ws.addRow(['POLITECNICO INSTITUCIONAL DEL CARIBE "INCAT"'])
+    ws.mergeCells(incatTitle.number, 1, incatTitle.number, 8)
+    incatTitle.getCell(1).font = { bold: true, color: { argb: 'FF8B0000' }, size: 14, name: 'Calibri' }
+    incatTitle.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    incatTitle.height = 22
+    const lic1 = ws.addRow(['Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M'])
+    ws.mergeCells(lic1.number, 1, lic1.number, 8)
+    lic1.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
+    lic1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const lic2 = ws.addRow(['Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.'])
+    ws.mergeCells(lic2.number, 1, lic2.number, 8)
+    lic2.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
+    lic2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const instDesc = ws.addRow(['Institución Educativa De Formación para el trabajo y el desarrollo humano'])
+    ws.mergeCells(instDesc.number, 1, instDesc.number, 8)
+    instDesc.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF333333' } }
+    instDesc.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    const nit = ws.addRow(['NIT: 900391687-0'])
+    ws.mergeCells(nit.number, 1, nit.number, 8)
+    nit.getCell(1).font = { bold: true, size: 11, name: 'Calibri', color: { argb: 'FF8B0000' } }
+    nit.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.addRow([]) // blank separator row
+  }
+
   // Header row
   const hdrRow = ws.addRow(['Curso', 'Materia', 'Estudiante', 'Comportamiento', 'Tareas', 'Examen', 'Participación', 'Nota Final'])
   applyHdr(hdrRow)
@@ -631,11 +658,11 @@ async function exportExcel() {
           group.courseName,
           subjectName,
           row.studentFullName || row.studentUsername,
-          row.comportamientoAvg ?? '—',
-          row.taskAvg ?? '—',
-          row.examenesAvg ?? '—',
-          row.participacionAvg ?? '—',
-          row.notaPonderada ?? '—',
+          row.comportamientoAvg ?? 0,
+          row.taskAvg ?? 0,
+          row.examenesAvg ?? 0,
+          row.participacionAvg ?? 0,
+          row.notaPonderada ?? 0,
         ])
         const rowFill = i % 2 === 0 ? row0Fill : row1Fill
         dataRow.eachCell((cell: ExcelJS.Cell) => {
@@ -723,9 +750,9 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
       for (const [subjectName, summaries] of Object.entries(group.gradeSummariesBySubject)) {
         if (!summaries.length) continue
         rows += `<tr class="subject-header"><td colspan="6"><span class="stag">Materia</span> ${esc_html(subjectName)}</td></tr>`
-        const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
+        const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
         for (const row of summaries) {
-          const notaColor = row.notaPonderada != null ? (row.notaPonderada >= 4 ? '#34C759' : row.notaPonderada >= 3 ? '#FF9500' : '#FF453A') : '#999'
+          const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
           rows += `<tr>
         <td><strong>${esc_html(row.studentFullName || row.studentUsername)}</strong></td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
