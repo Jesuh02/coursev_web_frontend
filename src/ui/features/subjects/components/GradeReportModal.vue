@@ -70,6 +70,35 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ group.average ?? '—' }}</span>
                 </div>
 
+                <!-- Breakdown: 4 promedios por estudiante -->
+                <div v-if="group.gradeSummaries.length" class="breakdown-section">
+                  <div class="breakdown-label">Promedios por categoría</div>
+                  <div class="table-wrapper">
+                    <table class="grade-table">
+                      <thead>
+                        <tr>
+                          <th class="th-student">Estudiante</th>
+                          <th class="th-grade">Tareas</th>
+                          <th class="th-grade">Participación</th>
+                          <th class="th-grade">Examen</th>
+                          <th class="th-grade">Comportamiento</th>
+                          <th class="th-ponderada">Nota Ponderada</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="row in group.gradeSummaries" :key="row.studentId" class="grade-row">
+                          <td class="cell-student">{{ row.studentName }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ row.taskAvg != null ? row.taskAvg.toFixed(1) : '—' }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ row.participacionAvg != null ? row.participacionAvg.toFixed(1) : '—' }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
+                          <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
+                          <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ row.notaPonderada != null ? row.notaPonderada.toFixed(1) : '—' }}</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
                 <!-- Grade table -->
                 <div v-if="group.rows.length" class="table-wrapper">
                   <table class="grade-table">
@@ -137,6 +166,8 @@ import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
+import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
+import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps<{
@@ -162,6 +193,16 @@ interface SubmissionRow {
   notSubmitted?: boolean
 }
 
+interface GradeSummaryRow {
+  studentName: string
+  studentId: number
+  taskAvg: number | null
+  participacionAvg: number | null
+  examenesAvg: number | null
+  comportamientoAvg: number | null
+  notaPonderada: number | null
+}
+
 interface SubjectReport {
   subjectId: number
   subjectName: string
@@ -169,6 +210,7 @@ interface SubjectReport {
   rows: SubmissionRow[]
   average: number | null
   studentAverages: Record<string, number>  // calificacion_ponderada por estudiante
+  gradeSummaries: GradeSummaryRow[]
 }
 
 const loading = ref(false)
@@ -210,7 +252,37 @@ function stripHtml(html: string): string {
 function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + '…' : text
 }
-
+function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[]): GradeSummaryRow[] {
+  const totalTasks = taskNames.length
+  const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
+  const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  return sheet.students.map(student => {
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+    const byType: Record<string, number[]> = {}
+    for (const mg of stManualGrades) {
+      const base = String(mg.gradeType).replace(/_\d+$/, '')
+      if (!byType[base]) byType[base] = []
+      byType[base].push(Number(mg.grade))
+    }
+    const participacionAvg = avgArr(byType['participacion'] ?? [])
+    const examenesAvg = avgArr(byType['examenes'] ?? [])
+    const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+    const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
+    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    return {
+      studentName: student.username ?? `#${student.userId}`,
+      studentId: student.userId,
+      taskAvg: fmt(taskAvg),
+      participacionAvg: fmt(participacionAvg),
+      examenesAvg: fmt(examenesAvg),
+      comportamientoAvg: fmt(comportamientoAvg),
+      notaPonderada: fmt(notaPonderada),
+    }
+  })
+}
 watch(() => props.modelValue, async (open) => {
   if (open && props.courseId) await fetchReport()
 })
@@ -329,6 +401,16 @@ async function fetchReport() {
       if (!subjectRowsMap.has(subjectId)) subjectRowsMap.set(subjectId, rows)
     }
 
+    // Fetch grade sheets for all subjects in parallel (manual grades for category breakdown)
+    const gradeSheetMap = new Map<number, GradeSheet>()
+    await Promise.allSettled(
+      props.subjects.map(s =>
+        gradeAdapter.getGradeSheet(s.id)
+          .then(sheet => { if (sheet) gradeSheetMap.set(s.id, sheet) })
+          .catch(() => {})
+      )
+    )
+
     // Build per-subject report
     reportData.value = props.subjects.map(subject => {
       const rows = subjectRowsMap.get(subject.id) ?? []
@@ -352,6 +434,11 @@ async function fetchReport() {
         ? teacherMap.get(subject.createdBy) ?? `Docente #${subject.createdBy}`
         : '—'
 
+      const sheet = gradeSheetMap.get(subject.id)
+      const gradeSummaries = sheet
+        ? computeSubjectGradeSummaries(sheet, subjectTaskNames.get(subject.id) ?? [])
+        : []
+
       return {
         subjectId: subject.id,
         subjectName: subject.name,
@@ -359,6 +446,7 @@ async function fetchReport() {
         rows,
         average: avg != null ? parseFloat(avg.toFixed(1)) : null,
         studentAverages,
+        gradeSummaries,
       }
     })
   } catch { /* silent */ }
@@ -883,6 +971,20 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
   padding: 10px 16px;
   font-size: 13px;
   color: #636366;
+}
+
+.breakdown-section {
+  border-top: 1px solid rgba(191, 90, 242, 0.18);
+  background: rgba(191, 90, 242, 0.04);
+}
+.breakdown-label {
+  padding: 6px 14px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #BF5AF2;
+  opacity: 0.85;
 }
 
 .grade-good { color: #34C759 !important; }
