@@ -8,7 +8,8 @@
     "build": "vue-tsc -b && vite build",
     "preview": "npm run build && wrangler dev",
     "preview:vite": "vite preview",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && node scripts/wrangler-deploy-retry.mjs",
+    "deploy:wrangler": "node scripts/wrangler-deploy-retry.mjs"
   },
   "dependencies": {
     "@vueuse/core": "^14.2.1",
