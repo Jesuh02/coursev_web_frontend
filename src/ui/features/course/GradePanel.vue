@@ -387,7 +387,7 @@ function onManualGradeChange(userId: number, type: string, event: Event) {
 }
 
 function getTaskGrade(userId: number, taskId: number): GradeSheetTaskGrade | undefined {
-  return taskGrades.value.find(tg => tg.studentId === userId && tg.taskId === taskId)
+  return taskGrades.value.find(tg => Number(tg.studentId) === userId && Number(tg.taskId) === taskId)
 }
 
 function getEditedTaskGrade(userId: number, taskId: number): number | string {
