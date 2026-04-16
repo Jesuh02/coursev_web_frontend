@@ -1157,6 +1157,7 @@ watch(activeTab, (tab) => {
     max-width: 880px;
     margin: 0 auto;
     border-radius: 16px;
+    height: auto;
   }
   .hero-image img {
     border-radius: 16px;
@@ -1423,7 +1424,7 @@ watch(activeTab, (tab) => {
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1100px) {
   .hero-section { padding-top: 24px; }
-  .hero-image { max-width: 960px; border-radius: 18px; }
+  .hero-image { max-width: 960px; height: auto; border-radius: 18px; }
   .hero-image img { border-radius: 18px; }
   .hero-accent { border-radius: 0 0 18px 18px; }
   .hero-info { max-width: 960px; padding: 0 48px; }
@@ -1451,7 +1452,7 @@ watch(activeTab, (tab) => {
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1400px) {
   .hero-section { padding-top: 28px; }
-  .hero-image { max-width: 1060px; border-radius: 20px; }
+  .hero-image { max-width: 1060px; height: auto; border-radius: 20px; }
   .hero-image img { border-radius: 20px; }
   .hero-accent { border-radius: 0 0 20px 20px; }
   .hero-info { max-width: 1060px; padding: 0 56px; }
@@ -1482,11 +1483,11 @@ watch(activeTab, (tab) => {
   .empty-state { padding: 100px 0; }
 }
 
-.hero-section { position: relative; overflow: hidden; }
+.hero-section { position: relative; height: auto; overflow: hidden; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
 .toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
-.hero-image { position: relative; width: 100%; background: #1a1a2e; overflow: hidden; }
-.hero-image img { width: 100%; height: auto; display: block; object-position: center center; }
+.hero-image { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #1a1a2e; overflow: hidden; }
+.hero-image img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; }
 .hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
 .hero-info { padding: 14px 16px 0; }
 

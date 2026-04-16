@@ -407,19 +407,37 @@ function onTaskGradeChange(userId: number, taskId: number, event: Event) {
 }
 
 function computeAverage(userId: number): string {
-  const values: number[] = []
-  for (const colKey of allGradeColumnKeys.value) {
-    const key = gradeKey(userId, colKey)
-    const val = editedManualGrades.value[key]
-    if (val !== null && val !== undefined) values.push(val)
+  const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+
+  // Group manual grades by base type (comportamiento, participacion, examenes)
+  const byType: Record<string, number[]> = {}
+  for (const group of gradeColumnGroups.value) {
+    for (const col of group.columns) {
+      const key = gradeKey(userId, col.key)
+      const val = editedManualGrades.value[key]
+      if (val !== null && val !== undefined) {
+        if (!byType[group.baseType]) byType[group.baseType] = []
+        byType[group.baseType].push(val)
+      }
+    }
   }
+
+  // Task grades
+  const taskValues: number[] = []
   for (const task of tasks.value) {
     const key = gradeKey(userId, String(task.id))
     const edited = editedTaskGrades.value[key]
-    if (edited !== null && edited !== undefined) values.push(edited)
+    if (edited !== null && edited !== undefined) taskValues.push(edited)
   }
-  if (values.length === 0) return '—'
-  const avg = values.reduce((a, b) => a + b, 0) / values.length
+
+  const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+  const participacionAvg = avgArr(byType['participacion'] ?? [])
+  const examenesAvg = avgArr(byType['examenes'] ?? [])
+  const tareasAvg = avgArr(taskValues)
+
+  const categoryAvgs = [comportamientoAvg, participacionAvg, examenesAvg, tareasAvg].filter((v): v is number => v !== null)
+  if (categoryAvgs.length === 0) return '—'
+  const avg = categoryAvgs.reduce((a, b) => a + b, 0) / categoryAvgs.length
   return avg.toFixed(1)
 }
 
