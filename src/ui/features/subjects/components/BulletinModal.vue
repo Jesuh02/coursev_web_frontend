@@ -141,15 +141,19 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Subject } from '@/domain/models'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+
+interface BulletinSubject {
+  id: number
+  name: string
+}
 
 const props = defineProps<{
   modelValue: boolean
   courseId: number
   courseName?: string
-  subjects: Subject[]
+  subjects: BulletinSubject[]
 }>()
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>()

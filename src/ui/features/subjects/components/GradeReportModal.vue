@@ -146,7 +146,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import type ExcelJS from 'exceljs'
-import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
@@ -154,11 +153,17 @@ import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { useAuthStore } from '@/stores/authStore'
 
+interface ReportSubject {
+  id: number
+  name: string
+  createdBy?: number | null
+}
+
 const props = defineProps<{
   modelValue: boolean
   courseId: number
   courseName?: string
-  subjects: Subject[]
+  subjects: ReportSubject[]
 }>()
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
