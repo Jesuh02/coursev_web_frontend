@@ -32,6 +32,20 @@
 
           <!-- Content -->
           <div v-else class="report-body">
+            <!-- INCAT Institution Header -->
+            <div v-if="isIncatInstitution()" class="inst-header-inline">
+              <div class="inst-header-logo">
+                <img src="https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/incat.jpg" alt="Escudo INCAT" crossorigin="anonymous" />
+              </div>
+              <div class="inst-header-text">
+                <div class="inst-header-name">POLITECNICO INSTITUCIONAL DEL CARIBE &quot;INCAT&quot;</div>
+                <div class="inst-header-line">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M</div>
+                <div class="inst-header-line">Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.</div>
+                <div class="inst-header-line inst-header-bold">Institución Educativa De Formación para el trabajo y el desarrollo humano</div>
+                <div class="inst-header-nit">NIT: 900391687-0</div>
+              </div>
+            </div>
+
             <!-- Summary card -->
             <div class="summary-card">
               <div class="summary-stat">
@@ -1114,5 +1128,62 @@ ${buildInstitutionHeaderHTML()}
   max-height: 100vh !important;
   height: 100vh;
   border-radius: 0;
+}
+
+/* ── INCAT Institution Header (in-app) ── */
+.inst-header-inline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin: 0 0 12px;
+  background: rgba(139, 0, 0, 0.06);
+  border-radius: 10px;
+  border-bottom: 2px solid #8B0000;
+}
+.inst-header-logo {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inst-header-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.inst-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+.inst-header-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #8B0000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+.inst-header-line {
+  font-size: 9px;
+  color: #8E8E93;
+  line-height: 1.3;
+}
+.inst-header-bold {
+  font-weight: 600;
+  color: #777;
+}
+.inst-header-nit {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8B0000;
+  margin-top: 2px;
 }
 </style>
