@@ -153,6 +153,7 @@ import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { useAuthStore } from '@/stores/authStore'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS } from '@/utils/institutionHeader'
 
 const props = defineProps<{
   modelValue: boolean
@@ -682,8 +683,10 @@ th{text-align:left;font-size:11px;color:#666;text-transform:uppercase;padding:8p
 td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-align:top}
 .subject-header td{font-weight:700;font-size:13px;background:#f0e6ff;padding-top:12px;color:#3d0e6e}
 .teacher-tag{font-weight:400;font-size:12px;color:#666}
+${institutionHeaderCSS()}
 @media print{body{padding:20px}}
 </style></head><body>
+${buildInstitutionHeaderHTML()}
 <h1>📊 Reporte de Notas</h1>
 <p class="subtitle">Generado el ${new Date().toLocaleDateString('es')}</p>
 <div class="summary">

@@ -102,6 +102,7 @@ import AppButton from '@/ui/shared/components/AppButton.vue'
 import GradeReportModal from './components/GradeReportModal.vue'
 import BulletinModal from './components/BulletinModal.vue'
 import type { SubjectCollaborator } from '@/infrastructure/api/subjectAdapter'
+import type { Subject } from '@/domain/models'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,7 +125,7 @@ const showMoreMenu = ref(false)
 const showReport = ref(false)
 const showBulletin = ref(false)
 const courseName = ref('')
-const reportSubjects = ref<{ id: number; name: string; courseId: number }[]>([])
+const reportSubjects = ref<Subject[]>([])
 
 function onDocClickMenu() { showMoreMenu.value = false }
 watch(showMoreMenu, (v) => {
@@ -141,7 +142,7 @@ async function loadReportSubjects() {
   try {
     const { subjectAdapter } = await import('@/infrastructure/api')
     const raw: any[] = await subjectAdapter.getSubjectsByCourse(courseId.value)
-    reportSubjects.value = raw.map((s: any) => ({ id: s.id, name: s.name, courseId: s.courseId ?? s.course_id ?? courseId.value }))
+    reportSubjects.value = raw.map((s: any) => ({ id: s.id, name: s.name, courseId: s.courseId ?? s.course_id ?? courseId.value, description: s.description ?? '', code: s.code ?? null, thumbnailUrl: s.thumbnailUrl ?? s.thumbnail_url ?? null, orderIndex: s.orderIndex ?? s.order_index ?? 0, isActive: s.isActive ?? s.is_active ?? true, createdAt: s.createdAt ?? s.created_at ?? null, createdBy: s.createdBy ?? s.created_by ?? null }))
   } catch { /* ignore */ }
 }
 

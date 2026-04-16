@@ -67,11 +67,13 @@
               <div v-for="entry in allBulletinData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
                 <div class="boletin-header-top">
                   <div class="boletin-logo-placeholder">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
+                    <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   </div>
                   <div class="boletin-institution">
                     <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                    <span class="boletin-inst-subtitle">Plataforma Educativa</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                   </div>
                 </div>
                 <div class="boletin-divider" />
@@ -124,11 +126,13 @@
               <!-- School header -->
               <div class="boletin-header-top">
                 <div class="boletin-logo-placeholder">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
+                  <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                 </div>
                 <div class="boletin-institution">
                   <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                  <span class="boletin-inst-subtitle">Plataforma Educativa</span>
+                  <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                  <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                 </div>
               </div>
 
@@ -142,11 +146,11 @@
                 </div>
                 <div class="boletin-info-row">
                   <span class="boletin-label">ESTUDIANTE:</span>
-                  <span class="boletin-value">{{ selectedStudent.fullName || selectedStudent.username || '—' }}</span>
+                  <span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span>
                 </div>
-                <div v-if="selectedStudent.cedula" class="boletin-info-row">
+                <div v-if="selectedStudent?.cedula" class="boletin-info-row">
                   <span class="boletin-label">IDENTIFICACIÓN:</span>
-                  <span class="boletin-value">{{ selectedStudent.cedula }}</span>
+                  <span class="boletin-value">{{ selectedStudent?.cedula }}</span>
                 </div>
                 <div class="boletin-info-row">
                   <span class="boletin-label">PERIODO:</span>
@@ -208,6 +212,7 @@
 import { ref, computed, watch } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
   id: number
@@ -224,7 +229,7 @@ const props = defineProps<{
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const isFullscreen = ref(false)
-const institutionName = ref('')
+const institutionName = ref(getInstitutionDisplayName())
 const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
 const studentSearch = ref('')
@@ -457,7 +462,7 @@ function exportAllBulletinsPDF() {
     const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
     pages.push(`
 <div class="page">
-<div class="header"><span class="inst-name">${escH(institutionName.value || 'CourseV')}</span><span class="inst-sub">Plataforma Educativa</span></div>
+${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
 <span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span>
 <span class="label">Estudiante:</span><span class="value">${name}</span>
@@ -578,11 +583,9 @@ td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
 .prom-value{font-size:20px;font-weight:800}
 .footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
 @media print{body{padding:20px}table{page-break-inside:avoid}}
+${institutionHeaderCSS()}
 </style></head><body>
-<div class="header">
-<span class="inst-name">${escH(institutionName.value || 'CourseV')}</span>
-<span class="inst-sub">Plataforma Educativa</span>
-</div>
+${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
 <span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span>
 <span class="label">Estudiante:</span><span class="value">${name}</span>
