@@ -125,6 +125,20 @@
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+                  <!-- INCAT signature + footer -->
+                  <template v-if="isIncatInstitution()">
+                    <div class="incat-sig-block" style="margin-top:16px">
+                      <div class="incat-sig-line"></div>
+                      <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                      <p class="incat-sig-title">RECOR</p>
+                    </div>
+                    <div class="incat-footer-info">
+                      <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                      <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                      <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                      <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                    </div>
+                  </template>
                 </div>
 
                 <div class="bulletin-export-bar">
@@ -153,7 +167,7 @@ import { useCourseStore } from '@/stores/courseStore'
 import { subjectAdapter } from '@/infrastructure/api'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -311,12 +325,13 @@ function exportBulletinPDF() {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín - ${name}</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}
 ${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
 </style></head><body>
 ${buildInstitutionHeaderHTML('CourseV')}
 <div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></div>
-<div class="footer">Generado el ${generatedDate.value}</div></body></html>`
+<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   const win = window.open('', '_blank')
   if (!win) return
   win.document.write(html)
@@ -411,6 +426,14 @@ async function shareBulletin() {
 .nota-low { color: #FF453A !important; }
 .boletin-footer { text-align: center; }
 .boletin-generated { font-size: 11px; color: #636366; }
+.incat-sig-block { display: inline-block; min-width: 180px; margin-top: 16px; }
+.incat-sig-line { border-top: 1px solid #8E8E93; margin-bottom: 4px; }
+.incat-sig-name { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #fff; margin: 0; }
+.incat-sig-title { font-size: 10px; color: #8E8E93; margin: 2px 0 0; }
+.incat-footer-info { margin-top: 10px; border-top: 1px solid rgba(139,0,0,0.3); padding-top: 8px; text-align: center; }
+.incat-footer-slogan { font-size: 10px; font-style: italic; color: #BF5AF2; margin: 0 0 3px; }
+.incat-footer-addr, .incat-footer-city { font-size: 9px; font-weight: 700; color: #fff; margin: 2px 0; }
+.incat-footer-email { font-size: 9px; color: #FF453A; margin: 2px 0; }
 
 .bulletin-export-bar { display: flex; gap: 10px; padding: 16px 0 4px; }
 .export-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.1s; }

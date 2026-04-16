@@ -99,8 +99,20 @@
                 </div>
                 <div class="boletin-divider" />
                 <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
-              </div>
-            </template>
+                <!-- INCAT signature + footer -->
+                <template v-if="isIncatInstitution()">
+                  <div class="incat-sig-block" style="margin-top:16px">
+                    <div class="incat-sig-line"></div>
+                    <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                    <p class="incat-sig-title">RECOR</p>
+                  </div>
+                  <div class="incat-footer-info">
+                    <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                    <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                    <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                    <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                  </div>
+                </template>
 
             <div v-if="!loadingAllBulletins && allBulletinData.length" class="bulletin-export-bar">
               <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
@@ -188,6 +200,20 @@
               <div class="boletin-footer">
                 <p class="boletin-generated">Generado el {{ generatedDate }}</p>
               </div>
+              <!-- INCAT signature + footer -->
+              <template v-if="isIncatInstitution()">
+                <div class="incat-sig-block" style="margin-top:16px">
+                  <div class="incat-sig-line"></div>
+                  <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                  <p class="incat-sig-title">RECOR</p>
+                </div>
+                <div class="incat-footer-info">
+                  <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                  <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                  <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                  <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                </div>
+              </template>
             </div>
 
             <!-- Export buttons -->
@@ -1037,7 +1063,53 @@ ${buildInstitutionSignatureAndFooterHTML()}
   color: #636366;
 }
 
-/* Export bar */
+/* ── INCAT in-app signature + footer ── */
+.incat-sig-block {
+  display: inline-block;
+  min-width: 180px;
+}
+.incat-sig-line {
+  border-top: 1px solid #8E8E93;
+  margin-bottom: 4px;
+}
+.incat-sig-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+}
+.incat-sig-title {
+  font-size: 10px;
+  color: #8E8E93;
+  margin: 2px 0 0;
+}
+.incat-footer-info {
+  margin-top: 10px;
+  border-top: 1px solid rgba(139, 0, 0, 0.3);
+  padding-top: 8px;
+  text-align: center;
+}
+.incat-footer-slogan {
+  font-size: 10px;
+  font-style: italic;
+  color: #BF5AF2;
+  margin: 0 0 3px;
+}
+.incat-footer-addr,
+.incat-footer-city {
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0;
+}
+.incat-footer-email {
+  font-size: 9px;
+  color: #FF453A;
+  margin: 2px 0;
+}
+
+
 .bulletin-export-bar {
   display: flex;
   gap: 10px;
