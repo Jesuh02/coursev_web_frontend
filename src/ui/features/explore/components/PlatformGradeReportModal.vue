@@ -59,28 +59,6 @@
             </div>
 
             <!-- Summary card -->
-            <div class="summary-card">
-              <div class="summary-stat">
-                <span class="summary-value">{{ courseCount }}</span>
-                <span class="summary-label">Cursos</span>
-              </div>
-              <div class="summary-divider" />
-              <div class="summary-stat">
-                <span class="summary-value">{{ totalSubmissions }}</span>
-                <span class="summary-label">Entregas</span>
-              </div>
-              <div class="summary-divider" />
-              <div class="summary-stat">
-                <span class="summary-value">{{ gradedCount }}</span>
-                <span class="summary-label">Calificadas</span>
-              </div>
-              <div class="summary-divider" />
-              <div class="summary-stat">
-                <span class="summary-value" :class="averageClass">{{ averageGrade }}</span>
-                <span class="summary-label">Promedio</span>
-              </div>
-            </div>
-
             <!-- Body: same layout as GradeReportModal -->
             <div class="report-body">
               <!-- Filters: curso y materia -->
@@ -184,6 +162,21 @@
                 </template>
                 <div v-if="filteredData.length === 0" class="no-tasks" style="padding:40px;text-align:center">Sin datos disponibles</div>
               </div>
+
+              <!-- Signature & footer (INCAT only) -->
+              <div v-if="isIncatInstitution()" class="incat-signature-footer">
+                <div class="incat-sig-block">
+                  <div class="incat-sig-line"></div>
+                  <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                  <p class="incat-sig-title">RECOR</p>
+                </div>
+                <div class="incat-footer-info">
+                  <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                  <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                  <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                  <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                </div>
+              </div>
             </div>
 
             <!-- Export bar -->
@@ -215,7 +208,7 @@ import { api, courseAdapter } from '@/infrastructure/api'
 import { subjectAdapter } from '@/infrastructure/api/subjectAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, getInstitutionLogoUrl } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, getInstitutionLogoUrl, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -696,6 +689,31 @@ async function exportExcel() {
     }
   }
 
+  // Footer rows: signature + institution footer
+  const footerLines = getInstitutionFooterLines()
+  if (footerLines.length) {
+    ws.addRow([])
+    const sigRow = ws.addRow([footerLines[1]])
+    ws.mergeCells(sigRow.number, 1, sigRow.number, 8)
+    sigRow.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF222222' } }
+    sigRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' }
+    ws.addRow([])
+    for (const line of footerLines.slice(3)) {
+      const fRow = ws.addRow([line])
+      ws.mergeCells(fRow.number, 1, fRow.number, 8)
+      const isSlogan = line.includes('forjando')
+      const isEmail = line.includes('@')
+      fRow.getCell(1).font = {
+        italic: isSlogan,
+        bold: !isSlogan,
+        color: { argb: (isSlogan || isEmail) ? 'FF8B0000' : 'FF222222' },
+        size: 9,
+        name: 'Calibri',
+      }
+      fRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+    }
+  }
+
   const buffer = await wb.xlsx.writeBuffer()
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
@@ -801,6 +819,7 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
 .subject-header td{font-size:11.5px;background:#f9f5ff;color:#7B3FA6;padding:7px 10px 7px 22px;border-bottom:1px solid #e8daf5;border-left:3px solid #9B59D9}
 .stag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;background:#e8d5f5;color:#6A1B9A;padding:1px 5px;border-radius:3px;margin-right:7px;vertical-align:middle}
 ${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
 @media print{body{padding:20px}@page{margin:15mm}}
 </style></head><body>
 ${buildInstitutionHeaderHTML()}
@@ -815,7 +834,8 @@ ${buildInstitutionHeaderHTML()}
 <table>
   <thead><tr><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Final</th></tr></thead>
   <tbody>${rows}</tbody>
-</table></body></html>`
+</table>
+${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
 
 function esc_html(s: string): string {
@@ -1334,5 +1354,57 @@ function esc_html(s: string): string {
   font-weight: 700;
   color: #8B0000;
   margin-top: 2px;
+}
+
+/* ── INCAT in-app signature + footer ── */
+.incat-signature-footer {
+  padding: 0 16px 12px;
+  border-top: 1px solid rgba(139, 0, 0, 0.2);
+  margin-top: 12px;
+}
+.incat-sig-block {
+  margin-top: 16px;
+  display: inline-block;
+  min-width: 180px;
+}
+.incat-sig-line {
+  border-top: 1px solid #8E8E93;
+  margin-bottom: 4px;
+}
+.incat-sig-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+}
+.incat-sig-title {
+  font-size: 10px;
+  color: #8E8E93;
+  margin: 2px 0 0;
+}
+.incat-footer-info {
+  margin-top: 12px;
+  border-top: 1px solid rgba(139, 0, 0, 0.3);
+  padding-top: 8px;
+  text-align: center;
+}
+.incat-footer-slogan {
+  font-size: 11px;
+  font-style: italic;
+  color: #BF5AF2;
+  margin: 0 0 3px;
+}
+.incat-footer-addr,
+.incat-footer-city {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0;
+}
+.incat-footer-email {
+  font-size: 10px;
+  color: #FF453A;
+  margin: 2px 0;
 }
 </style>
