@@ -69,6 +69,24 @@
 
             <!-- Body: same layout as GradeReportModal -->
             <div class="report-body">
+              <!-- Filters: curso y materia -->
+              <div class="filters-row">
+                <div class="filter-group">
+                  <label class="filter-label">Curso</label>
+                  <select class="filter-select" :value="selectedCourseId ?? ''" @change="onCourseFilterChange($event)">
+                    <option value="">Todos los cursos</option>
+                    <option v-for="c in availableCourses" :key="c.id" :value="c.id">{{ c.name }}</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label class="filter-label">Materia</label>
+                  <select class="filter-select" :value="selectedSubjectName ?? ''" @change="onSubjectFilterChange($event)">
+                    <option value="">Todas las materias</option>
+                    <option v-for="s in availableSubjects" :key="s" :value="s">{{ s }}</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="report-table">
                 <template v-for="group in filteredData" :key="group.courseId">
                   <!-- Course section header -->
@@ -85,6 +103,35 @@
                           <span class="subject-name">{{ subGroup.subjectName }}</span>
                         </div>
                         <span class="subject-avg" :class="gradeClass(subGroup.average)">{{ subGroup.average != null ? subGroup.average.toFixed(1) : '—' }}</span>
+                      </div>
+
+                      <!-- Breakdown: promedios por categoría (igual que GradeReportModal) -->
+                      <div v-if="subGroup.gradeSummaries.length" class="breakdown-section">
+                        <div class="breakdown-label">Promedios por categoría</div>
+                        <div class="table-wrapper">
+                          <table class="grade-table">
+                            <thead>
+                              <tr>
+                                <th class="th-student">Estudiante</th>
+                                <th class="th-grade">Comportamiento</th>
+                                <th class="th-grade">Tareas</th>
+                                <th class="th-grade">Examen</th>
+                                <th class="th-grade">Participación</th>
+                                <th class="th-ponderada">Nota Final</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="row in subGroup.gradeSummaries" :key="row.studentUsername" class="grade-row">
+                                <td class="cell-student">{{ row.studentUsername }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ row.comportamientoAvg != null ? row.comportamientoAvg.toFixed(1) : '—' }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ row.taskAvg != null ? row.taskAvg.toFixed(1) : '—' }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ row.examenesAvg != null ? row.examenesAvg.toFixed(1) : '—' }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ row.participacionAvg != null ? row.participacionAvg.toFixed(1) : '—' }}</td>
+                                <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ row.notaPonderada != null ? row.notaPonderada.toFixed(1) : '—' }}</strong></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
 
                       <div v-if="subGroup.rows.length" class="table-wrapper">
@@ -156,6 +203,9 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import type ExcelJS from 'exceljs'
 import { api, courseAdapter } from '@/infrastructure/api'
+import { subjectAdapter } from '@/infrastructure/api/subjectAdapter'
+import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
+import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -163,7 +213,13 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>()
 const isFullscreen = ref(false)
 function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
 onUnmounted(() => { isFullscreen.value = false })
-watch(() => props.modelValue, (v) => { if (!v) isFullscreen.value = false })
+watch(() => props.modelValue, (v) => {
+  if (!v) {
+    isFullscreen.value = false
+    selectedCourseId.value = null
+    selectedSubjectName.value = null
+  }
+})
 
 interface ReportRow {
   id: number
@@ -179,11 +235,21 @@ interface ReportRow {
   notSubmitted?: boolean
 }
 
+interface GradeSummaryRow {
+  studentUsername: string
+  taskAvg: number | null
+  participacionAvg: number | null
+  examenesAvg: number | null
+  comportamientoAvg: number | null
+  notaPonderada: number | null
+}
+
 interface CourseGroup {
   courseId: number
   courseName: string
   rows: ReportRow[]
   progressByUsername: Record<string, number>
+  gradeSummariesBySubject: Record<string, GradeSummaryRow[]>
 }
 
 const loading = ref(false)
@@ -191,6 +257,32 @@ const errorMsg = ref('')
 const reportData = ref<CourseGroup[]>([])
 const loadedCourses = ref(0)
 const totalCourses = ref(0)
+
+// ── Filters ──
+const selectedCourseId = ref<number | null>(null)
+const selectedSubjectName = ref<string | null>(null)
+
+const availableCourses = computed(() =>
+  reportData.value.map(g => ({ id: g.courseId, name: g.courseName }))
+)
+
+const availableSubjects = computed(() => {
+  const courses = selectedCourseId.value
+    ? reportData.value.filter(g => g.courseId === selectedCourseId.value)
+    : reportData.value
+  const subjects = new Set<string>()
+  for (const c of courses) {
+    for (const row of c.rows) {
+      if (row.subjectName) subjects.add(row.subjectName)
+    }
+    for (const name of Object.keys(c.gradeSummariesBySubject)) {
+      subjects.add(name)
+    }
+  }
+  return Array.from(subjects).sort()
+})
+
+watch(selectedCourseId, () => { selectedSubjectName.value = null })
 
 const courseCount = computed(() => reportData.value.length)
 const totalSubmissions = computed(() => reportData.value.reduce((s, g) => s + g.rows.length, 0))
@@ -204,13 +296,36 @@ const averageGrade = computed(() => {
 
 const averageClass = computed(() => gradeClass(parseFloat(averageGrade.value) || null))
 
-const filteredData = computed(() => reportData.value)
+const filteredData = computed(() => {
+  let data = reportData.value
+  if (selectedCourseId.value) {
+    data = data.filter(g => g.courseId === selectedCourseId.value)
+  }
+  if (selectedSubjectName.value) {
+    const subjectFilter = selectedSubjectName.value
+    data = data.map(g => ({
+      ...g,
+      rows: g.rows.filter(r => r.subjectName === subjectFilter),
+    }))
+  }
+  return data
+})
 
 function gradeClass(grade: number | null): string {
   if (grade == null || isNaN(grade)) return ''
   if (grade >= 4) return 'grade-good'
   if (grade >= 3) return 'grade-ok'
   return 'grade-low'
+}
+
+function onCourseFilterChange(event: Event) {
+  const val = (event.target as HTMLSelectElement).value
+  selectedCourseId.value = val ? Number(val) : null
+}
+
+function onSubjectFilterChange(event: Event) {
+  const val = (event.target as HTMLSelectElement).value
+  selectedSubjectName.value = val || null
 }
 
 function truncate(text: string, max: number): string {
@@ -242,14 +357,14 @@ async function fetchReport() {
 
     const results = await Promise.allSettled(
       courses.map(async (course) => {
-        const [subsRaw, progressRaw] = await Promise.all([
+        const [subsRaw, progressRaw, subjectsRaw] = await Promise.all([
           api.get<any[]>(`/submissions/course/${course.id}?page=1&pageSize=500`).catch(() => [] as any[]),
           api.get<any[]>(`/progress/course/${course.id}/all`).catch(() => [] as any[]),
+          subjectAdapter.getSubjectsByCourse(course.id).catch(() => [] as any[]),
         ])
         loadedCourses.value++
 
         // Build username → averageGrade map from progreso_curso table
-        // Also collect ALL enrolled students (even those with averageGrade = null)
         const progressByUsername: Record<string, number> = {}
         const enrolledStudents: string[] = []
         for (const p of (progressRaw ?? [])) {
@@ -264,11 +379,26 @@ async function fetchReport() {
         const subs: ReportRow[] = (subsRaw ?? []) as ReportRow[]
         const rows = addNotSubmittedRows(subs, enrolledStudents)
 
+        // Fetch grade sheets per subject in parallel to build category breakdowns
+        const gradeSummariesBySubject: Record<string, GradeSummaryRow[]> = {}
+        const sheetResults = await Promise.allSettled(
+          (subjectsRaw ?? []).map(async (s: any) => {
+            const sheet = await gradeAdapter.getGradeSheet(s.id)
+            return { subjectName: s.name as string, sheet }
+          })
+        )
+        for (const r of sheetResults) {
+          if (r.status === 'fulfilled' && r.value.sheet) {
+            gradeSummariesBySubject[r.value.subjectName] = computeGradeSummaries(r.value.sheet)
+          }
+        }
+
         return {
           courseId: course.id,
           courseName: (course as any).title ?? (course as any).name ?? `Curso ${course.id}`,
           rows,
           progressByUsername,
+          gradeSummariesBySubject,
         } as CourseGroup
       })
     )
@@ -337,6 +467,38 @@ function addNotSubmittedRows(subs: ReportRow[], enrolledStudents: string[] = [])
     }
   }
   return [...subs, ...extra]
+}
+
+// ── Grade category summary (same logic as GradeReportModal) ──
+function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
+  const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
+  const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  const totalTasks = sheet.tasks.length
+  return sheet.students.map(student => {
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+    const byType: Record<string, number[]> = {}
+    for (const mg of stManualGrades) {
+      const base = String(mg.gradeType).replace(/_\d+$/, '')
+      if (!byType[base]) byType[base] = []
+      byType[base].push(Number(mg.grade))
+    }
+    const participacionAvg = avgArr(byType['participacion'] ?? [])
+    const examenesAvg = avgArr(byType['examenes'] ?? [])
+    const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+    const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
+    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    return {
+      studentUsername: student.username ?? `#${student.userId}`,
+      taskAvg: fmt(taskAvg),
+      participacionAvg: fmt(participacionAvg),
+      examenesAvg: fmt(examenesAvg),
+      comportamientoAvg: fmt(comportamientoAvg),
+      notaPonderada: fmt(notaPonderada),
+    }
+  })
 }
 
 // ── PDF export (print) ──────────────────────────────────────────────────
@@ -496,13 +658,16 @@ function exportWord() {
 function esc(s: string) { return String(s).replace(/"/g, '""') }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
-// studentAverages uses averageGrade from progreso_curso table (course-level weighted grade)
-function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null }[] {
+function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null; gradeSummaries: GradeSummaryRow[] }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
     const key = row.subjectName ?? '—'
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(row)
+  }
+  // Also include subjects that have grade summaries but no submissions
+  for (const subjectName of Object.keys(group.gradeSummariesBySubject)) {
+    if (!map.has(subjectName)) map.set(subjectName, [])
   }
   return Array.from(map.entries()).map(([subjectName, rows]) => {
     // Cal. Ponderada: from progreso_curso table (course-level averageGrade per student)
@@ -515,7 +680,8 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: Repo
     }
     const graded = rows.filter(r => r.grade != null && !r.notSubmitted)
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
-    return { subjectName, rows, studentAverages, average }
+    const gradeSummaries = group.gradeSummariesBySubject[subjectName] ?? []
+    return { subjectName, rows, studentAverages, average, gradeSummaries }
   })
 }
 
@@ -880,6 +1046,60 @@ function esc_html(s: string): string {
 .grade-good { color: #34C759 !important; font-weight: 700; }
 .grade-ok   { color: #FF9500 !important; font-weight: 700; }
 .grade-low  { color: #FF453A !important; font-weight: 700; }
+
+/* ── Filters ── */
+.filters-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.filter-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8E8E93;
+}
+
+.filter-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.filter-select:hover, .filter-select:focus { border-color: rgba(191, 90, 242, 0.5); }
+.filter-select option { background: #2C2C2E; color: #fff; }
+
+/* ── Grade breakdown section ── */
+.breakdown-section {
+  border-top: 1px solid rgba(191, 90, 242, 0.18);
+  background: rgba(191, 90, 242, 0.04);
+}
+.breakdown-label {
+  padding: 6px 14px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #BF5AF2;
+  opacity: 0.85;
+}
 
 /* ── Export bar ── */
 .report-export-bar {

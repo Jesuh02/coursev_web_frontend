@@ -55,9 +55,25 @@
               </div>
             </div>
 
+            <!-- Filter: materias -->
+            <div v-if="reportData.length > 1" class="filter-bar">
+              <button class="filter-pill" :class="{ 'filter-pill--active': !selectedSubjectId }" @click="selectedSubjectId = null">
+                Todas
+              </button>
+              <button
+                v-for="group in reportData"
+                :key="group.subjectId"
+                class="filter-pill"
+                :class="{ 'filter-pill--active': selectedSubjectId === group.subjectId }"
+                @click="selectedSubjectId = group.subjectId"
+              >
+                {{ group.subjectName }}
+              </button>
+            </div>
+
             <!-- Subject sections with table -->
             <div class="report-table">
-              <div v-for="group in reportData" :key="group.subjectId" class="report-subject-group">
+              <div v-for="group in filteredReportData" :key="group.subjectId" class="report-subject-group">
                 <!-- Subject header with teacher name and average -->
                 <div class="subject-row-header">
                   <div class="subject-info">
@@ -216,11 +232,23 @@ interface SubjectReport {
 const loading = ref(false)
 const reportData = ref<SubjectReport[]>([])
 const isFullscreen = ref(false)
+const selectedSubjectId = ref<number | null>(null)
+
+const filteredReportData = computed(() =>
+  selectedSubjectId.value != null
+    ? reportData.value.filter(g => g.subjectId === selectedSubjectId.value)
+    : reportData.value
+)
 
 function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
 
 onUnmounted(() => { isFullscreen.value = false })
-watch(() => props.modelValue, (v) => { if (!v) isFullscreen.value = false })
+watch(() => props.modelValue, (v) => {
+  if (!v) {
+    isFullscreen.value = false
+    selectedSubjectId.value = null
+  }
+})
 
 const totalSubmissions = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.length, 0))
 const gradedCount = computed(() => reportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0))
@@ -971,6 +999,32 @@ td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;vertical-alig
   padding: 10px 16px;
   font-size: 13px;
   color: #636366;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 14px;
+}
+
+.filter-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8E8E93;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.filter-pill:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.filter-pill--active {
+  background: rgba(191, 90, 242, 0.2);
+  color: #BF5AF2;
+  border-color: rgba(191, 90, 242, 0.45);
 }
 
 .breakdown-section {
