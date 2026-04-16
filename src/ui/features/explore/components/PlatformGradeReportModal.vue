@@ -329,10 +329,17 @@ const filteredData = computed(() => {
   }
   if (selectedSubjectName.value) {
     const subjectFilter = selectedSubjectName.value
-    data = data.map(g => ({
-      ...g,
-      rows: g.rows.filter(r => r.subjectName === subjectFilter),
-    }))
+    data = data.map(g => {
+      const filteredSummaries: Record<string, typeof g.gradeSummariesBySubject[string]> = {}
+      if (subjectFilter in g.gradeSummariesBySubject) {
+        filteredSummaries[subjectFilter] = g.gradeSummariesBySubject[subjectFilter]
+      }
+      return {
+        ...g,
+        rows: g.rows.filter(r => r.subjectName === subjectFilter),
+        gradeSummariesBySubject: filteredSummaries,
+      }
+    })
   }
   return data
 })
@@ -596,7 +603,7 @@ async function exportExcel() {
   applyHdr(hdrRow)
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
 
-  for (const group of reportData.value) {
+  for (const group of filteredData.value) {
     // Course header row (merged)
     const courseRow = ws.addRow([group.courseName])
     ws.mergeCells(courseRow.number, 1, courseRow.number, 8)
@@ -713,7 +720,7 @@ function downloadBlob(content: string, filename: string, mimeType: string) {
 function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
-  for (const group of reportData.value) {
+  for (const group of filteredData.value) {
     rows += `<tr class="course-header"><td colspan="6">${esc_html(group.courseName)}</td></tr>`
     const hasSummaries = Object.values(group.gradeSummariesBySubject).some(s => s.length > 0)
     if (!hasSummaries) {

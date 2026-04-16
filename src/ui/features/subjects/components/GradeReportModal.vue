@@ -559,7 +559,7 @@ async function exportExcel() {
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : '—'
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
@@ -636,7 +636,7 @@ function esc(s: string) { return s.replace(/"/g, '""') }
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
     for (const row of group.gradeSummaries) {
       text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
@@ -651,7 +651,7 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
     if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
