@@ -613,13 +613,14 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
   if (computed === null) return question
 
   let finalAnswer = computed.value
-  const decMatch = text.match(/redonde[ao].*?(\d+)\s*decimal/i)
+  const decMatch = text.match(/redonde[ao].*?(\d+)\s*decimal/i) || text.match(/(\d+)\s*(?:cifras?\s+)?decimal/i) || text.match(/(?:con|a)\s+(\d+)\s+decimal/i)
   const requestedDecimals = decMatch ? parseInt(decMatch[1]) : null
   if (requestedDecimals !== null) {
     finalAnswer = finalAnswer.toDecimalPlaces(requestedDecimals)
-  } else if (!finalAnswer.isInteger()) {
-    finalAnswer = finalAnswer.toDecimalPlaces(2)
+  } else if (/redonde[ao]\s+a\s+entero/i.test(text)) {
+    finalAnswer = finalAnswer.toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
   }
+  // No forced rounding — keep full precision to match backend behavior
 
   if (question.type === 'fill_in_blank') {
     const currentAnswer = parseDecimal(String(question.correctAnswer ?? ''))
@@ -631,7 +632,16 @@ function verifyMathConsistency(question: QuizQuestion): QuizQuestion | null {
     }
   } else if (question.type === 'multiple_choice' && Array.isArray(question.options)) {
     const optionValues = question.options.map(opt => {
-      const nums = opt.match(/[\d,]+\.?\d*/g)
+      // Strip letter prefix (e.g., "A) ", "B. ")
+      const cleaned = String(opt).replace(/^[A-Za-z]\)\s*/, '').replace(/^[A-Za-z]\.\s*/, '').trim()
+      // Try parsing as fraction first (e.g., "61/6")
+      const fracMatch = cleaned.match(/^(-?\d+\.?\d*)\s*\/\s*(-?\d+\.?\d*)$/)
+      if (fracMatch) {
+        const num = parseDecimal(fracMatch[1])
+        const den = parseDecimal(fracMatch[2])
+        if (num && den && !den.isZero()) return num.div(den)
+      }
+      const nums = cleaned.match(/[\d,]+\.?\d*/g)
       if (!nums) return null
       const parsed = nums.map((n: string) => parseDecimal(n)).filter(Boolean) as Decimal[]
       return parsed.length > 0 ? parsed.reduce((a, b) => a.abs().gt(b.abs()) ? a : b) : null
@@ -1615,8 +1625,8 @@ const ORDERING_DEPENDENCY_RULES: [RegExp, RegExp][] = [
   [/verificar.*convergencia|comprobar.*convergencia|condici[oó]n.*convergencia|\|r\|\s*<\s*1/i,
    /aplicar.*f[oó]rmula|calcular.*serie|usar.*f[oó]rmula|sumar.*t[eé]rminos|sustituir.*f[oó]rmula/i],
   // Verificar dimensiones ANTES de operar matrices
-  [/verificar.*dimension|comprobar.*dimension|verificar.*compatib|comprobar.*compatib|verificar.*matrices.*mismo/i,
-   /sumar.*matri|restar.*matri|multiplicar.*matri|operar.*matri/i],
+  [/verificar.*dimension|comprobar.*dimension|verificar.*compatib|comprobar.*compatib|verificar.*matrices.*mismo|verificar.*dimensiones.*(?:coincid|igual|sean)|comprobar.*dimensiones.*(?:coincid|igual|sean)/i,
+   /sumar.*matri|restar.*matri|multiplicar.*matri|operar.*matri|calcular.*(?:suma|resta|multiplicaci[oó]n|operaci[oó]n)|(?:sumar|operar).*(?:elementos|componentes)/i],
   // Alinear ANTES de operar
   [/alinear|colocar.*columna|organizar.*vertical/i,
    /\bsumar\b|restar\b|multiplicar\b|dividir\b|operar\b|calcular\b/i],
