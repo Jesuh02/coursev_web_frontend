@@ -73,10 +73,39 @@
               <div class="filters-row">
                 <div class="filter-group">
                   <label class="filter-label">Curso</label>
-                  <select class="filter-select" :value="selectedCourseId ?? ''" @change="onCourseFilterChange($event)">
-                    <option value="">Todos los cursos</option>
-                    <option v-for="c in availableCourses" :key="c.id" :value="c.id">{{ c.name }}</option>
-                  </select>
+                  <div class="course-search-wrapper">
+                    <input
+                      v-model="courseSearchText"
+                      type="text"
+                      class="course-search-input"
+                      :placeholder="selectedCourseId ? availableCourses.find(c => c.id === selectedCourseId)?.name ?? 'Todos los cursos' : 'Todos los cursos'"
+                      autocomplete="off"
+                      @focus="showCourseDropdown = true; if (!courseSearchText) populateCourseDropdown()"
+                      @input="showCourseDropdown = true"
+                      @blur="hideCourseDropdownDelayed"
+                    />
+                    <svg v-if="!selectedCourseId" class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <button v-else class="search-clear-btn" @mousedown.prevent="clearCourseSearch">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <div v-if="showCourseDropdown" class="course-dropdown">
+                      <div
+                        class="course-option"
+                        :class="{ active: selectedCourseId === null }"
+                        @mousedown.prevent="selectCourseFromSearch(null)"
+                      >Todos los cursos</div>
+                      <div
+                        v-for="c in filteredCoursesForSearch"
+                        :key="c.id"
+                        class="course-option"
+                        :class="{ active: selectedCourseId === c.id }"
+                        @mousedown.prevent="selectCourseFromSearch(c)"
+                      >{{ c.name }}</div>
+                      <div v-if="filteredCoursesForSearch.length === 0 && courseSearchText.trim()" class="course-option-empty">
+                        Sin resultados
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="filter-group">
                   <label class="filter-label">Materia</label>
@@ -184,6 +213,8 @@ watch(() => props.modelValue, (v) => {
     isFullscreen.value = false
     selectedCourseId.value = null
     selectedSubjectName.value = null
+    courseSearchText.value = ''
+    showCourseDropdown.value = false
   }
 })
 
@@ -228,6 +259,34 @@ const totalCourses = ref(0)
 // ── Filters ──
 const selectedCourseId = ref<number | null>(null)
 const selectedSubjectName = ref<string | null>(null)
+const courseSearchText = ref('')
+const showCourseDropdown = ref(false)
+
+const filteredCoursesForSearch = computed(() => {
+  const q = courseSearchText.value.trim().toLowerCase()
+  if (!q) return availableCourses.value
+  return availableCourses.value.filter(c => c.name.toLowerCase().includes(q))
+})
+
+function populateCourseDropdown() {
+  showCourseDropdown.value = true
+}
+
+function selectCourseFromSearch(course: { id: number; name: string } | null) {
+  selectedCourseId.value = course?.id ?? null
+  courseSearchText.value = course?.name ?? ''
+  showCourseDropdown.value = false
+}
+
+function clearCourseSearch() {
+  selectedCourseId.value = null
+  courseSearchText.value = ''
+  showCourseDropdown.value = false
+}
+
+function hideCourseDropdownDelayed() {
+  setTimeout(() => { showCourseDropdown.value = false }, 150)
+}
 
 const availableCourses = computed(() =>
   reportData.value.map(g => ({ id: g.courseId, name: g.courseName }))
@@ -283,11 +342,6 @@ function gradeClass(grade: number | null): string {
   if (grade >= 4) return 'grade-good'
   if (grade >= 3) return 'grade-ok'
   return 'grade-low'
-}
-
-function onCourseFilterChange(event: Event) {
-  const val = (event.target as HTMLSelectElement).value
-  selectedCourseId.value = val ? Number(val) : null
 }
 
 function onSubjectFilterChange(event: Event) {
@@ -1044,6 +1098,85 @@ function esc_html(s: string): string {
 }
 .filter-select:hover, .filter-select:focus { border-color: rgba(191, 90, 242, 0.5); }
 .filter-select option { background: #2C2C2E; color: #fff; }
+
+/* ── Course search combobox ── */
+.course-search-wrapper {
+  position: relative;
+}
+
+.course-search-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 32px 8px 12px;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.course-search-input:hover,
+.course-search-input:focus { border-color: rgba(191, 90, 242, 0.5); }
+.course-search-input::placeholder { color: #636366; }
+
+.search-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8E8E93;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.15s, color 0.15s;
+}
+.search-clear-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+
+.course-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #2C2C2E;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.course-option {
+  padding: 9px 13px;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.course-option:hover { background: rgba(255, 255, 255, 0.07); }
+.course-option.active { color: #BF5AF2; background: rgba(191, 90, 242, 0.1); }
+
+.course-option-empty {
+  padding: 9px 13px;
+  font-size: 13px;
+  color: #636366;
+  font-style: italic;
+}
 
 /* ── Grade breakdown section ── */
 .breakdown-section {
