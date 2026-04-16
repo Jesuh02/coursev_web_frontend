@@ -256,17 +256,20 @@ async function selectStudent(student: GradeSheetStudent) {
           const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
           const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
 
-          const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+          const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+          // Detect which manual grade categories are active (used for any student in the subject)
+          const activeCategories = new Set(sheet.manualGrades.map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
+          const stManualGrades = sheet.manualGrades.filter((mg: any) => Number(mg.studentId) === student.userId)
           const byType: Record<string, number[]> = {}
           for (const mg of stManualGrades) {
             const base = String(mg.gradeType).replace(/_\d+$/, '')
             if (!byType[base]) byType[base] = []
             byType[base].push(Number(mg.grade))
           }
-          const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-          const participacionAvg = avgArr(byType['participacion'] ?? [])
-          const examenesAvg = avgArr(byType['examenes'] ?? [])
-          const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+          // Treat empty slots as 0 when the category is active (used by any student in the subject)
+          const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
+          const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
+          const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
 
           const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
           const notaDefinitiva = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null

@@ -102,7 +102,7 @@
                       :value="getManualGrade(student.userId, col.key)"
                       class="cell-input"
                       type="number" min="0" max="10" step="0.5"
-                      placeholder="—"
+                      placeholder="0"
                       @change="onManualGradeChange(student.userId, col.key, $event)"
                     />
                   </td>
@@ -113,7 +113,7 @@
                     :value="getEditedTaskGrade(student.userId, task.id)"
                     class="cell-input"
                     type="number" min="0" max="10" step="0.5"
-                    placeholder="—"
+                    placeholder="0"
                     @change="onTaskGradeChange(student.userId, task.id, $event)"
                   />
                 </td>
@@ -410,24 +410,24 @@ function computeAverage(userId: number): string {
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
 
   // Group manual grades by base type (comportamiento, participacion, examenes)
+  // Treat null/undefined grades as 0
   const byType: Record<string, number[]> = {}
   for (const group of gradeColumnGroups.value) {
     for (const col of group.columns) {
       const key = gradeKey(userId, col.key)
       const val = editedManualGrades.value[key]
-      if (val !== null && val !== undefined) {
-        if (!byType[group.baseType]) byType[group.baseType] = []
-        byType[group.baseType].push(val)
-      }
+      const grade = (val !== null && val !== undefined) ? val : 0
+      if (!byType[group.baseType]) byType[group.baseType] = []
+      byType[group.baseType].push(grade)
     }
   }
 
-  // Task grades
+  // Task grades — treat null/undefined as 0
   const taskValues: number[] = []
   for (const task of tasks.value) {
     const key = gradeKey(userId, String(task.id))
     const edited = editedTaskGrades.value[key]
-    if (edited !== null && edited !== undefined) taskValues.push(edited)
+    taskValues.push((edited !== null && edited !== undefined) ? edited : 0)
   }
 
   const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])

@@ -146,6 +146,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import type ExcelJS from 'exceljs'
+import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
@@ -153,17 +154,11 @@ import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { useAuthStore } from '@/stores/authStore'
 
-interface ReportSubject {
-  id: number
-  name: string
-  createdBy?: number | null
-}
-
 const props = defineProps<{
   modelValue: boolean
   courseId: number
   courseName?: string
-  subjects: ReportSubject[]
+  subjects: Subject[]
 }>()
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -283,6 +278,8 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
   const totalTasks = taskNames.length
   const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  // Detect which manual grade categories are active (used for at least one student in this subject)
+  const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
@@ -294,9 +291,10 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
       if (!byType[base]) byType[base] = []
       byType[base].push(Number(mg.grade))
     }
-    const participacionAvg = avgArr(byType['participacion'] ?? [])
-    const examenesAvg = avgArr(byType['examenes'] ?? [])
-    const comportamientoAvg = avgArr(byType['comportamiento'] ?? [])
+    // Treat empty slots as 0 when the category is active (used by any student in the subject)
+    const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
+    const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
+    const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
     const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
     const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
     const latestGradedAt = stTaskGrades.map(tg => tg.gradedAt).filter((d): d is string => d != null).sort().at(-1) ?? null
@@ -559,7 +557,7 @@ async function exportExcel() {
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
-  for (const group of filteredReportData.value) {
+  for (const group of reportData.value) {
     const avg = group.average !== null ? group.average : '—'
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
@@ -636,7 +634,7 @@ function esc(s: string) { return s.replace(/"/g, '""') }
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
-  for (const group of filteredReportData.value) {
+  for (const group of reportData.value) {
     text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '—'})\n`
     for (const row of group.gradeSummaries) {
       text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
@@ -651,7 +649,7 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '—'
-  for (const group of filteredReportData.value) {
+  for (const group of reportData.value) {
     rows += `<tr class="subject-header"><td colspan="5">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '—'}</td></tr>`
     if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="6" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
