@@ -202,7 +202,10 @@ const showMoreMenu = ref(false)
 const reportPulse = ref(true)
 
 // Disable pulse animation after first interaction
-watch(showReport, (v) => { if (v) reportPulse.value = false })
+watch(showReport, (v) => {
+  if (v) reportPulse.value = false
+  else loadPeriodCounts()
+})
 
 // Close menu when clicking outside
 function onDocClick() { showMoreMenu.value = false }

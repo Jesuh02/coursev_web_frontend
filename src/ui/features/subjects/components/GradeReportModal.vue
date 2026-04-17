@@ -148,6 +148,9 @@
                           Editar
                         </button>
                         <button v-else class="period-cancel-btn" @click.stop="cancelEditingPeriod()">Cancelar</button>
+                        <button class="period-delete-btn" @click.stop="confirmDeletePeriod(period)" :disabled="deletingPeriod">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
                       </div>
                       <div v-if="expandedPeriods.has(period.id)" class="period-snapshot">
                         <div v-if="computePeriodSummaries(period.snapshot).length" class="breakdown-section">
@@ -218,11 +221,25 @@
         </div>
       </div>
     </Transition>
+    <!-- Delete period confirmation -->
+    <Transition name="report-fade">
+      <div v-if="deletePeriodConfirm.show" class="report-overlay" style="z-index:1010" @click.self="deletePeriodConfirm.show = false">
+        <div class="delete-period-dialog">
+          <div style="font-size:32px;text-align:center">📅</div>
+          <h3 style="color:#fff;font-size:16px;font-weight:700;margin:8px 0 4px;text-align:center">¿Eliminar este periodo?</h3>
+          <p style="color:#8E8E93;font-size:13px;text-align:center;line-height:1.5;margin:0 0 16px">Se eliminará permanentemente el periodo <strong style="color:#FF453A">{{ deletePeriodConfirm.name }}</strong> y todas sus notas guardadas.</p>
+          <div style="display:flex;gap:10px;justify-content:center">
+            <button class="period-cancel-btn" @click="deletePeriodConfirm.show = false" style="padding:8px 18px">Cancelar</button>
+            <button class="period-delete-btn" @click="executeDeletePeriod" style="padding:8px 18px;font-size:13px;background:rgba(255,69,58,0.15);color:#FF453A;border:1px solid rgba(255,69,58,0.3);border-radius:10px">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, reactive } from 'vue'
 import type ExcelJS from 'exceljs'
 import type { Subject } from '@/domain/models'
 import { taskAdapter, topicAdapter } from '@/infrastructure/api'
@@ -294,6 +311,8 @@ const closingPeriod = ref(false)
 const editingPeriodId = ref<number | null>(null)
 const periodEditData = ref<Record<string, Record<string, number>>>({})
 const savingPeriodGrades = ref(false)
+const deletingPeriod = ref(false)
+const deletePeriodConfirm = reactive({ show: false, id: 0, name: '', subjectId: 0 })
 
 const filteredReportData = computed(() =>
   selectedSubjectId.value != null
@@ -963,6 +982,33 @@ async function savePeriodGrades(period: GradePeriod) {
   }
 }
 
+function confirmDeletePeriod(period: GradePeriod) {
+  deletePeriodConfirm.id = period.id
+  deletePeriodConfirm.name = period.name
+  deletePeriodConfirm.subjectId = period.subjectId
+  deletePeriodConfirm.show = true
+}
+
+async function executeDeletePeriod() {
+  const { id, subjectId } = deletePeriodConfirm
+  deletePeriodConfirm.show = false
+  deletingPeriod.value = true
+  try {
+    await periodAdapter.deletePeriod(id)
+    const subjectPeriods = (periodsBySubject.value[subjectId] ?? []).filter(p => p.id !== id)
+    periodsBySubject.value = { ...periodsBySubject.value, [subjectId]: subjectPeriods }
+    if (expandedPeriods.value.has(id)) {
+      const next = new Set(expandedPeriods.value)
+      next.delete(id)
+      expandedPeriods.value = next
+    }
+  } catch (e: any) {
+    alert('Error al eliminar periodo: ' + (e?.message ?? String(e)))
+  } finally {
+    deletingPeriod.value = false
+  }
+}
+
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
@@ -1624,6 +1670,29 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   transition: background 0.15s;
 }
 .period-edit-btn:hover { background: rgba(52, 199, 89, 0.22); }
+.period-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+  color: #FF453A;
+  background: rgba(255, 69, 58, 0.1);
+  border-radius: 6px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.period-delete-btn:hover { background: rgba(255, 69, 58, 0.22); }
+.delete-period-dialog {
+  background: #1C1C1E;
+  border-radius: 16px;
+  padding: 24px;
+  margin: auto;
+  max-width: 380px;
+  width: 90%;
+  border: 1px solid rgba(255,255,255,0.08);
+}
 .period-cancel-btn {
   margin-left: auto;
   font-size: 11px;

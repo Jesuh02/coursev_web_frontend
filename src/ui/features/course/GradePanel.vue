@@ -41,6 +41,17 @@
       <!-- Loading state -->
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
+      <!-- Between periods state -->
+      <div v-else-if="betweenPeriods" class="between-periods-state">
+        <div class="between-periods-icon">📅</div>
+        <h3 class="between-periods-title">Periodo cerrado</h3>
+        <p class="between-periods-desc">El periodo anterior fue cerrado exitosamente. Crea un nuevo periodo para comenzar a registrar notas.</p>
+        <button class="btn-start-period" @click="betweenPeriods = false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Iniciar nuevo periodo
+        </button>
+      </div>
+
       <!-- Grade sheet table -->
       <div v-else class="sheet-wrapper">
         <div v-if="!filteredStudents.length" class="empty-msg">No se encontraron estudiantes</div>
@@ -630,6 +641,7 @@ const newPeriodName = ref('')
 const expandedPeriodId = ref<number | null>(null)
 const closePeriodConfirm = ref(false)
 const deletePeriodConfirm = reactive({ show: false, id: 0, name: '' })
+const betweenPeriods = ref(false)
 
 // Editable period manual grades: key = `${periodId}-${studentId}-${gradeType}`, value = grade
 const editedPeriodGrades = ref<Record<string, number | null>>({})
@@ -711,6 +723,7 @@ async function executeClosePeriod() {
     }
 
     emit('saved')
+    betweenPeriods.value = true
   } catch (err: any) {
     console.error('[GradePanel] Error closing period:', err)
   }
@@ -945,6 +958,14 @@ onMounted(async () => {
     manualGradesData.value = sheet.manualGrades || []
     taskGrades.value = sheet.taskGrades || []
 
+    // Detect "between periods" state: closed periods exist but no current data
+    const hasClosed = (sheet.closedPeriodsCount ?? 0) > 0
+    const hasCurrentGrades = manualGradesData.value.length > 0
+    const hasCurrentTasks = tasks.value.length > 0
+    if (hasClosed && !hasCurrentGrades && !hasCurrentTasks) {
+      betweenPeriods.value = true
+    }
+
     // Discover existing multi-slot columns from data
     discoverSlots()
 
@@ -1083,6 +1104,55 @@ onMounted(async () => {
 }
 
 .search-input::placeholder { color: #8E8E93; }
+
+/* ── Between periods state ── */
+.between-periods-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  gap: 12px;
+}
+
+.between-periods-icon { font-size: 48px; }
+
+.between-periods-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.between-periods-desc {
+  font-size: 14px;
+  color: #8E8E93;
+  max-width: 340px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.btn-start-period {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-start-period:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(191, 90, 242, 0.3);
+}
 
 .loading-center {
   display: flex;
