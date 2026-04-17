@@ -92,8 +92,8 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ (group.average ?? 0).toFixed(1) }}</span>
                 </div>
 
-                <!-- Promedios por estudiante (solo si hay periodo activo) -->
-                <div v-if="group.hasActivePeriod && group.gradeSummaries.length" class="breakdown-section">
+                <!-- Promedios por estudiante (solo si hay periodo activo y periodos reales) -->
+                <div v-if="subjectHasPeriods(group.subjectId) && group.hasActivePeriod && group.gradeSummaries.length" class="breakdown-section">
                   <div class="breakdown-label period-label">
                     📅 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }}
                   </div>
@@ -126,8 +126,12 @@
                     </table>
                   </div>
                 </div>
+                <!-- Periodo activo sin notas aún -->
+                <div v-else-if="subjectHasPeriods(group.subjectId) && group.hasActivePeriod" class="no-active-period-msg">
+                  📅 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }} — Sin notas registradas aún.
+                </div>
                 <!-- Sin periodo activo pero con periodos cerrados: mostrar último periodo -->
-                <div v-else-if="!group.hasActivePeriod && getLatestClosedPeriod(group.subjectId)" class="breakdown-section">
+                <div v-else-if="subjectHasPeriods(group.subjectId) && getLatestClosedPeriod(group.subjectId)" class="breakdown-section">
                   <div class="breakdown-label period-label">
                     📅 {{ getLatestClosedPeriod(group.subjectId)?.name }} (último periodo cerrado)
                   </div>
@@ -156,10 +160,9 @@
                     </table>
                   </div>
                 </div>
-                <div v-else-if="!group.hasActivePeriod" class="no-active-period-msg">
+                <div v-else class="no-active-period-msg">
                   📅 No hay periodos registrados — inicia un periodo para ver las notas.
                 </div>
-                <div v-else class="no-tasks">Sin entregas</div>
 
                 <!-- Periodos -->
                 <div class="periods-section">
@@ -435,10 +438,10 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
   // Detect which manual grade categories are active (used for at least one student in this subject)
   const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
-    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === Number(student.userId))
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === Number(student.userId))
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -647,7 +650,7 @@ async function fetchReport() {
         average: avg != null ? parseFloat(avg.toFixed(1)) : 0,
         studentAverages,
         gradeSummaries,
-        hasActivePeriod: sheet?.hasActivePeriod ?? true,
+        hasActivePeriod: sheet?.hasActivePeriod ?? false,
       }
     })
 
@@ -754,14 +757,23 @@ async function exportExcel() {
 
   for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
+    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
+    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (hasPeriods ? ' — Sin periodo activo' : ' — Sin periodos')
     const grpRow = ws.addRow([`${group.subjectName}${periodLabel} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
     grpRow.getCell(1).fill = grpHdrFill
     grpRow.getCell(1).border = thinBorder
     grpRow.height = 20
+
+    // Sin periodos reales: mostrar mensaje y continuar
+    if (!hasPeriods) {
+      const noperiodRow = ws.addRow(['📅 No hay periodos registrados — inicia un periodo para ver las notas'])
+      ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
+      noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+      continue
+    }
 
     if (!group.hasActivePeriod) {
       const latestClosed = getLatestClosedPeriod(group.subjectId)
@@ -803,9 +815,9 @@ async function exportExcel() {
           emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
         }
       } else {
-        const noperiodRow = ws.addRow(['📅 No hay periodos registrados — inicia un periodo para ver las notas'])
-        ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
-        noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+        const emptyRow2 = ws.addRow(['Sin periodos cerrados disponibles'])
+        ws.mergeCells(emptyRow2.number, 1, emptyRow2.number, 8)
+        emptyRow2.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
       }
       continue
     }
@@ -953,6 +965,10 @@ function getLatestClosedPeriod(subjectId: number): GradePeriod | null {
   return closed.sort((a, b) => new Date(b.closedAt ?? 0).getTime() - new Date(a.closedAt ?? 0).getTime())[0]
 }
 
+function subjectHasPeriods(subjectId: number): boolean {
+  return (periodsBySubject.value[subjectId] ?? []).length > 0
+}
+
 function togglePeriodExpand(periodId: number) {
   const next = new Set(expandedPeriods.value)
   if (next.has(periodId)) next.delete(periodId)
@@ -997,10 +1013,10 @@ function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] 
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
   const activeCategories = new Set((snapshot.manualGrades ?? []).map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
   return (snapshot.students ?? []).map((student: any) => {
-    const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === student.userId)
+    const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === Number(student.userId))
     const taskSum = stTaskGrades.reduce((s: number, tg: any) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === student.userId)
+    const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === Number(student.userId))
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -1097,7 +1113,7 @@ async function savePeriodGrades(period: GradePeriod) {
       if (!student) continue
       const sid = student.userId
       const editedTaskAvg = grades.tareas ?? 0
-      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === Number(sid))
       if (studentTasks.length > 0) {
         for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
       } else if (editedTaskAvg > 0) {
@@ -1148,11 +1164,14 @@ function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
+    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
     const latestClosed = !group.hasActivePeriod ? getLatestClosedPeriod(group.subjectId) : null
     const periodLabel = activePeriod ? ` [${activePeriod.name}]` : (latestClosed ? ` [${latestClosed.name}]` : ' [Sin periodos]')
     text += `📘 ${group.subjectName}${periodLabel} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
-    if (!group.hasActivePeriod) {
+    if (!hasPeriods) {
+      text += `   📅 No hay periodos registrados\n`
+    } else if (!group.hasActivePeriod) {
       if (latestClosed) {
         const periodSummaries = computePeriodSummaries(latestClosed.snapshot)
         for (const row of periodSummaries) {
@@ -1192,11 +1211,14 @@ function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
+    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
     const latestClosedPDF = !group.hasActivePeriod ? getLatestClosedPeriod(group.subjectId) : null
     const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (latestClosedPDF ? ` — ${latestClosedPDF.name}` : '')
     rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}${periodLabel}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
-    if (!group.hasActivePeriod) {
+    if (!hasPeriods) {
+      rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">📅 No hay periodos registrados — inicia un periodo para ver las notas</td></tr>`
+    } else if (!group.hasActivePeriod) {
       if (latestClosedPDF) {
         const periodSummaries = computePeriodSummaries(latestClosedPDF.snapshot)
         for (const row of periodSummaries) {

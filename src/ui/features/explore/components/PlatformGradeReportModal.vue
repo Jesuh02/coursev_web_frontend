@@ -564,7 +564,7 @@ async function fetchReport() {
         for (const r of sheetResults) {
           if (r.status === 'fulfilled' && r.value.sheet) {
             // Only populate summaries when a period is active
-            const active = r.value.sheet.hasActivePeriod ?? true
+            const active = r.value.sheet.hasActivePeriod ?? false
             hasActivePeriodBySubjectId.value[r.value.subjectId] = active
             gradeSummariesBySubject[r.value.subjectName] = active
               ? computeGradeSummaries(r.value.sheet)
@@ -670,10 +670,10 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
   const totalTasks = sheet.tasks.length
   const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
-    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === Number(student.userId))
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === Number(student.userId))
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -1035,7 +1035,7 @@ async function savePeriodGrades(period: GradePeriod) {
       if (!student) continue
       const sid = student.userId
       const editedTaskAvg = grades.tareas ?? 0
-      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === Number(sid))
       if (studentTasks.length > 0) {
         for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
       } else if (editedTaskAvg > 0) {
@@ -1086,7 +1086,7 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId:
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
     const gradeSummaries = group.gradeSummariesBySubject[subjectName] ?? []
     const subjectId = group.subjectIdsByName?.[subjectName] ?? null
-    const hasActivePeriod = subjectId != null ? (hasActivePeriodBySubjectId.value[subjectId] ?? true) : true
+    const hasActivePeriod = subjectId != null ? (hasActivePeriodBySubjectId.value[subjectId] ?? false) : false
     return { subjectName, subjectId, rows, studentAverages, average, gradeSummaries, hasActivePeriod }
   })
 }
