@@ -1,7 +1,7 @@
 <template>
   <nav class="side-nav">
     <div class="nav-header">
-      <img src="/icon-192.png" alt="CourseV Logo" class="nav-logo" />
+      <img :src="logoSrc" alt="CourseV Logo" class="nav-logo" />
     </div>
 
     <ul class="nav-list">
@@ -37,9 +37,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useNavigation } from '@/composables/useNavigation'
+import { getInstitutionLogoUrl } from '@/utils/institutionHeader'
 
 const { navItems, isActive, navigate, canCreateContent } = useNavigation()
+
+const logoSrc = computed(() => getInstitutionLogoUrl() || '/icon-192.png')
 </script>
 
 <style scoped>

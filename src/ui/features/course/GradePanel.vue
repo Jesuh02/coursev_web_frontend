@@ -41,11 +41,11 @@
       <!-- Loading state -->
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
-      <!-- Between periods state -->
+      <!-- Between periods / no period state -->
       <div v-else-if="betweenPeriods" class="between-periods-state">
         <div class="between-periods-icon">📅</div>
-        <h3 class="between-periods-title">Periodo cerrado</h3>
-        <p class="between-periods-desc">El periodo anterior fue cerrado exitosamente. Configura las fechas del nuevo periodo para comenzar a registrar notas.</p>
+        <h3 class="between-periods-title">{{ hasClosedPeriods ? 'Periodo cerrado' : 'Iniciar periodo' }}</h3>
+        <p class="between-periods-desc">{{ hasClosedPeriods ? 'El periodo anterior fue cerrado exitosamente. Configura las fechas del nuevo periodo para comenzar a registrar notas.' : 'Para comenzar a registrar notas, configura las fechas del periodo.' }}</p>
         <div class="start-period-form">
           <input
             v-model="newPeriodName"
@@ -667,6 +667,7 @@ const expandedPeriodId = ref<number | null>(null)
 const closePeriodConfirm = ref(false)
 const deletePeriodConfirm = reactive({ show: false, id: 0, name: '' })
 const betweenPeriods = ref(false)
+const hasClosedPeriods = ref(false)
 const periodStartDate = ref('')
 const periodEndDate = ref('')
 const startingPeriod = ref(false)
@@ -1011,11 +1012,12 @@ onMounted(async () => {
     manualGradesData.value = sheet.manualGrades || []
     taskGrades.value = sheet.taskGrades || []
 
-    // Detect "between periods" state: closed periods exist but no current data
+    // Detect "no active period" state: require period to be started before showing grade sheet
     const hasClosed = (sheet.closedPeriodsCount ?? 0) > 0
+    hasClosedPeriods.value = hasClosed
     const hasCurrentGrades = manualGradesData.value.length > 0
     const hasCurrentTasks = tasks.value.length > 0
-    if (hasClosed && !hasCurrentGrades && !hasCurrentTasks) {
+    if (!hasCurrentGrades && !hasCurrentTasks) {
       betweenPeriods.value = true
     }
 
