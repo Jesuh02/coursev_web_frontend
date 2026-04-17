@@ -675,40 +675,11 @@ async function exportExcel() {
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
-  for (const group of filteredReportData.value) {
-    const avg = group.average !== null ? group.average : 0
-    const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const latestClosedExcel = getLatestClosedPeriod(group.subjectId)
-    const periodLabel = activePeriod
-      ? ` — ${activePeriod.name}`
-      : latestClosedExcel && group.gradeSummaries.length
-        ? ` — ${latestClosedExcel.name}`
-        : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
-    const grpRow = ws.addRow([`${group.subjectName}${periodLabel} — Docente: ${group.teacherName} — Promedio: ${avg}`])
-    ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
-    grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
-    grpRow.getCell(1).fill = grpHdrFill
-    grpRow.getCell(1).border = thinBorder
-    grpRow.height = 20
-
-    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
-      const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
-      ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
-      noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
-      continue
-    }
-
-    if (!group.gradeSummaries.length) {
-      const emptyRow = ws.addRow(['Sin datos disponibles'])
-      ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
-      emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
-      continue
-    }
-
-    group.gradeSummaries.forEach((row, i) => {
+  const addSummaryRowsToSheet = (summaries: GradeSummaryRow[], subjectName: string, teacherName: string) => {
+    summaries.forEach((row, i) => {
       const dataRow = ws.addRow([
-        group.subjectName,
-        group.teacherName,
+        subjectName,
+        teacherName,
         row.studentName,
         row.comportamientoAvg ?? 0,
         row.taskAvg ?? 0,
@@ -731,6 +702,65 @@ async function exportExcel() {
       }
       dataRow.height = 16
     })
+  }
+
+  for (const group of filteredReportData.value) {
+    const avg = group.average !== null ? group.average : 0
+    const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
+    grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
+    grpRow.getCell(1).fill = grpHdrFill
+    grpRow.getCell(1).border = thinBorder
+    grpRow.height = 20
+
+    const allPeriodsE = periodsBySubject.value[group.subjectId] ?? []
+    const closedPeriodsE = allPeriodsE
+      .filter(p => p.snapshot !== null)
+      .sort((a, b) => new Date(a.closedAt || 0).getTime() - new Date(b.closedAt || 0).getTime())
+    const activePeriodE = allPeriodsE.find(p => p.snapshot === null)
+
+    if (!closedPeriodsE.length && !activePeriodE) {
+      if (!group.hasActivePeriod && !group.gradeSummaries.length) {
+        const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
+        ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
+        noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+      } else {
+        addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName)
+      }
+    } else {
+      for (const period of closedPeriodsE) {
+        const summaries = computePeriodSummaries(period.snapshot)
+        const periodLabelRow = ws.addRow([`📅 ${period.name}`])
+        ws.mergeCells(periodLabelRow.number, 1, periodLabelRow.number, 8)
+        periodLabelRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 10, name: 'Calibri' }
+        periodLabelRow.getCell(1).fill = grpHdrFill
+        periodLabelRow.getCell(1).border = thinBorder
+        periodLabelRow.height = 16
+        if (summaries.length) {
+          addSummaryRowsToSheet(summaries, group.subjectName, group.teacherName)
+        } else {
+          const emptyRow = ws.addRow(['Sin datos'])
+          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
+          emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
+        }
+      }
+      if (activePeriodE) {
+        const activePeriodLabelFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }
+        const activeLabelRow = ws.addRow([`🟢 ${activePeriodE.name} (Activo)`])
+        ws.mergeCells(activeLabelRow.number, 1, activeLabelRow.number, 8)
+        activeLabelRow.getCell(1).font = { bold: true, color: { argb: 'FF1A7F37' }, size: 10, name: 'Calibri' }
+        activeLabelRow.getCell(1).fill = activePeriodLabelFill
+        activeLabelRow.getCell(1).border = thinBorder
+        activeLabelRow.height = 16
+        if (group.gradeSummaries.length) {
+          addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName)
+        } else {
+          const emptyRow = ws.addRow(['Sin entregas'])
+          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
+          emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
+        }
+      }
+    }
   }
 
   // Footer rows: signature + institution footer
@@ -998,19 +1028,31 @@ function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
-    const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const latestClosed = getLatestClosedPeriod(group.subjectId)
-    const periodLabel = activePeriod
-      ? ` [${activePeriod.name}]`
-      : latestClosed && group.gradeSummaries.length
-        ? ` [${latestClosed.name}]`
-        : (group.hasActivePeriod ? '' : ' [Sin periodo activo]')
-    text += `📘 ${group.subjectName}${periodLabel} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
-    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
-      text += `   ⚠️ Sin periodo activo\n`
-    } else {
-      for (const row of group.gradeSummaries) {
+    text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
+    const allPeriodsS = periodsBySubject.value[group.subjectId] ?? []
+    const closedPeriodsS = allPeriodsS
+      .filter(p => p.snapshot !== null)
+      .sort((a, b) => new Date(a.closedAt || 0).getTime() - new Date(b.closedAt || 0).getTime())
+    const activePeriodS = allPeriodsS.find(p => p.snapshot === null)
+    const printRows = (summaries: GradeSummaryRow[]) => {
+      for (const row of summaries) {
         text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
+      }
+    }
+    if (!closedPeriodsS.length && !activePeriodS) {
+      if (!group.hasActivePeriod && !group.gradeSummaries.length) {
+        text += `   ⚠️ Sin periodo activo\n`
+      } else {
+        printRows(group.gradeSummaries)
+      }
+    } else {
+      for (const period of closedPeriodsS) {
+        text += `   📅 ${period.name}\n`
+        printRows(computePeriodSummaries(period.snapshot))
+      }
+      if (activePeriodS) {
+        text += `   🟢 ${activePeriodS.name} (Activo)\n`
+        printRows(group.gradeSummaries)
       }
     }
     text += '\n'
@@ -1028,33 +1070,48 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
-  for (const group of filteredReportData.value) {
-    const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
-      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
-      : null
-    const periodLabel = activePeriod
-      ? ` — ${activePeriod.name}`
-      : singleClosedPeriod
-        ? ` — ${singleClosedPeriod.name}`
-        : ''
-    rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}${periodLabel}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
-    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
-      rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
-    } else if (!group.gradeSummaries.length) {
-      rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
-    } else {
-      for (const row of group.gradeSummaries) {
-        const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
-        rows += `<tr>
-        <td>${escH(group.subjectName)}</td>
-        <td>${row.studentName}</td>
+  const renderSummaryRows = (summaries: GradeSummaryRow[], subjectName: string) => {
+    let r = ''
+    for (const row of summaries) {
+      const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
+      r += `<tr>
+        <td>${escH(subjectName)}</td>
+        <td>${escH(row.studentName)}</td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
         <td style="text-align:center">${fmt(row.taskAvg)}</td>
         <td style="text-align:center">${fmt(row.examenesAvg)}</td>
         <td style="text-align:center">${fmt(row.participacionAvg)}</td>
         <td style="color:${notaColor};font-weight:700;text-align:center">${fmt(row.notaPonderada)}</td>
       </tr>`
+    }
+    return r
+  }
+  for (const group of filteredReportData.value) {
+    rows += `<tr class="subject-header"><td colspan="6">${escH(group.subjectName)}<span class="teacher-tag"> — Docente: ${escH(group.teacherName)}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
+    const allPeriodsP = periodsBySubject.value[group.subjectId] ?? []
+    const closedPeriodsP = allPeriodsP
+      .filter(p => p.snapshot !== null)
+      .sort((a, b) => new Date(a.closedAt || 0).getTime() - new Date(b.closedAt || 0).getTime())
+    const activePeriodP = allPeriodsP.find(p => p.snapshot === null)
+    if (!closedPeriodsP.length && !activePeriodP) {
+      if (!group.hasActivePeriod && !group.gradeSummaries.length) {
+        rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
+      } else {
+        rows += renderSummaryRows(group.gradeSummaries, group.subjectName)
+      }
+    } else {
+      for (const period of closedPeriodsP) {
+        const summaries = computePeriodSummaries(period.snapshot)
+        rows += `<tr><td colspan="7" style="background:#f0e6ff;padding:6px 10px;font-size:11px;color:#6A1B9A;font-weight:600;border-top:1px solid #d4c5f0">📅 ${escH(period.name)}</td></tr>`
+        rows += summaries.length
+          ? renderSummaryRows(summaries, group.subjectName)
+          : `<tr><td colspan="7" style="color:#999;padding-left:28px;font-size:11px">Sin datos</td></tr>`
+      }
+      if (activePeriodP) {
+        rows += `<tr><td colspan="7" style="background:#e8f5e9;padding:6px 10px;font-size:11px;color:#1A7F37;font-weight:600;border-top:1px solid #c8e6c9">🟢 ${escH(activePeriodP.name)} (Activo)</td></tr>`
+        rows += group.gradeSummaries.length
+          ? renderSummaryRows(group.gradeSummaries, group.subjectName)
+          : `<tr><td colspan="7" style="color:#999;padding-left:28px;font-size:11px">Sin entregas</td></tr>`
       }
     }
   }
