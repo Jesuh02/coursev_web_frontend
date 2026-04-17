@@ -24,7 +24,7 @@
     <div :class="['app-content', { 'with-sidebar': showNav }]">
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
-          <keep-alive :include="['CourseDetailView']" :max="10">
+          <keep-alive :include="['CourseDetailView', 'SubjectsListView']" :max="10">
             <component :is="Component" :key="route.path" />
           </keep-alive>
         </transition>

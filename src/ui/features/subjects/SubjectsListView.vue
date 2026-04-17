@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -173,6 +173,8 @@ import { useSubjectSocket } from '@/composables/useSubjectSocket'
 import SubjectCard from './components/SubjectCard.vue'
 import GradeReportModal from './components/GradeReportModal.vue'
 import BulletinModal from './components/BulletinModal.vue'
+
+defineOptions({ name: 'SubjectsListView' })
 
 const route = useRoute()
 const router = useRouter()
