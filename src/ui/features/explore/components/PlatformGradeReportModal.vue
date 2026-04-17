@@ -155,6 +155,59 @@
                         </div>
                       </div>
                       <div v-else class="no-tasks">Sin entregas</div>
+
+                      <!-- Periodos -->
+                      <div v-if="subGroup.subjectId" class="periods-section">
+                        <div class="periods-header" @click="togglePeriodsSection(subGroup.subjectId)">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expandedSections.has(`periods-${subGroup.subjectId}`) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
+                          <span class="periods-title">Periodos</span>
+                          <span v-if="(periodsBySubject[subGroup.subjectId] ?? []).length" class="periods-badge">{{ (periodsBySubject[subGroup.subjectId] ?? []).length }}</span>
+                          <button class="close-period-btn" @click.stop="handleClosePeriod(group.courseId, subGroup.subjectId, subGroup.subjectName)" :disabled="closingPeriod">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                            Cerrar Periodo
+                          </button>
+                        </div>
+                        <div v-if="expandedSections.has(`periods-${subGroup.subjectId}`)" class="periods-list">
+                          <div v-if="!(periodsBySubject[subGroup.subjectId] ?? []).length" class="no-periods">No hay periodos creados</div>
+                          <div v-for="period in (periodsBySubject[subGroup.subjectId] ?? [])" :key="period.id" class="period-item">
+                            <div class="period-item-header" @click="togglePeriodExpand(period.id)">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: expandedPeriods.has(period.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
+                              <span class="period-name">{{ period.name }}</span>
+                              <span class="period-date">{{ formatPeriodDate(period.closedAt) }}</span>
+                            </div>
+                            <div v-if="expandedPeriods.has(period.id)" class="period-snapshot">
+                              <div v-if="computePeriodSummaries(period.snapshot).length" class="breakdown-section">
+                                <div class="breakdown-label">Notas del periodo</div>
+                                <div class="table-wrapper">
+                                  <table class="grade-table">
+                                    <thead>
+                                      <tr>
+                                        <th class="th-student">Estudiante</th>
+                                        <th class="th-grade">Comportamiento</th>
+                                        <th class="th-grade">Tareas</th>
+                                        <th class="th-grade">Examen</th>
+                                        <th class="th-grade">Participación</th>
+                                        <th class="th-ponderada">Nota Final</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr v-for="row in computePeriodSummaries(period.snapshot)" :key="row.studentUsername" class="grade-row">
+                                        <td class="cell-student">{{ displayStudentName(row.studentFullName) }}</td>
+                                        <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                                        <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                                        <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                                        <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                                        <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                              <div v-else class="no-tasks">Sin notas en este periodo</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div v-if="!group.rows.length" class="no-tasks">Sin entregas registradas</div>
@@ -208,6 +261,8 @@ import { api, courseAdapter } from '@/infrastructure/api'
 import { subjectAdapter } from '@/infrastructure/api/subjectAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, getInstitutionLogoUrl, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -223,6 +278,9 @@ watch(() => props.modelValue, (v) => {
     selectedSubjectName.value = null
     courseSearchText.value = ''
     showCourseDropdown.value = false
+    periodsBySubject.value = {}
+    expandedSections.value = new Set()
+    expandedPeriods.value = new Set()
   }
 })
 
@@ -256,6 +314,7 @@ interface CourseGroup {
   rows: ReportRow[]
   progressByUsername: Record<string, number>
   gradeSummariesBySubject: Record<string, GradeSummaryRow[]>
+  subjectIdsByName: Record<string, number>
 }
 
 const loading = ref(false)
@@ -263,6 +322,12 @@ const errorMsg = ref('')
 const reportData = ref<CourseGroup[]>([])
 const loadedCourses = ref(0)
 const totalCourses = ref(0)
+
+// ── Periods ──
+const periodsBySubject = ref<Record<number, GradePeriod[]>>({})
+const expandedSections = ref(new Set<string>())
+const expandedPeriods = ref(new Set<number>())
+const closingPeriod = ref(false)
 
 // ── Filters ──
 const selectedCourseId = ref<number | null>(null)
@@ -417,6 +482,12 @@ async function fetchReport() {
         const subs: ReportRow[] = (subsRaw ?? []) as ReportRow[]
         const rows = addNotSubmittedRows(subs, enrolledStudents)
 
+        // Build subjectIdsByName mapping
+        const subjectIdsByName: Record<string, number> = {}
+        for (const s of (subjectsRaw ?? [])) {
+          subjectIdsByName[(s as any).name as string] = (s as any).id as number
+        }
+
         // Fetch grade sheets per subject in parallel to build category breakdowns
         const gradeSummariesBySubject: Record<string, GradeSummaryRow[]> = {}
         const sheetResults = await Promise.allSettled(
@@ -431,12 +502,27 @@ async function fetchReport() {
           }
         }
 
+        // Load periods for each subject
+        const subjectIds = Object.values(subjectIdsByName)
+        if (subjectIds.length) {
+          const periodsResults = await Promise.allSettled(
+            subjectIds.map(sid => periodAdapter.listBySubject(sid))
+          )
+          for (let i = 0; i < subjectIds.length; i++) {
+            const result = periodsResults[i]
+            if (result.status === 'fulfilled') {
+              periodsBySubject.value[subjectIds[i]] = result.value as GradePeriod[]
+            }
+          }
+        }
+
         return {
           courseId: course.id,
           courseName: (course as any).title ?? (course as any).name ?? `Curso ${course.id}`,
           rows,
           progressByUsername,
           gradeSummariesBySubject,
+          subjectIdsByName,
         } as CourseGroup
       })
     )
@@ -732,8 +818,71 @@ function exportWord() {
 
 function esc(s: string) { return String(s).replace(/"/g, '""') }
 
+// ── Period helpers ────────────────────────────────────────────────────────
+function togglePeriodsSection(subjectId: number) {
+  const key = `periods-${subjectId}`
+  const next = new Set(expandedSections.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedSections.value = next
+}
+
+function togglePeriodExpand(periodId: number) {
+  const next = new Set(expandedPeriods.value)
+  if (next.has(periodId)) next.delete(periodId)
+  else next.add(periodId)
+  expandedPeriods.value = next
+}
+
+async function handleClosePeriod(courseId: number, subjectId: number, subjectName: string) {
+  const existingCount = (periodsBySubject.value[subjectId] ?? []).length
+  const defaultName = `Periodo ${existingCount + 1}`
+  const name = prompt(`Nombre del periodo para "${subjectName}":`, defaultName)
+  if (!name) return
+
+  closingPeriod.value = true
+  try {
+    await periodAdapter.closePeriod({ courseId, subjectId, name })
+    // Reload periods
+    const periods = await periodAdapter.listBySubject(subjectId)
+    periodsBySubject.value = { ...periodsBySubject.value, [subjectId]: periods as GradePeriod[] }
+    // Expand the section
+    expandedSections.value = new Set([...expandedSections.value, `periods-${subjectId}`])
+    // Refresh grade sheet (now empty after period close)
+    await refreshSubjectGradeSheet(courseId, subjectId, subjectName)
+  } catch (e: any) {
+    alert('Error al cerrar periodo: ' + (e?.message ?? String(e)))
+  } finally {
+    closingPeriod.value = false
+  }
+}
+
+async function refreshSubjectGradeSheet(courseId: number, subjectId: number, subjectName: string) {
+  try {
+    const sheet = await gradeAdapter.getGradeSheet(subjectId)
+    const summaries = computeGradeSummaries(sheet)
+    const group = reportData.value.find(g => g.courseId === courseId)
+    if (group) {
+      group.gradeSummariesBySubject[subjectName] = summaries
+      reportData.value = [...reportData.value]
+    }
+  } catch { /* ignore */ }
+}
+
+function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] {
+  if (!snapshot) return []
+  return computeGradeSummaries(snapshot)
+}
+
+function formatPeriodDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 // ── Subject sub-grouping ──────────────────────────────────────────────────
-function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null; gradeSummaries: GradeSummaryRow[] }[] {
+function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId: number | null; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null; gradeSummaries: GradeSummaryRow[] }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
     const key = row.subjectName ?? '—'
@@ -756,7 +905,8 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; rows: Repo
     const graded = rows.filter(r => r.grade != null && !r.notSubmitted)
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
     const gradeSummaries = group.gradeSummariesBySubject[subjectName] ?? []
-    return { subjectName, rows, studentAverages, average, gradeSummaries }
+    const subjectId = group.subjectIdsByName?.[subjectName] ?? null
+    return { subjectName, subjectId, rows, studentAverages, average, gradeSummaries }
   })
 }
 
@@ -1405,5 +1555,94 @@ function esc_html(s: string): string {
   font-size: 10px;
   color: #FF453A;
   margin: 2px 0;
+}
+
+/* ── Periods section ── */
+.periods-section { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+
+.periods-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: #8E8E93;
+}
+.periods-header:hover { background: rgba(255, 255, 255, 0.03); }
+
+.periods-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.periods-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.close-period-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(10, 132, 255, 0.12);
+  color: #0A84FF;
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.close-period-btn:hover { opacity: 0.85; }
+.close-period-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.periods-list { padding: 0 14px 10px; }
+
+.no-periods {
+  font-size: 12px;
+  color: #636366;
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.period-item {
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.period-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.period-item-header:hover { background: rgba(255, 255, 255, 0.04); }
+
+.period-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  flex: 1;
+}
+
+.period-date {
+  font-size: 11px;
+  color: #636366;
+}
+
+.period-snapshot {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 </style>
