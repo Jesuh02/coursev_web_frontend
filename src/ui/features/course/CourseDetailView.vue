@@ -365,7 +365,6 @@
         :subject-id="subjectId"
         :students="memberStudents.map(s => ({ userId: s.userId, username: s.username ?? '', fullName: null, cedula: null, avatar: s.avatar }))"
         @close="showGradePanel = false"
-        @saved="showGradePanel = false"
       />
 
 

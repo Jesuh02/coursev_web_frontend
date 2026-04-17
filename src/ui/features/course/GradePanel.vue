@@ -705,6 +705,7 @@ function onClosePeriod() {
 }
 
 async function executeClosePeriod() {
+  if (closing.value) return // guard: prevent double-execution from rapid clicks
   closePeriodConfirm.value = false
   closing.value = true
   try {
