@@ -149,13 +149,7 @@
               </svg>
               Generar boletín
             </button>
-            <button class="platform-more-option" @click="showMoreMenu = false; showBulletinPlatform = true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              Boletín de plataforma
-            </button>
+
           </div>
         </Transition>
         <button
@@ -176,7 +170,7 @@
     <!-- Modales plataforma -->
     <PlatformGradeReportModal v-model="showPlatformReport" />
     <ExploreBulletinModal v-model="showBulletin" />
-    <ExploreBulletinModal v-model="showBulletinPlatform" :start-platform="true" />
+
 
     <!-- Role selection dialog for docente users -->
     <Teleport to="body">
@@ -241,7 +235,7 @@ const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 const showPlatformReport = ref(false)
 const showBulletin = ref(false)
-const showBulletinPlatform = ref(false)
+
 const showMoreMenu = ref(false)
 const searchPending = ref(false)
 const filterPending = ref(false)
