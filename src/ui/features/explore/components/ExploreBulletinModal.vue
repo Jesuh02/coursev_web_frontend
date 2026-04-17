@@ -637,6 +637,8 @@ function exportAllBulletinsWord() {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+  async function shareBulletin() {
   const st = selectedStudent.value
   const name = st?.fullName || st?.username || 'Estudiante'
   let text = `📋 BOLETÍN DE NOTAS\n📌 Programa: ${selectedCourse.value?.title || '—'}\n👤 Estudiante: ${name}\n📅 Periodo: ${currentPeriod.value}\n\n${'─'.repeat(32)}\nMÓDULO                    NOTA\n${'─'.repeat(32)}\n`
