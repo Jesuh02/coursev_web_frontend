@@ -240,7 +240,7 @@
                 <div class="incat-sig-block">
                   <div class="incat-sig-line"></div>
                   <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
-                  <p class="incat-sig-title">RECOR</p>
+                  <p class="incat-sig-title">RECTOR</p>
                 </div>
                 <div class="incat-footer-info">
                   <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>

@@ -68,7 +68,7 @@
               <div class="incat-sig-block">
                 <div class="incat-sig-line"></div>
                 <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
-                <p class="incat-sig-title">RECOR</p>
+                <p class="incat-sig-title">RECTOR</p>
               </div>
               <div class="incat-footer-info">
                 <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
@@ -762,7 +762,7 @@ async function exportExcel() {
   const footerLines = getInstitutionFooterLines()
   if (footerLines.length) {
     ws.addRow([]) // blank separator
-    const sigRow = ws.addRow([footerLines[1]]) // 'AQUILES AMAYA IGUARAN — RECOR'
+    const sigRow = ws.addRow([footerLines[1]]) // 'AQUILES AMAYA IGUARAN — RECTOR'
     ws.mergeCells(sigRow.number, 1, sigRow.number, 8)
     sigRow.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF222222' } }
     sigRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' }
