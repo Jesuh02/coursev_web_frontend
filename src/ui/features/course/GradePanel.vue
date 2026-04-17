@@ -158,6 +158,129 @@
           {{ saving ? 'Guardando...' : 'Guardar Notas' }}
         </button>
       </div>
+
+      <!-- ═══ Periodos Section ═══ -->
+      <div v-if="!loading" class="periods-section">
+        <div class="periods-header" @click="showPeriodsSection = !showPeriodsSection">
+          <div class="periods-header-left">
+            <svg :class="{ rotated: showPeriodsSection }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <h3 class="periods-title">📅 Periodos</h3>
+            <span v-if="periods.length" class="periods-badge">{{ periods.length }}</span>
+          </div>
+        </div>
+
+        <div v-if="showPeriodsSection" class="periods-body">
+          <!-- Close current period -->
+          <div class="close-period-bar">
+            <p class="period-hint">Guardar las notas actuales como un periodo y empezar de cero.</p>
+            <div class="close-period-row">
+              <input
+                v-model="newPeriodName"
+                class="period-name-input"
+                :placeholder="`Periodo ${nextPeriodNumber}`"
+                maxlength="50"
+              />
+              <button class="btn-close-period" :disabled="closing" @click="onClosePeriod">
+                {{ closing ? 'Cerrando…' : 'Cerrar Periodo' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading periods -->
+          <div v-if="periodsLoading" class="loading-center"><div class="spinner" /></div>
+
+          <!-- No periods -->
+          <div v-else-if="!periods.length" class="empty-msg">No hay periodos registrados aún.</div>
+
+          <!-- Period list -->
+          <div v-else class="period-list">
+            <div v-for="p in periods" :key="p.id" class="period-item">
+              <div class="period-card" :class="{ active: expandedPeriodId === p.id }" @click="togglePeriod(p)">
+                <div class="period-card-left">
+                  <svg :class="{ rotated: expandedPeriodId === p.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                  <div class="period-card-info">
+                    <span class="period-name">{{ p.name }}</span>
+                    <span class="period-date">{{ formatDate(p.closedAt) }}</span>
+                  </div>
+                </div>
+                <div class="period-card-stats">
+                  <span class="stat-pill">{{ p.snapshot?.students?.length ?? 0 }} est.</span>
+                  <span class="stat-pill">{{ p.snapshot?.tasks?.length ?? 0 }} tareas</span>
+                </div>
+              </div>
+
+              <!-- Expanded period detail -->
+              <div v-if="expandedPeriodId === p.id" class="period-detail">
+                <div v-if="!periodSnapshotStudents(p).length" class="empty-msg">Sin datos en este periodo.</div>
+                <div v-else class="sheet-scroll period-sheet-scroll">
+                  <table class="grade-sheet">
+                    <thead>
+                      <tr>
+                        <th class="col-student sticky-col">Estudiante</th>
+                        <th v-for="col in periodManualCols(p)" :key="col" class="col-manual">{{ formatGradeTypeLabel(col) }}</th>
+                        <th v-for="task in periodSnapshotTasks(p)" :key="task.id" class="col-task" :title="task.title">📋 {{ truncate(task.title, 12) }}</th>
+                        <th class="col-avg">Prom.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="student in periodSnapshotStudents(p)" :key="student.userId">
+                        <td class="col-student sticky-col">
+                          <div class="student-cell">
+                            <div class="student-avatar-sm">
+                              <img v-if="student.avatar" :src="student.avatar" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
+                              <span v-else class="avatar-initials-sm">{{ (student.username ?? 'E').charAt(0).toUpperCase() }}</span>
+                            </div>
+                            <div class="student-cell-info">
+                              <span class="cell-name">{{ student.fullName || student.username || '—' }}</span>
+                              <span class="cell-username">@{{ student.username }}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td v-for="col in periodManualCols(p)" :key="col" class="col-manual">
+                          <input
+                            type="number" min="0" max="10" step="0.5"
+                            class="cell-input"
+                            placeholder="—"
+                            :value="getPeriodManualGrade(p.id, student.userId, col)"
+                            @change="setPeriodManualGrade(p.id, student.userId, col, $event)"
+                          />
+                        </td>
+                        <td v-for="task in periodSnapshotTasks(p)" :key="task.id" class="col-task">
+                          <span class="cell-readonly" :class="periodTaskGradeClass(getPeriodTaskGrade(p, student.userId, task.id))">
+                            {{ getPeriodTaskGrade(p, student.userId, task.id) ?? '—' }}
+                          </span>
+                        </td>
+                        <td class="col-avg">
+                          <span class="cell-avg" :class="periodAvgClass(computePeriodAvg(p, student.userId))">
+                            {{ computePeriodAvg(p, student.userId) }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Save period changes -->
+                <div v-if="periodDirtyKeys.has(p.id)" class="period-save-bar">
+                  <button class="btn-save-period" :disabled="periodSaving" @click="savePeriodChanges(p)">
+                    {{ periodSaving ? 'Guardando…' : 'Guardar cambios del periodo' }}
+                  </button>
+                </div>
+
+                <!-- Delete period -->
+                <div class="period-delete-bar">
+                  <button class="btn-delete-period" @click="confirmDeletePeriod(p)">🗑️ Eliminar periodo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Liquidglass confirm modal -->
       <Teleport to="body">
         <Transition name="glass-fade">
@@ -173,6 +296,34 @@
             </div>
           </div>
         </Transition>
+        <!-- Delete period confirm -->
+        <Transition name="glass-fade">
+          <div v-if="deletePeriodConfirm.show" class="glass-overlay" @click.self="deletePeriodConfirm.show = false">
+            <div class="glass-dialog">
+              <div class="glass-icon">📅</div>
+              <h3 class="glass-title">¿Eliminar este periodo?</h3>
+              <p class="glass-desc">Se eliminará permanentemente el periodo <strong>{{ deletePeriodConfirm.name }}</strong> y todas sus notas guardadas.</p>
+              <div class="glass-actions">
+                <button class="glass-btn cancel" @click="deletePeriodConfirm.show = false">Cancelar</button>
+                <button class="glass-btn confirm" @click="executeDeletePeriod">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+        <!-- Close period confirm -->
+        <Transition name="glass-fade">
+          <div v-if="closePeriodConfirm" class="glass-overlay" @click.self="closePeriodConfirm = false">
+            <div class="glass-dialog">
+              <div class="glass-icon">📸</div>
+              <h3 class="glass-title">¿Cerrar el periodo actual?</h3>
+              <p class="glass-desc">Se guardará una copia de las notas actuales y la planilla se vaciará para el nuevo periodo.</p>
+              <div class="glass-actions">
+                <button class="glass-btn cancel" @click="closePeriodConfirm = false">Cancelar</button>
+                <button class="glass-btn confirm" @click="executeClosePeriod" style="background: rgba(191,90,242,0.25); color: #BF5AF2; border-color: rgba(191,90,242,0.3);">Cerrar Periodo</button>
+              </div>
+            </div>
+          </div>
+        </Transition>
       </Teleport>
     </div>
   </div>
@@ -182,6 +333,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import type { ManualGrade, GradeSheetTaskGrade, GradeSheetTask, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
 
 interface GradeColumn {
@@ -461,6 +614,261 @@ function applyBulkGrade() {
   }
 }
 
+// ═══ Period state & logic ═══
+
+const showPeriodsSection = ref(false)
+const periods = ref<GradePeriod[]>([])
+const periodsLoading = ref(false)
+const closing = ref(false)
+const periodSaving = ref(false)
+const newPeriodName = ref('')
+const expandedPeriodId = ref<number | null>(null)
+const closePeriodConfirm = ref(false)
+const deletePeriodConfirm = reactive({ show: false, id: 0, name: '' })
+
+// Editable period manual grades: key = `${periodId}-${studentId}-${gradeType}`, value = grade
+const editedPeriodGrades = ref<Record<string, number | null>>({})
+const originalPeriodGrades = ref<Record<string, number | null>>({})
+// Track which periods have dirty changes
+const periodDirtyKeys = computed(() => {
+  const dirty = new Set<number>()
+  for (const [key, val] of Object.entries(editedPeriodGrades.value)) {
+    if (val !== originalPeriodGrades.value[key]) {
+      const periodId = parseInt(key.split('-')[0])
+      dirty.add(periodId)
+    }
+  }
+  return dirty
+})
+
+const nextPeriodNumber = computed(() => {
+  if (!periods.value.length) return 1
+  return Math.max(...periods.value.map(p => p.periodNumber)) + 1
+})
+
+async function loadPeriods() {
+  periodsLoading.value = true
+  try {
+    periods.value = await periodAdapter.listBySubject(props.subjectId)
+  } catch { periods.value = [] }
+  periodsLoading.value = false
+}
+
+function onClosePeriod() {
+  closePeriodConfirm.value = true
+}
+
+async function executeClosePeriod() {
+  closePeriodConfirm.value = false
+  closing.value = true
+  try {
+    await periodAdapter.closePeriod({
+      courseId: props.courseId,
+      subjectId: props.subjectId,
+      name: newPeriodName.value || undefined,
+    })
+    newPeriodName.value = ''
+
+    // Reload periods
+    await loadPeriods()
+
+    // Reload current sheet (should be empty now)
+    const sheet = await gradeAdapter.getGradeSheet(props.subjectId)
+    sheetStudents.value = sheet.students || []
+    tasks.value = sheet.tasks || []
+    manualGradesData.value = sheet.manualGrades || []
+    taskGrades.value = sheet.taskGrades || []
+
+    // Reset editable data
+    editedManualGrades.value = {}
+    originalManualGrades.value = {}
+    editedTaskGrades.value = {}
+    originalTaskGrades.value = {}
+
+    // Re-discover slots
+    slotsPerType.comportamiento = 1
+    slotsPerType.participacion = 1
+    slotsPerType.examenes = 1
+    discoverSlots()
+
+    // Re-populate
+    for (const mg of manualGradesData.value) {
+      const key = gradeKey(mg.studentId, mg.gradeType)
+      editedManualGrades.value[key] = mg.grade
+      originalManualGrades.value[key] = mg.grade
+    }
+    for (const tg of taskGrades.value) {
+      if (tg.grade !== null && tg.grade !== undefined) {
+        const key = gradeKey(tg.studentId, String(tg.taskId))
+        editedTaskGrades.value[key] = tg.grade
+        originalTaskGrades.value[key] = tg.grade
+      }
+    }
+
+    emit('saved')
+  } catch (err: any) {
+    console.error('[GradePanel] Error closing period:', err)
+  }
+  closing.value = false
+}
+
+function togglePeriod(p: GradePeriod) {
+  if (expandedPeriodId.value === p.id) {
+    expandedPeriodId.value = null
+    return
+  }
+  expandedPeriodId.value = p.id
+
+  // Populate editable period grades from snapshot
+  const snapshot = p.snapshot
+  if (!snapshot) return
+  for (const mg of (snapshot.manualGrades ?? [])) {
+    const key = `${p.id}-${mg.studentId}-${mg.gradeType}`
+    editedPeriodGrades.value[key] = mg.grade
+    originalPeriodGrades.value[key] = mg.grade
+  }
+}
+
+function periodSnapshotStudents(p: GradePeriod) {
+  return p.snapshot?.students ?? []
+}
+
+function periodSnapshotTasks(p: GradePeriod) {
+  return p.snapshot?.tasks ?? []
+}
+
+function periodManualCols(p: GradePeriod): string[] {
+  const grades = p.snapshot?.manualGrades ?? []
+  const types = new Set<string>()
+  for (const g of grades) types.add(g.gradeType)
+  return Array.from(types).sort()
+}
+
+function periodGradeKey(periodId: number, studentId: number, gradeType: string) {
+  return `${periodId}-${studentId}-${gradeType}`
+}
+
+function getPeriodManualGrade(periodId: number, studentId: number, gradeType: string): number | string {
+  const key = periodGradeKey(periodId, studentId, gradeType)
+  const val = editedPeriodGrades.value[key]
+  return val !== null && val !== undefined ? val : ''
+}
+
+function setPeriodManualGrade(periodId: number, studentId: number, gradeType: string, event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value)
+  const key = periodGradeKey(periodId, studentId, gradeType)
+  if (Number.isNaN(val) || (event.target as HTMLInputElement).value === '') {
+    editedPeriodGrades.value[key] = null
+  } else {
+    editedPeriodGrades.value[key] = Math.min(10, Math.max(0, val))
+  }
+}
+
+function getPeriodTaskGrade(p: GradePeriod, studentId: number, taskId: number): number | null {
+  const tg = p.snapshot?.taskGrades ?? []
+  const g = tg.find((t: any) => Number(t.studentId) === studentId && Number(t.taskId) === taskId)
+  return g?.grade ?? null
+}
+
+function computePeriodAvg(p: GradePeriod, studentId: number): string {
+  const manualCols = periodManualCols(p)
+  const manualVals: number[] = []
+  for (const col of manualCols) {
+    const key = periodGradeKey(p.id, studentId, col)
+    const val = editedPeriodGrades.value[key]
+    if (val !== null && val !== undefined) manualVals.push(val)
+  }
+  const taskVals: number[] = []
+  for (const task of periodSnapshotTasks(p)) {
+    const g = getPeriodTaskGrade(p, studentId, task.id)
+    if (g !== null) taskVals.push(g)
+  }
+  const all = [...manualVals, ...taskVals]
+  if (!all.length) return '0.0'
+  return (all.reduce((a, b) => a + b, 0) / all.length).toFixed(1)
+}
+
+function periodAvgClass(avg: string): string {
+  if (avg === '0.0') return ''
+  return parseFloat(avg) >= 6 ? 'pass' : 'fail'
+}
+
+function periodTaskGradeClass(grade: number | null): string {
+  if (grade === null) return 'no-submission'
+  return grade >= 6 ? 'pass' : 'fail'
+}
+
+async function savePeriodChanges(p: GradePeriod) {
+  periodSaving.value = true
+  try {
+    // Rebuild the manualGrades array from edited state
+    const manualGrades: any[] = []
+    for (const col of periodManualCols(p)) {
+      for (const student of periodSnapshotStudents(p)) {
+        const key = periodGradeKey(p.id, student.userId, col)
+        const val = editedPeriodGrades.value[key]
+        if (val !== null && val !== undefined) {
+          manualGrades.push({ studentId: student.userId, gradeType: col, grade: val })
+        }
+      }
+    }
+    const updated = await periodAdapter.updateGrades(p.id, { manualGrades })
+
+    // Update local state
+    const idx = periods.value.findIndex(pp => pp.id === p.id)
+    if (idx >= 0) periods.value[idx] = updated
+
+    // Reset originals
+    for (const [key, val] of Object.entries(editedPeriodGrades.value)) {
+      if (key.startsWith(`${p.id}-`)) {
+        originalPeriodGrades.value[key] = val
+      }
+    }
+  } catch (err: any) {
+    console.error('[GradePanel] Error saving period changes:', err)
+  }
+  periodSaving.value = false
+}
+
+function confirmDeletePeriod(p: GradePeriod) {
+  deletePeriodConfirm.id = p.id
+  deletePeriodConfirm.name = p.name
+  deletePeriodConfirm.show = true
+}
+
+async function executeDeletePeriod() {
+  const id = deletePeriodConfirm.id
+  deletePeriodConfirm.show = false
+  try {
+    await periodAdapter.deletePeriod(id)
+    periods.value = periods.value.filter(p => p.id !== id)
+    if (expandedPeriodId.value === id) expandedPeriodId.value = null
+    // Clean up edited period grades
+    for (const key of Object.keys(editedPeriodGrades.value)) {
+      if (key.startsWith(`${id}-`)) {
+        delete editedPeriodGrades.value[key]
+        delete originalPeriodGrades.value[key]
+      }
+    }
+  } catch (err: any) {
+    console.error('[GradePanel] Error deleting period:', err)
+  }
+}
+
+function formatDate(d: string) {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatGradeTypeLabel(t: string): string {
+  const map: Record<string, string> = { comportamiento: '🤝 Com', participacion: '🙋 Par', examenes: '📝 Exa' }
+  const match = t.match(/^(comportamiento|participacion|examenes)(?:_(\d+))?$/)
+  if (!match) return t
+  const base = match[1]
+  const slot = match[2] ? ` ${match[2]}` : ''
+  return (map[base] ?? t) + slot
+}
+
 // --- Save ---
 
 async function saveAllGrades() {
@@ -554,6 +962,9 @@ onMounted(async () => {
     console.error('[GradePanel] Error loading sheet:', err)
   }
   loading.value = false
+
+  // Load periods in parallel
+  loadPeriods()
 })
 </script>
 
@@ -1226,6 +1637,260 @@ onMounted(async () => {
   .save-btn {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* ═══ Periods Section ═══ */
+.periods-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.periods-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.periods-header:hover {
+  background: rgba(191, 90, 242, 0.04);
+}
+
+.periods-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.periods-header-left svg {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.periods-header-left svg.rotated {
+  transform: rotate(90deg);
+}
+
+.periods-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.periods-badge {
+  background: rgba(191, 90, 242, 0.2);
+  color: #BF5AF2;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.periods-body {
+  padding: 0 20px 16px;
+}
+
+.close-period-bar {
+  padding: 12px 16px;
+  background: rgba(191, 90, 242, 0.04);
+  border: 1px solid rgba(191, 90, 242, 0.12);
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+.period-hint {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0 0 10px;
+}
+
+.close-period-row {
+  display: flex;
+  gap: 10px;
+}
+
+.period-name-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.period-name-input:focus {
+  border-color: #BF5AF2;
+}
+
+.btn-close-period {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.btn-close-period:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.period-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.period-item {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.period-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.period-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.period-card.active {
+  background: rgba(191, 90, 242, 0.1);
+  border: 1px solid rgba(191, 90, 242, 0.2);
+}
+
+.period-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.period-card-left svg {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.period-card-left svg.rotated {
+  transform: rotate(90deg);
+}
+
+.period-card-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.period-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.period-date {
+  font-size: 11px;
+  color: #8E8E93;
+  margin-top: 2px;
+}
+
+.period-card-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.stat-pill {
+  font-size: 11px;
+  color: #8E8E93;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.period-detail {
+  padding: 8px 4px 12px;
+}
+
+.period-sheet-scroll {
+  max-height: 300px;
+}
+
+.period-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 4px 4px;
+}
+
+.btn-save-period {
+  padding: 8px 22px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #BF5AF2, #9B6BFF);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  transition: opacity 0.2s;
+}
+
+.btn-save-period:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.period-delete-bar {
+  display: flex;
+  justify-content: flex-start;
+  padding: 6px 4px 0;
+}
+
+.btn-delete-period {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 55, 95, 0.2);
+  background: rgba(255, 55, 95, 0.06);
+  color: #FF375F;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete-period:hover {
+  background: rgba(255, 55, 95, 0.15);
+}
+
+@media (max-width: 768px) {
+  .periods-body {
+    padding: 0 14px 14px;
+  }
+
+  .close-period-row {
+    flex-direction: column;
+  }
+
+  .period-card-stats {
+    display: none;
+  }
+
+  .period-sheet-scroll {
+    max-height: 250px;
   }
 }
 </style>
