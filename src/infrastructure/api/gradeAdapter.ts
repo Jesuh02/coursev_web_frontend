@@ -55,6 +55,7 @@ export interface GradeSheet {
   manualGrades: ManualGrade[]
   taskGrades: GradeSheetTaskGrade[]
   closedPeriodsCount?: number
+  hasActivePeriod?: boolean
 }
 
 export const gradeAdapter = {
