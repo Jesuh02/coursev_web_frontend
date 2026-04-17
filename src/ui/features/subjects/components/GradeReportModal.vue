@@ -97,7 +97,7 @@
                   <div class="breakdown-label period-label">
                     📅 {{ group.hasActivePeriod
                           ? ((periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo')
-                          : ((periodsBySubject[group.subjectId] ?? []).find(p => p.snapshot != null)?.name ?? 'Periodo') }}
+                          : (getLatestClosedPeriod(group.subjectId)?.name ?? 'Periodo') }}
                   </div>
                   <div class="table-wrapper">
                     <table class="grade-table">
@@ -559,11 +559,29 @@ async function fetchReport() {
           const subjectId = subjectIds[i]
           const periods = result.value as GradePeriod[]
           periodsBySubject.value[subjectId] = periods
-          // If there is exactly one closed period and no active period, populate
-          // gradeSummaries from that snapshot so the report shows the data.
+
           const group = reportData.value.find(g => g.subjectId === subjectId)
-          if (group && !group.hasActivePeriod && periods.length === 1 && periods[0].snapshot != null) {
-            group.gradeSummaries = computePeriodSummaries(periods[0].snapshot)
+          if (group) {
+            const activePeriod = periods.find(p => p.snapshot === null)
+            const closedPeriods = periods
+              .filter(p => p.snapshot !== null)
+              .sort((a, b) => new Date(b.closedAt || 0).getTime() - new Date(a.closedAt || 0).getTime())
+
+            if (activePeriod) {
+              // Active period: live grade sheet data is already in gradeSummaries
+              group.hasActivePeriod = true
+            } else if (closedPeriods.length > 0) {
+              // No active period: use the most recent closed period snapshot
+              const latest = closedPeriods[0]
+              if (latest.snapshot) {
+                group.gradeSummaries = computePeriodSummaries(latest.snapshot)
+              }
+              group.hasActivePeriod = false
+            } else {
+              // No periods at all: don't show grade data
+              group.gradeSummaries = []
+              group.hasActivePeriod = false
+            }
           }
         }
       }
@@ -660,13 +678,11 @@ async function exportExcel() {
   for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
-      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
-      : null
+    const latestClosedExcel = getLatestClosedPeriod(group.subjectId)
     const periodLabel = activePeriod
       ? ` — ${activePeriod.name}`
-      : singleClosedPeriod
-        ? ` — ${singleClosedPeriod.name}`
+      : latestClosedExcel && group.gradeSummaries.length
+        ? ` — ${latestClosedExcel.name}`
         : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
     const grpRow = ws.addRow([`${group.subjectName}${periodLabel} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
@@ -853,6 +869,13 @@ function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] 
   })
 }
 
+function getLatestClosedPeriod(subjectId: number): GradePeriod | null {
+  const periods = periodsBySubject.value[subjectId] ?? []
+  return periods
+    .filter(p => p.snapshot !== null)
+    .sort((a, b) => new Date(b.closedAt || 0).getTime() - new Date(a.closedAt || 0).getTime())[0] ?? null
+}
+
 function formatPeriodDate(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -976,13 +999,11 @@ function buildShareText(): string {
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
-      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
-      : null
+    const latestClosed = getLatestClosedPeriod(group.subjectId)
     const periodLabel = activePeriod
       ? ` [${activePeriod.name}]`
-      : singleClosedPeriod
-        ? ` [${singleClosedPeriod.name}]`
+      : latestClosed && group.gradeSummaries.length
+        ? ` [${latestClosed.name}]`
         : (group.hasActivePeriod ? '' : ' [Sin periodo activo]')
     text += `📘 ${group.subjectName}${periodLabel} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
     if (!group.hasActivePeriod && !group.gradeSummaries.length) {

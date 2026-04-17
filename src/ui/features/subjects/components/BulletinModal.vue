@@ -22,7 +22,7 @@
           </div>
 
           <!-- Period selector bar -->
-          <div v-if="availablePeriods.length > 1" class="period-bar">
+          <div v-if="availablePeriods.length >= 1" class="period-bar">
             <button
               v-for="p in availablePeriods"
               :key="String(p.periodNumber)"
@@ -406,19 +406,13 @@ watch(() => props.modelValue, async (open) => {
 
 async function loadAllPeriods() {
   try {
-    const results = await Promise.allSettled(
-      props.subjects.map(s => periodAdapter.listBySubject(s.id))
-    )
+    const periods = await periodAdapter.listByCourse(props.courseId) as GradePeriod[]
     const map = new Map<number, GradePeriod[]>()
-    for (let i = 0; i < props.subjects.length; i++) {
-      const r = results[i]
-      if (r.status === 'fulfilled') {
-        const periods = r.value as GradePeriod[]
-        map.set(props.subjects[i].id, periods)
-        if (!activePeriodName.value) {
-          const active = periods.find(p => p.snapshot == null)
-          if (active) activePeriodName.value = active.name
-        }
+    for (const p of periods) {
+      if (!map.has(p.subjectId)) map.set(p.subjectId, [])
+      map.get(p.subjectId)!.push(p)
+      if (!activePeriodName.value && p.snapshot == null) {
+        activePeriodName.value = p.name
       }
     }
     subjectPeriodsMap.value = map
