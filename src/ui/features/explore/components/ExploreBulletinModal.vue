@@ -1089,4 +1089,31 @@ function exportPlatformBulletinWord() {
 .export-word:hover { background: rgba(90,200,250,0.2); }
 .export-share { background: rgba(10,132,255,0.12); color: #0A84FF; }
 .export-share:hover { background: rgba(10,132,255,0.2); }
-</style>
+
+.period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 12px;
+}
+.period-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8E8E93;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.period-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.period-chip--selected {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+  border-color: rgba(48, 209, 88, 0.4);
+}
