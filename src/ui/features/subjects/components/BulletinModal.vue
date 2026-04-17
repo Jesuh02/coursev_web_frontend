@@ -51,7 +51,7 @@
               </button>
               <div class="student-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                <input v-model="studentSearch" type="text" placeholder="Buscar estudiante..." />
+                <input v-model="studentSearch" type="text" placeholder="Buscar por nombre, usuario o identificación…" />
               </div>
               <p class="student-hint">Selecciona un estudiante para generar su boletín</p>
               <ul v-if="filteredStudents.length" class="student-list">
@@ -60,6 +60,7 @@
                   <div class="student-info">
                     <span class="student-name">{{ st.fullName || st.username || `Estudiante #${st.userId}` }}</span>
                     <span v-if="st.username" class="student-username">@{{ st.username }}</span>
+                    <span v-if="st.cedula" class="student-cedula">ID: {{ st.cedula }}</span>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
                 </li>
@@ -1330,6 +1331,11 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .student-username {
   font-size: 12px;
   color: #8E8E93;
+}
+
+.student-cedula {
+  font-size: 11px;
+  color: #636366;
 }
 
 .no-students {

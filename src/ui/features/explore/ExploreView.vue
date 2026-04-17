@@ -379,7 +379,7 @@ async function runCourseSearch(query: string, pageNum = 1, limit = 20) {
     const directResult = await courseAdapter.searchCourses(trimmedQuery, pageNum, limit)
     let creatorMatches: Course[] = []
 
-    if (pageNum === 1 && (isNumericQuery(trimmedQuery) || !directResult.data.length)) {
+    if (pageNum === 1) {
       try {
         creatorMatches = await searchCoursesByCreatorIdentity(trimmedQuery)
       } catch {

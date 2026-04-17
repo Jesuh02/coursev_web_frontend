@@ -370,24 +370,24 @@
 
       </template>
     </div>
-  </div>
 
-  <!-- Modal confirmar eliminación de tarea -->
-  <Teleport to="body">
-    <div v-if="taskToDelete" class="confirm-modal-overlay" @click.self="taskToDelete = null">
-      <div class="confirm-modal">
-        <div class="confirm-modal-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        </div>
-        <h3 class="confirm-modal-title">¿Eliminar tarea?</h3>
-        <p class="confirm-modal-text">Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar esta tarea?</p>
-        <div class="confirm-modal-actions">
-          <button class="confirm-modal-btn cancel" @click="taskToDelete = null">Cancelar</button>
-          <button class="confirm-modal-btn danger" @click="confirmDeleteTask">Eliminar</button>
+    <!-- Modal confirmar eliminación de tarea -->
+    <Teleport to="body">
+      <div v-if="taskToDelete" class="confirm-modal-overlay" @click.self="taskToDelete = null">
+        <div class="confirm-modal">
+          <div class="confirm-modal-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </div>
+          <h3 class="confirm-modal-title">¿Eliminar tarea?</h3>
+          <p class="confirm-modal-text">Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar esta tarea?</p>
+          <div class="confirm-modal-actions">
+            <button class="confirm-modal-btn cancel" @click="taskToDelete = null">Cancelar</button>
+            <button class="confirm-modal-btn danger" @click="confirmDeleteTask">Eliminar</button>
+          </div>
         </div>
       </div>
-    </div>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">

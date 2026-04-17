@@ -62,6 +62,15 @@
               </button>
             </div>
 
+            <!-- Student search -->
+            <div class="student-search-bar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+              <input v-model="studentSearch" type="text" placeholder="Filtrar por nombre, usuario o identificación…" />
+              <button v-if="studentSearch" class="search-clear-btn" @click="studentSearch = ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+
             <!-- Subject sections with table -->
             <!-- Signature & footer (INCAT only) -->
             <div v-if="isIncatInstitution()" class="incat-signature-footer">
@@ -109,7 +118,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="row in computePeriodSummaries(p.snapshot)" :key="row.studentId" class="grade-row">
+                          <tr v-for="row in filterGradeSummaries(computePeriodSummaries(p.snapshot))" :key="row.studentId" class="grade-row">
                             <td class="cell-student">{{ row.studentName }}</td>
                             <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
                             <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
@@ -142,7 +151,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="row in group.gradeSummaries" :key="row.studentId" class="grade-row">
+                        <tr v-for="row in filterGradeSummaries(group.gradeSummaries)" :key="row.studentId" class="grade-row">
                           <td class="cell-student">{{ row.studentName }}</td>
                           <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
                           <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
@@ -244,6 +253,8 @@ interface SubmissionRow {
 interface GradeSummaryRow {
   studentName: string
   studentId: number
+  studentUsername: string | null
+  studentCedula: string | null
   taskAvg: number | null
   participacionAvg: number | null
   examenesAvg: number | null
@@ -268,6 +279,7 @@ const loading = ref(false)
 const reportData = ref<SubjectReport[]>([])
 const isFullscreen = ref(false)
 const selectedSubjectId = ref<number | null>(null)
+const studentSearch = ref('')
 
 // ── Periods ──
 const periodsBySubject = ref<Record<number, GradePeriod[]>>({})
@@ -286,6 +298,16 @@ const filteredReportData = computed(() =>
     : reportData.value
 )
 
+function filterGradeSummaries(rows: GradeSummaryRow[]): GradeSummaryRow[] {
+  const q = studentSearch.value.trim().toLowerCase()
+  if (!q) return rows
+  return rows.filter(r =>
+    (r.studentName || '').toLowerCase().includes(q) ||
+    (r.studentUsername || '').toLowerCase().includes(q) ||
+    (r.studentCedula || '').toLowerCase().includes(q)
+  )
+}
+
 function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
 
 onUnmounted(() => { isFullscreen.value = false })
@@ -293,6 +315,7 @@ watch(() => props.modelValue, (v) => {
   if (!v) {
     isFullscreen.value = false
     selectedSubjectId.value = null
+    studentSearch.value = ''
     periodsBySubject.value = {}
     expandedPeriodSections.value = new Set()
     expandedPeriods.value = new Set()
@@ -381,6 +404,8 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
     return {
       studentName: displayStudentName(student.fullName),
       studentId: student.userId,
+      studentUsername: student.username ?? null,
+      studentCedula: student.cedula ?? null,
       taskAvg: fmt(taskAvg),
       participacionAvg: fmt(participacionAvg),
       examenesAvg: fmt(examenesAvg),
@@ -913,6 +938,8 @@ function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] 
     return {
       studentName: displayStudentName(student.fullName),
       studentId: student.userId,
+      studentUsername: student.username ?? null,
+      studentCedula: student.cedula ?? null,
       taskAvg: fmt(taskAvg),
       participacionAvg: fmt(participacionAvg),
       examenesAvg: fmt(examenesAvg),
@@ -1515,6 +1542,35 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   background: rgba(191, 90, 242, 0.2);
   color: #BF5AF2;
   border-color: rgba(191, 90, 242, 0.45);
+}
+
+.student-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1C1C1E;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 8px 16px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.student-search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+.student-search-bar input::placeholder { color: #8E8E93; }
+.search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .breakdown-section {
