@@ -371,6 +371,23 @@
       </template>
     </div>
   </div>
+
+  <!-- Modal confirmar eliminación de tarea -->
+  <Teleport to="body">
+    <div v-if="taskToDelete" class="confirm-modal-overlay" @click.self="taskToDelete = null">
+      <div class="confirm-modal">
+        <div class="confirm-modal-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </div>
+        <h3 class="confirm-modal-title">¿Eliminar tarea?</h3>
+        <p class="confirm-modal-text">Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar esta tarea?</p>
+        <div class="confirm-modal-actions">
+          <button class="confirm-modal-btn cancel" @click="taskToDelete = null">Cancelar</button>
+          <button class="confirm-modal-btn danger" @click="confirmDeleteTask">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -430,6 +447,7 @@ const heroImage = computed(() => {
 const collaboratorAccess = ref(false)
 const isSubjectCreator = ref(false)
 const showGradePanel = ref(false)
+const taskToDelete = ref<{ taskId: number; topicId: number } | null>(null)
 const isCourseCreator = computed(() => {
   const currentUserId = Number(authStore.user?.id ?? 0)
   const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
@@ -834,7 +852,14 @@ async function deleteTopic(topicId: number) {
   } catch { /* silent */ }
 }
 
-async function deleteTaskItem(taskId: number, topicId: number) {
+function deleteTaskItem(taskId: number, topicId: number) {
+  taskToDelete.value = { taskId, topicId }
+}
+
+async function confirmDeleteTask() {
+  if (!taskToDelete.value) return
+  const { taskId, topicId } = taskToDelete.value
+  taskToDelete.value = null
   try {
     await taskAdapter.deleteTask(taskId)
     topicTasks.value = {
@@ -1902,4 +1927,35 @@ watch(activeTab, (tab) => {
 .member-info { flex: 1; min-width: 0; }
 .member-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .member-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+
+/* ── Confirm delete modal ───────────────────────────────────────── */
+.confirm-modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.confirm-modal {
+  background: #1C1C1E;
+  border: 1px solid #3A3A3C;
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  width: 100%; max-width: 320px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center;
+}
+.confirm-modal-icon { margin-bottom: 4px; }
+.confirm-modal-title { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
+.confirm-modal-text { font-size: 14px; color: #8E8E93; margin: 0; line-height: 1.5; }
+.confirm-modal-actions {
+  display: flex; gap: 10px; width: 100%; margin-top: 8px;
+}
+.confirm-modal-btn {
+  flex: 1; padding: 12px; border-radius: 10px;
+  font-size: 15px; font-weight: 600; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.confirm-modal-btn:active { opacity: 0.7; }
+.confirm-modal-btn.cancel { background: #2C2C2E; color: #fff; }
+.confirm-modal-btn.danger { background: #FF453A; color: #fff; }
 </style>

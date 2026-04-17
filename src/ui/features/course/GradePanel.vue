@@ -275,15 +275,15 @@
                         </td>
                         <td v-for="col in periodManualCols(p)" :key="col" class="col-manual">
                           <template v-if="p.snapshot === null">
-                            <span class="cell-readonly" :class="periodTaskGradeClass(getPeriodManualGrade(p.id, student.userId, col) !== '' ? Number(getPeriodManualGrade(p.id, student.userId, col)) : null)">
-                              {{ getPeriodManualGrade(p.id, student.userId, col) !== '' ? getPeriodManualGrade(p.id, student.userId, col) : '—' }}
+                            <span class="cell-readonly" :class="periodTaskGradeClass(getPeriodManualGrade(p.id, student.userId, col) !== '' ? Number(getPeriodManualGrade(p.id, student.userId, col)) : 0)">
+                              {{ getPeriodManualGrade(p.id, student.userId, col) !== '' ? getPeriodManualGrade(p.id, student.userId, col) : 0 }}
                             </span>
                           </template>
                           <template v-else>
                             <input
                               type="number" min="0" max="10" step="0.5"
                               class="cell-input"
-                              placeholder="—"
+                              placeholder="0"
                               :value="getPeriodManualGrade(p.id, student.userId, col)"
                               @change="setPeriodManualGrade(p.id, student.userId, col, $event)"
                             />
@@ -835,9 +835,19 @@ function periodSnapshotTasks(p: GradePeriod) {
 function periodManualCols(p: GradePeriod): string[] {
   if (p.snapshot === null) return allGradeColumnKeys.value
   const grades = p.snapshot.manualGrades ?? []
-  const types = new Set<string>()
-  for (const g of grades) types.add(g.gradeType)
-  return Array.from(types).sort()
+  const typesFromData = new Set<string>()
+  for (const g of grades) typesFromData.add(g.gradeType)
+  // Always include the 3 base columns in display order, plus any extra slots from the snapshot
+  const result: string[] = []
+  for (const meta of BASE_TYPE_META) {
+    result.push(meta.baseType)
+    let slot = 2
+    while (typesFromData.has(`${meta.baseType}_${slot}`)) {
+      result.push(`${meta.baseType}_${slot}`)
+      slot++
+    }
+  }
+  return result
 }
 
 function periodGradeKey(periodId: number, studentId: number, gradeType: string) {

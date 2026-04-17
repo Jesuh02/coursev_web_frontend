@@ -92,14 +92,42 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ (group.average ?? 0).toFixed(1) }}</span>
                 </div>
 
-                <!-- Promedios por estudiante -->
-                <div v-if="group.gradeSummaries.length" class="breakdown-section">
-                  <div class="breakdown-label period-label">
-                    📅 {{ group.hasActivePeriod
-                          ? ((periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo')
-                          : (getLatestClosedPeriod(group.subjectId)?.name ?? 'Periodo') }}
+                <!-- Periodos cerrados: todos, del más antiguo al más reciente -->
+                <template v-for="p in (periodsBySubject[group.subjectId] ?? []).filter(p => p.snapshot !== null).sort((a, b) => new Date(a.closedAt || 0).getTime() - new Date(b.closedAt || 0).getTime())" :key="p.id">
+                  <div class="breakdown-section">
+                    <div class="breakdown-label period-label">📅 {{ p.name }}</div>
+                    <div v-if="p.snapshot?.students?.length" class="table-wrapper">
+                      <table class="grade-table">
+                        <thead>
+                          <tr>
+                            <th class="th-student">Estudiante</th>
+                            <th class="th-grade">Tareas</th>
+                            <th class="th-grade">Participación</th>
+                            <th class="th-grade">Examen</th>
+                            <th class="th-grade">Comportamiento</th>
+                            <th class="th-ponderada">Nota Ponderada</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="row in computePeriodSummaries(p.snapshot)" :key="row.studentId" class="grade-row">
+                            <td class="cell-student">{{ row.studentName }}</td>
+                            <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                            <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                            <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                            <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                            <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="no-tasks">Sin datos en este periodo</div>
                   </div>
-                  <div class="table-wrapper">
+                </template>
+
+                <!-- Periodo activo (datos en vivo) -->
+                <div v-if="group.hasActivePeriod" class="breakdown-section">
+                  <div class="breakdown-label period-label">🟢 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }}</div>
+                  <div v-if="group.gradeSummaries.length" class="table-wrapper">
                     <table class="grade-table">
                       <thead>
                         <tr>
@@ -127,11 +155,13 @@
                       </tbody>
                     </table>
                   </div>
+                  <div v-else class="no-tasks">Sin entregas</div>
                 </div>
-                <div v-else-if="!group.hasActivePeriod" class="no-active-period-msg">
+
+                <!-- Sin ningún periodo -->
+                <div v-if="!group.hasActivePeriod && !(periodsBySubject[group.subjectId] ?? []).some(p => p.snapshot !== null)" class="no-active-period-msg">
                   📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
                 </div>
-                <div v-else class="no-tasks">Sin entregas</div>
 
 
               </div>
@@ -570,15 +600,8 @@ async function fetchReport() {
             if (activePeriod) {
               // Active period: live grade sheet data is already in gradeSummaries
               group.hasActivePeriod = true
-            } else if (closedPeriods.length > 0) {
-              // No active period: use the most recent closed period snapshot
-              const latest = closedPeriods[0]
-              if (latest.snapshot) {
-                group.gradeSummaries = computePeriodSummaries(latest.snapshot)
-              }
-              group.hasActivePeriod = false
             } else {
-              // No periods at all: don't show grade data
+              // No active period: closed periods are rendered via periodsBySubject in the template
               group.gradeSummaries = []
               group.hasActivePeriod = false
             }
@@ -611,6 +634,7 @@ async function exportExcel() {
 
   ws.columns = [
     { width: 26 }, // Materia
+    { width: 18 }, // Periodo
     { width: 22 }, // Docente
     { width: 26 }, // Estudiante
     { width: 14 }, // Comportamiento
@@ -641,44 +665,45 @@ async function exportExcel() {
   // INCAT institution header rows
   if (isIncatInstitution()) {
     const incatTitle = ws.addRow(['POLITECNICO INSTITUCIONAL DEL CARIBE "INCAT"'])
-    ws.mergeCells(incatTitle.number, 1, incatTitle.number, 8)
+    ws.mergeCells(incatTitle.number, 1, incatTitle.number, 9)
     incatTitle.getCell(1).font = { bold: true, color: { argb: 'FF8B0000' }, size: 14, name: 'Calibri' }
     incatTitle.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
     incatTitle.height = 22
     const lic1 = ws.addRow(['Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M'])
-    ws.mergeCells(lic1.number, 1, lic1.number, 8)
+    ws.mergeCells(lic1.number, 1, lic1.number, 9)
     lic1.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
     lic1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
     const lic2 = ws.addRow(['Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.'])
-    ws.mergeCells(lic2.number, 1, lic2.number, 8)
+    ws.mergeCells(lic2.number, 1, lic2.number, 9)
     lic2.getCell(1).font = { size: 9, name: 'Calibri', color: { argb: 'FF333333' } }
     lic2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
     const instDesc = ws.addRow(['Institución Educativa De Formación para el trabajo y el desarrollo humano'])
-    ws.mergeCells(instDesc.number, 1, instDesc.number, 8)
+    ws.mergeCells(instDesc.number, 1, instDesc.number, 9)
     instDesc.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF333333' } }
     instDesc.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
     const nit = ws.addRow(['NIT: 900391687-0'])
-    ws.mergeCells(nit.number, 1, nit.number, 8)
+    ws.mergeCells(nit.number, 1, nit.number, 9)
     nit.getCell(1).font = { bold: true, size: 11, name: 'Calibri', color: { argb: 'FF8B0000' } }
     nit.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
     ws.addRow([]) // blank separator row
   }
 
   // Header row
-  const hdrRow = ws.addRow(['Materia', 'Docente', 'Estudiante', 'Comportamiento', 'Tareas', 'Examen', 'Participación', 'Nota Ponderada'])
+  const hdrRow = ws.addRow(['Materia', 'Periodo', 'Docente', 'Estudiante', 'Comportamiento', 'Tareas', 'Examen', 'Participación', 'Nota Ponderada'])
   hdrRow.eachCell((cell: ExcelJS.Cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
     cell.fill = hdrFill
     cell.border = thinBorder
     cell.alignment = { vertical: 'middle', wrapText: true }
   })
-  for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
+  for (let c = 5; c <= 9; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
-  const addSummaryRowsToSheet = (summaries: GradeSummaryRow[], subjectName: string, teacherName: string) => {
+  const addSummaryRowsToSheet = (summaries: GradeSummaryRow[], subjectName: string, teacherName: string, periodName: string) => {
     summaries.forEach((row, i) => {
       const dataRow = ws.addRow([
         subjectName,
+        periodName,
         teacherName,
         row.studentName,
         row.comportamientoAvg ?? 0,
@@ -694,7 +719,7 @@ async function exportExcel() {
         cell.font = { name: 'Calibri' }
         cell.alignment = { vertical: 'middle', wrapText: true }
       })
-      for (let c = 4; c <= 8; c++) {
+      for (let c = 5; c <= 9; c++) {
         const val = dataRow.getCell(c).value
         const grade = typeof val === 'number' ? val : null
         dataRow.getCell(c).font = gradeFont(grade)
@@ -707,7 +732,7 @@ async function exportExcel() {
   for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
-    ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
+    ws.mergeCells(grpRow.number, 1, grpRow.number, 9)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
     grpRow.getCell(1).fill = grpHdrFill
     grpRow.getCell(1).border = thinBorder
@@ -722,41 +747,41 @@ async function exportExcel() {
     if (!closedPeriodsE.length && !activePeriodE) {
       if (!group.hasActivePeriod && !group.gradeSummaries.length) {
         const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
-        ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
+        ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 9)
         noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
       } else {
-        addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName)
+        addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName, '')
       }
     } else {
       for (const period of closedPeriodsE) {
         const summaries = computePeriodSummaries(period.snapshot)
         const periodLabelRow = ws.addRow([`📅 ${period.name}`])
-        ws.mergeCells(periodLabelRow.number, 1, periodLabelRow.number, 8)
+        ws.mergeCells(periodLabelRow.number, 1, periodLabelRow.number, 9)
         periodLabelRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 10, name: 'Calibri' }
         periodLabelRow.getCell(1).fill = grpHdrFill
         periodLabelRow.getCell(1).border = thinBorder
         periodLabelRow.height = 16
         if (summaries.length) {
-          addSummaryRowsToSheet(summaries, group.subjectName, group.teacherName)
+          addSummaryRowsToSheet(summaries, group.subjectName, group.teacherName, period.name)
         } else {
           const emptyRow = ws.addRow(['Sin datos'])
-          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
+          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 9)
           emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
         }
       }
       if (activePeriodE) {
         const activePeriodLabelFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }
         const activeLabelRow = ws.addRow([`🟢 ${activePeriodE.name} (Activo)`])
-        ws.mergeCells(activeLabelRow.number, 1, activeLabelRow.number, 8)
+        ws.mergeCells(activeLabelRow.number, 1, activeLabelRow.number, 9)
         activeLabelRow.getCell(1).font = { bold: true, color: { argb: 'FF1A7F37' }, size: 10, name: 'Calibri' }
         activeLabelRow.getCell(1).fill = activePeriodLabelFill
         activeLabelRow.getCell(1).border = thinBorder
         activeLabelRow.height = 16
         if (group.gradeSummaries.length) {
-          addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName)
+          addSummaryRowsToSheet(group.gradeSummaries, group.subjectName, group.teacherName, `${activePeriodE.name} (Activo)`)
         } else {
           const emptyRow = ws.addRow(['Sin entregas'])
-          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
+          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 9)
           emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
         }
       }
@@ -768,13 +793,13 @@ async function exportExcel() {
   if (footerLines.length) {
     ws.addRow([]) // blank separator
     const sigRow = ws.addRow([footerLines[1]]) // 'AQUILES AMAYA IGUARAN — RECTOR'
-    ws.mergeCells(sigRow.number, 1, sigRow.number, 8)
+    ws.mergeCells(sigRow.number, 1, sigRow.number, 9)
     sigRow.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF222222' } }
     sigRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' }
     ws.addRow([])
     for (const line of footerLines.slice(3)) {
       const fRow = ws.addRow([line])
-      ws.mergeCells(fRow.number, 1, fRow.number, 8)
+      ws.mergeCells(fRow.number, 1, fRow.number, 9)
       const isSlogan = line.includes('forjando')
       const isEmail = line.includes('@')
       fRow.getCell(1).font = {
@@ -1070,12 +1095,13 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
-  const renderSummaryRows = (summaries: GradeSummaryRow[], subjectName: string) => {
+  const renderSummaryRows = (summaries: GradeSummaryRow[], subjectName: string, periodName: string) => {
     let r = ''
     for (const row of summaries) {
       const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
       r += `<tr>
         <td>${escH(subjectName)}</td>
+        <td>${escH(periodName)}</td>
         <td>${escH(row.studentName)}</td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
         <td style="text-align:center">${fmt(row.taskAvg)}</td>
@@ -1087,7 +1113,7 @@ function buildPrintableHTML(): string {
     return r
   }
   for (const group of filteredReportData.value) {
-    rows += `<tr class="subject-header"><td colspan="6">${escH(group.subjectName)}<span class="teacher-tag"> — Docente: ${escH(group.teacherName)}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
+    rows += `<tr class="subject-header"><td colspan="7">${escH(group.subjectName)}<span class="teacher-tag"> — Docente: ${escH(group.teacherName)}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
     const allPeriodsP = periodsBySubject.value[group.subjectId] ?? []
     const closedPeriodsP = allPeriodsP
       .filter(p => p.snapshot !== null)
@@ -1095,23 +1121,23 @@ function buildPrintableHTML(): string {
     const activePeriodP = allPeriodsP.find(p => p.snapshot === null)
     if (!closedPeriodsP.length && !activePeriodP) {
       if (!group.hasActivePeriod && !group.gradeSummaries.length) {
-        rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
+        rows += `<tr><td colspan="8" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
       } else {
-        rows += renderSummaryRows(group.gradeSummaries, group.subjectName)
+        rows += renderSummaryRows(group.gradeSummaries, group.subjectName, '')
       }
     } else {
       for (const period of closedPeriodsP) {
         const summaries = computePeriodSummaries(period.snapshot)
-        rows += `<tr><td colspan="7" style="background:#f0e6ff;padding:6px 10px;font-size:11px;color:#6A1B9A;font-weight:600;border-top:1px solid #d4c5f0">📅 ${escH(period.name)}</td></tr>`
+        rows += `<tr><td colspan="8" style="background:#f0e6ff;padding:6px 10px;font-size:11px;color:#6A1B9A;font-weight:600;border-top:1px solid #d4c5f0">📅 ${escH(period.name)}</td></tr>`
         rows += summaries.length
-          ? renderSummaryRows(summaries, group.subjectName)
-          : `<tr><td colspan="7" style="color:#999;padding-left:28px;font-size:11px">Sin datos</td></tr>`
+          ? renderSummaryRows(summaries, group.subjectName, period.name)
+          : `<tr><td colspan="8" style="color:#999;padding-left:28px;font-size:11px">Sin datos</td></tr>`
       }
       if (activePeriodP) {
-        rows += `<tr><td colspan="7" style="background:#e8f5e9;padding:6px 10px;font-size:11px;color:#1A7F37;font-weight:600;border-top:1px solid #c8e6c9">🟢 ${escH(activePeriodP.name)} (Activo)</td></tr>`
+        rows += `<tr><td colspan="8" style="background:#e8f5e9;padding:6px 10px;font-size:11px;color:#1A7F37;font-weight:600;border-top:1px solid #c8e6c9">🟢 ${escH(activePeriodP.name)} (Activo)</td></tr>`
         rows += group.gradeSummaries.length
-          ? renderSummaryRows(group.gradeSummaries, group.subjectName)
-          : `<tr><td colspan="7" style="color:#999;padding-left:28px;font-size:11px">Sin entregas</td></tr>`
+          ? renderSummaryRows(group.gradeSummaries, group.subjectName, `${activePeriodP.name} (Activo)`)
+          : `<tr><td colspan="8" style="color:#999;padding-left:28px;font-size:11px">Sin entregas</td></tr>`
       }
     }
   }
@@ -1144,7 +1170,7 @@ ${buildInstitutionHeaderHTML()}
 <div><span class="val">${filteredReportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0)}</span><span class="lbl">Calificadas</span></div>
 </div>
 <table>
-<thead><tr><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>
+<thead><tr><th>Materia</th><th>Periodo</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
 ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
