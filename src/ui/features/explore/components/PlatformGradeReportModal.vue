@@ -467,12 +467,21 @@ const filteredData = computed(() => {
       if (g.gradeSummariesBySubject?.[subjectFilter]) {
         filteredSummaries[subjectFilter] = g.gradeSummariesBySubject[subjectFilter]
       }
+      const filteredSubjectIdsByName: Record<string, number> = {}
+      if (g.subjectIdsByName?.[subjectFilter] != null) {
+        filteredSubjectIdsByName[subjectFilter] = g.subjectIdsByName[subjectFilter]
+      }
       return {
         ...g,
         rows: g.rows.filter(r => r.subjectName === subjectFilter),
         gradeSummariesBySubject: filteredSummaries,
+        subjectIdsByName: filteredSubjectIdsByName,
       }
-    })
+    }).filter(g =>
+      g.rows.length > 0 ||
+      Object.keys(g.gradeSummariesBySubject).length > 0 ||
+      Object.keys(g.subjectIdsByName).length > 0,
+    )
   }
   return data
 })
