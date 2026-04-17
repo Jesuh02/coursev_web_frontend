@@ -1165,14 +1165,13 @@ watch(activeTab, (tab) => {
 </script>
 
 <style scoped>
-.course-detail { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
+.course-detail { height: 100%; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
 
 /* ══════════════════════════════════════════════════════════
    DESKTOP — 769px+
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
   .course-detail {
-    left: 100px;
     scrollbar-width: thin;
     scrollbar-color: rgba(191,90,242,0.25) transparent;
   }
