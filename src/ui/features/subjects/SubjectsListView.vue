@@ -459,6 +459,19 @@ function handleAccessUnblocked(data: { subjectId: number; courseId: number | nul
 notifStore.onSocketEvent('subject:access-blocked', handleAccessBlocked)
 notifStore.onSocketEvent('subject:access-unblocked', handleAccessUnblocked)
 
+onDeactivated(() => {
+  _stopAutoScroll()
+  if (subjectsGridRef.value) {
+    subjectsGridRef.value.removeEventListener('touchmove', _handleTouchMove)
+  }
+  // Reset drag state when navigating away
+  if (isDragMode.value) {
+    isDragMode.value = false
+    draggedIndex.value = -1
+    dragOverIndex.value = -1
+  }
+})
+
 onUnmounted(() => {
   notifStore.offSocketEvent('subject:access-blocked', handleAccessBlocked)
   notifStore.offSocketEvent('subject:access-unblocked', handleAccessUnblocked)
