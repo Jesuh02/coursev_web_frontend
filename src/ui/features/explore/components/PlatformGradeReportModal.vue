@@ -174,6 +174,11 @@
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: expandedPeriods.has(period.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
                               <span class="period-name">{{ period.name }}</span>
                               <span class="period-date">{{ formatPeriodDate(period.closedAt) }}</span>
+                              <button v-if="editingPeriodId !== period.id" class="period-edit-btn" @click.stop="startEditingPeriod(period)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Editar
+                              </button>
+                              <button v-else class="period-cancel-btn" @click.stop="cancelEditingPeriod()">Cancelar</button>
                             </div>
                             <div v-if="expandedPeriods.has(period.id)" class="period-snapshot">
                               <div v-if="computePeriodSummaries(period.snapshot).length" class="breakdown-section">
@@ -193,14 +198,28 @@
                                     <tbody>
                                       <tr v-for="row in computePeriodSummaries(period.snapshot)" :key="row.studentUsername" class="grade-row">
                                         <td class="cell-student">{{ displayStudentName(row.studentFullName) }}</td>
-                                        <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
-                                        <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
-                                        <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
-                                        <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
-                                        <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                                        <template v-if="editingPeriodId === period.id">
+                                          <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentUsername, 'comportamiento')" @input="updatePeriodEdit(row.studentUsername, 'comportamiento', $event)" /></td>
+                                          <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentUsername, 'tareas')" @input="updatePeriodEdit(row.studentUsername, 'tareas', $event)" /></td>
+                                          <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentUsername, 'examenes')" @input="updatePeriodEdit(row.studentUsername, 'examenes', $event)" /></td>
+                                          <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentUsername, 'participacion')" @input="updatePeriodEdit(row.studentUsername, 'participacion', $event)" /></td>
+                                          <td class="cell-ponderada" :class="gradeClass(computeEditedNotaPonderada(row.studentUsername))"><strong>{{ computeEditedNotaPonderada(row.studentUsername).toFixed(1) }}</strong></td>
+                                        </template>
+                                        <template v-else>
+                                          <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                                          <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                                          <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                                          <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                                          <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                                        </template>
                                       </tr>
                                     </tbody>
                                   </table>
+                                </div>
+                                <div v-if="editingPeriodId === period.id" class="period-save-bar">
+                                  <button class="period-save-btn" @click.stop="savePeriodGrades(period)" :disabled="savingPeriodGrades">
+                                    {{ savingPeriodGrades ? 'Guardando...' : 'Guardar cambios' }}
+                                  </button>
                                 </div>
                               </div>
                               <div v-else class="no-tasks">Sin notas en este periodo</div>
@@ -328,6 +347,9 @@ const periodsBySubject = ref<Record<number, GradePeriod[]>>({})
 const expandedSections = ref(new Set<string>())
 const expandedPeriods = ref(new Set<number>())
 const closingPeriod = ref(false)
+const editingPeriodId = ref<number | null>(null)
+const periodEditData = ref<Record<string, Record<string, number>>>({})
+const savingPeriodGrades = ref(false)
 
 // ── Filters ──
 const selectedCourseId = ref<number | null>(null)
@@ -879,6 +901,90 @@ function formatPeriodDate(dateStr: string | null | undefined): string {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return ''
   return d.toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function startEditingPeriod(period: GradePeriod) {
+  editingPeriodId.value = period.id
+  const summaries = computePeriodSummaries(period.snapshot)
+  const data: Record<string, Record<string, number>> = {}
+  for (const row of summaries) {
+    data[row.studentUsername] = {
+      comportamiento: row.comportamientoAvg ?? 0,
+      tareas: row.taskAvg ?? 0,
+      examenes: row.examenesAvg ?? 0,
+      participacion: row.participacionAvg ?? 0,
+    }
+  }
+  periodEditData.value = data
+  if (!expandedPeriods.value.has(period.id)) {
+    expandedPeriods.value = new Set([...expandedPeriods.value, period.id])
+  }
+}
+
+function cancelEditingPeriod() {
+  editingPeriodId.value = null
+  periodEditData.value = {}
+}
+
+function getPeriodEditValue(studentUsername: string, field: string): number {
+  return periodEditData.value[studentUsername]?.[field] ?? 0
+}
+
+function updatePeriodEdit(studentUsername: string, field: string, event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value) || 0
+  const clamped = Math.min(10, Math.max(0, val))
+  if (!periodEditData.value[studentUsername]) {
+    periodEditData.value[studentUsername] = { comportamiento: 0, tareas: 0, examenes: 0, participacion: 0 }
+  }
+  periodEditData.value[studentUsername][field] = clamped
+}
+
+function computeEditedNotaPonderada(studentUsername: string): number {
+  const data = periodEditData.value[studentUsername]
+  if (!data) return 0
+  const vals = [data.comportamiento, data.tareas, data.examenes, data.participacion].filter(v => v != null)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+}
+
+async function savePeriodGrades(period: GradePeriod) {
+  savingPeriodGrades.value = true
+  try {
+    const snapshot = period.snapshot
+    if (!snapshot) return
+    const newManualGrades: any[] = []
+    for (const [studentUsername, grades] of Object.entries(periodEditData.value)) {
+      const student = snapshot.students.find((s: any) => (s.username ?? `#${s.userId}`) === studentUsername)
+      if (!student) continue
+      const sid = student.userId
+      for (const [field, value] of Object.entries(grades)) {
+        if (field === 'tareas') continue
+        newManualGrades.push({ studentId: sid, gradeType: field, grade: Math.round(value * 10) / 10 })
+      }
+    }
+    let newTaskGrades = JSON.parse(JSON.stringify(snapshot.taskGrades || []))
+    for (const [studentUsername, grades] of Object.entries(periodEditData.value)) {
+      const student = snapshot.students.find((s: any) => (s.username ?? `#${s.userId}`) === studentUsername)
+      if (!student) continue
+      const sid = student.userId
+      const editedTaskAvg = grades.tareas ?? 0
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
+      if (studentTasks.length > 0) {
+        for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
+      } else if (editedTaskAvg > 0) {
+        newTaskGrades.push({ taskId: 0, studentId: sid, grade: Math.round(editedTaskAvg * 10) / 10, feedback: null, submissionId: null, submittedAt: null, gradedAt: null })
+      }
+    }
+    await periodAdapter.updateGrades(period.id, { manualGrades: newManualGrades, taskGrades: newTaskGrades })
+    const subjectId = period.subjectId
+    const periods = await periodAdapter.listBySubject(subjectId)
+    periodsBySubject.value = { ...periodsBySubject.value, [subjectId]: periods as GradePeriod[] }
+    editingPeriodId.value = null
+    periodEditData.value = {}
+  } catch (e: any) {
+    alert('Error al guardar: ' + (e?.message ?? String(e)))
+  } finally {
+    savingPeriodGrades.value = false
+  }
 }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
@@ -1645,4 +1751,64 @@ function esc_html(s: string): string {
 .period-snapshot {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
+
+.period-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(52, 199, 89, 0.12);
+  color: #34C759;
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+  margin-left: auto;
+}
+.period-edit-btn:hover { opacity: 0.8; }
+
+.period-cancel-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(142, 142, 147, 0.15);
+  color: #8E8E93;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.period-grade-input {
+  width: 56px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(191, 90, 242, 0.3);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.period-grade-input:focus { border-color: #BF5AF2; }
+.period-grade-input::-webkit-inner-spin-button { display: none; }
+
+.period-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.period-save-btn {
+  padding: 8px 20px;
+  border-radius: 10px;
+  background: rgba(52, 199, 89, 0.18);
+  color: #34C759;
+  font-size: 13px;
+  font-weight: 700;
+  transition: opacity 0.15s;
+}
+.period-save-btn:hover { opacity: 0.85; }
+.period-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
