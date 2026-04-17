@@ -357,10 +357,6 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           Calificar
         </button>
-        <button v-if="subjectId" class="action-btn period" @click="showPeriodPanel = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Periodos
-        </button>
       </div>
 
       <GradePanel
@@ -372,14 +368,7 @@
         @saved="showGradePanel = false"
       />
 
-      <PeriodPanel
-        v-if="showPeriodPanel && subjectId"
-        :course-id="Number(courseId)"
-        :subject-id="subjectId"
-        :can-close="hasSubjectContentAccess"
-        @close="showPeriodPanel = false"
-        @period-closed="showPeriodPanel = false"
-      />
+
       </template>
     </div>
   </div>
@@ -400,7 +389,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { useNotificationStore } from '@/stores/notificationStore'
 import GradePanel from './GradePanel.vue'
-import PeriodPanel from './PeriodPanel.vue'
 
 defineOptions({ name: 'CourseDetailView' })
 
@@ -443,7 +431,6 @@ const heroImage = computed(() => {
 const collaboratorAccess = ref(false)
 const isSubjectCreator = ref(false)
 const showGradePanel = ref(false)
-const showPeriodPanel = ref(false)
 const isCourseCreator = computed(() => {
   const currentUserId = Number(authStore.user?.id ?? 0)
   const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
@@ -1825,7 +1812,6 @@ watch(activeTab, (tab) => {
 .action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .action-btn.task { background: transparent; border: 2px solid #00D4FF; color: #00D4FF; }
 .action-btn.grade { background: transparent; border: 2px solid #30D158; color: #30D158; }
-.action-btn.period { background: transparent; border: 2px solid #FFD60A; color: #FFD60A; }
 
 /* Enrollment banner */
 .enrollment-banner {
