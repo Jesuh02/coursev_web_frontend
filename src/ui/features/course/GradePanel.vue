@@ -63,6 +63,7 @@
               {{ startingPeriod ? 'Iniciando…' : 'Iniciar periodo' }}
             </button>
           </div>
+          <p v-if="startPeriodError" class="start-period-error">⚠️ {{ startPeriodError }}</p>
         </div>
       </div>
 
@@ -664,6 +665,7 @@ const activePeriodStartedAt = ref<string | null>(null)
 const periodStartDate = ref('')
 const periodEndDate = ref('')
 const startingPeriod = ref(false)
+const startPeriodError = ref<string | null>(null)
 
 // Editable period manual grades: key = `${periodId}-${studentId}-${gradeType}`, value = grade
 const editedPeriodGrades = ref<Record<string, number | null>>({})
@@ -761,6 +763,7 @@ async function executeStartPeriod() {
     return
   }
   startingPeriod.value = true
+  startPeriodError.value = null
   const now = new Date().toISOString()
   try {
     await periodAdapter.startPeriod({
@@ -780,6 +783,7 @@ async function executeStartPeriod() {
     emit('saved')
   } catch (err: any) {
     console.error('[GradePanel] Error starting period:', err)
+    startPeriodError.value = err?.message || 'Error al iniciar el periodo. Intenta de nuevo.'
   }
   startingPeriod.value = false
 }
@@ -1219,6 +1223,13 @@ onMounted(async () => {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.start-period-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #FF453A;
+  text-align: center;
 }
 
 .start-period-form {
