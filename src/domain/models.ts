@@ -65,6 +65,8 @@ export interface Task {
   dueDate: string | null
   due_date: string | null
   timeLimitMinutes: number | null
+  periodId: number | null
+  period_id: number | null
   createdAt: string | null
 }
 
