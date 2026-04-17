@@ -35,7 +35,7 @@
           </div>
 
           <!-- Student selector -->
-          <div v-if="!selectedStudent && !showAllBulletins" class="bulletin-body">
+          <div v-if="!selectedStudent && !showAllBulletins && !showPlatformBulletin" class="bulletin-body">
             <div v-if="loadingStudents" class="bulletin-loading">
               <div class="spinner-bulletin" />
               <p>Cargando estudiantes…</p>
@@ -44,6 +44,10 @@
               <button v-if="allStudents.length" class="view-all-btn" @click="selectAllStudents">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 Ver boletín de todos ({{ allStudents.length }})
+              </button>
+              <button class="view-all-btn view-all-btn--platform" @click="generatePlatformBulletin">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Generar boletín de toda la plataforma
               </button>
               <div class="student-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -148,6 +152,93 @@
                 </template>
                 </div>
               </template>
+          </div>
+
+          <!-- Platform-wide bulletin: all courses × all subjects × all students -->
+          <div v-else-if="showPlatformBulletin" class="bulletin-body">
+            <button class="back-to-list" @click="showPlatformBulletin = false; platformBulletinData = []">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+              Volver a la lista
+            </button>
+
+            <div v-if="loadingPlatformBulletin" class="bulletin-loading">
+              <div class="spinner-bulletin" />
+              <p>Generando boletines de toda la plataforma…</p>
+            </div>
+
+            <template v-else>
+              <div v-if="platformBulletinData.length" class="bulletin-export-bar bulletin-export-bar--top">
+                <button class="export-btn export-pdf" @click="exportPlatformBulletinPDF">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  PDF todos
+                </button>
+                <button class="export-btn export-excel" @click="exportPlatformBulletinExcel">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                  Excel todos
+                </button>
+                <button class="export-btn export-word" @click="exportPlatformBulletinWord">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                  Word todos
+                </button>
+              </div>
+
+              <p v-if="!platformBulletinData.length" class="no-students">No se encontraron datos para generar el boletín.</p>
+
+              <div v-for="entry in platformBulletinData" :key="`${entry.courseTitle}-${entry.student.userId}`" class="bulletin-card bulletin-card--all">
+                <div class="boletin-header-top">
+                  <div class="boletin-logo-placeholder">
+                    <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl() || undefined" alt="Escudo" style="width:50px;height:auto" />
+                    <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  </div>
+                  <div class="boletin-institution">
+                    <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
+                  </div>
+                </div>
+                <div class="boletin-divider" />
+                <div class="boletin-info-grid">
+                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
+                  <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
+                </div>
+                <div class="boletin-divider" />
+                <template v-if="entry.rows.length">
+                  <table class="boletin-table">
+                    <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                    <tbody>
+                      <tr v-for="row in entry.rows" :key="row.subjectId">
+                        <td class="td-modulo">{{ row.subjectName }}</td>
+                        <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="boletin-promedio">
+                    <span class="promedio-label">PROMEDIO GENERAL</span>
+                    <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
+                  </div>
+                </template>
+                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                  📅 Sin periodo activo — no hay datos de notas disponibles.
+                </div>
+                <div class="boletin-divider" />
+                <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+                <template v-if="isIncatInstitution()">
+                  <div class="incat-sig-block" style="margin-top:16px">
+                    <div class="incat-sig-line"></div>
+                    <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                    <p class="incat-sig-title">RECTOR</p>
+                  </div>
+                  <div class="incat-footer-info">
+                    <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                    <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                    <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                    <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                  </div>
+                </template>
+              </div>
+            </template>
           </div>
 
           <!-- Bulletin preview -->
@@ -282,6 +373,7 @@ import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
+import { courseAdapter, subjectAdapter } from '@/infrastructure/api'
 import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
@@ -326,6 +418,16 @@ interface AllBulletinEntry {
 }
 const allBulletinData = ref<AllBulletinEntry[]>([])
 
+// ── Platform-wide bulletin (all courses, all subjects, all students) ──────
+interface PlatformBulletinEntry {
+  student: GradeSheetStudent
+  courseTitle: string
+  rows: BulletinRow[]
+}
+const showPlatformBulletin = ref(false)
+const loadingPlatformBulletin = ref(false)
+const platformBulletinData = ref<PlatformBulletinEntry[]>([])
+
 const filteredStudents = computed(() => {
   if (!studentSearch.value.trim()) return allStudents.value
   const q = studentSearch.value.toLowerCase()
@@ -346,10 +448,14 @@ const availablePeriods = computed(() => {
     }
   }
   const sorted = [...periodsByNumber.entries()].sort((a, b) => a[0] - b[0])
-  return [
-    { periodNumber: null as number | null, name: 'Periodo actual' },
-    ...sorted.map(([num, name]) => ({ periodNumber: num as number | null, name }))
-  ]
+  const historicalEntries = sorted.map(([num, name]) => ({ periodNumber: num as number | null, name }))
+  if (activePeriodName.value) {
+    return [
+      { periodNumber: null as number | null, name: 'Periodo actual' },
+      ...historicalEntries
+    ]
+  }
+  return historicalEntries
 })
 
 const currentPeriod = computed(() => {
@@ -558,6 +664,151 @@ async function selectAllStudents() {
     allBulletinData.value = entries
   } catch { /* silent */ }
   finally { loadingAllBulletins.value = false }
+}
+
+// ── Generate bulletin for ALL courses × ALL subjects × ALL students ───────
+async function generatePlatformBulletin() {
+  showPlatformBulletin.value = true
+  loadingPlatformBulletin.value = true
+  platformBulletinData.value = []
+  try {
+    const allCourses = await courseAdapter.getCourses(1, 300)
+    const entries: PlatformBulletinEntry[] = []
+
+    for (const course of allCourses) {
+      const rawSubjects: any[] = await subjectAdapter.getSubjectsByCourse(course.id).catch(() => [])
+      const subjects = rawSubjects.map((s: any) => ({ id: Number(s.id), name: String(s.name) }))
+      if (!subjects.length) continue
+
+      // Collect unique students across all subjects of this course
+      const studentMap = new Map<number, GradeSheetStudent>()
+      const sheetsCache = new Map<number, GradeSheet | null>()
+      await Promise.allSettled(
+        subjects.map(s =>
+          gradeAdapter.getGradeSheet(s.id).then(sheet => {
+            sheetsCache.set(s.id, sheet ?? null)
+            if (!sheet) return
+            for (const st of sheet.students) {
+              if (!studentMap.has(st.userId)) studentMap.set(st.userId, st)
+            }
+          }).catch(() => { sheetsCache.set(s.id, null) })
+        )
+      )
+
+      for (const student of studentMap.values()) {
+        const rows: BulletinRow[] = []
+        for (const s of subjects) {
+          const sheet = sheetsCache.get(s.id)
+          if (!sheet || sheet.hasActivePeriod === false) continue
+          rows.push(extractRowsFromSheet(sheet, s, student.userId))
+        }
+        if (rows.length) entries.push({ student, courseTitle: course.title, rows })
+      }
+    }
+    platformBulletinData.value = entries
+  } catch { /* silent */ }
+  finally { loadingPlatformBulletin.value = false }
+}
+
+function exportPlatformBulletinPDF() {
+  const pages: string[] = []
+  for (const entry of platformBulletinData.value) {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    let rows = ''
+    for (const row of entry.rows) {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    }
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    pages.push(`
+<div class="page">
+${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
+<div class="info">
+<span class="label">Programa:</span><span class="value">${escH(entry.courseTitle)}</span>
+<span class="label">Estudiante:</span><span class="value">${name}</span>
+${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}
+<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span>
+</div>
+<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
+<div class="footer">Generado el ${generatedDate.value}</div>
+${buildInstitutionSignatureAndFooterHTML()}
+</div>`)
+  }
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín Plataforma</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:20px;color:#222;max-width:700px;margin:0 auto}
+.page{page-break-after:always;padding:20px 0 40px}
+.page:last-child{page-break-after:avoid}
+.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}
+.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}
+.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}
+.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}
+.value{font-size:13px;font-weight:600}
+table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}
+th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}
+.td-mod{font-weight:600;text-transform:uppercase}
+.td-nota{text-align:center;font-weight:700;font-size:15px}
+.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}
+.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}
+.prom-value{font-size:20px;font-weight:800}
+.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}
+@media print{body{padding:0}.page{padding:10px 0 20px}}
+${institutionHeaderCSS()}
+${institutionSignatureAndFooterCSS()}
+</style></head><body>${pages.join('')}</body></html>`
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportPlatformBulletinExcel() {
+  // Group entries by course for multi-sheet or flat layout
+  const dataRows = platformBulletinData.value.map(entry => {
+    const name = escH(entry.student.fullName || entry.student.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    const cells = entry.rows.map(r => `<Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell>`).join('')
+    return `<Row><Cell><Data ss:Type="String">${escH(entry.courseTitle)}</Data></Cell><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+  }).join('')
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín Plataforma"><Table><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">CURSO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">MATERIAS</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_plataforma.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportPlatformBulletinWord() {
+  const pages = platformBulletinData.value.map(entry => {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    const rows = entry.rows.map(row => {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
+    }).join('')
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(entry.courseTitle)}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+  }).join('')
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_plataforma.doc`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function exportAllBulletinsPDF() {
@@ -997,6 +1248,15 @@ ${buildInstitutionSignatureAndFooterHTML()}
   transform: scale(1.01);
 }
 .view-all-btn:active { transform: scale(0.98); }
+
+.view-all-btn--platform {
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.15), rgba(106, 27, 154, 0.12));
+  border-color: rgba(191, 90, 242, 0.35);
+  color: #BF5AF2;
+}
+.view-all-btn--platform:hover {
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.25), rgba(106, 27, 154, 0.2));
+}
 
 .bulletin-card--all {
   margin-bottom: 24px;
