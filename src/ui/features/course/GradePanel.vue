@@ -35,6 +35,9 @@
         />
       </div>
 
+      <!-- Scrollable body -->
+      <div class="panel-body">
+
       <!-- Loading state -->
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
@@ -160,7 +163,7 @@
       </div>
 
       <!-- ═══ Periodos Section ═══ -->
-      <div v-if="!loading" class="periods-section">
+      <div v-if="!loading" class="periods-section" style="flex-shrink:0">
         <div class="periods-header" @click="showPeriodsSection = !showPeriodsSection">
           <div class="periods-header-left">
             <svg :class="{ rotated: showPeriodsSection }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
@@ -280,6 +283,8 @@
           </div>
         </div>
       </div>
+
+      </div><!-- /panel-body -->
 
       <!-- Liquidglass confirm modal -->
       <Teleport to="body">
@@ -1103,20 +1108,27 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+/* ── Scrollable panel body ── */
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Sheet table ── */
 .sheet-wrapper {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
+  flex-shrink: 0;
 }
 
 .sheet-scroll {
   overflow: auto;
-  max-height: calc(90vh - 260px);
+  max-height: 42vh;
 }
 
 .grade-panel.expanded .sheet-scroll {
-  max-height: calc(100vh - 260px);
+  max-height: 55vh;
 }
 
 .grade-sheet {
