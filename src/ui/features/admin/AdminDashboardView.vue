@@ -1176,11 +1176,12 @@
             </div>
             <button
               class="activation-toggle-btn"
-              :class="user.isActive ? 'toggle-deactivate' : 'toggle-activate'"
-              :disabled="!canManageRoles"
-              @click="toggleUserActivation(user, !user.isActive)"
+              :class="user.id === authStore.user?.id ? 'toggle-self' : (user.isActive ? 'toggle-deactivate' : 'toggle-activate')"
+              :disabled="!canManageRoles || user.id === authStore.user?.id"
+              :title="user.id === authStore.user?.id ? 'No puedes desactivarte a ti mismo' : ''"
+              @click="user.id !== authStore.user?.id && toggleUserActivation(user, !user.isActive)"
             >
-              {{ user.isActive ? 'Desactivar' : 'Activar' }}
+              {{ user.id === authStore.user?.id ? 'Eres tú' : (user.isActive ? 'Desactivar' : 'Activar') }}
             </button>
           </div>
         </TransitionGroup>
@@ -6884,6 +6885,17 @@ watch(() => route.query, () => {
 
 .toggle-deactivate:hover {
   background: #FF453A22;
+}
+
+.toggle-self {
+  background: #3A3A3C;
+  color: #636366;
+  cursor: default;
+  opacity: 0.55;
+}
+
+.toggle-self:hover {
+  background: #3A3A3C;
 }
 
 /* TransitionGroup animations */
