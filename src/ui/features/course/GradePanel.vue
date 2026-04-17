@@ -233,7 +233,8 @@
                   </svg>
                   <div class="period-card-info">
                     <span class="period-name">{{ p.name }}</span>
-                    <span class="period-date">{{ formatDate(p.closedAt) }}</span>
+                    <span v-if="p.snapshot === null" class="period-active-badge">🟢 En curso</span>
+                    <span v-else class="period-date">{{ formatDate(p.closedAt) }}</span>
                     <span v-if="p.startsAt || p.endsAt" class="period-date-range">
                       {{ p.startsAt ? formatDate(p.startsAt) : '—' }} → {{ p.endsAt ? formatDate(p.endsAt) : '—' }}
                     </span>
@@ -273,13 +274,20 @@
                           </div>
                         </td>
                         <td v-for="col in periodManualCols(p)" :key="col" class="col-manual">
-                          <input
-                            type="number" min="0" max="10" step="0.5"
-                            class="cell-input"
-                            placeholder="—"
-                            :value="getPeriodManualGrade(p.id, student.userId, col)"
-                            @change="setPeriodManualGrade(p.id, student.userId, col, $event)"
-                          />
+                          <template v-if="p.snapshot === null">
+                            <span class="cell-readonly" :class="periodTaskGradeClass(getPeriodManualGrade(p.id, student.userId, col) !== '' ? Number(getPeriodManualGrade(p.id, student.userId, col)) : null)">
+                              {{ getPeriodManualGrade(p.id, student.userId, col) !== '' ? getPeriodManualGrade(p.id, student.userId, col) : '—' }}
+                            </span>
+                          </template>
+                          <template v-else>
+                            <input
+                              type="number" min="0" max="10" step="0.5"
+                              class="cell-input"
+                              placeholder="—"
+                              :value="getPeriodManualGrade(p.id, student.userId, col)"
+                              @change="setPeriodManualGrade(p.id, student.userId, col, $event)"
+                            />
+                          </template>
                         </td>
                         <td v-for="task in periodSnapshotTasks(p)" :key="task.id" class="col-task">
                           <span class="cell-readonly" :class="periodTaskGradeClass(getPeriodTaskGrade(p, student.userId, task.id))">
@@ -297,7 +305,10 @@
                 </div>
 
                 <!-- Save period changes -->
-                <div v-if="periodDirtyKeys.has(p.id)" class="period-save-bar">
+                <div v-if="p.snapshot === null" class="period-live-note">
+                  ✏️ Las notas se editan desde la planilla principal
+                </div>
+                <div v-else-if="periodDirtyKeys.has(p.id)" class="period-save-bar">
                   <button class="btn-save-period" :disabled="periodSaving" @click="savePeriodChanges(p)">
                     {{ periodSaving ? 'Guardando…' : 'Guardar cambios del periodo' }}
                   </button>
@@ -812,15 +823,18 @@ function togglePeriod(p: GradePeriod) {
 }
 
 function periodSnapshotStudents(p: GradePeriod) {
-  return p.snapshot?.students ?? []
+  if (p.snapshot === null) return allStudents.value
+  return p.snapshot.students ?? []
 }
 
 function periodSnapshotTasks(p: GradePeriod) {
-  return p.snapshot?.tasks ?? []
+  if (p.snapshot === null) return tasks.value
+  return p.snapshot.tasks ?? []
 }
 
 function periodManualCols(p: GradePeriod): string[] {
-  const grades = p.snapshot?.manualGrades ?? []
+  if (p.snapshot === null) return allGradeColumnKeys.value
+  const grades = p.snapshot.manualGrades ?? []
   const types = new Set<string>()
   for (const g of grades) types.add(g.gradeType)
   return Array.from(types).sort()
@@ -831,6 +845,8 @@ function periodGradeKey(periodId: number, studentId: number, gradeType: string) 
 }
 
 function getPeriodManualGrade(periodId: number, studentId: number, gradeType: string): number | string {
+  const period = periods.value.find(p => p.id === periodId)
+  if (period?.snapshot === null) return getManualGrade(studentId, gradeType)
   const key = periodGradeKey(periodId, studentId, gradeType)
   const val = editedPeriodGrades.value[key]
   return val !== null && val !== undefined ? val : ''
@@ -847,12 +863,17 @@ function setPeriodManualGrade(periodId: number, studentId: number, gradeType: st
 }
 
 function getPeriodTaskGrade(p: GradePeriod, studentId: number, taskId: number): number | null {
-  const tg = p.snapshot?.taskGrades ?? []
+  if (p.snapshot === null) {
+    const val = editedTaskGrades.value[gradeKey(studentId, String(taskId))]
+    return val !== null && val !== undefined ? val : null
+  }
+  const tg = p.snapshot.taskGrades ?? []
   const g = tg.find((t: any) => Number(t.studentId) === studentId && Number(t.taskId) === taskId)
   return g?.grade ?? null
 }
 
 function computePeriodAvg(p: GradePeriod, studentId: number): string {
+  if (p.snapshot === null) return computeAverage(studentId)
   const manualCols = periodManualCols(p)
   const manualVals: number[] = []
   for (const col of manualCols) {
@@ -1271,6 +1292,21 @@ onMounted(async () => {
   font-size: 10px;
   color: #BF5AF2;
   opacity: 0.8;
+}
+
+.period-active-badge {
+  font-size: 11px;
+  color: #30d158;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.period-live-note {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #8E8E93;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 .loading-center {
