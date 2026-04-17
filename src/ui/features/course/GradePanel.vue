@@ -208,7 +208,7 @@
               <input
                 v-model="newPeriodName"
                 class="period-name-input"
-                :placeholder="`Periodo ${nextPeriodNumber}`"
+                :placeholder="activePeriod ? activePeriod.name : `Periodo ${nextPeriodNumber}`"
                 maxlength="50"
               />
               <button class="btn-close-period" :disabled="closing" @click="onClosePeriod">
@@ -682,9 +682,14 @@ const periodDirtyKeys = computed(() => {
   return dirty
 })
 
+// The active period is the one without a snapshot (started but not yet closed)
+const activePeriod = computed(() => periods.value.find(p => p.snapshot === null) ?? null)
+
+// nextPeriodNumber only counts closed periods to avoid doubling the active one
 const nextPeriodNumber = computed(() => {
-  if (!periods.value.length) return 1
-  return Math.max(...periods.value.map(p => p.periodNumber)) + 1
+  const closed = periods.value.filter(p => p.snapshot !== null)
+  if (!closed.length) return 1
+  return Math.max(...closed.map(p => p.periodNumber)) + 1
 })
 
 async function loadPeriods() {
