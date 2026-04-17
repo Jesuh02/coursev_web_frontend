@@ -564,17 +564,22 @@ async function fetchReport() {
           subjectIdsByName[(s as any).name as string] = (s as any).id as number
         }
 
-        // Fetch grade sheets per subject in parallel to build category breakdowns
+        // Fetch grade sheets AND periods per subject in parallel
         const gradeSummariesBySubject: Record<string, GradeSummaryRow[]> = {}
-        const sheetResults = await Promise.allSettled(
-          (subjectsRaw ?? []).map(async (s: any) => {
-            const sheet = await gradeAdapter.getGradeSheet(s.id)
-            return { subjectName: s.name as string, subjectId: s.id as number, sheet }
-          })
-        )
+        const subjectIds = Object.values(subjectIdsByName)
+        const [sheetResults, allPeriodsResults] = await Promise.all([
+          Promise.allSettled(
+            (subjectsRaw ?? []).map(async (s: any) => {
+              const sheet = await gradeAdapter.getGradeSheet(s.id)
+              return { subjectName: s.name as string, subjectId: s.id as number, sheet }
+            })
+          ),
+          subjectIds.length
+            ? Promise.allSettled(subjectIds.map(sid => periodAdapter.listBySubject(sid)))
+            : Promise.resolve([] as PromiseSettledResult<GradePeriod[]>[]),
+        ])
         for (const r of sheetResults) {
           if (r.status === 'fulfilled' && r.value.sheet) {
-            // Only populate summaries when a period is active
             const active = r.value.sheet.hasActivePeriod ?? true
             hasActivePeriodBySubjectId.value[r.value.subjectId] = active
             gradeSummariesBySubject[r.value.subjectName] = active
@@ -583,17 +588,11 @@ async function fetchReport() {
           }
         }
 
-        // Load periods for each subject
-        const subjectIds = Object.values(subjectIdsByName)
-        if (subjectIds.length) {
-          const periodsResults = await Promise.allSettled(
-            subjectIds.map(sid => periodAdapter.listBySubject(sid))
-          )
-          for (let i = 0; i < subjectIds.length; i++) {
-            const result = periodsResults[i]
-            if (result.status === 'fulfilled') {
-              periodsBySubject.value[subjectIds[i]] = result.value as GradePeriod[]
-            }
+        // Assign periods
+        for (let i = 0; i < subjectIds.length; i++) {
+          const result = (allPeriodsResults as PromiseSettledResult<GradePeriod[]>[])[i]
+          if (result?.status === 'fulfilled') {
+            periodsBySubject.value[subjectIds[i]] = result.value as GradePeriod[]
           }
         }
 
@@ -1286,17 +1285,23 @@ function esc_html(s: string): string {
   display: flex;
   flex-direction: column;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.7);
-  animation: report-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
 }
 
-@keyframes report-slide-up {
-  from { opacity: 0; transform: translateY(40px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.report-fade-enter-active { transition: opacity 0.2s; }
-.report-fade-leave-active { transition: opacity 0.15s; }
+.report-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+.report-fade-leave-active { transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 .report-fade-enter-from, .report-fade-leave-to { opacity: 0; }
+.report-fade-enter-active .report-modal { animation: report-expand 0.55s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.report-fade-leave-active .report-modal { animation: report-collapse 0.3s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@keyframes report-expand {
+  0% { opacity: 0; transform: scale(0.82) translateY(30px); border-radius: 32px; }
+  50% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) translateY(0); border-radius: 24px; }
+}
+@keyframes report-collapse {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.88) translateY(16px); }
+}
 
 /* ── Header ── */
 .report-header {

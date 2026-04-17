@@ -65,26 +65,29 @@
                     <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                     <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
-                    <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                   </div>
                   <div class="boletin-divider" />
-                  <template v-if="entry.rows.length">
-                    <table class="boletin-table">
-                      <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
-                      <tbody>
-                        <tr v-for="row in entry.rows" :key="row.subjectId">
-                          <td class="td-modulo">{{ row.subjectName }}</td>
-                          <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div class="boletin-promedio">
-                      <span class="promedio-label">PROMEDIO GENERAL</span>
-                      <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
-                    </div>
+                  <template v-if="entry.periods.length">
+                    <template v-for="(period, pIdx) in entry.periods" :key="period.periodName">
+                      <div class="boletin-period-header">{{ period.periodName }}</div>
+                      <table class="boletin-table">
+                        <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                        <tbody>
+                          <tr v-for="row in period.rows" :key="row.subjectId">
+                            <td class="td-modulo">{{ row.subjectName }}</td>
+                            <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div class="boletin-promedio">
+                        <span class="promedio-label">PROMEDIO {{ period.periodName.toUpperCase() }}</span>
+                        <span class="promedio-value" :class="notaClass(computePromedio(period.rows))">{{ computePromedio(period.rows).toFixed(1) }}</span>
+                      </div>
+                      <div v-if="pIdx < entry.periods.length - 1" class="boletin-divider" style="margin:12px 0" />
+                    </template>
                   </template>
                   <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
-                    📅 Sin periodo activo — no hay datos de notas disponibles.
+                    📅 Sin periodos — no hay datos de notas disponibles.
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
@@ -412,7 +415,7 @@ const showAllBulletins = ref(false)
 interface PlatformBulletinEntry {
   student: GradeSheetStudent
   courseTitle: string
-  rows: BulletinRow[]
+  periods: { periodName: string; rows: BulletinRow[] }[]
 }
 const showPlatformBulletin = ref(false)
 const loadingPlatformBulletin = ref(false)
@@ -666,6 +669,87 @@ function computePromedio(rows: BulletinRow[]) {
   return grades.reduce((a, b) => a + b, 0) / grades.length
 }
 
+function computeStudentNota(student: GradeSheetStudent, sheet: GradeSheet): number | null {
+  const totalTasks = sheet.tasks.length
+  const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
+  const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
+  const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+  const activeCategories = new Set(sheet.manualGrades.map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
+  const stManualGrades = sheet.manualGrades.filter((mg: any) => Number(mg.studentId) === student.userId)
+  const byType: Record<string, number[]> = {}
+  for (const mg of stManualGrades) {
+    const base = String(mg.gradeType).replace(/_\d+$/, '')
+    if (!byType[base]) byType[base] = []
+    byType[base].push(Number(mg.grade))
+  }
+  const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  const participacionAvg = byType.participacion?.length ? avgArr(byType.participacion) : (activeCategories.has('participacion') ? 0 : null)
+  const examenesAvg = byType.examenes?.length ? avgArr(byType.examenes) : (activeCategories.has('examenes') ? 0 : null)
+  const comportamientoAvg = byType.comportamiento?.length ? avgArr(byType.comportamiento) : (activeCategories.has('comportamiento') ? 0 : null)
+  const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
+  return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : null
+}
+
+function computeAllPeriodRows(
+  student: GradeSheetStudent,
+  subjects: { id: number; name: string }[],
+  sheetsCache: Map<number, GradeSheet | null>,
+  periodsCache: Map<number, GradePeriod[]>,
+): { periodName: string; rows: BulletinRow[] }[] {
+  const result: { periodName: string; rows: BulletinRow[] }[] = []
+  const allPeriodNumbers = new Map<number, string>()
+  let hasActivePeriod = false
+  let activePeriodLabel = ''
+  for (const s of subjects) {
+    const periods = periodsCache.get(s.id) ?? []
+    for (const p of periods) {
+      if (p.snapshot !== null && !allPeriodNumbers.has(p.periodNumber)) {
+        allPeriodNumbers.set(p.periodNumber, p.name)
+      } else if (p.snapshot === null) {
+        hasActivePeriod = true
+        if (!activePeriodLabel) activePeriodLabel = p.name
+      }
+    }
+  }
+  const sortedPeriods = [...allPeriodNumbers.entries()].sort((a, b) => a[0] - b[0])
+  for (const [periodNum, periodName] of sortedPeriods) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const periods = periodsCache.get(s.id) ?? []
+      const period = periods.find(p => p.periodNumber === periodNum)
+      if (!period?.snapshot) continue
+      const nota = computeStudentNota(student, period.snapshot)
+      if (nota !== null) rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: nota })
+    }
+    if (rows.length > 0) result.push({ periodName, rows })
+  }
+  if (hasActivePeriod) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const sheet = sheetsCache.get(s.id)
+      if (!sheet || sheet.hasActivePeriod === false) continue
+      const nota = computeStudentNota(student, sheet)
+      if (nota !== null) rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: nota })
+    }
+    if (rows.length > 0) result.push({ periodName: activePeriodLabel || 'Periodo actual', rows })
+  }
+  if (result.length === 0) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const sheet = sheetsCache.get(s.id)
+      if (!sheet) continue
+      const nota = computeStudentNota(student, sheet)
+      if (nota !== null) rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: nota })
+    }
+    if (rows.length > 0) {
+      const now = new Date()
+      const sem = now.getMonth() < 6 ? 'I' : 'II'
+      result.push({ periodName: `${sem} PERIODO ${now.getFullYear()}`, rows })
+    }
+  }
+  return result
+}
+
 async function selectStudent(student: GradeSheetStudent) {
   selectedStudent.value = student
   showAllBulletins.value = false
@@ -853,60 +937,63 @@ async function generatePlatformBulletin() {
   platformBulletinData.value = []
   try {
     const courses = allCourses.value.length > 0 ? allCourses.value : await courseAdapter.getCourses(1, 300)
-    const entries: PlatformBulletinEntry[] = []
 
-    for (const course of courses) {
-      const rawSubjects: any[] = await subjectAdapter.getSubjectsByCourse(course.id).catch(() => [])
-      const subjects = rawSubjects.map((s: any) => ({ id: Number(s.id), name: String(s.name) }))
-      if (!subjects.length) continue
+    // Process ALL courses in parallel for instant generation
+    const courseResults = await Promise.allSettled(
+      courses.map(async (course) => {
+        const rawSubjects: any[] = await subjectAdapter.getSubjectsByCourse(course.id).catch(() => [])
+        const subjects = rawSubjects.map((s: any) => ({ id: Number(s.id), name: String(s.name) }))
+        if (!subjects.length) return [] as PlatformBulletinEntry[]
 
-      const studentMap = new Map<number, GradeSheetStudent>()
-      const sheetsCache = new Map<number, GradeSheet | null>()
-      await Promise.allSettled(
-        subjects.map(s =>
-          gradeAdapter.getGradeSheet(s.id).then(sheet => {
-            sheetsCache.set(s.id, sheet ?? null)
-            if (!sheet) return
+        // Load grade sheets AND periods for every subject in parallel
+        const [sheetsResults, periodsResults] = await Promise.all([
+          Promise.allSettled(subjects.map(s => gradeAdapter.getGradeSheet(s.id))),
+          Promise.allSettled(subjects.map(s => periodAdapter.listBySubject(s.id))),
+        ])
+
+        const sheetsCache = new Map<number, GradeSheet | null>()
+        const periodsCache = new Map<number, GradePeriod[]>()
+        const studentMap = new Map<number, GradeSheetStudent>()
+
+        subjects.forEach((s, i) => {
+          const sr = sheetsResults[i]
+          const sheet = sr.status === 'fulfilled' ? (sr.value ?? null) : null
+          sheetsCache.set(s.id, sheet)
+          if (sheet) {
             for (const st of sheet.students) {
               if (!studentMap.has(st.userId)) studentMap.set(st.userId, st)
             }
-          }).catch(() => { sheetsCache.set(s.id, null) })
-        )
-      )
-
-      for (const student of studentMap.values()) {
-        const rows: BulletinRow[] = []
-        for (const s of subjects) {
-          const sheet = sheetsCache.get(s.id)
-          if (!sheet) continue
-
-          const totalTasks = sheet.tasks.length
-          const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
-          const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
-          const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-
-          const activeCategories = new Set(sheet.manualGrades.map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
-          const stManualGrades = sheet.manualGrades.filter((mg: any) => Number(mg.studentId) === student.userId)
-          const byType: Record<string, number[]> = {}
-          for (const mg of stManualGrades) {
-            const base = String(mg.gradeType).replace(/_\d+$/, '')
-            if (!byType[base]) byType[base] = []
-            byType[base].push(Number(mg.grade))
           }
-          const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-          const participacionAvg = byType.participacion?.length ? avgArr(byType.participacion) : (activeCategories.has('participacion') ? 0 : null)
-          const examenesAvg = byType.examenes?.length ? avgArr(byType.examenes) : (activeCategories.has('examenes') ? 0 : null)
-          const comportamientoAvg = byType.comportamiento?.length ? avgArr(byType.comportamiento) : (activeCategories.has('comportamiento') ? 0 : null)
-          const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
-          const nota = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
-          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: Math.round(nota * 10) / 10 })
+          const pr = periodsResults[i]
+          const periods: GradePeriod[] = pr.status === 'fulfilled' ? (pr.value as GradePeriod[] ?? []) : []
+          periodsCache.set(s.id, periods)
+          for (const p of periods) {
+            if (p.snapshot) {
+              for (const st of p.snapshot.students) {
+                if (!studentMap.has(st.userId)) studentMap.set(st.userId, st)
+              }
+            }
+          }
+        })
+
+        const entries: PlatformBulletinEntry[] = []
+        for (const student of studentMap.values()) {
+          const periods = computeAllPeriodRows(student, subjects, sheetsCache, periodsCache)
+          if (periods.length > 0) {
+            entries.push({ student, courseTitle: course.title, periods })
+          }
         }
-        if (rows.length > 0) {
-          entries.push({ student, courseTitle: course.title, rows })
-        }
+        return entries
+      })
+    )
+
+    const allEntries: PlatformBulletinEntry[] = []
+    for (const result of courseResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        allEntries.push(...result.value)
       }
     }
-    platformBulletinData.value = entries
+    platformBulletinData.value = allEntries
   } catch { /* silent */ }
   finally { loadingPlatformBulletin.value = false }
 }
@@ -916,20 +1003,26 @@ function exportPlatformBulletinPDF() {
   for (const entry of platformBulletinData.value) {
     const st = entry.student
     const name = escH(st.fullName || st.username || 'Estudiante')
-    const prom = computePromedio(entry.rows)
-    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
-    let rows = ''
-    for (const row of entry.rows) {
-      const nota = (row.notaDefinitiva ?? 0).toFixed(1)
-      const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
-      rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    let periodsHtml = ''
+    for (const period of entry.periods) {
+      const prom = computePromedio(period.rows)
+      const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+      let rows = ''
+      for (const row of period.rows) {
+        const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+        const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
+        rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+      }
+      periodsHtml += `
+<h3 style="color:#6A1B9A;margin:18px 0 6px;font-size:14px;text-transform:uppercase;border-bottom:1px solid #d4c5f0;padding-bottom:4px">${escH(period.periodName)}</h3>
+<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="promedio"><span class="prom-label">Promedio</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>`
     }
     pages.push(`
 <div class="page">
 ${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
-<div class="info"><span class="label">Programa:</span><span class="value">${escH(entry.courseTitle)}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
-<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
+<div class="info"><span class="label">Programa:</span><span class="value">${escH(entry.courseTitle)}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}</div>
+${periodsHtml}
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}
 </div>`)
   }
@@ -946,13 +1039,15 @@ ${institutionSignatureAndFooterCSS()}
 }
 
 function exportPlatformBulletinExcel() {
-  const dataRows = platformBulletinData.value.map(entry => {
+  const dataRows = platformBulletinData.value.flatMap(entry => {
     const name = escH(entry.student.fullName || entry.student.username || 'Estudiante')
-    const prom = computePromedio(entry.rows)
-    const cells = entry.rows.map(r => `<Cell><Data ss:Type="Number">${(r.notaDefinitiva ?? 0).toFixed(1)}</Data></Cell>`).join('')
-    return `<Row><Cell><Data ss:Type="String">${escH(entry.courseTitle)}</Data></Cell><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+    return entry.periods.map(period => {
+      const prom = computePromedio(period.rows)
+      const cells = period.rows.map(r => `<Cell><Data ss:Type="Number">${(r.notaDefinitiva ?? 0).toFixed(1)}</Data></Cell>`).join('')
+      return `<Row><Cell><Data ss:Type="String">${escH(entry.courseTitle)}</Data></Cell><Cell><Data ss:Type="String">${name}</Data></Cell><Cell><Data ss:Type="String">${escH(period.periodName)}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+    })
   }).join('')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín Plataforma"><Table><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">CURSO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">MATERIAS</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín Plataforma"><Table><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">CURSO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PERIODO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">MATERIAS</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -966,14 +1061,18 @@ function exportPlatformBulletinWord() {
   const pages = platformBulletinData.value.map(entry => {
     const st = entry.student
     const name = escH(st.fullName || st.username || 'Estudiante')
-    const prom = computePromedio(entry.rows)
-    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
-    const rows = entry.rows.map(row => {
-      const nota = (row.notaDefinitiva ?? 0).toFixed(1)
-      const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
-      return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
-    }).join('')
-    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(entry.courseTitle)}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+    let periodsHtml = ''
+    for (const period of entry.periods) {
+      const prom = computePromedio(period.rows)
+      const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+      const rows = period.rows.map(row => {
+        const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+        const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
+        return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
+      }).join('')
+      periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px;font-size:14px;text-transform:uppercase;border-bottom:1px solid #d4c5f0;padding-bottom:4px">${escH(period.periodName)}</h3><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:6px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:8px"><b>PROMEDIO: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p>`
+    }
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(entry.courseTitle)}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}${periodsHtml}</div>`
   }).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
@@ -1008,11 +1107,21 @@ function exportPlatformBulletinWord() {
 
 <style scoped>
 .bulletin-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: #1C1C1E; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; animation: bulletin-slide-up 0.35s cubic-bezier(0.34,1.56,0.64,1); }
-@keyframes bulletin-slide-up { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.bulletin-fade-enter-active { transition: opacity 0.2s; }
-.bulletin-fade-leave-active { transition: opacity 0.15s; }
+.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: #1C1C1E; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; will-change: transform, opacity; }
+.bulletin-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+.bulletin-fade-leave-active { transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 .bulletin-fade-enter-from, .bulletin-fade-leave-to { opacity: 0; }
+.bulletin-fade-enter-active .bulletin-modal { animation: bulletin-expand 0.55s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.bulletin-fade-leave-active .bulletin-modal { animation: bulletin-collapse 0.3s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@keyframes bulletin-expand {
+  0% { opacity: 0; transform: scale(0.82) translateY(30px); border-radius: 32px; }
+  50% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) translateY(0); border-radius: 24px; }
+}
+@keyframes bulletin-collapse {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.88) translateY(16px); }
+}
 .bulletin-header { display: flex; align-items: center; gap: 12px; padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .bulletin-header-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(48,209,88,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .bulletin-title { flex: 1; font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
@@ -1058,6 +1167,7 @@ function exportPlatformBulletinWord() {
 .boletin-inst-name { font-size: 17px; font-weight: 800; color: #BF5AF2; letter-spacing: 0.3px; }
 .boletin-inst-subtitle { font-size: 11px; color: #8E8E93; text-transform: uppercase; letter-spacing: 1px; }
 .boletin-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
+.boletin-period-header { font-size: 13px; font-weight: 700; color: #BF5AF2; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 6px; border-bottom: 1px solid rgba(191,90,242,0.2); margin-bottom: 4px; }
 .boletin-info-grid { display: flex; flex-direction: column; gap: 8px; }
 .boletin-info-row { display: flex; gap: 10px; align-items: baseline; }
 .boletin-label { font-size: 11px; font-weight: 700; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; min-width: 110px; }
