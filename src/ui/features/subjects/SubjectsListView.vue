@@ -6,7 +6,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <h1 class="header-title">Mis Materias</h1>
-        <div v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente) && hasAnyActivePeriod" class="more-menu-wrapper">
+        <div v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente)" class="more-menu-wrapper">
           <button
             class="more-menu-btn"
             :class="{ 'more-menu-btn--pulse': reportPulse }"

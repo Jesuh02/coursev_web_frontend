@@ -162,7 +162,7 @@
                       <div v-else class="no-tasks">Sin entregas</div>
 
                       <!-- Periodos -->
-                      <div v-if="subGroup.subjectId" class="periods-section">
+                      <div v-if="subGroup.subjectId != null" class="periods-section">
                         <div class="periods-header" @click="togglePeriodsSection(subGroup.subjectId)">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expandedSections.has(`periods-${subGroup.subjectId}`) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
                           <span class="periods-title">Periodos</span>
@@ -1029,6 +1029,12 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId:
   // Also include subjects that have grade summaries but no submissions
   for (const subjectName of Object.keys(group.gradeSummariesBySubject)) {
     if (!map.has(subjectName)) map.set(subjectName, [])
+  }
+  // Also include subjects that only have period data
+  if (group.subjectIdsByName) {
+    for (const subjectName of Object.keys(group.subjectIdsByName)) {
+      if (!map.has(subjectName)) map.set(subjectName, [])
+    }
   }
   return Array.from(map.entries()).map(([subjectName, rows]) => {
     // Cal. Ponderada: from progreso_curso table (course-level averageGrade per student)

@@ -84,6 +84,7 @@
                   <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                 </div>
                 <div class="boletin-divider" />
+                <template v-if="entry.rows.length">
                 <table class="boletin-table">
                   <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
                   <tbody>
@@ -96,6 +97,10 @@
                 <div class="boletin-promedio">
                   <span class="promedio-label">PROMEDIO GENERAL</span>
                   <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
+                </div>
+                </template>
+                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                  📅 Sin periodo activo — no hay datos de notas disponibles.
                 </div>
                 <div class="boletin-divider" />
                 <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
@@ -183,6 +188,7 @@
               <div class="boletin-divider" />
 
               <!-- Grades table -->
+              <template v-if="bulletinRows.length">
               <table class="boletin-table">
                 <thead>
                   <tr>
@@ -202,6 +208,10 @@
               <div class="boletin-promedio">
                 <span class="promedio-label">PROMEDIO GENERAL</span>
                 <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral.toFixed(1) }}</span>
+              </div>
+              </template>
+              <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                📅 Sin periodo activo — no hay datos de notas disponibles.
               </div>
 
               <div class="boletin-divider" />
@@ -256,6 +266,8 @@
 import { ref, computed, watch } from 'vue'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
@@ -278,6 +290,7 @@ const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
 const studentSearch = ref('')
 const selectedStudent = ref<GradeSheetStudent | null>(null)
+const activePeriodName = ref<string | null>(null)
 
 interface BulletinRow {
   subjectId: number
@@ -308,6 +321,7 @@ const filteredStudents = computed(() => {
 })
 
 const currentPeriod = computed(() => {
+  if (activePeriodName.value) return activePeriodName.value
   const now = new Date()
   const semester = now.getMonth() < 6 ? 'I' : 'II'
   return `${semester} PERIODO ${now.getFullYear()}-${semester === 'I' ? 'A' : 'B'}`
@@ -344,9 +358,28 @@ watch(() => props.modelValue, async (open) => {
     bulletinRows.value = []
     showAllBulletins.value = false
     allBulletinData.value = []
+    activePeriodName.value = null
     await loadStudents()
+    await loadActivePeriodName()
   }
 })
+
+async function loadActivePeriodName() {
+  try {
+    const results = await Promise.allSettled(
+      props.subjects.map(s => periodAdapter.listBySubject(s.id))
+    )
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const active = (result.value as GradePeriod[]).find(p => p.snapshot == null)
+        if (active) {
+          activePeriodName.value = active.name
+          return
+        }
+      }
+    }
+  } catch { /* silent */ }
+}
 
 async function loadStudents() {
   if (!props.courseId || !props.subjects.length) return
@@ -379,10 +412,9 @@ async function selectStudent(student: GradeSheetStudent) {
     await Promise.allSettled(
       props.subjects.map(s =>
         gradeAdapter.getGradeSheet(s.id).then(sheet => {
-          if (!sheet) {
-            rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
-            return
-          }
+          if (!sheet) return
+          // Skip subjects without an active period
+          if (sheet.hasActivePeriod === false) return
           const totalTasks = sheet.tasks.length
           const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
           const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)
@@ -411,9 +443,7 @@ async function selectStudent(student: GradeSheetStudent) {
             subjectName: s.name,
             notaDefinitiva: Math.round(notaDefinitiva * 10) / 10,
           })
-        }).catch(() => {
-          rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
-        })
+        }).catch(() => {})
       )
     )
     // Sort by subject order
@@ -429,10 +459,9 @@ async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Ma
   const rows: BulletinRow[] = []
   for (const s of props.subjects) {
     const sheet = sheetsCache.get(s.id) ?? null
-    if (!sheet) {
-      rows.push({ subjectId: s.id, subjectName: s.name, notaDefinitiva: 0 })
-      continue
-    }
+    if (!sheet) continue
+    // Skip subjects without an active period
+    if (sheet.hasActivePeriod === false) continue
     const totalTasks = sheet.tasks.length
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((sum, tg) => sum + (tg.grade ?? 0), 0)

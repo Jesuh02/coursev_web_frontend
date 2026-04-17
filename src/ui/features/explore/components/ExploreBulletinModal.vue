@@ -120,6 +120,7 @@
                       <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                     </div>
                     <div class="boletin-divider" />
+                    <template v-if="entry.rows.length">
                     <table class="boletin-table">
                       <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
                       <tbody>
@@ -132,6 +133,10 @@
                     <div class="boletin-promedio">
                       <span class="promedio-label">PROMEDIO GENERAL</span>
                       <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
+                    </div>
+                    </template>
+                    <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                      📅 Sin periodo activo — no hay datos de notas disponibles.
                     </div>
                     <div class="boletin-divider" />
                     <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
@@ -199,6 +204,7 @@
                     <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                   </div>
                   <div class="boletin-divider" />
+                  <template v-if="bulletinRows.length">
                   <table class="boletin-table">
                     <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
                     <tbody>
@@ -211,6 +217,10 @@
                   <div class="boletin-promedio">
                     <span class="promedio-label">PROMEDIO GENERAL</span>
                     <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ (promedioGeneral ?? 0).toFixed(1) }}</span>
+                  </div>
+                  </template>
+                  <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                    📅 Sin periodo activo — no hay datos de notas disponibles.
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
@@ -264,6 +274,8 @@ import { useCourseStore } from '@/stores/courseStore'
 import { courseAdapter, subjectAdapter } from '@/infrastructure/api'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { buildInstitutionHeaderHTML, getInstitutionLogoUrl, getInstitutionDisplayName, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -282,6 +294,7 @@ const loadingBulletin = ref(false)
 const loadingAllBulletins = ref(false)
 const allCourses = ref<Course[]>([])
 const loadingCourses = ref(false)
+const activePeriodName = ref<string | null>(null)
 
 interface BulletinRow { subjectId: number; subjectName: string; notaDefinitiva: number | null }
 const bulletinRows = ref<BulletinRow[]>([])
@@ -307,6 +320,7 @@ const filteredStudents = computed(() => {
 })
 
 const currentPeriod = computed(() => {
+  if (activePeriodName.value) return activePeriodName.value
   const now = new Date()
   const semester = now.getMonth() < 6 ? 'I' : 'II'
   return `${semester} PERIODO ${now.getFullYear()}-${semester === 'I' ? 'A' : 'B'}`
@@ -372,8 +386,27 @@ async function pickCourse(course: Course) {
       description: s.description ?? '',
     }))
     await loadStudents()
+    await loadActivePeriodName()
   } catch { subjectsForCourse.value = [] }
   finally { loadingSubjects.value = false }
+}
+
+async function loadActivePeriodName() {
+  activePeriodName.value = null
+  try {
+    const results = await Promise.allSettled(
+      subjectsForCourse.value.map(s => periodAdapter.listBySubject(s.id))
+    )
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const active = (result.value as GradePeriod[]).find(p => p.snapshot == null)
+        if (active) {
+          activePeriodName.value = active.name
+          return
+        }
+      }
+    }
+  } catch { /* silent */ }
 }
 
 async function loadStudents() {
@@ -416,10 +449,9 @@ async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Ma
 
   for (const subject of subjectsForCourse.value) {
     const sheet = sheetsCache.get(subject.id) ?? null
-    if (!sheet) {
-      rows.push({ subjectId: subject.id, subjectName: subject.name, notaDefinitiva: 0 })
-      continue
-    }
+    if (!sheet) continue
+    // Skip subjects without an active period
+    if (sheet.hasActivePeriod === false) continue
 
     const totalTasks = sheet.tasks.length
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
