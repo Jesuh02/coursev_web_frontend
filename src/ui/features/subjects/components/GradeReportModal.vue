@@ -143,6 +143,9 @@
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: expandedPeriods.has(period.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
                         <span class="period-name">{{ period.name }}</span>
                         <span class="period-date">{{ formatPeriodDate(period.closedAt) }}</span>
+                        <span v-if="period.startsAt || period.endsAt" class="period-date-range">
+                          {{ period.startsAt ? formatPeriodDate(period.startsAt) : '—' }} → {{ period.endsAt ? formatPeriodDate(period.endsAt) : '—' }}
+                        </span>
                         <button v-if="editingPeriodId !== period.id" class="period-edit-btn" @click.stop="startEditingPeriod(period)">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           Editar
@@ -711,7 +714,7 @@ async function exportExcel() {
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
   hdrRow.height = 18
 
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
     const grpRow = ws.addRow([`${group.subjectName} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
@@ -1012,14 +1015,16 @@ async function executeDeletePeriod() {
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     text += `📘 ${group.subjectName} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
     for (const row of group.gradeSummaries) {
       text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
     }
     text += '\n'
   }
-  text += ` Total entregas: ${totalSubmissions.value} | Calificadas: ${gradedCount.value}`
+  const exportSubmissions = filteredReportData.value.reduce((sum, g) => sum + g.rows.length, 0)
+  const exportGraded = filteredReportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0)
+  text += ` Total entregas: ${exportSubmissions} | Calificadas: ${exportGraded}`
   if (isIncatInstitution()) {
     const lines = getInstitutionFooterLines()
     text += '\n\n' + lines.join('\n') + '\n'
@@ -1030,7 +1035,7 @@ function buildShareText(): string {
 function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
-  for (const group of reportData.value) {
+  for (const group of filteredReportData.value) {
     rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
     if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
@@ -1072,9 +1077,9 @@ ${buildInstitutionHeaderHTML()}
 <h1>📊 Reporte de Notas</h1>
 <p class="subtitle">Generado el ${new Date().toLocaleDateString('es')}</p>
 <div class="summary">
-<div><span class="val">${props.subjects.length}</span><span class="lbl">Materias</span></div>
-<div><span class="val">${totalSubmissions.value}</span><span class="lbl">Entregas</span></div>
-<div><span class="val">${gradedCount.value}</span><span class="lbl">Calificadas</span></div>
+<div><span class="val">${filteredReportData.value.length}</span><span class="lbl">Materias</span></div>
+<div><span class="val">${filteredReportData.value.reduce((sum, g) => sum + g.rows.length, 0)}</span><span class="lbl">Entregas</span></div>
+<div><span class="val">${filteredReportData.value.reduce((sum, g) => sum + g.rows.filter(r => r.grade !== null).length, 0)}</span><span class="lbl">Calificadas</span></div>
 </div>
 <table>
 <thead><tr><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Ponderada</th></tr></thead>
@@ -1655,6 +1660,11 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .period-date {
   font-size: 11px;
   color: #636366;
+}
+.period-date-range {
+  font-size: 10px;
+  color: #BF5AF2;
+  opacity: 0.8;
 }
 .period-edit-btn {
   margin-left: auto;

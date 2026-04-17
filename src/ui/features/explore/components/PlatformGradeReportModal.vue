@@ -424,10 +424,17 @@ const filteredData = computed(() => {
   }
   if (selectedSubjectName.value) {
     const subjectFilter = selectedSubjectName.value
-    data = data.map(g => ({
-      ...g,
-      rows: g.rows.filter(r => r.subjectName === subjectFilter),
-    }))
+    data = data.map(g => {
+      const filteredSummaries: Record<string, any[]> = {}
+      if (g.gradeSummariesBySubject?.[subjectFilter]) {
+        filteredSummaries[subjectFilter] = g.gradeSummariesBySubject[subjectFilter]
+      }
+      return {
+        ...g,
+        rows: g.rows.filter(r => r.subjectName === subjectFilter),
+        gradeSummariesBySubject: filteredSummaries,
+      }
+    })
   }
   return data
 })
@@ -739,7 +746,7 @@ async function exportExcel() {
   applyHdr(hdrRow)
   for (let c = 4; c <= 8; c++) hdrRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
 
-  for (const group of reportData.value) {
+  for (const group of filteredData.value) {
     // Course header row (merged)
     const courseRow = ws.addRow([group.courseName])
     ws.mergeCells(courseRow.number, 1, courseRow.number, 8)
@@ -1029,7 +1036,7 @@ function downloadBlob(content: string, filename: string, mimeType: string) {
 function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   const date = new Date().toLocaleDateString('es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   let rows = ''
-  for (const group of reportData.value) {
+  for (const group of filteredData.value) {
     rows += `<tr class="course-header"><td colspan="8">${esc_html(group.courseName)}</td></tr>`
     const hasSummaries = Object.values(group.gradeSummariesBySubject).some(s => s.length > 0)
     if (!hasSummaries) {
@@ -1084,7 +1091,7 @@ ${buildInstitutionHeaderHTML()}
 <h1>📊 Reporte de Notas — Plataforma</h1>
 <p class="subtitle">Generado el ${date}</p>
 <div class="summary">
-  <div><span class="val">${courseCount.value}</span><span class="lbl">Cursos</span></div>
+  <div><span class="val">${filteredData.value.length}</span><span class="lbl">Cursos</span></div>
 </div>
 <table>
   <thead><tr><th>Curso</th><th>Materia</th><th>Estudiante</th><th style="text-align:center">Comportamiento</th><th style="text-align:center">Tareas</th><th style="text-align:center">Examen</th><th style="text-align:center">Participación</th><th style="text-align:center">Nota Final</th></tr></thead>

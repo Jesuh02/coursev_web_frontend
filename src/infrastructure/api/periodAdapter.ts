@@ -9,6 +9,8 @@ export interface GradePeriod {
   name: string
   snapshot: GradeSheet
   closedAt: string
+  startsAt: string | null
+  endsAt: string | null
   createdBy: number
 }
 
@@ -16,6 +18,10 @@ export const periodAdapter = {
   /** Cerrar periodo actual (snapshot + reset notas) */
   closePeriod: (data: { courseId: number; subjectId: number; name?: string }) =>
     api.post<GradePeriod>('/periods', data),
+
+  /** Iniciar nuevo periodo con fechas */
+  startPeriod: (data: { courseId: number; subjectId: number; name?: string; startsAt: string; endsAt: string }) =>
+    api.post<GradePeriod>('/periods/start', data),
 
   /** Listar periodos de una materia */
   listBySubject: (subjectId: number) =>
