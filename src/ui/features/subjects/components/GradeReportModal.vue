@@ -124,6 +124,78 @@
                   </div>
                 </div>
                 <div v-else class="no-tasks">Sin entregas</div>
+
+                <!-- Periodos -->
+                <div class="periods-section">
+                  <div class="periods-header" @click="togglePeriodsSection(group.subjectId)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expandedPeriodSections.has(`periods-${group.subjectId}`) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
+                    <span class="periods-title">Periodos</span>
+                    <span v-if="(periodsBySubject[group.subjectId] ?? []).length" class="periods-badge">{{ (periodsBySubject[group.subjectId] ?? []).length }}</span>
+                    <button class="close-period-btn" @click.stop="handleClosePeriod(group.subjectId, group.subjectName)" :disabled="closingPeriod">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                      Cerrar Periodo
+                    </button>
+                  </div>
+                  <div v-if="expandedPeriodSections.has(`periods-${group.subjectId}`)" class="periods-list">
+                    <div v-if="!(periodsBySubject[group.subjectId] ?? []).length" class="no-periods">No hay periodos creados</div>
+                    <div v-for="period in (periodsBySubject[group.subjectId] ?? [])" :key="period.id" class="period-item">
+                      <div class="period-item-header" @click="togglePeriodExpand(period.id)">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: expandedPeriods.has(period.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
+                        <span class="period-name">{{ period.name }}</span>
+                        <span class="period-date">{{ formatPeriodDate(period.closedAt) }}</span>
+                        <button v-if="editingPeriodId !== period.id" class="period-edit-btn" @click.stop="startEditingPeriod(period)">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Editar
+                        </button>
+                        <button v-else class="period-cancel-btn" @click.stop="cancelEditingPeriod()">Cancelar</button>
+                      </div>
+                      <div v-if="expandedPeriods.has(period.id)" class="period-snapshot">
+                        <div v-if="computePeriodSummaries(period.snapshot).length" class="breakdown-section">
+                          <div class="breakdown-label">Notas del periodo</div>
+                          <div class="table-wrapper">
+                            <table class="grade-table">
+                              <thead>
+                                <tr>
+                                  <th class="th-student">Estudiante</th>
+                                  <th class="th-grade">Comportamiento</th>
+                                  <th class="th-grade">Tareas</th>
+                                  <th class="th-grade">Examen</th>
+                                  <th class="th-grade">Participación</th>
+                                  <th class="th-ponderada">Nota Final</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr v-for="row in computePeriodSummaries(period.snapshot)" :key="row.studentId" class="grade-row">
+                                  <td class="cell-student">{{ row.studentName }}</td>
+                                  <template v-if="editingPeriodId === period.id">
+                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'comportamiento')" @input="updatePeriodEdit(row.studentName, 'comportamiento', $event)" /></td>
+                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'tareas')" @input="updatePeriodEdit(row.studentName, 'tareas', $event)" /></td>
+                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'examenes')" @input="updatePeriodEdit(row.studentName, 'examenes', $event)" /></td>
+                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'participacion')" @input="updatePeriodEdit(row.studentName, 'participacion', $event)" /></td>
+                                    <td class="cell-ponderada" :class="gradeClass(computeEditedNotaPonderada(row.studentName))"><strong>{{ computeEditedNotaPonderada(row.studentName).toFixed(1) }}</strong></td>
+                                  </template>
+                                  <template v-else>
+                                    <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                                    <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                                    <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                                    <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                                    <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                                  </template>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          <div v-if="editingPeriodId === period.id" class="period-save-bar">
+                            <button class="period-save-btn" @click.stop="savePeriodGrades(period)" :disabled="savingPeriodGrades">
+                              {{ savingPeriodGrades ? 'Guardando...' : 'Guardar cambios' }}
+                            </button>
+                          </div>
+                        </div>
+                        <div v-else class="no-tasks">Sin notas en este periodo</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -158,6 +230,8 @@ import { submissionAdapter } from '@/infrastructure/api/submissionAdapter'
 import { userAdapter } from '@/infrastructure/api/userAdapter'
 import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { useAuthStore } from '@/stores/authStore'
 import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
 
@@ -212,6 +286,15 @@ const reportData = ref<SubjectReport[]>([])
 const isFullscreen = ref(false)
 const selectedSubjectId = ref<number | null>(null)
 
+// ── Periods ──
+const periodsBySubject = ref<Record<number, GradePeriod[]>>({})
+const expandedPeriodSections = ref(new Set<string>())
+const expandedPeriods = ref(new Set<number>())
+const closingPeriod = ref(false)
+const editingPeriodId = ref<number | null>(null)
+const periodEditData = ref<Record<string, Record<string, number>>>({})
+const savingPeriodGrades = ref(false)
+
 const filteredReportData = computed(() =>
   selectedSubjectId.value != null
     ? reportData.value.filter(g => g.subjectId === selectedSubjectId.value)
@@ -225,6 +308,11 @@ watch(() => props.modelValue, (v) => {
   if (!v) {
     isFullscreen.value = false
     selectedSubjectId.value = null
+    periodsBySubject.value = {}
+    expandedPeriodSections.value = new Set()
+    expandedPeriods.value = new Set()
+    editingPeriodId.value = null
+    periodEditData.value = {}
   }
 })
 
@@ -502,6 +590,20 @@ async function fetchReport() {
         gradeSummaries,
       }
     })
+
+    // Load periods for each subject
+    const subjectIds = props.subjects.map(s => s.id)
+    if (subjectIds.length) {
+      const periodsResults = await Promise.allSettled(
+        subjectIds.map(sid => periodAdapter.listBySubject(sid))
+      )
+      for (let i = 0; i < subjectIds.length; i++) {
+        const result = periodsResults[i]
+        if (result.status === 'fulfilled') {
+          periodsBySubject.value[subjectIds[i]] = result.value as GradePeriod[]
+        }
+      }
+    }
   } catch { /* silent */ }
   finally { loading.value = false }
 }
@@ -688,6 +790,178 @@ async function shareReport() {
 }
 
 function esc(s: string) { return s.replace(/"/g, '""') }
+
+// ── Period helpers ────────────────────────────────────────────────────────
+function togglePeriodsSection(subjectId: number) {
+  const key = `periods-${subjectId}`
+  const next = new Set(expandedPeriodSections.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedPeriodSections.value = next
+}
+
+function togglePeriodExpand(periodId: number) {
+  const next = new Set(expandedPeriods.value)
+  if (next.has(periodId)) next.delete(periodId)
+  else next.add(periodId)
+  expandedPeriods.value = next
+}
+
+async function handleClosePeriod(subjectId: number, subjectName: string) {
+  const existingCount = (periodsBySubject.value[subjectId] ?? []).length
+  const defaultName = `Periodo ${existingCount + 1}`
+  const name = prompt(`Nombre del periodo para "${subjectName}":`, defaultName)
+  if (!name) return
+
+  closingPeriod.value = true
+  try {
+    await periodAdapter.closePeriod({ courseId: props.courseId, subjectId, name })
+    const periods = await periodAdapter.listBySubject(subjectId)
+    periodsBySubject.value = { ...periodsBySubject.value, [subjectId]: periods as GradePeriod[] }
+    expandedPeriodSections.value = new Set([...expandedPeriodSections.value, `periods-${subjectId}`])
+    // Refresh the grade sheet for this subject (now empty after close)
+    try {
+      const sheet = await gradeAdapter.getGradeSheet(subjectId)
+      const group = reportData.value.find(g => g.subjectId === subjectId)
+      if (group && sheet) {
+        const taskNames = sheet.tasks.map((t: any) => t.title ?? t.name ?? '')
+        group.gradeSummaries = computeSubjectGradeSummaries(sheet, taskNames, group.teacherName)
+        reportData.value = [...reportData.value]
+      }
+    } catch { /* ignore */ }
+  } catch (e: any) {
+    alert('Error al cerrar periodo: ' + (e?.message ?? String(e)))
+  } finally {
+    closingPeriod.value = false
+  }
+}
+
+function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] {
+  if (!snapshot) return []
+  const totalTasks = snapshot.tasks?.length ?? 0
+  const fmt = (v: number | null): number | null => v !== null ? Math.round(v * 10) / 10 : null
+  const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  const activeCategories = new Set((snapshot.manualGrades ?? []).map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
+  return (snapshot.students ?? []).map((student: any) => {
+    const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === student.userId)
+    const taskSum = stTaskGrades.reduce((s: number, tg: any) => s + (tg.grade ?? 0), 0)
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+    const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === student.userId)
+    const byType: Record<string, number[]> = {}
+    for (const mg of stManualGrades) {
+      const base = String(mg.gradeType).replace(/_\d+$/, '')
+      if (!byType[base]) byType[base] = []
+      byType[base].push(Number(mg.grade))
+    }
+    const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
+    const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
+    const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
+    const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
+    const notaPonderada = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+    return {
+      studentName: displayStudentName(student.fullName),
+      studentId: student.userId,
+      taskAvg: fmt(taskAvg),
+      participacionAvg: fmt(participacionAvg),
+      examenesAvg: fmt(examenesAvg),
+      comportamientoAvg: fmt(comportamientoAvg),
+      notaPonderada: fmt(notaPonderada),
+      gradedBy: null,
+      gradedAt: null,
+    }
+  })
+}
+
+function formatPeriodDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function startEditingPeriod(period: GradePeriod) {
+  editingPeriodId.value = period.id
+  const summaries = computePeriodSummaries(period.snapshot)
+  const data: Record<string, Record<string, number>> = {}
+  for (const row of summaries) {
+    data[row.studentName] = {
+      comportamiento: row.comportamientoAvg ?? 0,
+      tareas: row.taskAvg ?? 0,
+      examenes: row.examenesAvg ?? 0,
+      participacion: row.participacionAvg ?? 0,
+    }
+  }
+  periodEditData.value = data
+  if (!expandedPeriods.value.has(period.id)) {
+    expandedPeriods.value = new Set([...expandedPeriods.value, period.id])
+  }
+}
+
+function cancelEditingPeriod() {
+  editingPeriodId.value = null
+  periodEditData.value = {}
+}
+
+function getPeriodEditValue(studentName: string, field: string): number {
+  return periodEditData.value[studentName]?.[field] ?? 0
+}
+
+function updatePeriodEdit(studentName: string, field: string, event: Event) {
+  const val = parseFloat((event.target as HTMLInputElement).value) || 0
+  const clamped = Math.min(10, Math.max(0, val))
+  if (!periodEditData.value[studentName]) {
+    periodEditData.value[studentName] = { comportamiento: 0, tareas: 0, examenes: 0, participacion: 0 }
+  }
+  periodEditData.value[studentName][field] = clamped
+}
+
+function computeEditedNotaPonderada(studentName: string): number {
+  const data = periodEditData.value[studentName]
+  if (!data) return 0
+  const vals = [data.comportamiento, data.tareas, data.examenes, data.participacion].filter(v => v != null)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+}
+
+async function savePeriodGrades(period: GradePeriod) {
+  savingPeriodGrades.value = true
+  try {
+    const snapshot = period.snapshot
+    if (!snapshot) return
+    const newManualGrades: any[] = []
+    for (const [studentName, grades] of Object.entries(periodEditData.value)) {
+      const student = (snapshot.students ?? []).find((s: any) => displayStudentName(s.fullName) === studentName)
+      if (!student) continue
+      const sid = student.userId
+      for (const [field, value] of Object.entries(grades)) {
+        if (field === 'tareas') continue
+        newManualGrades.push({ studentId: sid, gradeType: field, grade: Math.round(value * 10) / 10 })
+      }
+    }
+    let newTaskGrades = JSON.parse(JSON.stringify(snapshot.taskGrades || []))
+    for (const [studentName, grades] of Object.entries(periodEditData.value)) {
+      const student = (snapshot.students ?? []).find((s: any) => displayStudentName(s.fullName) === studentName)
+      if (!student) continue
+      const sid = student.userId
+      const editedTaskAvg = grades.tareas ?? 0
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
+      if (studentTasks.length > 0) {
+        for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
+      } else if (editedTaskAvg > 0) {
+        newTaskGrades.push({ taskId: 0, studentId: sid, grade: Math.round(editedTaskAvg * 10) / 10, feedback: null, submissionId: null, submittedAt: null, gradedAt: null })
+      }
+    }
+    await periodAdapter.updateGrades(period.id, { manualGrades: newManualGrades, taskGrades: newTaskGrades })
+    const subjectId = period.subjectId
+    const periods = await periodAdapter.listBySubject(subjectId)
+    periodsBySubject.value = { ...periodsBySubject.value, [subjectId]: periods as GradePeriod[] }
+    editingPeriodId.value = null
+    periodEditData.value = {}
+  } catch (e: any) {
+    alert('Error al guardar: ' + (e?.message ?? String(e)))
+  } finally {
+    savingPeriodGrades.value = false
+  }
+}
 
 function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
@@ -1260,4 +1534,138 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   color: #FF453A;
   margin: 2px 0;
 }
+
+/* ── Periods ── */
+.periods-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 12px 4px;
+}
+.periods-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 0;
+  color: #8E8E93;
+}
+.periods-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #BF5AF2;
+}
+.periods-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(191, 90, 242, 0.2);
+  color: #BF5AF2;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.close-period-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #34C759;
+  background: rgba(52, 199, 89, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.close-period-btn:hover { background: rgba(52, 199, 89, 0.22); }
+.close-period-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.periods-list {
+  padding: 4px 0 8px 16px;
+}
+.no-periods {
+  font-size: 12px;
+  color: #636366;
+  padding: 6px 0;
+}
+.period-item {
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.period-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #ccc;
+}
+.period-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.period-date {
+  font-size: 11px;
+  color: #636366;
+}
+.period-edit-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #34C759;
+  background: rgba(52, 199, 89, 0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.period-edit-btn:hover { background: rgba(52, 199, 89, 0.22); }
+.period-cancel-btn {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8E8E93;
+  background: rgba(142, 142, 147, 0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.period-snapshot {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.period-grade-input {
+  width: 56px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(191, 90, 242, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+.period-grade-input:focus {
+  border-color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.1);
+}
+.period-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+}
+.period-save-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #34C759;
+  background: rgba(52, 199, 89, 0.15);
+  transition: background 0.15s;
+}
+.period-save-btn:hover { background: rgba(52, 199, 89, 0.25); }
+.period-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

@@ -108,7 +108,8 @@ export function institutionSignatureAndFooterCSS(): string {
 .inst-footer-slogan{font-size:12px;font-style:italic;color:#8B0000;margin:0 0 4px}
 .inst-footer-address{font-size:11px;font-weight:700;color:#222;margin:2px 0}
 .inst-footer-email{font-size:11px;color:#8B0000;margin:2px 0}
-.inst-footer-city{font-size:11px;font-weight:700;color:#222;margin:0}`
+.inst-footer-city{font-size:11px;font-weight:700;color:#222;margin:0}
+@media print{.inst-page-footer{position:fixed;bottom:0;left:0;right:0;padding:10px 20px;border-top:2px solid #8B0000;background:#fff}body{padding-bottom:80px}}`
 }
 
 /**

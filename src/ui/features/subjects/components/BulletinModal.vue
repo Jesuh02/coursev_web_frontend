@@ -120,6 +120,14 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                 PDF todos
               </button>
+              <button class="export-btn export-excel" @click="exportAllBulletinsExcel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                Excel todos
+              </button>
+              <button class="export-btn export-word" @click="exportAllBulletinsWord">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                Word todos
+              </button>
             </div>
               </template>
           </div>
@@ -223,6 +231,14 @@
               <button class="export-btn export-pdf" @click="exportBulletinPDF">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                 PDF
+              </button>
+              <button class="export-btn export-excel" @click="exportBulletinExcel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                Excel
+              </button>
+              <button class="export-btn export-word" @click="exportBulletinWord">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                Word
               </button>
               <button class="export-btn export-share" @click="shareBulletin">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
@@ -544,6 +560,77 @@ function exportBulletinPDF() {
   win.document.write(html)
   win.document.close()
   win.onload = () => { win.print(); win.close() }
+}
+
+function exportBulletinExcel() {
+  const st = selectedStudent.value
+  const studentName = st?.fullName || st?.username || 'Estudiante'
+  const rows = bulletinRows.value.map(r =>
+    `<Row><Cell><Data ss:Type="String">${escH(r.subjectName)}</Data></Cell><Cell><Data ss:Type="Number">${r.notaDefinitiva}</Data></Cell></Row>`
+  ).join('')
+  const prom = promedioGeneral.value
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table><Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO GENERAL</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row></Table></Worksheet></Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_${studentName.replace(/\s+/g, '_')}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportBulletinWord() {
+  const st = selectedStudent.value
+  const studentName = st?.fullName || st?.username || 'Estudiante'
+  const html = buildBulletinPrintHTML()
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_${studentName.replace(/\s+/g, '_')}.doc`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllBulletinsExcel() {
+  const subjectHeaders = props.subjects.map(s => `<Cell ss:StyleID="h"><Data ss:Type="String">${escH(s.name)}</Data></Cell>`).join('')
+  const dataRows = allBulletinData.value.map(entry => {
+    const name = escH(entry.student.fullName || entry.student.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    const cells = entry.rows.map(r => `<Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell>`).join('')
+    return `<Row><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+  }).join('')
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">Programa: ${escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell>${subjectHeaders}<Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletines_todos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllBulletinsWord() {
+  const pages = allBulletinData.value.map(entry => {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    const prom = computePromedio(entry.rows)
+    const rows = entry.rows.map(row => {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
+    }).join('')
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(props.courseName || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+  }).join('')
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletines_todos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.doc`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 async function shareBulletin() {
@@ -1144,6 +1231,10 @@ ${buildInstitutionSignatureAndFooterHTML()}
 }
 .export-pdf:hover { background: rgba(255, 69, 58, 0.2); }
 
+.export-excel { background: rgba(48,209,88,0.12); color: #30D158; }
+.export-excel:hover { background: rgba(48,209,88,0.2); }
+.export-word { background: rgba(90,200,250,0.12); color: #5AC8FA; }
+.export-word:hover { background: rgba(90,200,250,0.2); }
 .export-share {
   background: rgba(10, 132, 255, 0.12);
   color: #0A84FF;
