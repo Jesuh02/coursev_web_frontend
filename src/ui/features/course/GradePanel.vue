@@ -202,7 +202,7 @@
 
         <div v-if="showPeriodsSection" class="periods-body">
           <!-- Close current period -->
-          <div class="close-period-bar">
+          <div v-if="!betweenPeriods" class="close-period-bar">
             <p class="period-hint">Guardar las notas actuales como un periodo y empezar de cero.</p>
             <div class="close-period-row">
               <input
