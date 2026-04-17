@@ -781,12 +781,12 @@ function computePeriodAvg(p: GradePeriod, studentId: number): string {
   for (const col of manualCols) {
     const key = periodGradeKey(p.id, studentId, col)
     const val = editedPeriodGrades.value[key]
-    if (val !== null && val !== undefined) manualVals.push(val)
+    manualVals.push(val !== null && val !== undefined ? val : 0)
   }
   const taskVals: number[] = []
   for (const task of periodSnapshotTasks(p)) {
     const g = getPeriodTaskGrade(p, studentId, task.id)
-    if (g !== null) taskVals.push(g)
+    taskVals.push(g !== null ? g : 0)
   }
   const all = [...manualVals, ...taskVals]
   if (!all.length) return '0.0'
