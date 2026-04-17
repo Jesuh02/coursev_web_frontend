@@ -144,6 +144,19 @@
               </button>
               <p class="step-course-name">{{ selectedCourse.title }}</p>
 
+              <!-- Period selector bar -->
+              <div v-if="availablePeriods.length >= 1" class="period-bar">
+                <button
+                  v-for="p in availablePeriods"
+                  :key="String(p.periodNumber)"
+                  class="period-chip"
+                  :class="{ 'period-chip--selected': selectedPeriodNumber === p.periodNumber }"
+                  @click="selectPeriodOption(p.periodNumber)"
+                >
+                  {{ p.name }}
+                </button>
+              </div>
+
               <div v-if="loadingSubjects" class="bulletin-loading">
                 <div class="spinner-bulletin" />
                 <p>Cargando materias…</p>
@@ -1117,3 +1130,4 @@ function exportPlatformBulletinWord() {
   color: #30D158;
   border-color: rgba(48, 209, 88, 0.4);
 }
+</style>
