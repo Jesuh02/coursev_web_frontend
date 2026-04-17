@@ -156,8 +156,38 @@
                           </table>
                         </div>
                       </div>
+                      <!-- Sin periodo activo pero con periodos cerrados: mostrar último periodo -->
+                      <div v-else-if="!subGroup.hasActivePeriod && getLatestClosedPeriod(subGroup.subjectId ?? 0)" class="breakdown-section">
+                        <div class="breakdown-label period-label">
+                          📅 {{ getLatestClosedPeriod(subGroup.subjectId ?? 0)!.name }} (último periodo cerrado)
+                        </div>
+                        <div class="table-wrapper">
+                          <table class="grade-table">
+                            <thead>
+                              <tr>
+                                <th class="th-student">Estudiante</th>
+                                <th class="th-grade">Comportamiento</th>
+                                <th class="th-grade">Tareas</th>
+                                <th class="th-grade">Examen</th>
+                                <th class="th-grade">Participación</th>
+                                <th class="th-ponderada">Nota Final</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="row in computePeriodSummaries(getLatestClosedPeriod(subGroup.subjectId ?? 0)!.snapshot)" :key="row.studentUsername" class="grade-row">
+                                <td class="cell-student">{{ displayStudentName(row.studentFullName) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
+                                <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                       <div v-else-if="!subGroup.hasActivePeriod" class="no-active-period-msg">
-                        📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
+                        📅 No hay periodos registrados — inicia un periodo para ver las notas.
                       </div>
                       <div v-else class="no-tasks">Sin entregas</div>
 
@@ -925,6 +955,13 @@ async function refreshSubjectGradeSheet(courseId: number, subjectId: number, sub
 function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] {
   if (!snapshot) return []
   return computeGradeSummaries(snapshot)
+}
+
+function getLatestClosedPeriod(subjectId: number): GradePeriod | null {
+  const periods = periodsBySubject.value[subjectId] ?? []
+  const closed = periods.filter(p => p.snapshot != null)
+  if (!closed.length) return null
+  return closed.sort((a, b) => new Date(b.closedAt ?? 0).getTime() - new Date(a.closedAt ?? 0).getTime())[0]
 }
 
 function formatPeriodDate(dateStr: string | null | undefined): string {
