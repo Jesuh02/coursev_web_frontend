@@ -41,15 +41,29 @@
       <!-- Loading state -->
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
-      <!-- Between periods state -->
+      <!-- Between periods / no period state -->
       <div v-else-if="betweenPeriods" class="between-periods-state">
         <div class="between-periods-icon">📅</div>
-        <h3 class="between-periods-title">Periodo cerrado</h3>
-        <p class="between-periods-desc">El periodo anterior fue cerrado exitosamente. Crea un nuevo periodo para comenzar a registrar notas.</p>
-        <button class="btn-start-period" @click="betweenPeriods = false">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Iniciar nuevo periodo
-        </button>
+        <h3 class="between-periods-title">{{ hasClosedPeriods ? 'Periodo cerrado' : 'Iniciar periodo' }}</h3>
+        <p class="between-periods-desc">{{ hasClosedPeriods ? 'El periodo anterior fue cerrado exitosamente.' : 'Para comenzar a registrar notas, inicia el periodo.' }}</p>
+        <div class="start-period-form">
+          <div class="start-period-row">
+            <input
+              v-model="newPeriodName"
+              class="period-name-input"
+              :placeholder="`Periodo ${nextPeriodNumber}`"
+              maxlength="50"
+            />
+            <button
+              class="btn-start-period"
+              :disabled="startingPeriod"
+              @click="executeStartPeriod"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              {{ startingPeriod ? 'Iniciando…' : 'Iniciar periodo' }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Grade sheet table -->
@@ -219,6 +233,9 @@
                   <div class="period-card-info">
                     <span class="period-name">{{ p.name }}</span>
                     <span class="period-date">{{ formatDate(p.closedAt) }}</span>
+                    <span v-if="p.startsAt || p.endsAt" class="period-date-range">
+                      {{ p.startsAt ? formatDate(p.startsAt) : '—' }} → {{ p.endsAt ? formatDate(p.endsAt) : '—' }}
+                    </span>
                   </div>
                 </div>
                 <div class="period-card-stats">
@@ -642,6 +659,11 @@ const expandedPeriodId = ref<number | null>(null)
 const closePeriodConfirm = ref(false)
 const deletePeriodConfirm = reactive({ show: false, id: 0, name: '' })
 const betweenPeriods = ref(false)
+const hasClosedPeriods = ref(false)
+const activePeriodStartedAt = ref<string | null>(null)
+const periodStartDate = ref('')
+const periodEndDate = ref('')
+const startingPeriod = ref(false)
 
 // Editable period manual grades: key = `${periodId}-${studentId}-${gradeType}`, value = grade
 const editedPeriodGrades = ref<Record<string, number | null>>({})
@@ -683,8 +705,11 @@ async function executeClosePeriod() {
       courseId: props.courseId,
       subjectId: props.subjectId,
       name: newPeriodName.value || undefined,
+      startsAt: activePeriodStartedAt.value || undefined,
+      endsAt: new Date().toISOString(),
     })
     newPeriodName.value = ''
+    activePeriodStartedAt.value = null
 
     // Reload periods
     await loadPeriods()
@@ -728,6 +753,31 @@ async function executeClosePeriod() {
     console.error('[GradePanel] Error closing period:', err)
   }
   closing.value = false
+}
+
+async function executeStartPeriod() {
+  startingPeriod.value = true
+  const now = new Date().toISOString()
+  try {
+    await periodAdapter.startPeriod({
+      courseId: props.courseId,
+      subjectId: props.subjectId,
+      name: newPeriodName.value || undefined,
+      startsAt: now,
+    })
+    newPeriodName.value = ''
+    periodStartDate.value = ''
+    periodEndDate.value = ''
+    activePeriodStartedAt.value = now
+    betweenPeriods.value = false
+
+    // Reload periods
+    await loadPeriods()
+    emit('saved')
+  } catch (err: any) {
+    console.error('[GradePanel] Error starting period:', err)
+  }
+  startingPeriod.value = false
 }
 
 function togglePeriod(p: GradePeriod) {
@@ -958,12 +1008,18 @@ onMounted(async () => {
     manualGradesData.value = sheet.manualGrades || []
     taskGrades.value = sheet.taskGrades || []
 
-    // Detect "between periods" state: closed periods exist but no current data
+    // Detect "no active period" state: require period to be started before showing grade sheet
     const hasClosed = (sheet.closedPeriodsCount ?? 0) > 0
-    const hasCurrentGrades = manualGradesData.value.length > 0
-    const hasCurrentTasks = tasks.value.length > 0
-    if (hasClosed && !hasCurrentGrades && !hasCurrentTasks) {
-      betweenPeriods.value = true
+    hasClosedPeriods.value = hasClosed
+    // Use hasActivePeriod from backend when available; fall back to heuristic for older backends
+    if (sheet.hasActivePeriod != null) {
+      betweenPeriods.value = !sheet.hasActivePeriod
+    } else {
+      const hasCurrentGrades = manualGradesData.value.length > 0
+      const hasCurrentTasks = tasks.value.length > 0
+      if (!hasCurrentGrades && !hasCurrentTasks) {
+        betweenPeriods.value = true
+      }
     }
 
     // Discover existing multi-slot columns from data
@@ -1111,12 +1167,12 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 24px;
+  padding: 28px 24px;
   text-align: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.between-periods-icon { font-size: 48px; }
+.between-periods-icon { font-size: 36px; }
 
 .between-periods-title {
   font-size: 18px;
@@ -1152,6 +1208,48 @@ onMounted(async () => {
 .btn-start-period:hover {
   transform: scale(1.04);
   box-shadow: 0 4px 16px rgba(191, 90, 242, 0.3);
+}
+
+.btn-start-period:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.start-period-form {
+  width: 100%;
+  max-width: 380px;
+}
+
+.start-period-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.start-period-row .period-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.start-period-row .btn-start-period {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.period-date-range {
+  font-size: 10px;
+  color: #BF5AF2;
+  opacity: 0.8;
 }
 
 .loading-center {
