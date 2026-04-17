@@ -1727,12 +1727,16 @@ function orderingItemClass(i: number): Record<string, boolean> {
   if (!answered.value) {
     return { 'ordering-selected': pos !== -1 }
   }
+  // If the overall ordering was accepted (strict or dependency-based), mark ALL green
+  if (fillCorrect.value) {
+    return { 'ordering-correct-item': true }
+  }
   const correctSeq = currentQ.value.correctOrder ?? []
   const correctPos = correctSeq.indexOf(i)
   if (pos === -1) return { 'ordering-missing': true }
   return {
-    'ordering-correct-item': pos === correctPos,
-    'ordering-wrong-item':   pos !== correctPos,
+    'ordering-correct-item':   pos === correctPos,
+    'ordering-misplaced-item': pos !== correctPos,
   }
 }
 
@@ -2758,6 +2762,10 @@ onUnmounted(() => {
   border-color: #FF453A;
   background: rgba(255,69,58,0.12);
 }
+.ordering-item.ordering-misplaced-item {
+  border-color: #FF9F0A;
+  background: rgba(255,159,10,0.12);
+}
 .ordering-item.ordering-missing {
   opacity: 0.45;
 }
@@ -2785,6 +2793,10 @@ onUnmounted(() => {
 }
 .ordering-wrong-item .ordering-pos {
   background: #FF453A;
+  color: #fff;
+}
+.ordering-misplaced-item .ordering-pos {
+  background: #FF9F0A;
   color: #fff;
 }
 .ordering-text {
