@@ -444,63 +444,14 @@ async function getGradeSheetsCache() {
   return cache
 }
 
-async function getPeriodsCache() {
-  const cache = new Map<number, any[]>()
-  await Promise.allSettled(
-    subjectsForCourse.value.map(subject =>
-      periodAdapter.listBySubject(subject.id).then(periods => {
-        cache.set(subject.id, periods)
-      }).catch(() => {
-        cache.set(subject.id, [])
-      })
-    )
-  )
-  return cache
-}
-
-function computeRowFromLatestPeriod(subjectId: number, subjectName: string, studentId: number, periods: any[]): BulletinRow | null {
-  const closed = periods.filter((p: any) => p.snapshot != null)
-  if (!closed.length) return null
-  const latest = closed.sort((a: any, b: any) => new Date(b.closedAt ?? 0).getTime() - new Date(a.closedAt ?? 0).getTime())[0]
-  const snapshot = latest.snapshot
-  if (!snapshot) return null
-  const totalTasks = snapshot.tasks?.length ?? 0
-  const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === studentId)
-  const taskSum = stTaskGrades.reduce((s: number, tg: any) => s + (tg.grade ?? 0), 0)
-  const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-  const avgArr = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-  const activeCategories = new Set((snapshot.manualGrades ?? []).map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
-  const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === studentId)
-  const byType: Record<string, number[]> = {}
-  for (const mg of stManualGrades) {
-    const base = String(mg.gradeType).replace(/_\d+$/, '')
-    if (!byType[base]) byType[base] = []
-    byType[base].push(Number(mg.grade))
-  }
-  const participacionAvg = byType['participacion']?.length ? avgArr(byType['participacion']) : (activeCategories.has('participacion') ? 0 : null)
-  const examenesAvg = byType['examenes']?.length ? avgArr(byType['examenes']) : (activeCategories.has('examenes') ? 0 : null)
-  const comportamientoAvg = byType['comportamiento']?.length ? avgArr(byType['comportamiento']) : (activeCategories.has('comportamiento') ? 0 : null)
-  const vals = [taskAvg, participacionAvg, examenesAvg, comportamientoAvg].filter((v): v is number => v !== null)
-  const notaDefinitiva = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
-  return { subjectId, subjectName, notaDefinitiva: Math.round(notaDefinitiva * 10) / 10 }
-}
-
-async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Map<number, GradeSheet | null>, periodsCache?: Map<number, any[]>) {
+async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Map<number, GradeSheet | null>) {
   const rows: BulletinRow[] = []
 
   for (const subject of subjectsForCourse.value) {
     const sheet = sheetsCache.get(subject.id) ?? null
     if (!sheet) continue
-    // When no active period, use the latest closed period snapshot
-    if (sheet.hasActivePeriod === false) {
-      let periods = periodsCache?.get(subject.id)
-      if (!periods) {
-        try { periods = await periodAdapter.listBySubject(subject.id) } catch { periods = [] }
-      }
-      const row = computeRowFromLatestPeriod(subject.id, subject.name, student.userId, periods)
-      if (row) rows.push(row)
-      continue
-    }
+    // Skip subjects without an active period
+    if (sheet.hasActivePeriod === false) continue
 
     const totalTasks = sheet.tasks.length
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
@@ -545,8 +496,8 @@ async function selectStudent(student: GradeSheetStudent) {
   loadingBulletin.value = true
   bulletinRows.value = []
   try {
-    const [sheetsCache, periodsCache] = await Promise.all([getGradeSheetsCache(), getPeriodsCache()])
-    bulletinRows.value = await computeRowsForStudent(student, sheetsCache, periodsCache)
+    const sheetsCache = await getGradeSheetsCache()
+    bulletinRows.value = await computeRowsForStudent(student, sheetsCache)
   } catch { /* silent */ }
   finally { loadingBulletin.value = false }
 }
@@ -557,10 +508,10 @@ async function selectAllStudents() {
   loadingAllBulletins.value = true
   allBulletinData.value = []
   try {
-    const [sheetsCache, periodsCache] = await Promise.all([getGradeSheetsCache(), getPeriodsCache()])
+    const sheetsCache = await getGradeSheetsCache()
     const entries: AllBulletinEntry[] = []
     for (const student of allStudents.value) {
-      const rows = await computeRowsForStudent(student, sheetsCache, periodsCache)
+      const rows = await computeRowsForStudent(student, sheetsCache)
       entries.push({ student, rows })
     }
     allBulletinData.value = entries

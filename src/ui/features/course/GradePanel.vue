@@ -756,12 +756,16 @@ async function executeClosePeriod() {
 }
 
 async function executeStartPeriod() {
+  if (!props.courseId || !props.subjectId || isNaN(props.courseId) || isNaN(props.subjectId)) {
+    console.error('[GradePanel] Invalid courseId or subjectId:', { courseId: props.courseId, subjectId: props.subjectId })
+    return
+  }
   startingPeriod.value = true
   const now = new Date().toISOString()
   try {
     await periodAdapter.startPeriod({
-      courseId: props.courseId,
-      subjectId: props.subjectId,
+      courseId: Number(props.courseId),
+      subjectId: Number(props.subjectId),
       name: newPeriodName.value || undefined,
       startsAt: now,
     })

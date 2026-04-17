@@ -92,8 +92,8 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ (group.average ?? 0).toFixed(1) }}</span>
                 </div>
 
-                <!-- Promedios por estudiante (solo si hay periodo activo y periodos reales) -->
-                <div v-if="subjectHasPeriods(group.subjectId) && group.hasActivePeriod && group.gradeSummaries.length" class="breakdown-section">
+                <!-- Promedios por estudiante (solo si hay periodo activo) -->
+                <div v-if="group.hasActivePeriod && group.gradeSummaries.length" class="breakdown-section">
                   <div class="breakdown-label period-label">
                     📅 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }}
                   </div>
@@ -126,121 +126,11 @@
                     </table>
                   </div>
                 </div>
-                <!-- Periodo activo sin notas aún -->
-                <div v-else-if="subjectHasPeriods(group.subjectId) && group.hasActivePeriod" class="no-active-period-msg">
-                  📅 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }} — Sin notas registradas aún.
+                <div v-else-if="!group.hasActivePeriod" class="no-active-period-msg">
+                  📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
                 </div>
-                <!-- Sin periodo activo pero con periodos cerrados: mostrar último periodo -->
-                <div v-else-if="subjectHasPeriods(group.subjectId) && getLatestClosedPeriod(group.subjectId)" class="breakdown-section">
-                  <div class="breakdown-label period-label">
-                    📅 {{ getLatestClosedPeriod(group.subjectId)?.name }} (último periodo cerrado)
-                  </div>
-                  <div class="table-wrapper">
-                    <table class="grade-table">
-                      <thead>
-                        <tr>
-                          <th class="th-student">Estudiante</th>
-                          <th class="th-grade">Comportamiento</th>
-                          <th class="th-grade">Tareas</th>
-                          <th class="th-grade">Examen</th>
-                          <th class="th-grade">Participación</th>
-                          <th class="th-ponderada">Nota Final</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="row in computePeriodSummaries(getLatestClosedPeriod(group.subjectId)?.snapshot ?? null)" :key="row.studentId" class="grade-row">
-                          <td class="cell-student">{{ row.studentName }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
-                          <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
-                          <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div v-else class="no-active-period-msg">
-                  📅 No hay periodos registrados — inicia un periodo para ver las notas.
-                </div>
+                <div v-else class="no-tasks">Sin entregas</div>
 
-                <!-- Periodos -->
-                <div class="periods-section">
-                  <div class="periods-header" @click="togglePeriodsSection(group.subjectId)">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expandedPeriodSections.has(`periods-${group.subjectId}`) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
-                    <span class="periods-title">Periodos</span>
-                    <span v-if="(periodsBySubject[group.subjectId] ?? []).length" class="periods-badge">{{ (periodsBySubject[group.subjectId] ?? []).length }}</span>
-                    <button class="close-period-btn" @click.stop="handleClosePeriod(group.subjectId, group.subjectName)" :disabled="closingPeriod">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                      Cerrar Periodo
-                    </button>
-                  </div>
-                  <div v-if="expandedPeriodSections.has(`periods-${group.subjectId}`)" class="periods-list">
-                    <div v-if="!(periodsBySubject[group.subjectId] ?? []).length" class="no-periods">No hay periodos creados</div>
-                    <div v-for="period in (periodsBySubject[group.subjectId] ?? [])" :key="period.id" class="period-item">
-                      <div class="period-item-header" @click="togglePeriodExpand(period.id)">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: expandedPeriods.has(period.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><polyline points="9 18 15 12 9 6"/></svg>
-                        <span class="period-name">{{ period.name }}</span>
-                        <span class="period-date">{{ formatPeriodDate(period.closedAt) }}</span>
-                        <span v-if="period.startsAt || period.endsAt" class="period-date-range">
-                          {{ period.startsAt ? formatPeriodDate(period.startsAt) : '—' }} → {{ period.endsAt ? formatPeriodDate(period.endsAt) : '—' }}
-                        </span>
-                        <button v-if="editingPeriodId !== period.id" class="period-edit-btn" @click.stop="startEditingPeriod(period)">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          Editar
-                        </button>
-                        <button v-else class="period-cancel-btn" @click.stop="cancelEditingPeriod()">Cancelar</button>
-                        <button class="period-delete-btn" @click.stop="confirmDeletePeriod(period)" :disabled="deletingPeriod">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                      </div>
-                      <div v-if="expandedPeriods.has(period.id)" class="period-snapshot">
-                        <div v-if="computePeriodSummaries(period.snapshot).length" class="breakdown-section">
-                          <div class="breakdown-label">Notas del periodo</div>
-                          <div class="table-wrapper">
-                            <table class="grade-table">
-                              <thead>
-                                <tr>
-                                  <th class="th-student">Estudiante</th>
-                                  <th class="th-grade">Comportamiento</th>
-                                  <th class="th-grade">Tareas</th>
-                                  <th class="th-grade">Examen</th>
-                                  <th class="th-grade">Participación</th>
-                                  <th class="th-ponderada">Nota Final</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr v-for="row in computePeriodSummaries(period.snapshot)" :key="row.studentId" class="grade-row">
-                                  <td class="cell-student">{{ row.studentName }}</td>
-                                  <template v-if="editingPeriodId === period.id">
-                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'comportamiento')" @input="updatePeriodEdit(row.studentName, 'comportamiento', $event)" /></td>
-                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'tareas')" @input="updatePeriodEdit(row.studentName, 'tareas', $event)" /></td>
-                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'examenes')" @input="updatePeriodEdit(row.studentName, 'examenes', $event)" /></td>
-                                    <td class="cell-grade"><input type="number" class="period-grade-input" min="0" max="10" step="0.1" :value="getPeriodEditValue(row.studentName, 'participacion')" @input="updatePeriodEdit(row.studentName, 'participacion', $event)" /></td>
-                                    <td class="cell-ponderada" :class="gradeClass(computeEditedNotaPonderada(row.studentName))"><strong>{{ computeEditedNotaPonderada(row.studentName).toFixed(1) }}</strong></td>
-                                  </template>
-                                  <template v-else>
-                                    <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
-                                    <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
-                                    <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
-                                    <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
-                                    <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
-                                  </template>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                          <div v-if="editingPeriodId === period.id" class="period-save-bar">
-                            <button class="period-save-btn" @click.stop="savePeriodGrades(period)" :disabled="savingPeriodGrades">
-                              {{ savingPeriodGrades ? 'Guardando...' : 'Guardar cambios' }}
-                            </button>
-                          </div>
-                        </div>
-                        <div v-else class="no-tasks">Sin notas en este periodo</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -438,10 +328,10 @@ function computeSubjectGradeSummaries(sheet: GradeSheet, taskNames: string[], te
   // Detect which manual grade categories are active (used for at least one student in this subject)
   const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
-    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === Number(student.userId))
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === Number(student.userId))
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -650,7 +540,7 @@ async function fetchReport() {
         average: avg != null ? parseFloat(avg.toFixed(1)) : 0,
         studentAverages,
         gradeSummaries,
-        hasActivePeriod: sheet?.hasActivePeriod ?? false,
+        hasActivePeriod: sheet?.hasActivePeriod ?? true,
       }
     })
 
@@ -757,9 +647,8 @@ async function exportExcel() {
 
   for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
-    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (hasPeriods ? ' — Sin periodo activo' : ' — Sin periodos')
+    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
     const grpRow = ws.addRow([`${group.subjectName}${periodLabel} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
@@ -767,58 +656,10 @@ async function exportExcel() {
     grpRow.getCell(1).border = thinBorder
     grpRow.height = 20
 
-    // Sin periodos reales: mostrar mensaje y continuar
-    if (!hasPeriods) {
-      const noperiodRow = ws.addRow(['📅 No hay periodos registrados — inicia un periodo para ver las notas'])
+    if (!group.hasActivePeriod) {
+      const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
       ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
       noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
-      continue
-    }
-
-    if (!group.hasActivePeriod) {
-      const latestClosed = getLatestClosedPeriod(group.subjectId)
-      if (latestClosed) {
-        const periodSummaries = computePeriodSummaries(latestClosed.snapshot)
-        if (periodSummaries.length) {
-          const periodLabelRow = ws.addRow([`📅 ${latestClosed.name} (último periodo cerrado)`])
-          ws.mergeCells(periodLabelRow.number, 1, periodLabelRow.number, 8)
-          periodLabelRow.getCell(1).font = { italic: true, color: { argb: 'FF4A0E8F' }, name: 'Calibri' }
-          periodSummaries.forEach((row, i) => {
-            const dataRow = ws.addRow([
-              group.subjectName,
-              group.teacherName,
-              row.studentName,
-              row.comportamientoAvg ?? 0,
-              row.taskAvg ?? 0,
-              row.examenesAvg ?? 0,
-              row.participacionAvg ?? 0,
-              row.notaPonderada ?? 0,
-            ])
-            const rowFill = i % 2 === 0 ? row0Fill : row1Fill
-            dataRow.eachCell((cell: ExcelJS.Cell) => {
-              cell.fill = rowFill
-              cell.border = thinBorder
-              cell.font = { name: 'Calibri' }
-              cell.alignment = { vertical: 'middle', wrapText: true }
-            })
-            for (let c = 4; c <= 8; c++) {
-              const val = dataRow.getCell(c).value
-              const grade = typeof val === 'number' ? val : null
-              dataRow.getCell(c).font = gradeFont(grade)
-              dataRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
-            }
-            dataRow.height = 16
-          })
-        } else {
-          const emptyRow = ws.addRow(['Sin datos disponibles'])
-          ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
-          emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
-        }
-      } else {
-        const emptyRow2 = ws.addRow(['Sin periodos cerrados disponibles'])
-        ws.mergeCells(emptyRow2.number, 1, emptyRow2.number, 8)
-        emptyRow2.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
-      }
       continue
     }
 
@@ -855,43 +696,6 @@ async function exportExcel() {
       }
       dataRow.height = 16
     })
-
-    // Add closed periods data for this subject
-    const closedPeriods = (periodsBySubject.value[group.subjectId] ?? []).filter(p => p.snapshot != null)
-    for (const period of closedPeriods) {
-      const pSummaries = computePeriodSummaries(period.snapshot)
-      if (!pSummaries.length) continue
-      const pLabelRow = ws.addRow([`📅 ${period.name} (cerrado ${formatPeriodDate(period.closedAt)})`])
-      ws.mergeCells(pLabelRow.number, 1, pLabelRow.number, 8)
-      pLabelRow.getCell(1).font = { italic: true, color: { argb: 'FF4A0E8F' }, size: 10, name: 'Calibri' }
-      pLabelRow.getCell(1).fill = grpHdrFill
-      pSummaries.forEach((row, i) => {
-        const dataRow = ws.addRow([
-          group.subjectName,
-          group.teacherName,
-          row.studentName,
-          row.comportamientoAvg ?? 0,
-          row.taskAvg ?? 0,
-          row.examenesAvg ?? 0,
-          row.participacionAvg ?? 0,
-          row.notaPonderada ?? 0,
-        ])
-        const rowFill = i % 2 === 0 ? row0Fill : row1Fill
-        dataRow.eachCell((cell: ExcelJS.Cell) => {
-          cell.fill = rowFill
-          cell.border = thinBorder
-          cell.font = { name: 'Calibri' }
-          cell.alignment = { vertical: 'middle', wrapText: true }
-        })
-        for (let c = 4; c <= 8; c++) {
-          const val = dataRow.getCell(c).value
-          const grade = typeof val === 'number' ? val : null
-          dataRow.getCell(c).font = gradeFont(grade)
-          dataRow.getCell(c).alignment = { horizontal: 'center', vertical: 'middle' }
-        }
-        dataRow.height = 16
-      })
-    }
   }
 
   // Footer rows: signature + institution footer
@@ -958,17 +762,6 @@ function togglePeriodsSection(subjectId: number) {
   expandedPeriodSections.value = next
 }
 
-function getLatestClosedPeriod(subjectId: number): GradePeriod | null {
-  const periods = periodsBySubject.value[subjectId] ?? []
-  const closed = periods.filter(p => p.snapshot != null)
-  if (!closed.length) return null
-  return closed.sort((a, b) => new Date(b.closedAt ?? 0).getTime() - new Date(a.closedAt ?? 0).getTime())[0]
-}
-
-function subjectHasPeriods(subjectId: number): boolean {
-  return (periodsBySubject.value[subjectId] ?? []).length > 0
-}
-
 function togglePeriodExpand(periodId: number) {
   const next = new Set(expandedPeriods.value)
   if (next.has(periodId)) next.delete(periodId)
@@ -993,7 +786,6 @@ async function handleClosePeriod(subjectId: number, subjectName: string) {
       const sheet = await gradeAdapter.getGradeSheet(subjectId)
       const group = reportData.value.find(g => g.subjectId === subjectId)
       if (group && sheet) {
-        group.hasActivePeriod = sheet.hasActivePeriod ?? false
         const taskNames = sheet.tasks.map((t: any) => t.title ?? t.name ?? '')
         group.gradeSummaries = computeSubjectGradeSummaries(sheet, taskNames, group.teacherName)
         reportData.value = [...reportData.value]
@@ -1013,10 +805,10 @@ function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] 
   const avgArr = (arr: number[]): number | null => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
   const activeCategories = new Set((snapshot.manualGrades ?? []).map((mg: any) => String(mg.gradeType).replace(/_\d+$/, '')))
   return (snapshot.students ?? []).map((student: any) => {
-    const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === Number(student.userId))
+    const stTaskGrades = (snapshot.taskGrades ?? []).filter((tg: any) => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s: number, tg: any) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === Number(student.userId))
+    const stManualGrades = (snapshot.manualGrades ?? []).filter((mg: any) => Number(mg.studentId) === student.userId)
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -1113,7 +905,7 @@ async function savePeriodGrades(period: GradePeriod) {
       if (!student) continue
       const sid = student.userId
       const editedTaskAvg = grades.tareas ?? 0
-      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === Number(sid))
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
       if (studentTasks.length > 0) {
         for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
       } else if (editedTaskAvg > 0) {
@@ -1164,35 +956,14 @@ function buildShareText(): string {
   let text = '📊 REPORTE DE NOTAS\n\n'
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
-    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const latestClosed = !group.hasActivePeriod ? getLatestClosedPeriod(group.subjectId) : null
-    const periodLabel = activePeriod ? ` [${activePeriod.name}]` : (latestClosed ? ` [${latestClosed.name}]` : ' [Sin periodos]')
+    const periodLabel = activePeriod ? ` [${activePeriod.name}]` : ' [Sin periodo activo]'
     text += `📘 ${group.subjectName}${periodLabel} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
-    if (!hasPeriods) {
-      text += `   📅 No hay periodos registrados\n`
-    } else if (!group.hasActivePeriod) {
-      if (latestClosed) {
-        const periodSummaries = computePeriodSummaries(latestClosed.snapshot)
-        for (const row of periodSummaries) {
-          text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
-        }
-      } else {
-        text += `   📅 No hay periodos registrados\n`
-      }
+    if (!group.hasActivePeriod) {
+      text += `   ⚠️ Sin periodo activo\n`
     } else {
       for (const row of group.gradeSummaries) {
         text += `   • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
-      }
-      // Include closed periods
-      const closedPeriods = (periodsBySubject.value[group.subjectId] ?? []).filter(p => p.snapshot != null)
-      for (const period of closedPeriods) {
-        const pSummaries = computePeriodSummaries(period.snapshot)
-        if (!pSummaries.length) continue
-        text += `   📅 ${period.name}:\n`
-        for (const row of pSummaries) {
-          text += `      • ${row.studentName}: Comp. ${fmt(row.comportamientoAvg)} | Tareas ${fmt(row.taskAvg)} | Examen ${fmt(row.examenesAvg)} | Partic. ${fmt(row.participacionAvg)} | Nota ${fmt(row.notaPonderada)}\n`
-        }
       }
     }
     text += '\n'
@@ -1211,34 +982,11 @@ function buildPrintableHTML(): string {
   let rows = ''
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
-    const hasPeriods = subjectHasPeriods(group.subjectId)
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const latestClosedPDF = !group.hasActivePeriod ? getLatestClosedPeriod(group.subjectId) : null
-    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (latestClosedPDF ? ` — ${latestClosedPDF.name}` : '')
+    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : ''
     rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}${periodLabel}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
-    if (!hasPeriods) {
-      rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">📅 No hay periodos registrados — inicia un periodo para ver las notas</td></tr>`
-    } else if (!group.hasActivePeriod) {
-      if (latestClosedPDF) {
-        const periodSummaries = computePeriodSummaries(latestClosedPDF.snapshot)
-        for (const row of periodSummaries) {
-          const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
-          rows += `<tr>
-          <td>${escH(group.subjectName)}</td>
-          <td>${row.studentName}</td>
-          <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
-          <td style="text-align:center">${fmt(row.taskAvg)}</td>
-          <td style="text-align:center">${fmt(row.examenesAvg)}</td>
-          <td style="text-align:center">${fmt(row.participacionAvg)}</td>
-          <td style="color:${notaColor};font-weight:700;text-align:center">${fmt(row.notaPonderada)}</td>
-        </tr>`
-        }
-        if (!periodSummaries.length) {
-          rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin datos en este periodo</td></tr>`
-        }
-      } else {
-        rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">📅 No hay periodos registrados</td></tr>`
-      }
+    if (!group.hasActivePeriod) {
+      rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
     } else if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
     } else {
@@ -1253,25 +1001,6 @@ function buildPrintableHTML(): string {
         <td style="text-align:center">${fmt(row.participacionAvg)}</td>
         <td style="color:${notaColor};font-weight:700;text-align:center">${fmt(row.notaPonderada)}</td>
       </tr>`
-      }
-      // Include closed periods
-      const closedPeriodsPDF = (periodsBySubject.value[group.subjectId] ?? []).filter(p => p.snapshot != null)
-      for (const period of closedPeriodsPDF) {
-        const pSummaries = computePeriodSummaries(period.snapshot)
-        if (!pSummaries.length) continue
-        rows += `<tr class="subject-header"><td colspan="7" style="font-size:12px;background:#eee8f8">📅 ${escH(period.name)} (cerrado ${formatPeriodDate(period.closedAt)})</td></tr>`
-        for (const row of pSummaries) {
-          const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
-          rows += `<tr>
-          <td>${escH(group.subjectName)}</td>
-          <td>${row.studentName}</td>
-          <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
-          <td style="text-align:center">${fmt(row.taskAvg)}</td>
-          <td style="text-align:center">${fmt(row.examenesAvg)}</td>
-          <td style="text-align:center">${fmt(row.participacionAvg)}</td>
-          <td style="color:${notaColor};font-weight:700;text-align:center">${fmt(row.notaPonderada)}</td>
-        </tr>`
-        }
       }
     }
   }

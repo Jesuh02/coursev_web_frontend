@@ -156,38 +156,8 @@
                           </table>
                         </div>
                       </div>
-                      <!-- Sin periodo activo pero con periodos cerrados: mostrar último periodo -->
-                      <div v-else-if="!subGroup.hasActivePeriod && getLatestClosedPeriod(subGroup.subjectId ?? 0)" class="breakdown-section">
-                        <div class="breakdown-label period-label">
-                          📅 {{ getLatestClosedPeriod(subGroup.subjectId ?? 0)!.name }} (último periodo cerrado)
-                        </div>
-                        <div class="table-wrapper">
-                          <table class="grade-table">
-                            <thead>
-                              <tr>
-                                <th class="th-student">Estudiante</th>
-                                <th class="th-grade">Comportamiento</th>
-                                <th class="th-grade">Tareas</th>
-                                <th class="th-grade">Examen</th>
-                                <th class="th-grade">Participación</th>
-                                <th class="th-ponderada">Nota Final</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr v-for="row in computePeriodSummaries(getLatestClosedPeriod(subGroup.subjectId ?? 0)!.snapshot)" :key="row.studentUsername" class="grade-row">
-                                <td class="cell-student">{{ displayStudentName(row.studentFullName) }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.comportamientoAvg)">{{ (row.comportamientoAvg ?? 0).toFixed(1) }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.taskAvg)">{{ (row.taskAvg ?? 0).toFixed(1) }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.examenesAvg)">{{ (row.examenesAvg ?? 0).toFixed(1) }}</td>
-                                <td class="cell-grade" :class="gradeClass(row.participacionAvg)">{{ (row.participacionAvg ?? 0).toFixed(1) }}</td>
-                                <td class="cell-ponderada" :class="gradeClass(row.notaPonderada)"><strong>{{ (row.notaPonderada ?? 0).toFixed(1) }}</strong></td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
                       <div v-else-if="!subGroup.hasActivePeriod" class="no-active-period-msg">
-                        📅 No hay periodos registrados — inicia un periodo para ver las notas.
+                        📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
                       </div>
                       <div v-else class="no-tasks">Sin entregas</div>
 
@@ -564,7 +534,7 @@ async function fetchReport() {
         for (const r of sheetResults) {
           if (r.status === 'fulfilled' && r.value.sheet) {
             // Only populate summaries when a period is active
-            const active = r.value.sheet.hasActivePeriod ?? false
+            const active = r.value.sheet.hasActivePeriod ?? true
             hasActivePeriodBySubjectId.value[r.value.subjectId] = active
             gradeSummariesBySubject[r.value.subjectName] = active
               ? computeGradeSummaries(r.value.sheet)
@@ -670,10 +640,10 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
   const totalTasks = sheet.tasks.length
   const activeCategories = new Set(sheet.manualGrades.map(mg => String(mg.gradeType).replace(/_\d+$/, '')))
   return sheet.students.map(student => {
-    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === Number(student.userId))
+    const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
     const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
-    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === Number(student.userId))
+    const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
       const base = String(mg.gradeType).replace(/_\d+$/, '')
@@ -957,13 +927,6 @@ function computePeriodSummaries(snapshot: GradeSheet | null): GradeSummaryRow[] 
   return computeGradeSummaries(snapshot)
 }
 
-function getLatestClosedPeriod(subjectId: number): GradePeriod | null {
-  const periods = periodsBySubject.value[subjectId] ?? []
-  const closed = periods.filter(p => p.snapshot != null)
-  if (!closed.length) return null
-  return closed.sort((a, b) => new Date(b.closedAt ?? 0).getTime() - new Date(a.closedAt ?? 0).getTime())[0]
-}
-
 function formatPeriodDate(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -1035,7 +998,7 @@ async function savePeriodGrades(period: GradePeriod) {
       if (!student) continue
       const sid = student.userId
       const editedTaskAvg = grades.tareas ?? 0
-      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === Number(sid))
+      const studentTasks = newTaskGrades.filter((tg: any) => Number(tg.studentId) === sid)
       if (studentTasks.length > 0) {
         for (const tg of studentTasks) { tg.grade = Math.round(editedTaskAvg * 10) / 10 }
       } else if (editedTaskAvg > 0) {
@@ -1086,7 +1049,7 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId:
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
     const gradeSummaries = group.gradeSummariesBySubject[subjectName] ?? []
     const subjectId = group.subjectIdsByName?.[subjectName] ?? null
-    const hasActivePeriod = subjectId != null ? (hasActivePeriodBySubjectId.value[subjectId] ?? false) : false
+    const hasActivePeriod = subjectId != null ? (hasActivePeriodBySubjectId.value[subjectId] ?? true) : true
     return { subjectName, subjectId, rows, studentAverages, average, gradeSummaries, hasActivePeriod }
   })
 }
