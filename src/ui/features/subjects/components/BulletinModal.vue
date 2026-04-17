@@ -77,10 +77,25 @@
             </div>
 
             <template v-else>
+              <div v-if="allBulletinData.length" class="bulletin-export-bar bulletin-export-bar--top">
+                <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  PDF todos
+                </button>
+                <button class="export-btn export-excel" @click="exportAllBulletinsExcel">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                  Excel todos
+                </button>
+                <button class="export-btn export-word" @click="exportAllBulletinsWord">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                  Word todos
+                </button>
+              </div>
+
               <div v-for="entry in allBulletinData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
                 <div class="boletin-header-top">
                   <div class="boletin-logo-placeholder">
-                    <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
+                    <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl() || undefined" alt="Escudo" style="width:50px;height:auto" />
                     <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   </div>
                   <div class="boletin-institution">
@@ -132,21 +147,6 @@
                   </div>
                 </template>
                 </div>
-
-            <div v-if="!loadingAllBulletins && allBulletinData.length" class="bulletin-export-bar">
-              <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                PDF todos
-              </button>
-              <button class="export-btn export-excel" @click="exportAllBulletinsExcel">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-                Excel todos
-              </button>
-              <button class="export-btn export-word" @click="exportAllBulletinsWord">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                Word todos
-              </button>
-            </div>
               </template>
           </div>
 
@@ -162,112 +162,113 @@
               <p>Generando boletín…</p>
             </div>
 
-            <div v-else ref="bulletinContent" class="bulletin-card">
-              <!-- School header -->
-              <div class="boletin-header-top">
-                <div class="boletin-logo-placeholder">
-                  <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl()!" alt="Escudo" style="width:50px;height:auto" />
-                  <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                </div>
-                <div class="boletin-institution">
-                  <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                  <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
-                  <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
-                </div>
+            <template v-else>
+              <div class="bulletin-export-bar bulletin-export-bar--top">
+                <button class="export-btn export-pdf" @click="exportBulletinPDF">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  PDF
+                </button>
+                <button class="export-btn export-excel" @click="exportBulletinExcel">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                  Excel
+                </button>
+                <button class="export-btn export-word" @click="exportBulletinWord">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                  Word
+                </button>
+                <button class="export-btn export-share" @click="shareBulletin">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                  Compartir
+                </button>
               </div>
 
-              <div class="boletin-divider" />
+              <div ref="bulletinContent" class="bulletin-card">
+                <!-- School header -->
+                <div class="boletin-header-top">
+                  <div class="boletin-logo-placeholder">
+                    <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl() || undefined" alt="Escudo" style="width:50px;height:auto" />
+                    <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  </div>
+                  <div class="boletin-institution">
+                    <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
+                  </div>
+                </div>
 
-              <!-- Student info -->
-              <div class="boletin-info-grid">
-                <div class="boletin-info-row">
-                  <span class="boletin-label">PROGRAMA:</span>
-                  <span class="boletin-value">{{ courseName || '—' }}</span>
+                <div class="boletin-divider" />
+
+                <!-- Student info -->
+                <div class="boletin-info-grid">
+                  <div class="boletin-info-row">
+                    <span class="boletin-label">PROGRAMA:</span>
+                    <span class="boletin-value">{{ courseName || '—' }}</span>
+                  </div>
+                  <div class="boletin-info-row">
+                    <span class="boletin-label">ESTUDIANTE:</span>
+                    <span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span>
+                  </div>
+                  <div v-if="selectedStudent?.cedula" class="boletin-info-row">
+                    <span class="boletin-label">IDENTIFICACIÓN:</span>
+                    <span class="boletin-value">{{ selectedStudent?.cedula }}</span>
+                  </div>
+                  <div class="boletin-info-row">
+                    <span class="boletin-label">PERIODO:</span>
+                    <span class="boletin-value">{{ currentPeriod }}</span>
+                  </div>
                 </div>
-                <div class="boletin-info-row">
-                  <span class="boletin-label">ESTUDIANTE:</span>
-                  <span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span>
+
+                <div class="boletin-divider" />
+
+                <!-- Grades table -->
+                <template v-if="bulletinRows.length">
+                <table class="boletin-table">
+                  <thead>
+                    <tr>
+                      <th class="th-modulo">MÓDULO</th>
+                      <th class="th-nota">NOTA DEFINITIVA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in bulletinRows" :key="row.subjectId">
+                      <td class="td-modulo">{{ row.subjectName }}</td>
+                      <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- Average -->
+                <div class="boletin-promedio">
+                  <span class="promedio-label">PROMEDIO GENERAL</span>
+                  <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral.toFixed(1) }}</span>
                 </div>
-                <div v-if="selectedStudent?.cedula" class="boletin-info-row">
-                  <span class="boletin-label">IDENTIFICACIÓN:</span>
-                  <span class="boletin-value">{{ selectedStudent?.cedula }}</span>
+                </template>
+                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                  📅 Sin periodo activo — no hay datos de notas disponibles.
                 </div>
-                <div class="boletin-info-row">
-                  <span class="boletin-label">PERIODO:</span>
-                  <span class="boletin-value">{{ currentPeriod }}</span>
+
+                <div class="boletin-divider" />
+
+                <!-- Footer -->
+                <div class="boletin-footer">
+                  <p class="boletin-generated">Generado el {{ generatedDate }}</p>
                 </div>
+                <!-- INCAT signature + footer -->
+                <template v-if="isIncatInstitution()">
+                  <div class="incat-sig-block" style="margin-top:16px">
+                    <div class="incat-sig-line"></div>
+                    <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                    <p class="incat-sig-title">RECTOR</p>
+                  </div>
+                  <div class="incat-footer-info">
+                    <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                    <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                    <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                    <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                  </div>
+                </template>
               </div>
-
-              <div class="boletin-divider" />
-
-              <!-- Grades table -->
-              <template v-if="bulletinRows.length">
-              <table class="boletin-table">
-                <thead>
-                  <tr>
-                    <th class="th-modulo">MÓDULO</th>
-                    <th class="th-nota">NOTA DEFINITIVA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in bulletinRows" :key="row.subjectId">
-                    <td class="td-modulo">{{ row.subjectName }}</td>
-                    <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <!-- Average -->
-              <div class="boletin-promedio">
-                <span class="promedio-label">PROMEDIO GENERAL</span>
-                <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral.toFixed(1) }}</span>
-              </div>
-              </template>
-              <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
-                📅 Sin periodo activo — no hay datos de notas disponibles.
-              </div>
-
-              <div class="boletin-divider" />
-
-              <!-- Footer -->
-              <div class="boletin-footer">
-                <p class="boletin-generated">Generado el {{ generatedDate }}</p>
-              </div>
-              <!-- INCAT signature + footer -->
-              <template v-if="isIncatInstitution()">
-                <div class="incat-sig-block" style="margin-top:16px">
-                  <div class="incat-sig-line"></div>
-                  <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
-                  <p class="incat-sig-title">RECTOR</p>
-                </div>
-                <div class="incat-footer-info">
-                  <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
-                  <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
-                  <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
-                  <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
-                </div>
-              </template>
-            </div>
-
-            <!-- Export buttons -->
-            <div class="bulletin-export-bar">
-              <button class="export-btn export-pdf" @click="exportBulletinPDF">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                PDF
-              </button>
-              <button class="export-btn export-excel" @click="exportBulletinExcel">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-                Excel
-              </button>
-              <button class="export-btn export-word" @click="exportBulletinWord">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                Word
-              </button>
-              <button class="export-btn export-share" @click="shareBulletin">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-                Compartir
-              </button>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -1307,6 +1308,11 @@ ${buildInstitutionSignatureAndFooterHTML()}
   display: flex;
   gap: 10px;
   padding: 16px 0 4px;
+}
+
+.bulletin-export-bar--top {
+  padding-top: 0;
+  padding-bottom: 16px;
 }
 
 .export-btn {
