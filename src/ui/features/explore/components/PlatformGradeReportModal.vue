@@ -126,9 +126,11 @@
                         <span class="subject-avg" :class="gradeClass(subGroup.average)">{{ (subGroup.average ?? 0).toFixed(1) }}</span>
                       </div>
 
-                      <!-- Breakdown: promedios por categoría (igual que GradeReportModal) -->
-                      <div v-if="subGroup.gradeSummaries.length" class="breakdown-section">
-                        <div class="breakdown-label">Promedios por categoría</div>
+                      <!-- Breakdown: promedios por categoría (solo si hay periodo activo) -->
+                      <div v-if="subGroup.hasActivePeriod && subGroup.gradeSummaries.length" class="breakdown-section">
+                        <div class="breakdown-label period-label">
+                          📅 {{ (periodsBySubject[subGroup.subjectId ?? 0] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }}
+                        </div>
                         <div class="table-wrapper">
                           <table class="grade-table">
                             <thead>
@@ -153,6 +155,9 @@
                             </tbody>
                           </table>
                         </div>
+                      </div>
+                      <div v-else-if="!subGroup.hasActivePeriod" class="no-active-period-msg">
+                        📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
                       </div>
                       <div v-else class="no-tasks">Sin entregas</div>
 
@@ -344,6 +349,7 @@ const totalCourses = ref(0)
 
 // ── Periods ──
 const periodsBySubject = ref<Record<number, GradePeriod[]>>({})
+const hasActivePeriodBySubjectId = ref<Record<number, boolean>>({})
 const expandedSections = ref(new Set<string>())
 const expandedPeriods = ref(new Set<number>())
 const closingPeriod = ref(false)
@@ -522,12 +528,17 @@ async function fetchReport() {
         const sheetResults = await Promise.allSettled(
           (subjectsRaw ?? []).map(async (s: any) => {
             const sheet = await gradeAdapter.getGradeSheet(s.id)
-            return { subjectName: s.name as string, sheet }
+            return { subjectName: s.name as string, subjectId: s.id as number, sheet }
           })
         )
         for (const r of sheetResults) {
           if (r.status === 'fulfilled' && r.value.sheet) {
-            gradeSummariesBySubject[r.value.subjectName] = computeGradeSummaries(r.value.sheet)
+            // Only populate summaries when a period is active
+            const active = r.value.sheet.hasActivePeriod ?? true
+            hasActivePeriodBySubjectId.value[r.value.subjectId] = active
+            gradeSummariesBySubject[r.value.subjectName] = active
+              ? computeGradeSummaries(r.value.sheet)
+              : []
           }
         }
 
@@ -756,18 +767,22 @@ async function exportExcel() {
     courseCell.border = thinBorder
     courseRow.height = 20
 
-    const hasSummaries = Object.values(group.gradeSummariesBySubject).some(s => s.length > 0)
-    if (!hasSummaries) {
+    const subjectGroups = getSubjectGroups(group)
+    const hasSummaries = subjectGroups.some(sg => sg.hasActivePeriod && sg.gradeSummaries.length > 0)
+    if (!hasSummaries && !subjectGroups.some(sg => !sg.hasActivePeriod)) {
       const emptyRow = ws.addRow(['Sin datos disponibles'])
       ws.mergeCells(emptyRow.number, 1, emptyRow.number, 8)
       emptyRow.getCell(1).font = { italic: true, color: { argb: 'FF999999' }, name: 'Calibri' }
       continue
     }
 
-    for (const [subjectName, summaries] of Object.entries(group.gradeSummariesBySubject)) {
-      if (!summaries.length) continue
+    for (const subGroup of subjectGroups) {
+      const activePeriod = subGroup.subjectId != null
+        ? (periodsBySubject.value[subGroup.subjectId] ?? []).find(p => !p.snapshot)
+        : null
+      const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (subGroup.hasActivePeriod ? '' : ' — Sin periodo activo')
       // Subject sub-header row (merged)
-      const subjRow = ws.addRow([`Materia: ${subjectName}`])
+      const subjRow = ws.addRow([`Materia: ${subGroup.subjectName}${periodLabel}`])
       ws.mergeCells(subjRow.number, 1, subjRow.number, 8)
       const subjCell = subjRow.getCell(1)
       subjCell.font = { bold: true, color: { argb: 'FF7B3FA6' }, size: 9, name: 'Calibri' }
@@ -775,10 +790,19 @@ async function exportExcel() {
       subjCell.border = thinBorder
       subjRow.height = 16
 
-      summaries.forEach((row, i) => {
+      if (!subGroup.hasActivePeriod) {
+        const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
+        ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
+        noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
+        continue
+      }
+
+      if (!subGroup.gradeSummaries.length) continue
+
+      subGroup.gradeSummaries.forEach((row, i) => {
         const dataRow = ws.addRow([
           group.courseName,
-          subjectName,
+          subGroup.subjectName,
           row.studentFullName || row.studentUsername,
           row.comportamientoAvg ?? 0,
           row.taskAvg ?? 0,
@@ -995,7 +1019,7 @@ async function savePeriodGrades(period: GradePeriod) {
 }
 
 // ── Subject sub-grouping ──────────────────────────────────────────────────
-function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId: number | null; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null; gradeSummaries: GradeSummaryRow[] }[] {
+function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId: number | null; rows: ReportRow[]; studentAverages: Record<string, number>; average: number | null; gradeSummaries: GradeSummaryRow[]; hasActivePeriod: boolean }[] {
   const map = new Map<string, ReportRow[]>()
   for (const row of group.rows) {
     const key = row.subjectName ?? '—'
@@ -1019,7 +1043,8 @@ function getSubjectGroups(group: CourseGroup): { subjectName: string; subjectId:
     const average = graded.length ? parseFloat((graded.reduce((s, r) => s + r.grade!, 0) / graded.length).toFixed(1)) : null
     const gradeSummaries = group.gradeSummariesBySubject[subjectName] ?? []
     const subjectId = group.subjectIdsByName?.[subjectName] ?? null
-    return { subjectName, subjectId, rows, studentAverages, average, gradeSummaries }
+    const hasActivePeriod = subjectId != null ? (hasActivePeriodBySubjectId.value[subjectId] ?? true) : true
+    return { subjectName, subjectId, rows, studentAverages, average, gradeSummaries, hasActivePeriod }
   })
 }
 
@@ -1038,19 +1063,31 @@ function buildPrintableHTML(mode: 'pdf' | 'word' = 'pdf'): string {
   let rows = ''
   for (const group of filteredData.value) {
     rows += `<tr class="course-header"><td colspan="8">${esc_html(group.courseName)}</td></tr>`
-    const hasSummaries = Object.values(group.gradeSummariesBySubject).some(s => s.length > 0)
-    if (!hasSummaries) {
+    const subjectGroups = getSubjectGroups(group)
+    const hasSummaries = subjectGroups.some(sg => sg.hasActivePeriod && sg.gradeSummaries.length > 0)
+    if (!hasSummaries && !subjectGroups.some(sg => !sg.hasActivePeriod)) {
       rows += `<tr><td colspan="8" style="color:#999;font-style:italic;padding-left:20px">Sin datos disponibles</td></tr>`
     } else {
-      for (const [subjectName, summaries] of Object.entries(group.gradeSummariesBySubject)) {
-        if (!summaries.length) continue
-        rows += `<tr class="subject-header"><td colspan="8"><span class="stag">Materia</span> ${esc_html(subjectName)}</td></tr>`
+      for (const subGroup of subjectGroups) {
+        const activePeriod = subGroup.subjectId != null
+          ? (periodsBySubject.value[subGroup.subjectId] ?? []).find(p => !p.snapshot)
+          : null
+        const periodLabel = activePeriod ? ` — ${esc_html(activePeriod.name)}` : ''
+        rows += `<tr class="subject-header"><td colspan="8"><span class="stag">Materia</span> ${esc_html(subGroup.subjectName)}${periodLabel}</td></tr>`
+        if (!subGroup.hasActivePeriod) {
+          rows += `<tr><td colspan="8" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
+          continue
+        }
+        if (!subGroup.gradeSummaries.length) {
+          rows += `<tr><td colspan="8" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
+          continue
+        }
         const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
-        for (const row of summaries) {
+        for (const row of subGroup.gradeSummaries) {
           const notaColor = (row.notaPonderada ?? 0) >= 4 ? '#34C759' : (row.notaPonderada ?? 0) >= 3 ? '#FF9500' : '#FF453A'
           rows += `<tr>
         <td>${esc_html(group.courseName)}</td>
-        <td>${esc_html(subjectName)}</td>
+        <td>${esc_html(subGroup.subjectName)}</td>
         <td><strong>${esc_html(row.studentFullName || row.studentUsername)}</strong></td>
         <td style="text-align:center">${fmt(row.comportamientoAvg)}</td>
         <td style="text-align:center">${fmt(row.taskAvg)}</td>
@@ -1380,6 +1417,22 @@ function esc_html(s: string): string {
   padding: 10px 16px;
   font-size: 13px;
   color: #636366;
+}
+
+.no-active-period-msg {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #FF9500;
+  background: rgba(255, 149, 0, 0.08);
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+.period-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #BF5AF2;
+  padding: 4px 0 6px;
 }
 
 .grade-good { color: #34C759 !important; font-weight: 700; }
