@@ -878,7 +878,7 @@ async function generatePlatformBulletin() {
         const rows: BulletinRow[] = []
         for (const s of subjects) {
           const sheet = sheetsCache.get(s.id)
-          if (!sheet || sheet.hasActivePeriod === false) continue
+          if (!sheet) continue
 
           const totalTasks = sheet.tasks.length
           const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)

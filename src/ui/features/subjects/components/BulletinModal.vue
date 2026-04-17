@@ -707,7 +707,7 @@ async function generatePlatformBulletin() {
         const rows: BulletinRow[] = []
         for (const s of subjects) {
           const sheet = sheetsCache.get(s.id)
-          if (!sheet || sheet.hasActivePeriod === false) continue
+          if (!sheet) continue
           rows.push(extractRowsFromSheet(sheet, s, student.userId))
         }
         if (rows.length) entries.push({ student, courseTitle: course.title, rows })

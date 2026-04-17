@@ -129,6 +129,7 @@ watch(() => authStore.user?.id, (newId) => {
   font-weight: 500;
   color: #FF3B30;
   letter-spacing: -0.01em;
+  pointer-events: none;
 }
 
 .stripe-slide-enter-active,
@@ -156,7 +157,7 @@ watch(() => authStore.user?.id, (newId) => {
   border-radius: 20px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  pointer-events: auto;
+  pointer-events: none;
   max-width: 280px;
 }
 
@@ -216,6 +217,7 @@ watch(() => authStore.user?.id, (newId) => {
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
+  pointer-events: auto;
 }
 
 .payment-notice-pay:hover {
@@ -241,6 +243,7 @@ watch(() => authStore.user?.id, (newId) => {
   border-radius: 50%;
   padding: 0;
   transition: color 0.15s;
+  pointer-events: auto;
 }
 
 .payment-notice-close:hover {
@@ -281,6 +284,7 @@ watch(() => authStore.user?.id, (newId) => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  pointer-events: auto;
 }
 
 .stripe-pay-btn:hover:not(:disabled) {
