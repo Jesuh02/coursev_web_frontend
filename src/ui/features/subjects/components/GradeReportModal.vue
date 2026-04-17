@@ -92,10 +92,12 @@
                   <span class="subject-avg" :class="gradeClass(group.average)">{{ (group.average ?? 0).toFixed(1) }}</span>
                 </div>
 
-                <!-- Promedios por estudiante (solo si hay periodo activo) -->
-                <div v-if="group.hasActivePeriod && group.gradeSummaries.length" class="breakdown-section">
+                <!-- Promedios por estudiante -->
+                <div v-if="group.gradeSummaries.length" class="breakdown-section">
                   <div class="breakdown-label period-label">
-                    📅 {{ (periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo' }}
+                    📅 {{ group.hasActivePeriod
+                          ? ((periodsBySubject[group.subjectId] ?? []).find(p => !p.snapshot)?.name ?? 'Periodo activo')
+                          : ((periodsBySubject[group.subjectId] ?? []).find(p => p.snapshot != null)?.name ?? 'Periodo') }}
                   </div>
                   <div class="table-wrapper">
                     <table class="grade-table">
@@ -130,6 +132,7 @@
                   📅 Sin periodo activo — los datos de notas solo se muestran cuando hay un periodo iniciado.
                 </div>
                 <div v-else class="no-tasks">Sin entregas</div>
+
 
               </div>
             </div>
@@ -553,9 +556,18 @@ async function fetchReport() {
       for (let i = 0; i < subjectIds.length; i++) {
         const result = periodsResults[i]
         if (result.status === 'fulfilled') {
-          periodsBySubject.value[subjectIds[i]] = result.value as GradePeriod[]
+          const subjectId = subjectIds[i]
+          const periods = result.value as GradePeriod[]
+          periodsBySubject.value[subjectId] = periods
+          // If there is exactly one closed period and no active period, populate
+          // gradeSummaries from that snapshot so the report shows the data.
+          const group = reportData.value.find(g => g.subjectId === subjectId)
+          if (group && !group.hasActivePeriod && periods.length === 1 && periods[0].snapshot != null) {
+            group.gradeSummaries = computePeriodSummaries(periods[0].snapshot)
+          }
         }
       }
+      reportData.value = [...reportData.value]
     }
   } catch { /* silent */ }
   finally { loading.value = false }
@@ -648,7 +660,14 @@ async function exportExcel() {
   for (const group of filteredReportData.value) {
     const avg = group.average !== null ? group.average : 0
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
+    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
+      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
+      : null
+    const periodLabel = activePeriod
+      ? ` — ${activePeriod.name}`
+      : singleClosedPeriod
+        ? ` — ${singleClosedPeriod.name}`
+        : (group.hasActivePeriod ? '' : ' — Sin periodo activo')
     const grpRow = ws.addRow([`${group.subjectName}${periodLabel} — Docente: ${group.teacherName} — Promedio: ${avg}`])
     ws.mergeCells(grpRow.number, 1, grpRow.number, 8)
     grpRow.getCell(1).font = { bold: true, color: { argb: 'FF4A0E8F' }, size: 11, name: 'Calibri' }
@@ -656,7 +675,7 @@ async function exportExcel() {
     grpRow.getCell(1).border = thinBorder
     grpRow.height = 20
 
-    if (!group.hasActivePeriod) {
+    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
       const noperiodRow = ws.addRow(['⚠️ Sin periodo activo — inicia un periodo para registrar notas'])
       ws.mergeCells(noperiodRow.number, 1, noperiodRow.number, 8)
       noperiodRow.getCell(1).font = { italic: true, color: { argb: 'FFB45309' }, name: 'Calibri' }
@@ -957,9 +976,16 @@ function buildShareText(): string {
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const periodLabel = activePeriod ? ` [${activePeriod.name}]` : ' [Sin periodo activo]'
+    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
+      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
+      : null
+    const periodLabel = activePeriod
+      ? ` [${activePeriod.name}]`
+      : singleClosedPeriod
+        ? ` [${singleClosedPeriod.name}]`
+        : (group.hasActivePeriod ? '' : ' [Sin periodo activo]')
     text += `📘 ${group.subjectName}${periodLabel} — Docente: ${group.teacherName} (Promedio: ${group.average ?? '0.0'})\n`
-    if (!group.hasActivePeriod) {
+    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
       text += `   ⚠️ Sin periodo activo\n`
     } else {
       for (const row of group.gradeSummaries) {
@@ -983,9 +1009,16 @@ function buildPrintableHTML(): string {
   const fmt = (v: number | null) => v != null ? v.toFixed(1) : '0.0'
   for (const group of filteredReportData.value) {
     const activePeriod = (periodsBySubject.value[group.subjectId] ?? []).find(p => !p.snapshot)
-    const periodLabel = activePeriod ? ` — ${activePeriod.name}` : ''
+    const singleClosedPeriod = !group.hasActivePeriod && group.gradeSummaries.length
+      ? (periodsBySubject.value[group.subjectId] ?? []).find(p => p.snapshot != null) ?? null
+      : null
+    const periodLabel = activePeriod
+      ? ` — ${activePeriod.name}`
+      : singleClosedPeriod
+        ? ` — ${singleClosedPeriod.name}`
+        : ''
     rows += `<tr class="subject-header"><td colspan="6">${group.subjectName}${periodLabel}<span class="teacher-tag"> — Docente: ${group.teacherName}</span></td><td style="text-align:center;color:#6A1B9A;font-weight:700">${group.average ?? '0.0'}</td></tr>`
-    if (!group.hasActivePeriod) {
+    if (!group.hasActivePeriod && !group.gradeSummaries.length) {
       rows += `<tr><td colspan="7" style="color:#FF9500;padding-left:20px">⚠️ Sin periodo activo</td></tr>`
     } else if (!group.gradeSummaries.length) {
       rows += `<tr><td colspan="7" style="color:#999;padding-left:20px">Sin entregas</td></tr>`
