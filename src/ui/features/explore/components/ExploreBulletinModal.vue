@@ -386,6 +386,8 @@ const loadingAllBulletins = ref(false)
 const allCourses = ref<Course[]>([])
 const loadingCourses = ref(false)
 const activePeriodName = ref<string | null>(null)
+const subjectPeriodsMap = ref(new Map<number, GradePeriod[]>())
+const selectedPeriodNumber = ref<number | null>(null)
 
 interface BulletinRow { subjectId: number; subjectName: string; notaDefinitiva: number | null }
 const bulletinRows = ref<BulletinRow[]>([])
@@ -402,6 +404,26 @@ interface PlatformBulletinEntry {
 const showPlatformBulletin = ref(false)
 const loadingPlatformBulletin = ref(false)
 const platformBulletinData = ref<PlatformBulletinEntry[]>([])
+
+const availablePeriods = computed(() => {
+  const periodsByNumber = new Map<number, string>()
+  for (const periods of subjectPeriodsMap.value.values()) {
+    for (const p of periods) {
+      if (p.snapshot !== null && !periodsByNumber.has(p.periodNumber)) {
+        periodsByNumber.set(p.periodNumber, p.name)
+      }
+    }
+  }
+  const sorted = [...periodsByNumber.entries()].sort((a, b) => a[0] - b[0])
+  const historicalEntries = sorted.map(([num, name]) => ({ periodNumber: num as number | null, name }))
+  if (activePeriodName.value) {
+    return [
+      { periodNumber: null as number | null, name: 'Periodo actual' },
+      ...historicalEntries
+    ]
+  }
+  return historicalEntries
+})
 
 const filteredCourses = computed(() => {
   const courses = allCourses.value.length > 0 ? allCourses.value : courseStore.courses
@@ -421,10 +443,17 @@ const filteredStudents = computed(() => {
 })
 
 const currentPeriod = computed(() => {
-  if (activePeriodName.value) return activePeriodName.value
-  const now = new Date()
-  const semester = now.getMonth() < 6 ? 'I' : 'II'
-  return `${semester} PERIODO ${now.getFullYear()}-${semester === 'I' ? 'A' : 'B'}`
+  if (selectedPeriodNumber.value === null) {
+    if (activePeriodName.value) return activePeriodName.value
+    const now = new Date()
+    const semester = now.getMonth() < 6 ? 'I' : 'II'
+    return `${semester} PERIODO ${now.getFullYear()}-${semester === 'I' ? 'A' : 'B'}`
+  }
+  for (const periods of subjectPeriodsMap.value.values()) {
+    const found = periods.find(p => p.periodNumber === selectedPeriodNumber.value)
+    if (found) return found.name
+  }
+  return `Periodo ${selectedPeriodNumber.value}`
 })
 
 const generatedDate = computed(() =>
@@ -458,6 +487,8 @@ watch(() => props.modelValue, async (open) => {
     showPlatformBulletin.value = false
     platformBulletinData.value = []
     subjectsForCourse.value = []
+    selectedPeriodNumber.value = null
+    subjectPeriodsMap.value = new Map()
     // Cargar todos los cursos desde la API para no depender de la paginación del store
     if (allCourses.value.length === 0) {
       loadingCourses.value = true
@@ -481,6 +512,8 @@ async function pickCourse(course: Course) {
   showAllBulletins.value = false
   bulletinRows.value = []
   allBulletinData.value = []
+  selectedPeriodNumber.value = null
+  subjectPeriodsMap.value = new Map()
   loadingSubjects.value = true
   try {
     const raw: any[] = await subjectAdapter.getSubjectsByCourse(course.id)
@@ -492,27 +525,43 @@ async function pickCourse(course: Course) {
       description: s.description ?? '',
     }))
     await loadStudents()
-    await loadActivePeriodName()
+    await loadAllPeriods()
+    // Auto-select most recent period with data
+    const periods = availablePeriods.value
+    if (periods.length > 0) {
+      selectedPeriodNumber.value = activePeriodName.value
+        ? null
+        : periods[periods.length - 1].periodNumber
+    }
   } catch { subjectsForCourse.value = [] }
   finally { loadingSubjects.value = false }
 }
 
-async function loadActivePeriodName() {
+async function loadAllPeriods() {
   activePeriodName.value = null
+  subjectPeriodsMap.value = new Map()
+  if (!selectedCourse.value) return
   try {
-    const results = await Promise.allSettled(
-      subjectsForCourse.value.map(s => periodAdapter.listBySubject(s.id))
-    )
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        const active = (result.value as GradePeriod[]).find(p => p.snapshot == null)
-        if (active) {
-          activePeriodName.value = active.name
-          return
-        }
+    const periods = await periodAdapter.listByCourse(selectedCourse.value.id) as GradePeriod[]
+    const map = new Map<number, GradePeriod[]>()
+    for (const p of periods) {
+      if (!map.has(p.subjectId)) map.set(p.subjectId, [])
+      map.get(p.subjectId)!.push(p)
+      if (!activePeriodName.value && p.snapshot == null) {
+        activePeriodName.value = p.name
       }
     }
+    subjectPeriodsMap.value = map
   } catch { /* silent */ }
+}
+
+async function selectPeriodOption(periodNumber: number | null) {
+  selectedPeriodNumber.value = periodNumber
+  if (selectedStudent.value) {
+    await selectStudent(selectedStudent.value)
+  } else if (showAllBulletins.value) {
+    await selectAllStudents()
+  }
 }
 
 async function loadStudents() {
@@ -554,10 +603,18 @@ async function computeRowsForStudent(student: GradeSheetStudent, sheetsCache: Ma
   const rows: BulletinRow[] = []
 
   for (const subject of subjectsForCourse.value) {
-    const sheet = sheetsCache.get(subject.id) ?? null
-    if (!sheet) continue
-    // Skip subjects without an active period
-    if (sheet.hasActivePeriod === false) continue
+    let sheet: GradeSheet | null
+    if (selectedPeriodNumber.value === null) {
+      // Active period: use live grade sheets
+      sheet = sheetsCache.get(subject.id) ?? null
+      if (!sheet || sheet.hasActivePeriod === false) continue
+    } else {
+      // Closed period: use snapshot
+      const periods = subjectPeriodsMap.value.get(subject.id) ?? []
+      const period = periods.find(p => p.periodNumber === selectedPeriodNumber.value)
+      sheet = period?.snapshot ?? null
+      if (!sheet) continue
+    }
 
     const totalTasks = sheet.tasks.length
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)

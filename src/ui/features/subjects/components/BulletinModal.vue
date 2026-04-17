@@ -508,6 +508,13 @@ watch(() => props.modelValue, async (open) => {
     subjectPeriodsMap.value = new Map()
     await loadStudents()
     await loadAllPeriods()
+    // Auto-select the most recent period that has data
+    const periods = availablePeriods.value
+    if (periods.length > 0) {
+      selectedPeriodNumber.value = activePeriodName.value
+        ? null // active period is the most recent
+        : periods[periods.length - 1].periodNumber // highest closed period number
+    }
   }
 })
 
