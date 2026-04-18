@@ -454,6 +454,142 @@
           </div>
         </div>
 
+        <!-- ═══════ API Usage Charts (vue-chrts) ═══════ -->
+        <div class="a-card api-usage-section">
+          <div class="a-card-header">
+            <h3>Uso de API</h3>
+            <span class="a-tag a-tag-gold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              Mes actual
+            </span>
+          </div>
+
+          <!-- Expenses -->
+          <div class="api-chart-block">
+            <div class="api-chart-title-row">
+              <span class="api-chart-label">Expenses</span>
+              <span class="api-chart-total api-total-gold">${{ apiUsageData.expensesTotal.toFixed(2) }}</span>
+            </div>
+            <BarChart
+              :data="apiUsageData.expenses"
+              :categories="expensesCategories"
+              :height="180"
+              :xFormatter="apiXFormatter"
+              :yFormatter="expensesYFormatter"
+              :yAxis="['amount']"
+              :xAxis="'day'"
+              :radius="3"
+              :barPadding="0.25"
+              :hideLegend="true"
+              :yNumTicks="4"
+              :minMaxTicksOnly="true"
+              :yGridLine="false"
+              :xDomainLine="false"
+              :yDomainLine="false"
+            />
+          </div>
+
+          <!-- deepseek-chat -->
+          <div class="api-model-section">
+            <h4 class="api-model-name">deepseek-chat</h4>
+            <div class="api-charts-row">
+              <div class="api-chart-half">
+                <div class="api-chart-title-row">
+                  <span class="api-chart-label">API requests</span>
+                  <span class="api-chart-total">{{ apiUsageData.chatRequestsTotal.toLocaleString() }}</span>
+                </div>
+                <AreaChart
+                  :data="apiUsageData.chatRequests"
+                  :categories="requestsCategories"
+                  :height="160"
+                  :xFormatter="apiXFormatter"
+                  :yAxis="['requests']"
+                  :hideLegend="true"
+                  :yNumTicks="4"
+                  :minMaxTicksOnly="true"
+                  :yGridLine="false"
+                  :xDomainLine="false"
+                  :yDomainLine="false"
+                  curveType="monotoneX"
+                />
+              </div>
+              <div class="api-chart-half">
+                <div class="api-chart-title-row">
+                  <span class="api-chart-label">Tokens</span>
+                  <span class="api-chart-total">{{ apiUsageData.chatTokensTotal.toLocaleString() }}</span>
+                </div>
+                <BarChart
+                  :data="apiUsageData.chatTokens"
+                  :categories="tokensCategories"
+                  :height="160"
+                  :xFormatter="apiXFormatter"
+                  :yFormatter="tokensYFormatter"
+                  :yAxis="['tokens']"
+                  :xAxis="'day'"
+                  :radius="2"
+                  :barPadding="0.2"
+                  :hideLegend="true"
+                  :yNumTicks="4"
+                  :minMaxTicksOnly="true"
+                  :yGridLine="false"
+                  :xDomainLine="false"
+                  :yDomainLine="false"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- deepseek-reasoner -->
+          <div class="api-model-section">
+            <h4 class="api-model-name">deepseek-reasoner</h4>
+            <div class="api-charts-row">
+              <div class="api-chart-half">
+                <div class="api-chart-title-row">
+                  <span class="api-chart-label">API requests</span>
+                  <span class="api-chart-total">{{ apiUsageData.reasonerRequestsTotal.toLocaleString() }}</span>
+                </div>
+                <AreaChart
+                  :data="apiUsageData.reasonerRequests"
+                  :categories="requestsCategories"
+                  :height="160"
+                  :xFormatter="apiXFormatter"
+                  :yAxis="['requests']"
+                  :hideLegend="true"
+                  :yNumTicks="4"
+                  :minMaxTicksOnly="true"
+                  :yGridLine="false"
+                  :xDomainLine="false"
+                  :yDomainLine="false"
+                  curveType="monotoneX"
+                />
+              </div>
+              <div class="api-chart-half">
+                <div class="api-chart-title-row">
+                  <span class="api-chart-label">Tokens</span>
+                  <span class="api-chart-total">{{ apiUsageData.reasonerTokensTotal.toLocaleString() }}</span>
+                </div>
+                <BarChart
+                  :data="apiUsageData.reasonerTokens"
+                  :categories="tokensCategories"
+                  :height="160"
+                  :xFormatter="apiXFormatter"
+                  :yFormatter="tokensYFormatter"
+                  :yAxis="['tokens']"
+                  :xAxis="'day'"
+                  :radius="2"
+                  :barPadding="0.2"
+                  :hideLegend="true"
+                  :yNumTicks="4"
+                  :minMaxTicksOnly="true"
+                  :yGridLine="false"
+                  :xDomainLine="false"
+                  :yDomainLine="false"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Top 5 Creadores -->
         <div class="a-card a-premium-table-card">
           <div class="a-card-header">
@@ -2285,6 +2421,7 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
+import { BarChart, AreaChart } from 'vue-chrts'
 
 type EnrollmentTone = 'student' | 'teacher' | 'admin' | 'neutral'
 
@@ -4513,6 +4650,96 @@ const resolveThumbnail = (url: string) => {
   if (!url) return '/default-course.png'
   if (url.startsWith('http')) return url
   return buildProxyFileUrl?.(url) || url
+}
+
+// ─── API Usage Charts (vue-chrts) ────────────────────────────────────────
+interface ApiDayPoint { day: string; amount: number }
+interface ApiRequestPoint { day: string; requests: number }
+interface ApiTokenPoint { day: string; tokens: number }
+
+interface ApiUsageState {
+  expenses: ApiDayPoint[]
+  expensesTotal: number
+  chatRequests: ApiRequestPoint[]
+  chatRequestsTotal: number
+  chatTokens: ApiTokenPoint[]
+  chatTokensTotal: number
+  reasonerRequests: ApiRequestPoint[]
+  reasonerRequestsTotal: number
+  reasonerTokens: ApiTokenPoint[]
+  reasonerTokensTotal: number
+}
+
+const generateApiUsageMockData = (): ApiUsageState => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const currentDay = Math.min(now.getDate(), daysInMonth)
+
+  const expenses: ApiDayPoint[] = []
+  const chatRequests: ApiRequestPoint[] = []
+  const chatTokens: ApiTokenPoint[] = []
+  const reasonerRequests: ApiRequestPoint[] = []
+  const reasonerTokens: ApiTokenPoint[] = []
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const label = `${month + 1}-${d}`
+    const active = d <= currentDay
+
+    // Expenses: spike early, taper off
+    const expBase = active ? (d <= 10 ? 0.12 + Math.random() * 0.16 : 0.04 + Math.random() * 0.12) : 0
+    expenses.push({ day: label, amount: Math.round(expBase * 100) / 100 })
+
+    // deepseek-chat requests: high early, declining
+    const chatReqBase = active ? Math.max(0, Math.round((d <= 8 ? 120 + Math.random() * 180 : d <= 18 ? 20 + Math.random() * 60 : Math.random() * 15))) : 0
+    chatRequests.push({ day: label, requests: chatReqBase })
+
+    // deepseek-chat tokens: proportional to requests
+    const chatTokBase = active ? Math.round(chatReqBase * (6000 + Math.random() * 4000)) : 0
+    chatTokens.push({ day: label, tokens: chatTokBase })
+
+    // deepseek-reasoner requests: moderate, peaks mid-month
+    const rsnReqBase = active ? Math.max(0, Math.round((d >= 5 && d <= 20 ? 15 + Math.random() * 50 : Math.random() * 10))) : 0
+    reasonerRequests.push({ day: label, requests: rsnReqBase })
+
+    // deepseek-reasoner tokens: some spike near end
+    const rsnTokBase = active ? Math.round(rsnReqBase * (2000 + Math.random() * 3000)) : 0
+    reasonerTokens.push({ day: label, tokens: rsnTokBase })
+  }
+
+  return {
+    expenses,
+    expensesTotal: expenses.reduce((s, e) => s + e.amount, 0),
+    chatRequests,
+    chatRequestsTotal: chatRequests.reduce((s, e) => s + e.requests, 0),
+    chatTokens,
+    chatTokensTotal: chatTokens.reduce((s, e) => s + e.tokens, 0),
+    reasonerRequests,
+    reasonerRequestsTotal: reasonerRequests.reduce((s, e) => s + e.requests, 0),
+    reasonerTokens,
+    reasonerTokensTotal: reasonerTokens.reduce((s, e) => s + e.tokens, 0),
+  }
+}
+
+const apiUsageData = ref<ApiUsageState>(generateApiUsageMockData())
+
+const expensesCategories = { amount: { name: 'Expenses', color: '#FF9F0A' } }
+const requestsCategories = { requests: { name: 'API requests', color: '#64B5F6' } }
+const tokensCategories = { tokens: { name: 'Tokens', color: '#64B5F6' } }
+
+const apiXFormatter = (tick: number) => {
+  const items = apiUsageData.value.expenses
+  if (tick >= 0 && tick < items.length) return items[tick].day
+  return ''
+}
+
+const expensesYFormatter = (tick: number) => `$${tick.toFixed(2)}`
+
+const tokensYFormatter = (tick: number) => {
+  if (tick >= 1_000_000) return `${(tick / 1_000_000).toFixed(1)}M`
+  if (tick >= 1_000) return `${(tick / 1_000).toFixed(0)}K`
+  return String(tick)
 }
 
 const loadAnalyticsData = async () => {
@@ -10059,5 +10286,97 @@ watch(() => route.query, () => {
 
 .cycle-quick-btn:hover {
   background: rgba(255, 159, 10, 0.25);
+}
+
+/* ═══════ API Usage Charts (vue-chrts) ═══════ */
+.api-usage-section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.api-chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.api-chart-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.api-chart-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.api-chart-total {
+  font-size: 14px;
+  font-weight: 500;
+  color: #8E8E93;
+  letter-spacing: -0.01em;
+}
+
+.api-total-gold {
+  color: #FF9F0A;
+  font-weight: 600;
+}
+
+.api-model-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.api-model-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #EBEBF5;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.api-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.api-chart-half {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .api-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark theme overrides for vue-chrts */
+.api-usage-section :deep(.unovis-xy-container) {
+  --vis-axis-tick-label-color: #636366;
+  --vis-axis-grid-color: rgba(255,255,255,0.06);
+  --vis-axis-domain-color: rgba(255,255,255,0.08);
+  --vis-tooltip-background-color: #2C2C2E;
+  --vis-tooltip-text-color: #EBEBF5;
+  --vis-tooltip-border-color: rgba(255,255,255,0.1);
+  --vis-crosshair-line-stroke-color: rgba(255,255,255,0.2);
+}
+
+.api-usage-section :deep(text) {
+  fill: #636366;
+  font-size: 11px;
+}
+
+.api-usage-section :deep(.unovis-axis line),
+.api-usage-section :deep(.unovis-axis path) {
+  stroke: rgba(255,255,255,0.08);
 }
 </style>
