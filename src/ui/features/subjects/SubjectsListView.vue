@@ -155,7 +155,7 @@
     </Teleport>
 
     <GradeReportModal v-model="showReport" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
-    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
+    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="currentCourseName" :course-category="currentCourseCategory" :subjects="allSubjects" />
   </div>
 </template>
 
@@ -183,6 +183,7 @@ const notifStore = useNotificationStore()
 
 const courseId = computed(() => Number(route.params.courseId) || 0)
 const currentCourseName = ref('')
+const currentCourseCategory = ref('')
 const allSubjects = ref<Subject[]>([])
 const search = ref('')
 const loadingSubjects = ref(true)
@@ -486,6 +487,7 @@ async function checkCourseDeadline() {
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
     currentCourseName.value = (course as any)?.title ?? (course as any)?.name ?? ''
+    currentCourseCategory.value = (course as any)?.category ?? ''
     if (authStore.isAdmin) return // rol 3 siempre puede entrar
     const isInactive = course?.isActive === false || course?.is_active === false
     const isExpired = Boolean(course?.deadline) && new Date(course.deadline as string).getTime() < Date.now()

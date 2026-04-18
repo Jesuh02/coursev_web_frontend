@@ -111,7 +111,8 @@
                 </div>
                 <div class="boletin-divider" />
                 <div class="boletin-info-grid">
-                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ courseName || '—' }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ courseCategory?.toLowerCase() === 'bachillerato' ? courseCategory : (courseName || '—') }}</span></div>
+                  <div v-if="courseCategory?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ courseName || '—' }}</span></div>
                   <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                   <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
                   <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
@@ -199,7 +200,8 @@
                 </div>
                 <div class="boletin-divider" />
                 <div class="boletin-info-grid">
-                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
+                  <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseCategory?.toLowerCase() === 'bachillerato' ? entry.courseCategory : entry.courseTitle }}</span></div>
+                  <div v-if="entry.courseCategory?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
                   <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                   <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
                   <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
@@ -294,6 +296,10 @@
                 <div class="boletin-info-grid">
                   <div class="boletin-info-row">
                     <span class="boletin-label">PROGRAMA:</span>
+                    <span class="boletin-value">{{ courseCategory?.toLowerCase() === 'bachillerato' ? courseCategory : (courseName || '—') }}</span>
+                  </div>
+                  <div v-if="courseCategory?.toLowerCase() === 'bachillerato'" class="boletin-info-row">
+                    <span class="boletin-label">CICLO:</span>
                     <span class="boletin-value">{{ courseName || '—' }}</span>
                   </div>
                   <div class="boletin-info-row">
@@ -386,6 +392,7 @@ const props = defineProps<{
   modelValue: boolean
   courseId: number
   courseName?: string
+  courseCategory?: string
   subjects: BulletinSubject[]
 }>()
 
@@ -423,6 +430,7 @@ const allBulletinData = ref<AllBulletinEntry[]>([])
 interface PlatformBulletinEntry {
   student: GradeSheetStudent
   courseTitle: string
+  courseCategory?: string
   rows: BulletinRow[]
 }
 const showPlatformBulletin = ref(false)
@@ -710,7 +718,7 @@ async function generatePlatformBulletin() {
           if (!sheet) continue
           rows.push(extractRowsFromSheet(sheet, s, student.userId))
         }
-        if (rows.length) entries.push({ student, courseTitle: course.title, rows })
+        if (rows.length) entries.push({ student, courseTitle: course.title, courseCategory: course.category, rows })
       }
     }
     platformBulletinData.value = entries
@@ -735,7 +743,7 @@ function exportPlatformBulletinPDF() {
 <div class="page">
 ${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
-<span class="label">Programa:</span><span class="value">${escH(entry.courseTitle)}</span>
+${buildProgramaBlock(entry.courseTitle, entry.courseCategory)}
 <span class="label">Estudiante:</span><span class="value">${name}</span>
 ${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}
 <span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span>
@@ -784,7 +792,7 @@ function exportPlatformBulletinExcel() {
     const name = escH(entry.student.fullName || entry.student.username || 'Estudiante')
     const prom = computePromedio(entry.rows)
     const cells = entry.rows.map(r => `<Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell>`).join('')
-    return `<Row><Cell><Data ss:Type="String">${escH(entry.courseTitle)}</Data></Cell><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+    return `<Row><Cell><Data ss:Type="String">${isBach(entry.courseCategory) ? escH(entry.courseCategory!) : escH(entry.courseTitle)}</Data></Cell><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
   }).join('')
   const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín Plataforma"><Table><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">CURSO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">MATERIAS</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
@@ -807,7 +815,7 @@ function exportPlatformBulletinWord() {
       return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
     }).join('')
     const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
-    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(entry.courseTitle)}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2>${buildProgramaWordLine(entry.courseTitle, entry.courseCategory)}<p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
   }).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
@@ -836,7 +844,7 @@ function exportAllBulletinsPDF() {
 <div class="page">
 ${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
-<span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span>
+${buildProgramaBlock(props.courseName || '—', props.courseCategory)}
 <span class="label">Estudiante:</span><span class="value">${name}</span>
 ${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}
 <span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span>
@@ -897,7 +905,7 @@ function exportBulletinExcel() {
     `<Row><Cell><Data ss:Type="String">${escH(r.subjectName)}</Data></Cell><Cell><Data ss:Type="Number">${r.notaDefinitiva}</Data></Cell></Row>`
   ).join('')
   const prom = promedioGeneral.value
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table><Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO GENERAL</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row></Table></Worksheet></Workbook>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table>${buildProgramaXmlRows(props.courseName || '—', props.courseCategory)}<Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO GENERAL</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row></Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -928,7 +936,7 @@ function exportAllBulletinsExcel() {
     const cells = entry.rows.map(r => `<Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell>`).join('')
     return `<Row><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
   }).join('')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">Programa: ${escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell>${subjectHeaders}<Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">${isBach(props.courseCategory) ? 'Programa: ' + escH(props.courseCategory!) + '&#13;&#10;Ciclo: ' + escH(props.courseName || '—') : 'Programa: ' + escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell>${subjectHeaders}<Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -949,7 +957,7 @@ function exportAllBulletinsWord() {
       return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
     }).join('')
     const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
-    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(props.courseName || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2>${buildProgramaWordLine(props.courseName || '—', props.courseCategory)}<p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
   }).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
@@ -975,7 +983,7 @@ function buildShareText(): string {
   const st = selectedStudent.value
   const name = st?.fullName || st?.username || 'Estudiante'
   let text = `📋 BOLETÍN DE NOTAS\n`
-  text += `📌 Programa: ${props.courseName || '—'}\n`
+  text += isBach(props.courseCategory) ? `📌 Programa: ${props.courseCategory!}\n📚 Ciclo: ${props.courseName || '—'}\n` : `📌 Programa: ${props.courseName || '—'}\n`
   text += `👤 Estudiante: ${name}\n`
   text += `📅 Periodo: ${currentPeriod.value}\n\n`
   text += `${'─'.repeat(32)}\n`
@@ -997,6 +1005,25 @@ function buildShareText(): string {
 
 function escH(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function isBach(cat?: string): boolean {
+  return (cat || '').toLowerCase() === 'bachillerato'
+}
+
+function buildProgramaBlock(title: string, cat?: string): string {
+  if (isBach(cat)) return `<span class="label">Programa:</span><span class="value">${escH(cat!)}</span>\n<span class="label">Ciclo:</span><span class="value">${escH(title)}</span>`
+  return `<span class="label">Programa:</span><span class="value">${escH(title)}</span>`
+}
+
+function buildProgramaWordLine(title: string, cat?: string): string {
+  if (isBach(cat)) return `<p><b>Programa:</b> ${escH(cat!)}</p><p><b>Ciclo:</b> ${escH(title)}</p>`
+  return `<p><b>Programa:</b> ${escH(title)}</p>`
+}
+
+function buildProgramaXmlRows(title: string, cat?: string): string {
+  if (isBach(cat)) return `<Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(cat!)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Ciclo</Data></Cell><Cell><Data ss:Type="String">${escH(title)}</Data></Cell></Row>`
+  return `<Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(title)}</Data></Cell></Row>`
 }
 
 function buildBulletinPrintHTML(): string {
@@ -1038,7 +1065,7 @@ ${institutionSignatureAndFooterCSS()}
 </style></head><body>
 ${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
 <div class="info">
-<span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span>
+${buildProgramaBlock(props.courseName || '—', props.courseCategory)}
 <span class="label">Estudiante:</span><span class="value">${name}</span>
 ${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}
 <span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span>

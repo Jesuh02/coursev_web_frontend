@@ -66,7 +66,8 @@
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-info-grid">
-                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
+                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ entry.courseCategory?.toLowerCase() === 'bachillerato' ? entry.courseCategory : entry.courseTitle }}</span></div>
+                    <div v-if="entry.courseCategory?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ entry.courseTitle }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                     <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
                   </div>
@@ -241,13 +242,13 @@
                       </div>
                       <div class="boletin-divider" />
                       <div class="boletin-info-grid">
-                        <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
+                        <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.category?.toLowerCase() === 'bachillerato' ? selectedCourse.category : (selectedCourse?.title || '—') }}</span></div>
+                        <div v-if="selectedCourse?.category?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
                         <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                         <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
                       </div>
                       <div class="boletin-divider" />
                       <template v-if="entry.periods.length">
-                        <template v-for="(period, pIdx) in entry.periods" :key="period.periodName">
                           <div class="boletin-period-header">{{ period.periodName }}</div>
                           <table class="boletin-table">
                             <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
@@ -301,7 +302,8 @@
                     </div>
                     <div class="boletin-divider" />
                     <div class="boletin-info-grid">
-                      <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
+                      <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.category?.toLowerCase() === 'bachillerato' ? selectedCourse.category : (selectedCourse?.title || '—') }}</span></div>
+                      <div v-if="selectedCourse?.category?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
                       <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
                       <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
                       <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
@@ -386,7 +388,8 @@
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-info-grid">
-                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse.title }}</span></div>
+                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.category?.toLowerCase() === 'bachillerato' ? selectedCourse.category : selectedCourse.title }}</span></div>
+                    <div v-if="selectedCourse?.category?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ selectedCourse.title }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span></div>
                     <div v-if="selectedStudent?.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ selectedStudent?.cedula }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
@@ -516,6 +519,7 @@ const showAllBulletins = ref(false)
 interface PlatformBulletinEntry {
   student: GradeSheetStudent
   courseTitle: string
+  courseCategory?: string
   periods: { periodName: string; rows: BulletinRow[] }[]
 }
 const showPlatformBulletin = ref(false)
@@ -911,6 +915,25 @@ async function selectAllStudents() {
 
 function escH(s: string) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 
+function isBach(cat?: string): boolean {
+  return (cat || '').toLowerCase() === 'bachillerato'
+}
+
+function buildProgramaBlock(title: string, cat?: string): string {
+  if (isBach(cat)) return `<span class="label">Programa:</span><span class="value">${escH(cat!)}</span>\n<span class="label">Ciclo:</span><span class="value">${escH(title)}</span>`
+  return `<span class="label">Programa:</span><span class="value">${escH(title)}</span>`
+}
+
+function buildProgramaWordLine(title: string, cat?: string): string {
+  if (isBach(cat)) return `<p><b>Programa:</b> ${escH(cat!)}</p><p><b>Ciclo:</b> ${escH(title)}</p>`
+  return `<p><b>Programa:</b> ${escH(title)}</p>`
+}
+
+function buildProgramaXmlRows(title: string, cat?: string): string {
+  if (isBach(cat)) return `<Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(cat!)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Ciclo</Data></Cell><Cell><Data ss:Type="String">${escH(title)}</Data></Cell></Row>`
+  return `<Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(title)}</Data></Cell></Row>`
+}
+
 function exportBulletinPDF() {
   const st = selectedStudent.value
   const name = escH(st?.fullName || st?.username || 'Estudiante')
@@ -928,7 +951,7 @@ ${institutionHeaderCSS()}
 ${institutionSignatureAndFooterCSS()}
 </style></head><body>
 ${buildInstitutionHeaderHTML('CourseV')}
-<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
+<div class="info">${buildProgramaBlock(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></div>
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
@@ -958,7 +981,7 @@ function exportAllBulletinsPDF() {
     pages.push(`
 <div class="page">
 ${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
-<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${student.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(student.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
+<div class="info">${buildProgramaBlock(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<span class="label">Estudiante:</span><span class="value">${name}</span>${student.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(student.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">${escH(currentPeriod.value)}</span></div>
 <table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="promedio"><span class="prom-label">Promedio General</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}
@@ -985,7 +1008,7 @@ function exportBulletinExcel() {
   ).join('')
   const prom = promedioGeneral.value
   const courseName = escH(selectedCourse.value?.title || '—')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table><Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${courseName}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO GENERAL</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${(prom ?? 0).toFixed(1)}</Data></Cell></Row></Table></Worksheet></Workbook>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table>${buildProgramaXmlRows(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO GENERAL</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${(prom ?? 0).toFixed(1)}</Data></Cell></Row></Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -1007,7 +1030,7 @@ function exportBulletinWord() {
     const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
     rows += `<tr><td style="font-weight:bold;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:8px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
   }
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}table{width:100%;border-collapse:collapse;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px}td{padding:8px;border-bottom:1px solid #ddd}</style></head><body><h1 style="color:#6A1B9A">BOLETÍN DE NOTAS</h1><p><b>Programa:</b> ${escH(selectedCourse.value?.title || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st?.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table><thead><tr><th style="text-align:left">MÓDULO</th><th>NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:16px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></b></p></body></html>`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}table{width:100%;border-collapse:collapse;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px}td{padding:8px;border-bottom:1px solid #ddd}</style></head><body><h1 style="color:#6A1B9A">BOLETÍN DE NOTAS</h1>${buildProgramaWordLine(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<p><b>Estudiante:</b> ${name}</p>${st?.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table><thead><tr><th style="text-align:left">MÓDULO</th><th>NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:16px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${(prom ?? 0).toFixed(1)}</span></b></p></body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -1027,7 +1050,7 @@ function exportAllBulletinsExcel() {
     return `<Row><Cell><Data ss:Type="String">${name}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
   }).join('')
   const courseName = escH(selectedCourse.value?.title || '—')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">Programa: ${courseName}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell>${subjectHeaders}<Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">${isBach(selectedCourse.value?.category) ? 'Programa: ' + escH(selectedCourse.value!.category!) + '&#13;&#10;Ciclo: ' + escH(selectedCourse.value?.title || '—') : 'Programa: ' + escH(selectedCourse.value?.title || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo: ${escH(currentPeriod.value)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell>${subjectHeaders}<Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -1048,7 +1071,7 @@ function exportAllBulletinsWord() {
       return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
     }).join('')
     const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
-    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(selectedCourse.value?.title || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2>${buildProgramaWordLine(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}<p><b>Periodo:</b> ${escH(currentPeriod.value)}</p><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:12px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:12px"><b>PROMEDIO GENERAL: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p></div>`
   }).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
@@ -1082,7 +1105,7 @@ function buildAllPeriodsSingleHTML(forPrint: boolean) {
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:8px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.prom-value{font-size:18px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}
 ${institutionHeaderCSS()}${institutionSignatureAndFooterCSS()}</style></head><body>
 ${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
-<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>
+<div class="info">${buildProgramaBlock(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>
 ${body}
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
@@ -1143,7 +1166,7 @@ function buildAllPeriodsAllHTML() {
       const pc = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
       body += `<div class="promedio"><span class="prom-label">Promedio ${escH(period.periodName)}</span><span class="prom-value" style="color:${pc}">${prom.toFixed(1)}</span></div>`
     }
-    pages += `<div class="page">${buildInstitutionHeaderHTML(getInstitutionDisplayName())}<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>${body}<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</div>`
+    pages += `<div class="page">${buildInstitutionHeaderHTML(getInstitutionDisplayName())}<div class="info">${buildProgramaBlock(selectedCourse.value?.title || '—', selectedCourse.value?.category)}<span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>${body}<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</div>`
   }
   return pages
 }
@@ -1241,7 +1264,7 @@ async function generatePlatformBulletin() {
         for (const student of studentMap.values()) {
           const periods = computeAllPeriodRows(student, subjects, sheetsCache, periodsCache)
           if (periods.length > 0) {
-            entries.push({ student, courseTitle: course.title, periods })
+            entries.push({ student, courseTitle: course.title, courseCategory: course.category, periods })
           }
         }
         return entries
@@ -1282,7 +1305,7 @@ function exportPlatformBulletinPDF() {
     pages.push(`
 <div class="page">
 ${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
-<div class="info"><span class="label">Programa:</span><span class="value">${escH(entry.courseTitle)}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}</div>
+<div class="info">${buildProgramaBlock(entry.courseTitle, entry.courseCategory)}<span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}</div>
 ${periodsHtml}
 <div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}
 </div>`)
@@ -1333,7 +1356,7 @@ function exportPlatformBulletinWord() {
       }).join('')
       periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px;font-size:14px;text-transform:uppercase;border-bottom:1px solid #d4c5f0;padding-bottom:4px">${escH(period.periodName)}</h3><table style="width:100%;border-collapse:collapse;border:2px solid #333;margin-top:6px"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:8px"><b>PROMEDIO: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p>`
     }
-    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2><p><b>Programa:</b> ${escH(entry.courseTitle)}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}${periodsHtml}</div>`
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS</h2>${buildProgramaWordLine(entry.courseTitle, entry.courseCategory)}<p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}${periodsHtml}</div>`
   }).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
@@ -1348,7 +1371,7 @@ function exportPlatformBulletinWord() {
   async function shareBulletin() {
   const st = selectedStudent.value
   const name = st?.fullName || st?.username || 'Estudiante'
-  let text = `📋 BOLETÍN DE NOTAS\n📌 Programa: ${selectedCourse.value?.title || '—'}\n👤 Estudiante: ${name}\n📅 Periodo: ${currentPeriod.value}\n\n${'─'.repeat(32)}\nMÓDULO                    NOTA\n${'─'.repeat(32)}\n`
+  let text = `📋 BOLETÍN DE NOTAS\n${isBach(selectedCourse.value?.category) ? `📌 Programa: ${selectedCourse.value!.category!}\n📚 Ciclo: ${selectedCourse.value?.title || '—'}` : `📌 Programa: ${selectedCourse.value?.title || '—'}`}\n👤 Estudiante: ${name}\n📅 Periodo: ${currentPeriod.value}\n\n${'─'.repeat(32)}\nMÓDULO                    NOTA\n${'─'.repeat(32)}\n`
   for (const row of bulletinRows.value) {
     text += `${row.subjectName.padEnd(26)}${(row.notaDefinitiva ?? 0).toFixed(1)}\n`
   }

@@ -88,7 +88,7 @@
 
     <!-- Modales -->
     <GradeReportModal v-model="showReport" :course-id="courseId" :subjects="reportSubjects" />
-    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="courseName" :subjects="reportSubjects" />
+    <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="courseName" :course-category="courseCategory" :subjects="reportSubjects" />
   </div>
 </template>
 
@@ -125,6 +125,7 @@ const showMoreMenu = ref(false)
 const showReport = ref(false)
 const showBulletin = ref(false)
 const courseName = ref('')
+const courseCategory = ref('')
 const reportSubjects = ref<Subject[]>([])
 
 function onDocClickMenu() { showMoreMenu.value = false }
@@ -176,6 +177,7 @@ onMounted(async () => {
   try {
     const course = await courseAdapter.getCourseById(courseId.value)
     courseName.value = course.title || ''
+    courseCategory.value = course.category || ''
     isCourseCreator = currentUserId > 0 && currentUserId === Number(course.creatorUserId)
 
     if (!isCourseCreator && !authStore.isAdmin) {
