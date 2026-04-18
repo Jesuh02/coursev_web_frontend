@@ -112,55 +112,194 @@
           </div>
         </div>
 
-        <!-- Actividad Semanal — TradingView Lightweight Chart -->
+        <!-- Actividad Semanal — Area Chart estilo dashboard -->
         <div class="a-card a-card-chart">
           <div class="a-card-header">
-            <h3>Actividad Semanal</h3>
+            <div class="a-chart-title-row">
+              <span class="a-chart-metric-label">Inscripciones</span>
+              <span class="a-chart-metric-total">{{ weeklyTotal }}</span>
+            </div>
             <span class="a-tag a-tag-teal">Últimos 7 días</span>
           </div>
-          <div class="a-area-chart-wrap">
-            <svg
-              class="a-area-svg a-area-svg-tall"
-              :viewBox="`0 0 ${weeklyAreaWidth} 100`"
-              preserveAspectRatio="none"
-            >
-              <defs>
-                <linearGradient id="weeklyAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(38, 166, 154, 0.42)" />
-                  <stop offset="100%" stop-color="rgba(38, 166, 154, 0.02)" />
-                </linearGradient>
-              </defs>
-              <path :d="weeklySmoothedAreaPath" fill="url(#weeklyAreaGradient)" class="a-chart-fill" />
-              <path :d="weeklySmoothedLinePath" fill="none" stroke="#26a69a" stroke-width="2.5" stroke-linecap="round" class="a-chart-line" />
-              <g v-for="(point, idx) in weeklyPoints" :key="`weekly-point-${idx}`">
-                <circle :cx="point.x" :cy="point.y" r="3.5" fill="#26a69a" class="a-dot-main" />
-                <circle :cx="point.x" :cy="point.y" r="7" fill="rgba(38, 166, 154, 0.16)" class="a-dot-pulse" />
-              </g>
-            </svg>
-            <div class="a-chart-labels">
-              <span v-for="(label, idx) in weeklyLabels" :key="`weekly-label-${idx}`">{{ label }}</span>
+          <div class="a-modern-chart-wrap" @mouseleave="weeklyHover = null">
+            <!-- Y-axis labels -->
+            <div class="a-yaxis-labels">
+              <span v-for="lbl in weeklyYAxisLabels" :key="lbl">{{ lbl }}</span>
+            </div>
+            <div class="a-chart-area-container">
+              <svg
+                class="a-modern-area-svg"
+                :viewBox="`0 0 ${weeklyAreaWidth} 110`"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="weeklyModernGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(100, 181, 246, 0.55)" />
+                    <stop offset="60%" stop-color="rgba(100, 181, 246, 0.15)" />
+                    <stop offset="100%" stop-color="rgba(100, 181, 246, 0.02)" />
+                  </linearGradient>
+                </defs>
+                <!-- Grid lines -->
+                <line v-for="(_, gi) in 4" :key="`wgrid-${gi}`"
+                  x1="0" :x2="weeklyAreaWidth" :y1="10 + gi * 25" :y2="10 + gi * 25"
+                  stroke="rgba(255,255,255,0.05)" stroke-width="0.5" />
+                <!-- Area fill -->
+                <path :d="weeklySmoothedAreaPath" fill="url(#weeklyModernGrad)" class="a-chart-fill" />
+                <!-- Line -->
+                <path :d="weeklySmoothedLinePath" fill="none" stroke="#64B5F6" stroke-width="2" stroke-linecap="round" class="a-chart-line" />
+                <!-- Hover overlay rects -->
+                <rect v-for="(point, idx) in weeklyPoints" :key="`whov-${idx}`"
+                  :x="point.x - (weeklyAreaWidth / weeklyValues.length) / 2"
+                  y="0" :width="weeklyAreaWidth / weeklyValues.length" height="110"
+                  fill="transparent" @mouseenter="weeklyHover = idx" />
+                <!-- Hover indicator -->
+                <g v-if="weeklyHover != null">
+                  <line :x1="weeklyPoints[weeklyHover].x" :x2="weeklyPoints[weeklyHover].x"
+                    y1="0" y2="105" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" stroke-dasharray="3,2" />
+                  <circle :cx="weeklyPoints[weeklyHover].x" :cy="weeklyPoints[weeklyHover].y"
+                    r="4" fill="#64B5F6" stroke="#1C1C1E" stroke-width="2" />
+                </g>
+              </svg>
+              <!-- Tooltip -->
+              <div v-if="weeklyHover != null" class="a-chart-tooltip"
+                :style="{ left: `${(weeklyPoints[weeklyHover].x / weeklyAreaWidth) * 100}%` }">
+                <div class="a-tooltip-date">{{ weeklyLabels[weeklyHover] }}</div>
+                <div class="a-tooltip-row">
+                  <span class="a-tooltip-dot" style="background:#64B5F6"></span>
+                  <span class="a-tooltip-label">Inscripciones</span>
+                  <span class="a-tooltip-val">{{ weeklyValues[weeklyHover] }}</span>
+                </div>
+              </div>
+              <!-- X-axis labels -->
+              <div class="a-xaxis-labels">
+                <span v-for="(label, idx) in weeklyLabels" :key="`wlbl-${idx}`"
+                  :class="{ 'a-xaxis-active': weeklyHover === idx }">{{ label }}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Progreso Mensual — TradingView Lightweight Chart -->
+        <!-- Progreso Mensual — Stacked Bar Chart estilo dashboard -->
         <div class="a-card a-card-chart">
           <div class="a-card-header">
-            <h3>Progreso Mensual</h3>
+            <div class="a-chart-title-row">
+              <span class="a-chart-metric-label">Actividad Mensual</span>
+              <span class="a-chart-metric-total">{{ monthlyTotal }}</span>
+            </div>
             <span class="a-tag a-tag-teal">6 meses</span>
           </div>
-          <div class="a-grouped-bars">
-            <div v-for="(bar, idx) in monthlyBars" :key="`monthly-bar-${idx}`" class="a-bar-group">
-              <div class="a-bars-col">
-                <div class="a-bar a-bar-completed" :style="{ height: `${bar.completedH}px` }"></div>
-                <div class="a-bar a-bar-active" :style="{ height: `${bar.activeH}px` }"></div>
+          <div class="a-modern-chart-wrap" @mouseleave="monthlyHover = null">
+            <div class="a-yaxis-labels">
+              <span v-for="lbl in monthlyYAxisLabels" :key="lbl">{{ lbl }}</span>
+            </div>
+            <div class="a-chart-area-container">
+              <div class="a-stacked-bars-container">
+                <div class="a-stacked-bars-grid">
+                  <div v-for="(_, gi) in 4" :key="`mgrid-${gi}`" class="a-stacked-grid-line"
+                    :style="{ bottom: `${(gi + 1) * 25}%` }"></div>
+                </div>
+                <div class="a-stacked-bars-row">
+                  <div v-for="(bar, idx) in monthlyStackedBars" :key="`mbar-${idx}`"
+                    class="a-stacked-bar-col"
+                    @mouseenter="monthlyHover = idx"
+                    @mouseleave="monthlyHover = null">
+                    <div class="a-stacked-bar-stack"
+                      :class="{ 'a-stacked-bar-hovered': monthlyHover === idx }">
+                      <div class="a-stacked-seg a-seg-completed"
+                        :style="{ height: `${bar.completedPct}%` }"></div>
+                      <div class="a-stacked-seg a-seg-active"
+                        :style="{ height: `${bar.activePct}%` }"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span class="a-bar-lbl">{{ bar.label }}</span>
+              <!-- Tooltip -->
+              <div v-if="monthlyHover != null" class="a-chart-tooltip"
+                :style="{ left: `${((monthlyHover + 0.5) / monthlyStackedBars.length) * 100}%` }">
+                <div class="a-tooltip-date">{{ monthlyStackedBars[monthlyHover].label }}</div>
+                <div class="a-tooltip-row">
+                  <span class="a-tooltip-dot" style="background:#FFA726"></span>
+                  <span class="a-tooltip-label">Completadas</span>
+                  <span class="a-tooltip-val">{{ monthlyStackedBars[monthlyHover].completedVal }}</span>
+                </div>
+                <div class="a-tooltip-row">
+                  <span class="a-tooltip-dot" style="background:#FFD54F"></span>
+                  <span class="a-tooltip-label">Activas</span>
+                  <span class="a-tooltip-val">{{ monthlyStackedBars[monthlyHover].activeVal }}</span>
+                </div>
+              </div>
+              <!-- X-axis labels -->
+              <div class="a-xaxis-labels a-xaxis-bars">
+                <span v-for="(bar, idx) in monthlyStackedBars" :key="`mblbl-${idx}`"
+                  :class="{ 'a-xaxis-active': monthlyHover === idx }">{{ bar.label }}</span>
+              </div>
             </div>
           </div>
           <div class="a-legend-row">
-            <div class="a-legend"><span class="a-dot a-dot-completed"></span><span>Completadas</span></div>
-            <div class="a-legend"><span class="a-dot a-dot-active"></span><span>Activas</span></div>
+            <div class="a-legend"><span class="a-dot" style="background:#FFA726"></span><span>Completadas</span></div>
+            <div class="a-legend"><span class="a-dot" style="background:#FFD54F"></span><span>Activas</span></div>
+          </div>
+        </div>
+
+        <!-- Tokens / Inscripciones Acumuladas — Stacked Bar Chart azul -->
+        <div class="a-card a-card-chart">
+          <div class="a-card-header">
+            <div class="a-chart-title-row">
+              <span class="a-chart-metric-label">Inscripciones Acumuladas</span>
+              <span class="a-chart-metric-total">{{ creatorMetrics.enrolledUsersCount }}</span>
+            </div>
+            <span class="a-tag a-tag-purple">Global</span>
+          </div>
+          <div class="a-modern-chart-wrap" @mouseleave="enrollBarHover = null">
+            <div class="a-yaxis-labels">
+              <span v-for="lbl in enrollBarYAxisLabels" :key="lbl">{{ lbl }}</span>
+            </div>
+            <div class="a-chart-area-container">
+              <div class="a-stacked-bars-container">
+                <div class="a-stacked-bars-grid">
+                  <div v-for="(_, gi) in 4" :key="`egrid-${gi}`" class="a-stacked-grid-line"
+                    :style="{ bottom: `${(gi + 1) * 25}%` }"></div>
+                </div>
+                <div class="a-stacked-bars-row">
+                  <div v-for="(bar, idx) in enrollStackedBars" :key="`ebar-${idx}`"
+                    class="a-stacked-bar-col"
+                    @mouseenter="enrollBarHover = idx"
+                    @mouseleave="enrollBarHover = null">
+                    <div class="a-stacked-bar-stack"
+                      :class="{ 'a-stacked-bar-hovered': enrollBarHover === idx }">
+                      <div class="a-stacked-seg a-seg-enrolled"
+                        :style="{ height: `${bar.enrolledPct}%` }"></div>
+                      <div class="a-stacked-seg a-seg-certified"
+                        :style="{ height: `${bar.certifiedPct}%` }"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Tooltip -->
+              <div v-if="enrollBarHover != null" class="a-chart-tooltip"
+                :style="{ left: `${((enrollBarHover + 0.5) / enrollStackedBars.length) * 100}%` }">
+                <div class="a-tooltip-date">{{ enrollStackedBars[enrollBarHover].label }}</div>
+                <div class="a-tooltip-row">
+                  <span class="a-tooltip-dot" style="background:#42A5F5"></span>
+                  <span class="a-tooltip-label">Inscritos</span>
+                  <span class="a-tooltip-val">{{ enrollStackedBars[enrollBarHover].enrolledVal }}</span>
+                </div>
+                <div class="a-tooltip-row">
+                  <span class="a-tooltip-dot" style="background:#90CAF9"></span>
+                  <span class="a-tooltip-label">Certificados</span>
+                  <span class="a-tooltip-val">{{ enrollStackedBars[enrollBarHover].certifiedVal }}</span>
+                </div>
+              </div>
+              <!-- X-axis labels -->
+              <div class="a-xaxis-labels a-xaxis-bars">
+                <span v-for="(bar, idx) in enrollStackedBars" :key="`eblbl-${idx}`"
+                  :class="{ 'a-xaxis-active': enrollBarHover === idx }">{{ bar.label }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="a-legend-row">
+            <div class="a-legend"><span class="a-dot" style="background:#42A5F5"></span><span>Inscritos</span></div>
+            <div class="a-legend"><span class="a-dot" style="background:#90CAF9"></span><span>Certificados</span></div>
           </div>
         </div>
 
@@ -4105,6 +4244,74 @@ const WEEKLY_LABELS_FALLBACK = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom
 const MONTHLY_LABELS_FALLBACK = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
 const CIRCUMFERENCE = 2 * Math.PI * 34
 
+// ─── Chart hover state ─────────────────────────────────────────────────
+const weeklyHover = ref<number | null>(null)
+const monthlyHover = ref<number | null>(null)
+const enrollBarHover = ref<number | null>(null)
+
+const weeklyTotal = computed(() => weeklyValues.value.reduce((a, b) => a + b, 0))
+
+const weeklyYAxisLabels = computed(() => {
+  const max = weeklyMax.value || 1
+  return [max, Math.round(max * 0.75), Math.round(max * 0.5), Math.round(max * 0.25), 0].map(String)
+})
+
+const monthlyTotal = computed(() => {
+  const vals = monthlyChartRaw.value.values
+  return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) : 0
+})
+
+const monthlyYAxisLabels = computed(() => {
+  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
+  const max = Math.max(...vals, 1)
+  const totalMax = Math.round(max * 1.6)
+  return [totalMax, Math.round(totalMax * 0.75), Math.round(totalMax * 0.5), Math.round(totalMax * 0.25), 0].map(String)
+})
+
+const monthlyStackedBars = computed(() => {
+  const labels = monthlyChartRaw.value.labels.length > 0 ? monthlyChartRaw.value.labels : MONTHLY_LABELS_FALLBACK
+  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
+  const max = Math.max(...vals, 1)
+  const totalMax = max * 1.6
+  return labels.map((label, i) => {
+    const completedVal = vals[i] ?? 0
+    const activeVal = Math.round(completedVal * 0.6)
+    return {
+      label,
+      completedVal,
+      activeVal,
+      completedPct: Math.max(2, (completedVal / totalMax) * 100),
+      activePct: Math.max(2, (activeVal / totalMax) * 100),
+    }
+  })
+})
+
+const enrollStackedBars = computed(() => {
+  const labels = monthlyChartRaw.value.labels.length > 0 ? monthlyChartRaw.value.labels : MONTHLY_LABELS_FALLBACK
+  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
+  const enrolled = creatorMetrics.value.enrolledUsersCount || 0
+  const certified = creatorMetrics.value.certifiedUsersCount || 0
+  const max = Math.max(...vals, 1)
+  return labels.map((label, i) => {
+    const ratio = (vals[i] ?? 0) / max
+    const enrolledVal = Math.round(enrolled * ratio * 0.3) || 0
+    const certifiedVal = Math.round(certified * ratio * 0.2) || 0
+    const totalMax = Math.max(enrolled * 0.35, 1)
+    return {
+      label,
+      enrolledVal,
+      certifiedVal,
+      enrolledPct: Math.max(2, (enrolledVal / totalMax) * 100),
+      certifiedPct: Math.max(1, (certifiedVal / totalMax) * 100),
+    }
+  })
+})
+
+const enrollBarYAxisLabels = computed(() => {
+  const maxVal = Math.max(...enrollStackedBars.value.map(b => b.enrolledVal + b.certifiedVal), 1)
+  return [maxVal, Math.round(maxVal * 0.75), Math.round(maxVal * 0.5), Math.round(maxVal * 0.25), 0].map(String)
+})
+
 const gaugeDash = (pct: number) => {
   const fill = (Math.min(100, Math.max(0, pct)) / 100) * CIRCUMFERENCE
   return `${fill} ${CIRCUMFERENCE - fill}`
@@ -5142,6 +5349,124 @@ watch(() => route.query, () => {
 .a-area-svg-tall { height: 114px; }
 .a-chart-labels { display: flex; justify-content: space-between; padding: 8px 8px 0; }
 .a-chart-labels span { font-size: 10px; color: #636366; font-weight: 500; letter-spacing: -0.01em; }
+
+/* ═══════ Modern Dashboard Charts ═══════ */
+.a-chart-title-row {
+  display: flex; align-items: baseline; gap: 10px;
+}
+.a-chart-metric-label {
+  font-size: 13px; font-weight: 500; color: #8E8E93;
+  letter-spacing: -0.01em;
+}
+.a-chart-metric-total {
+  font-size: 20px; font-weight: 700; color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+.a-modern-chart-wrap {
+  display: flex; gap: 0; position: relative;
+  padding: 4px 0 0;
+}
+.a-yaxis-labels {
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 0 6px 22px 0; min-width: 32px; text-align: right;
+}
+.a-yaxis-labels span {
+  font-size: 9px; color: #48484A; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.a-chart-area-container {
+  flex: 1; position: relative; min-width: 0;
+}
+.a-modern-area-svg {
+  display: block; width: 100%; height: 130px;
+}
+.a-xaxis-labels {
+  display: flex; justify-content: space-between;
+  padding: 6px 4px 12px;
+}
+.a-xaxis-labels span {
+  font-size: 9px; color: #48484A; font-weight: 500;
+  transition: color 0.15s;
+}
+.a-xaxis-labels span.a-xaxis-active {
+  color: #EBEBF5;
+}
+.a-xaxis-bars {
+  justify-content: space-around;
+}
+/* Tooltip */
+.a-chart-tooltip {
+  position: absolute; top: -8px;
+  transform: translateX(-50%);
+  background: rgba(44,44,46,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-width: 130px;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: tooltipIn 0.15s ease;
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.a-tooltip-date {
+  font-size: 11px; font-weight: 600; color: #EBEBF5;
+  margin-bottom: 6px; letter-spacing: -0.01em;
+}
+.a-tooltip-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: #8E8E93;
+  margin-bottom: 2px;
+}
+.a-tooltip-dot {
+  width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0;
+}
+.a-tooltip-label { flex: 1; }
+.a-tooltip-val {
+  font-weight: 700; color: #FFFFFF; font-variant-numeric: tabular-nums;
+}
+
+/* ═══════ Stacked Bar Chart ═══════ */
+.a-stacked-bars-container {
+  position: relative; height: 130px; width: 100%;
+}
+.a-stacked-bars-grid {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.a-stacked-grid-line {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-bottom: 0.5px solid rgba(255,255,255,0.05);
+}
+.a-stacked-bars-row {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 100%; padding: 0 2px;
+}
+.a-stacked-bar-col {
+  flex: 1; height: 100%; display: flex; align-items: flex-end;
+  justify-content: center; cursor: pointer;
+}
+.a-stacked-bar-stack {
+  width: 65%; max-width: 32px; display: flex;
+  flex-direction: column-reverse; align-items: stretch;
+  border-radius: 3px 3px 0 0; overflow: hidden;
+  transition: opacity 0.15s, filter 0.15s;
+}
+.a-stacked-bar-col:hover .a-stacked-bar-stack {
+  filter: brightness(1.2);
+}
+.a-stacked-seg {
+  transition: height 0.5s cubic-bezier(.4,0,.2,1);
+  min-height: 0;
+}
+.a-seg-completed { background: #FFA726; }
+.a-seg-active    { background: #FFD54F; }
+.a-seg-enrolled  { background: #42A5F5; }
+.a-seg-certified { background: #90CAF9; }
 
 /* ═══════ TradingView Lightweight Charts ═══════ */
 .lw-chart-container {

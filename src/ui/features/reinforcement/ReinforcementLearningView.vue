@@ -526,7 +526,18 @@ Decimal.set({ precision: 64 })
 function parseDecimal(str: string): Decimal | null {
   if (!str) return null
   try {
-    const d = new Decimal(String(str).replace(/,/g, ''))
+    let s = String(str).replace(/,/g, '')
+    // Handle sentence-ending periods captured by greedy [\d,.]+ regexes:
+    // e.g. "$2,222,222.2222." → after comma removal "2222222.2222." → two dots.
+    // Truncate at second dot to keep only the valid decimal portion.
+    const dotIdx = s.indexOf('.')
+    if (dotIdx >= 0) {
+      const secondDot = s.indexOf('.', dotIdx + 1)
+      if (secondDot >= 0) s = s.substring(0, secondDot)
+    }
+    s = s.replace(/\.+$/, '')
+    if (!s) return null
+    const d = new Decimal(s)
     return d.isFinite() ? d : null
   } catch { return null }
 }
