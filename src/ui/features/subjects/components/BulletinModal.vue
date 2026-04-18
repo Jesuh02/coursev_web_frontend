@@ -256,15 +256,15 @@
 
             <template v-else>
               <div class="bulletin-export-bar bulletin-export-bar--top">
-                <button class="export-btn export-pdf" @click="exportBulletinPDF">
+                <button class="export-btn export-pdf" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSinglePDF() : exportBulletinPDF()">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                   PDF
                 </button>
-                <button class="export-btn export-excel" @click="exportBulletinExcel">
+                <button class="export-btn export-excel" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSingleExcel() : exportBulletinExcel()">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
                   Excel
                 </button>
-                <button class="export-btn export-word" @click="exportBulletinWord">
+                <button class="export-btn export-word" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSingleWord() : exportBulletinWord()">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                   Word
                 </button>
@@ -313,7 +313,26 @@
                 <div class="boletin-divider" />
 
                 <!-- Grades table -->
-                <template v-if="bulletinRows.length">
+                <template v-if="selectedPeriodNumber === -999 && allPeriodsSingleStudent.length">
+                  <template v-for="(period, pIdx) in allPeriodsSingleStudent" :key="period.periodName">
+                    <div class="boletin-period-header">{{ period.periodName }}</div>
+                    <table class="boletin-table">
+                      <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                      <tbody>
+                        <tr v-for="row in period.rows" :key="row.subjectId">
+                          <td class="td-modulo">{{ row.subjectName }}</td>
+                          <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="boletin-promedio">
+                      <span class="promedio-label">PROMEDIO {{ period.periodName.toUpperCase() }}</span>
+                      <span class="promedio-value" :class="notaClass(computePromedio(period.rows))">{{ computePromedio(period.rows).toFixed(1) }}</span>
+                    </div>
+                    <div v-if="pIdx < allPeriodsSingleStudent.length - 1" class="boletin-divider" style="margin:12px 0" />
+                  </template>
+                </template>
+                <template v-else-if="bulletinRows.length">
                 <table class="boletin-table">
                   <thead>
                     <tr>
@@ -429,6 +448,11 @@ const showPlatformBulletin = ref(false)
 const loadingPlatformBulletin = ref(false)
 const platformBulletinData = ref<PlatformBulletinEntry[]>([])
 
+interface AllPeriodsEntry { periodName: string; rows: BulletinRow[] }
+const allPeriodsSingleStudent = ref<AllPeriodsEntry[]>([])
+interface AllPeriodsAllEntry { student: GradeSheetStudent; periods: AllPeriodsEntry[] }
+const allPeriodsAllData = ref<AllPeriodsAllEntry[]>([])
+
 const filteredStudents = computed(() => {
   if (!studentSearch.value.trim()) return allStudents.value
   const q = studentSearch.value.toLowerCase()
@@ -450,16 +474,23 @@ const availablePeriods = computed(() => {
   }
   const sorted = [...periodsByNumber.entries()].sort((a, b) => a[0] - b[0])
   const historicalEntries = sorted.map(([num, name]) => ({ periodNumber: num as number | null, name }))
+  let entries: { periodNumber: number | null; name: string }[]
   if (activePeriodName.value) {
-    return [
+    entries = [
       { periodNumber: null as number | null, name: 'Periodo actual' },
       ...historicalEntries
     ]
+  } else {
+    entries = historicalEntries
   }
-  return historicalEntries
+  if (entries.length >= 2) {
+    entries.push({ periodNumber: -999, name: 'Todos los periodos' })
+  }
+  return entries
 })
 
 const currentPeriod = computed(() => {
+  if (selectedPeriodNumber.value === -999) return 'Todos los periodos'
   if (selectedPeriodNumber.value === null) {
     if (activePeriodName.value) return activePeriodName.value
     const now = new Date()
@@ -514,7 +545,7 @@ watch(() => props.modelValue, async (open) => {
     if (periods.length > 0) {
       selectedPeriodNumber.value = activePeriodName.value
         ? null // active period is the most recent
-        : periods[periods.length - 1].periodNumber // highest closed period number
+        : periods.filter(p => p.periodNumber !== -999).at(-1)?.periodNumber ?? null // highest closed period number
     }
   }
 })
@@ -560,30 +591,41 @@ async function selectStudent(student: GradeSheetStudent) {
   selectedStudent.value = student
   loadingBulletin.value = true
   bulletinRows.value = []
+  allPeriodsSingleStudent.value = []
   try {
-    const rows: BulletinRow[] = []
-    if (selectedPeriodNumber.value === null) {
-      // Active period: use live grade sheets
+    if (selectedPeriodNumber.value === -999) {
+      const sheetsCache = new Map<number, GradeSheet | null>()
       await Promise.allSettled(
         props.subjects.map(s =>
           gradeAdapter.getGradeSheet(s.id).then(sheet => {
-            if (!sheet || sheet.hasActivePeriod === false) return
-            rows.push(extractRowsFromSheet(sheet, s, student.userId))
-          }).catch(() => {})
+            sheetsCache.set(s.id, sheet ?? null)
+          }).catch(() => { sheetsCache.set(s.id, null) })
         )
       )
+      allPeriodsSingleStudent.value = computeAllPeriodRowsForCourse(student, props.subjects, sheetsCache)
     } else {
-      // Closed period: use snapshots from subjectPeriodsMap
-      for (const s of props.subjects) {
-        const periods = subjectPeriodsMap.value.get(s.id) ?? []
-        const period = periods.find(p => p.periodNumber === selectedPeriodNumber.value)
-        if (!period?.snapshot) continue
-        rows.push(extractRowsFromSheet(period.snapshot, s, student.userId))
+      const rows: BulletinRow[] = []
+      if (selectedPeriodNumber.value === null) {
+        await Promise.allSettled(
+          props.subjects.map(s =>
+            gradeAdapter.getGradeSheet(s.id).then(sheet => {
+              if (!sheet || sheet.hasActivePeriod === false) return
+              rows.push(extractRowsFromSheet(sheet, s, student.userId))
+            }).catch(() => {})
+          )
+        )
+      } else {
+        for (const s of props.subjects) {
+          const periods = subjectPeriodsMap.value.get(s.id) ?? []
+          const period = periods.find(p => p.periodNumber === selectedPeriodNumber.value)
+          if (!period?.snapshot) continue
+          rows.push(extractRowsFromSheet(period.snapshot, s, student.userId))
+        }
       }
+      const subjectOrder = new Map(props.subjects.map((s, i) => [s.id, i]))
+      rows.sort((a, b) => (subjectOrder.get(a.subjectId) ?? 0) - (subjectOrder.get(b.subjectId) ?? 0))
+      bulletinRows.value = rows
     }
-    const subjectOrder = new Map(props.subjects.map((s, i) => [s.id, i]))
-    rows.sort((a, b) => (subjectOrder.get(a.subjectId) ?? 0) - (subjectOrder.get(b.subjectId) ?? 0))
-    bulletinRows.value = rows
   } catch { /* silent */ }
   finally { loadingBulletin.value = false }
 }
@@ -614,6 +656,62 @@ function extractRowsFromSheet(sheet: GradeSheet, subject: BulletinSubject, stude
     subjectName: subject.name,
     notaDefinitiva: Math.round(notaDefinitiva * 10) / 10,
   }
+}
+
+function computeAllPeriodRowsForCourse(
+  student: GradeSheetStudent,
+  subjects: BulletinSubject[],
+  sheetsCache: Map<number, GradeSheet | null>,
+): AllPeriodsEntry[] {
+  const result: AllPeriodsEntry[] = []
+  const allPeriodNumbers = new Map<number, string>()
+  let hasActivePeriod = false
+  let activePeriodLabel = ''
+  for (const s of subjects) {
+    const periods = subjectPeriodsMap.value.get(s.id) ?? []
+    for (const p of periods) {
+      if (p.snapshot !== null && !allPeriodNumbers.has(p.periodNumber)) {
+        allPeriodNumbers.set(p.periodNumber, p.name)
+      } else if (p.snapshot === null) {
+        hasActivePeriod = true
+        if (!activePeriodLabel) activePeriodLabel = p.name
+      }
+    }
+  }
+  const sortedPeriods = [...allPeriodNumbers.entries()].sort((a, b) => a[0] - b[0])
+  for (const [periodNum, periodName] of sortedPeriods) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const periods = subjectPeriodsMap.value.get(s.id) ?? []
+      const period = periods.find(p => p.periodNumber === periodNum)
+      if (!period?.snapshot) continue
+      rows.push(extractRowsFromSheet(period.snapshot, s, student.userId))
+    }
+    if (rows.length > 0) result.push({ periodName, rows })
+  }
+  if (hasActivePeriod) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const sheet = sheetsCache.get(s.id)
+      if (!sheet || sheet.hasActivePeriod === false) continue
+      rows.push(extractRowsFromSheet(sheet, s, student.userId))
+    }
+    if (rows.length > 0) result.push({ periodName: activePeriodLabel || 'Periodo actual', rows })
+  }
+  if (result.length === 0) {
+    const rows: BulletinRow[] = []
+    for (const s of subjects) {
+      const sheet = sheetsCache.get(s.id)
+      if (!sheet) continue
+      rows.push(extractRowsFromSheet(sheet, s, student.userId))
+    }
+    if (rows.length > 0) {
+      const now = new Date()
+      const sem = now.getMonth() < 6 ? 'I' : 'II'
+      result.push({ periodName: `${sem} PERIODO ${now.getFullYear()}`, rows })
+    }
+  }
+  return result
 }
 
 async function selectPeriodOption(periodNumber: number | null) {
@@ -649,10 +747,10 @@ async function selectAllStudents() {
   showAllBulletins.value = true
   loadingAllBulletins.value = true
   allBulletinData.value = []
+  allPeriodsAllData.value = []
   try {
-    // Fetch all grade sheets once (only needed for active period)
     const sheetsCache = new Map<number, GradeSheet | null>()
-    if (selectedPeriodNumber.value === null) {
+    if (selectedPeriodNumber.value === null || selectedPeriodNumber.value === -999) {
       await Promise.allSettled(
         props.subjects.map(s =>
           gradeAdapter.getGradeSheet(s.id).then(sheet => {
@@ -664,12 +762,21 @@ async function selectAllStudents() {
       )
     }
 
-    const entries: AllBulletinEntry[] = []
-    for (const student of allStudents.value) {
-      const rows = await computeRowsForStudent(student, sheetsCache)
-      entries.push({ student, rows })
+    if (selectedPeriodNumber.value === -999) {
+      const entries: AllPeriodsAllEntry[] = []
+      for (const student of allStudents.value) {
+        const periods = computeAllPeriodRowsForCourse(student, props.subjects, sheetsCache)
+        entries.push({ student, periods })
+      }
+      allPeriodsAllData.value = entries
+    } else {
+      const entries: AllBulletinEntry[] = []
+      for (const student of allStudents.value) {
+        const rows = await computeRowsForStudent(student, sheetsCache)
+        entries.push({ student, rows })
+      }
+      allBulletinData.value = entries
     }
-    allBulletinData.value = entries
   } catch { /* silent */ }
   finally { loadingAllBulletins.value = false }
 }
@@ -957,6 +1064,163 @@ function exportAllBulletinsWord() {
   const a = document.createElement('a')
   a.href = url
   a.download = `boletines_todos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.doc`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Export functions for all-periods mode ──────────────────────────────
+function exportAllPeriodsSinglePDF() {
+  const st = selectedStudent.value
+  const name = escH(st?.fullName || st?.username || 'Estudiante')
+  let periodsHtml = ''
+  for (const period of allPeriodsSingleStudent.value) {
+    const prom = computePromedio(period.rows)
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    let rows = ''
+    for (const row of period.rows) {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    }
+    periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px;font-size:14px;text-transform:uppercase;border-bottom:1px solid #d4c5f0;padding-bottom:4px">${escH(period.periodName)}</h3><table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table><div class="promedio"><span class="prom-label">Promedio</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>`
+  }
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín - ${name}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}
+${institutionHeaderCSS()}${institutionSignatureAndFooterCSS()}</style></head><body>
+${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}
+<div class="info"><span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}</div>
+${periodsHtml}
+<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportAllPeriodsSingleExcel() {
+  const st = selectedStudent.value
+  const studentName = st?.fullName || st?.username || 'Estudiante'
+  let dataRows = ''
+  for (const period of allPeriodsSingleStudent.value) {
+    dataRows += `<Row><Cell ss:StyleID="b"><Data ss:Type="String">${escH(period.periodName)}</Data></Cell></Row>`
+    for (const r of period.rows) {
+      dataRows += `<Row><Cell><Data ss:Type="String">${escH(r.subjectName)}</Data></Cell><Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell></Row>`
+    }
+    const prom = computePromedio(period.rows)
+    dataRows += `<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row><Row/>`
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletín"><Table><Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(props.courseName || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_todos_periodos_${studentName.replace(/\s+/g, '_')}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllPeriodsSingleWord() {
+  const st = selectedStudent.value
+  const studentName = st?.fullName || st?.username || 'Estudiante'
+  const name = escH(studentName)
+  let periodsHtml = ''
+  for (const period of allPeriodsSingleStudent.value) {
+    const prom = computePromedio(period.rows)
+    const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    const rows = period.rows.map(row => {
+      const nota = row.notaDefinitiva.toFixed(1)
+      const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+      return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
+    }).join('')
+    periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px">${escH(period.periodName)}</h3><table style="width:100%;border-collapse:collapse;border:2px solid #333"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:8px"><b>PROMEDIO: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p>`
+  }
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body><h1 style="color:#6A1B9A">BOLETÍN DE NOTAS - TODOS LOS PERIODOS</h1><p><b>Programa:</b> ${escH(props.courseName || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st?.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}${periodsHtml}</body></html>`
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletin_todos_periodos_${studentName.replace(/\s+/g, '_')}.doc`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllPeriodsAllPDF() {
+  const pages: string[] = []
+  for (const entry of allPeriodsAllData.value) {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    let periodsHtml = ''
+    for (const period of entry.periods) {
+      const prom = computePromedio(period.rows)
+      const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+      let rows = ''
+      for (const row of period.rows) {
+        const nota = row.notaDefinitiva.toFixed(1)
+        const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+        rows += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+      }
+      periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px;font-size:14px;text-transform:uppercase;border-bottom:1px solid #d4c5f0;padding-bottom:4px">${escH(period.periodName)}</h3><table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>${rows}</tbody></table><div class="promedio"><span class="prom-label">Promedio</span><span class="prom-value" style="color:${promColor}">${prom.toFixed(1)}</span></div>`
+    }
+    pages.push(`<div class="page">${buildInstitutionHeaderHTML(institutionName.value || 'CourseV')}<div class="info"><span class="label">Programa:</span><span class="value">${escH(props.courseName || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}</div>${periodsHtml}<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</div>`)
+  }
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletines - Todos los periodos</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:20px;color:#222;max-width:700px;margin:0 auto}.page{page-break-after:always;padding:20px 0 40px}.page:last-child{page-break-after:avoid}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:20px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:14px;text-transform:uppercase;color:#444}.prom-value{font-size:20px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:0}.page{padding:10px 0 20px}}
+${institutionHeaderCSS()}${institutionSignatureAndFooterCSS()}</style></head><body>${pages.join('')}</body></html>`
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportAllPeriodsAllExcel() {
+  let dataRows = ''
+  for (const entry of allPeriodsAllData.value) {
+    const name = escH(entry.student.fullName || entry.student.username || 'Estudiante')
+    for (const period of entry.periods) {
+      const prom = computePromedio(period.rows)
+      const cells = period.rows.map(r => `<Cell><Data ss:Type="Number">${r.notaDefinitiva.toFixed(1)}</Data></Cell>`).join('')
+      dataRows += `<Row><Cell><Data ss:Type="String">${name}</Data></Cell><Cell><Data ss:Type="String">${escH(period.periodName)}</Data></Cell>${cells}<Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row>`
+    }
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Boletines"><Table><Row><Cell><Data ss:Type="String">Programa: ${escH(props.courseName || '—')}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">ESTUDIANTE</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PERIODO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">MATERIAS</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">PROMEDIO</Data></Cell></Row>${dataRows}</Table></Worksheet></Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletines_todos_periodos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllPeriodsAllWord() {
+  const pages = allPeriodsAllData.value.map(entry => {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    let periodsHtml = ''
+    for (const period of entry.periods) {
+      const prom = computePromedio(period.rows)
+      const promColor = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+      const rows = period.rows.map(row => {
+        const nota = row.notaDefinitiva.toFixed(1)
+        const color = row.notaDefinitiva >= 4 ? '#1A7F37' : row.notaDefinitiva >= 3 ? '#B45309' : '#B91C1C'
+        return `<tr><td style="font-weight:bold;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #eee">${escH(row.subjectName)}</td><td style="text-align:center;font-weight:800;color:${color};padding:6px 12px;border-bottom:1px solid #eee">${nota}</td></tr>`
+      }).join('')
+      periodsHtml += `<h3 style="color:#6A1B9A;margin:18px 0 6px">${escH(period.periodName)}</h3><table style="width:100%;border-collapse:collapse;border:2px solid #333"><thead><tr><th style="background:#6A1B9A;color:#fff;padding:10px;text-align:left">MÓDULO</th><th style="background:#6A1B9A;color:#fff;padding:10px">NOTA DEFINITIVA</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:8px"><b>PROMEDIO: <span style="color:${promColor}">${prom.toFixed(1)}</span></b></p>`
+    }
+    return `<div style="page-break-after:always;padding:20px 0"><h2 style="color:#6A1B9A">BOLETÍN DE NOTAS - TODOS LOS PERIODOS</h2><p><b>Programa:</b> ${escH(props.courseName || '—')}</p><p><b>Estudiante:</b> ${name}</p>${st.cedula ? `<p><b>Identificación:</b> ${escH(st.cedula)}</p>` : ''}${periodsHtml}</div>`
+  }).join('')
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}</style></head><body>${pages}</body></html>`
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `boletines_todos_periodos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.doc`
   a.click()
   URL.revokeObjectURL(url)
 }

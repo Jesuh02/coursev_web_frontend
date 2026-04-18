@@ -2,7 +2,7 @@
   <Teleport to="body">
     <Transition name="bulletin-fade">
       <div v-if="modelValue" class="bulletin-overlay" @click.self="$emit('update:modelValue', false)">
-        <div class="bulletin-modal">
+        <div class="bulletin-modal" :class="{ 'bulletin-modal--expanded': isExpanded }">
           <!-- Header -->
           <div class="bulletin-header">
             <div class="bulletin-header-icon">
@@ -12,6 +12,10 @@
               </svg>
             </div>
             <h2 class="bulletin-title">Generar Boletín</h2>
+            <button class="bulletin-expand-btn" @click="isExpanded = !isExpanded" :title="isExpanded ? 'Reducir' : 'Ampliar'">
+              <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+            </button>
             <button class="bulletin-close" @click="$emit('update:modelValue', false)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -399,6 +403,7 @@ const loadingSubjects = ref(false)
 const loadingStudents = ref(false)
 const loadingBulletin = ref(false)
 const loadingAllBulletins = ref(false)
+const isExpanded = ref(false)
 const allCourses = ref<Course[]>([])
 const loadingCourses = ref(false)
 const activePeriodName = ref<string | null>(null)
@@ -493,6 +498,7 @@ function notaClass(grade: number | null): string {
 
 watch(() => props.modelValue, async (open) => {
   if (open) {
+    isExpanded.value = false
     selectedCourse.value = null
     selectedStudent.value = null
     courseSearch.value = ''
@@ -1107,7 +1113,8 @@ function exportPlatformBulletinWord() {
 
 <style scoped>
 .bulletin-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: #1C1C1E; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; will-change: transform, opacity; }
+.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: #1C1C1E; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; will-change: transform, opacity; transition: max-width 0.45s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.45s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+.bulletin-modal--expanded { max-width: 95vw; max-height: 95vh; border-radius: 16px; }
 .bulletin-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
 .bulletin-fade-leave-active { transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 .bulletin-fade-enter-from, .bulletin-fade-leave-to { opacity: 0; }
@@ -1125,6 +1132,9 @@ function exportPlatformBulletinWord() {
 .bulletin-header { display: flex; align-items: center; gap: 12px; padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .bulletin-header-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(48,209,88,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .bulletin-title { flex: 1; font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
+.bulletin-expand-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1); }
+.bulletin-expand-btn:hover { background: rgba(255,255,255,0.12); }
+.bulletin-expand-btn:active { transform: scale(0.9); }
 .bulletin-close { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; }
 .bulletin-close:hover { background: rgba(255,255,255,0.12); }
 .bulletin-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
