@@ -179,7 +179,7 @@
           </div>
         </div>
 
-        <!-- Progreso Mensual — BarChart (vue-chrts) -->
+        <!-- Actividad Mensual — AreaChart (vue-chrts) -->
         <div class="a-card a-card-chart app-chart-section">
           <div class="a-card-header">
             <div class="a-chart-title-row">
@@ -188,25 +188,46 @@
             </div>
             <span class="a-tag a-tag-teal">6 meses</span>
           </div>
-          <BarChart
-            :data="monthlyBarChartData"
-            :categories="monthlyBarCategories"
-            :height="200"
-            :xAxis="'label'"
-            :yAxis="['completadas', 'activas']"
-            :radius="4"
-            :barPadding="0.3"
-            :hideLegend="true"
-            :yNumTicks="4"
-            :minMaxTicksOnly="true"
-            :yGridLine="false"
-            :xDomainLine="false"
-            :yDomainLine="false"
-          />
-          <div class="a-legend-row">
-            <div class="a-legend"><span class="a-dot" style="background:#FFA726"></span><span>Completadas</span></div>
-            <div class="a-legend"><span class="a-dot" style="background:#FFD54F"></span><span>Activas</span></div>
-          </div>
+          <AreaChart
+            class="w-full"
+            :data="monthlyAreaChartData"
+            :height="320"
+            y-label="Valor"
+            x-label="Mes"
+            :categories="monthlyAreaCategories"
+            :y-num-ticks="4"
+            :x-num-ticks="7"
+            :y-grid-line="true"
+            :legend-position="LegendPosition.TopRight"
+            :hide-legend="false"
+            :x-formatter="monthlyXFormatter"
+          >
+            <template #tooltip="{ values }">
+              <div
+                class="flex max-w-64 items-start justify-start gap-2 rounded-xl border border-default bg-default p-2"
+              >
+                <div class="a-monthly-tooltip-gauge">
+                  <svg viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="24" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none" />
+                    <circle cx="30" cy="30" r="24" stroke="#3b82f6" stroke-width="4" fill="none"
+                      stroke-linecap="round"
+                      :stroke-dasharray="monthlyTooltipGaugeDash(values?.inscripciones ?? 0)"
+                      transform="rotate(-90 30 30)" />
+                  </svg>
+                  <span class="a-monthly-tooltip-gauge-val">{{ monthlyTooltipPct(values?.inscripciones ?? 0) }}%</span>
+                </div>
+                <div>
+                  <div class="text-normal text-default" style="font-weight:600;">
+                    {{ getMonthFullName(values?.month ?? '') }}
+                  </div>
+                  <p style="font-size:0.85rem;opacity:0.8;">
+                    En este mes se registraron
+                    {{ values?.inscripciones ?? 0 }} inscripciones en total.
+                  </p>
+                </div>
+              </div>
+            </template>
+          </AreaChart>
         </div>
 
         <!-- Inscripciones Acumuladas — BarChart (vue-chrts) -->
@@ -2221,7 +2242,8 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
-import { BarChart } from 'vue-chrts'
+import { BarChart, AreaChart, LegendPosition } from 'vue-chrts'
+import type { BulletLegendItemInterface } from 'vue-chrts'
 
 type EnrollmentTone = 'student' | 'teacher' | 'admin' | 'neutral'
 
@@ -4452,17 +4474,40 @@ const resolveThumbnail = (url: string) => {
   return buildProxyFileUrl?.(url) || url
 }
 
-// ─── vue-chrts data for Actividad Mensual ────────────────────────────────
-const monthlyBarChartData = computed(() => {
-  return monthlyStackedBars.value.map(bar => ({
-    label: bar.label,
-    completadas: bar.completedVal,
-    activas: bar.activeVal,
+// ─── vue-chrts data for Actividad Mensual (AreaChart) ────────────────────
+interface MonthlyAreaItem {
+  month: string
+  inscripciones: number
+}
+const monthlyAreaChartData = computed<MonthlyAreaItem[]>(() => {
+  const labels = monthlyChartRaw.value.labels.length > 0 ? monthlyChartRaw.value.labels : MONTHLY_LABELS_FALLBACK
+  const vals = monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : new Array(6).fill(0)
+  return labels.map((label, i) => ({
+    month: label,
+    inscripciones: vals[i] ?? 0,
   }))
 })
-const monthlyBarCategories = {
-  completadas: { name: 'Completadas', color: '#FFA726' },
-  activas: { name: 'Activas', color: '#FFD54F' },
+const monthlyAreaCategories: Record<string, BulletLegendItemInterface> = {
+  inscripciones: { name: 'Inscripciones', color: '#3b82f6' },
+}
+const monthlyXFormatter = (tick: number, _i?: number, _ticks?: number[]): string => {
+  const data = monthlyAreaChartData.value
+  if (typeof tick === 'number' && data[tick]?.month) {
+    return data[tick].month
+  }
+  return String(tick)
+}
+const getMonthFullName = (month: string): string => month || ''
+const monthlyTooltipGaugeDash = (val: number) => {
+  const max = Math.max(...(monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : [1]), 1)
+  const pct = Math.min(100, (val / max) * 100)
+  const circ = 2 * Math.PI * 24
+  const fill = (pct / 100) * circ
+  return `${fill} ${circ - fill}`
+}
+const monthlyTooltipPct = (val: number) => {
+  const max = Math.max(...(monthlyChartRaw.value.values.length > 0 ? monthlyChartRaw.value.values : [1]), 1)
+  return Math.round(Math.min(100, (val / max) * 100))
 }
 
 // ─── vue-chrts data for Inscripciones Acumuladas ─────────────────────────
@@ -10043,5 +10088,24 @@ watch(() => route.query, () => {
 .app-chart-section :deep(.unovis-axis line),
 .app-chart-section :deep(.unovis-axis path) {
   stroke: rgba(255,255,255,0.08);
+}
+
+/* ─── Monthly AreaChart tooltip gauge ─── */
+.a-monthly-tooltip-gauge {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+.a-monthly-tooltip-gauge svg { width: 100%; height: 100%; }
+.a-monthly-tooltip-gauge-val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #EBEBF5;
 }
 </style>
