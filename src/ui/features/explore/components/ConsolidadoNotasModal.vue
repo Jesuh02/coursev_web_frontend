@@ -81,34 +81,41 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input v-model="studentSearch" type="text" class="student-search-input" placeholder="Buscar estudiante..." />
                 </div>
-                <span class="student-count">{{ filteredRows.length }} estudiantes</span>
+                <span class="student-count">{{ totalStudentCount }} estudiantes</span>
               </div>
 
-              <!-- Consolidado table -->
-              <div v-if="subjectColumns.length" class="table-scroll-wrapper">
-                <table class="consolidado-table">
-                  <thead>
-                    <tr>
-                      <th class="th-num">N°</th>
-                      <th class="th-student">Nombres y Apellidos</th>
-                      <th v-for="subj in subjectColumns" :key="subj" class="th-subject">
-                        <span class="th-subject-text">{{ subj }}</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <TransitionGroup name="row-fade">
-                      <tr v-for="(row, idx) in filteredRows" :key="row.key" class="consolidado-row">
-                        <td class="cell-num">{{ idx + 1 }}</td>
-                        <td class="cell-student">{{ row.name }}</td>
-                        <td v-for="subj in subjectColumns" :key="subj" class="cell-grade" :class="gradeClass(row.grades[subj])">
-                          {{ row.grades[subj] != null ? row.grades[subj]!.toFixed(1) : '—' }}
-                        </td>
-                      </tr>
-                    </TransitionGroup>
-                  </tbody>
-                </table>
-              </div>
+              <!-- Consolidado tables (agrupadas por curso) -->
+              <template v-if="courseGroups.length">
+                <div v-for="group in courseGroups" :key="group.courseId" class="course-section">
+                  <div v-if="!selectedCourseId" class="course-section-header">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.6;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    <span class="course-section-name">{{ group.courseName }}</span>
+                    <span class="course-section-count">{{ group.rows.length }} est.</span>
+                  </div>
+                  <div class="table-scroll-wrapper">
+                    <table class="consolidado-table">
+                      <thead>
+                        <tr>
+                          <th class="th-num">N°</th>
+                          <th class="th-student">Nombres y Apellidos</th>
+                          <th v-for="subj in group.subjects" :key="subj" class="th-subject">
+                            <span class="th-subject-text">{{ subj }}</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, idx) in group.rows" :key="row.key" class="consolidado-row">
+                          <td class="cell-num">{{ idx + 1 }}</td>
+                          <td class="cell-student">{{ row.name }}</td>
+                          <td v-for="subj in group.subjects" :key="subj" class="cell-grade" :class="gradeClass(row.grades[subj])">
+                            {{ row.grades[subj] != null ? row.grades[subj]!.toFixed(1) : '—' }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
               <div v-else class="consolidado-empty">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                 <p>No hay datos disponibles</p>
@@ -171,7 +178,6 @@ interface ConsolidadoEntry {
 }
 
 const consolidadoData = ref<ConsolidadoEntry[]>([])
-const allSubjects = ref<string[]>([])
 
 // ── Computed ──
 const filteredCourseOptions = computed(() => {
@@ -180,31 +186,32 @@ const filteredCourseOptions = computed(() => {
   return q ? courses.filter(c => c.title.toLowerCase().includes(q)) : courses
 })
 
-const subjectColumns = computed(() => {
-  if (!selectedCourseId.value) return allSubjects.value
-  const courseEntries = consolidadoData.value.filter(e => e.courseId === selectedCourseId.value)
-  const subjSet = new Set<string>()
-  for (const e of courseEntries) {
-    for (const s of Object.keys(e.grades)) subjSet.add(s)
-  }
-  return allSubjects.value.filter(s => subjSet.has(s))
+interface CourseGroup {
+  courseId: number
+  courseName: string
+  subjects: string[]
+  rows: ConsolidadoEntry[]
+}
+
+const courseGroups = computed((): CourseGroup[] => {
+  const courseIds = selectedCourseId.value
+    ? [selectedCourseId.value]
+    : Array.from(courseMap.value.keys())
+  const q = studentSearch.value.trim().toLowerCase()
+  return courseIds.flatMap(cid => {
+    const info = courseMap.value.get(cid)
+    if (!info) return []
+    const allEntries = consolidadoData.value.filter(e => e.courseId === cid)
+    const rows = (q ? allEntries.filter(e => e.name.toLowerCase().includes(q)) : allEntries)
+      .slice().sort((a, b) => a.name.localeCompare(b.name))
+    if (!rows.length) return []
+    const subjSet = new Set<string>()
+    for (const e of allEntries) for (const s of Object.keys(e.grades)) subjSet.add(s)
+    return [{ courseId: cid, courseName: info.title, subjects: Array.from(subjSet).sort(), rows }]
+  })
 })
 
-const filteredRows = computed(() => {
-  let data = consolidadoData.value
-  if (selectedCourseId.value) data = data.filter(e => e.courseId === selectedCourseId.value)
-  if (studentSearch.value.trim()) {
-    const q = studentSearch.value.trim().toLowerCase()
-    data = data.filter(e => e.name.toLowerCase().includes(q))
-  }
-  // Compute average inline
-  const cols = subjectColumns.value
-  return data.map(e => {
-    const vals = cols.map(s => e.grades[s]).filter((v): v is number => v != null)
-    const average = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-    return { ...e, average }
-  }).sort((a, b) => a.name.localeCompare(b.name))
-})
+const totalStudentCount = computed(() => courseGroups.value.reduce((s, g) => s + g.rows.length, 0))
 
 // ── Helpers ──
 function toggleFullscreen() { isFullscreen.value = !isFullscreen.value }
@@ -283,11 +290,10 @@ async function fetchConsolidado() {
     const courses = await courseAdapter.getCourses(1, 300)
     totalCourses.value = courses.length
 
-    const allSubjectsSet = new Set<string>()
     // key = `${courseId}::${userId}` → { name, courseId, grades }
     const studentMap = new Map<string, ConsolidadoEntry>()
 
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       courses.map(async (course) => {
         const title = (course as any).title ?? (course as any).name ?? `Curso ${course.id}`
         courseMap.value.set(course.id, { id: course.id, title })
@@ -298,7 +304,6 @@ async function fetchConsolidado() {
         for (const subj of subjects) {
           const subjectName = (subj as any).name as string
           const subjectId = (subj as any).id as number
-          allSubjectsSet.add(subjectName)
 
           // Get periods for this subject
           const periods = await periodAdapter.listBySubject(subjectId).catch(() => [] as GradePeriod[])
@@ -359,7 +364,6 @@ async function fetchConsolidado() {
       })
     )
 
-    allSubjects.value = Array.from(allSubjectsSet).sort()
     consolidadoData.value = Array.from(studentMap.values())
   } catch (e: any) {
     errorMsg.value = 'Error al generar el consolidado: ' + (e?.message ?? String(e))
@@ -370,27 +374,29 @@ async function fetchConsolidado() {
 
 // ── Export PDF (print-based) ──
 function exportPDF() {
-  const courseName = selectedCourseId.value
-    ? courseMap.value.get(selectedCourseId.value)?.title ?? 'Consolidado'
-    : 'Todos los cursos'
-  const cols = subjectColumns.value
-  const rows = filteredRows.value
-  const thCells = cols.map(s => `<th class="th-s">${esc(s)}</th>`).join('')
-  const bodyRows = rows.map((r, i) => {
-    const cells = cols.map(s => {
-      const v = r.grades[s]
-      return `<td class="td-g ${gradeClass(v)}">${v != null ? v.toFixed(1) : '—'}</td>`
+  const groups = courseGroups.value
+  let tables = ''
+  for (const group of groups) {
+    const thCells = group.subjects.map(s => `<th>${esc(s)}</th>`).join('')
+    const bodyRows = group.rows.map((r, i) => {
+      const cells = group.subjects.map(s => {
+        const v = r.grades[s]
+        return `<td class="td-g ${gradeClass(v)}">${v != null ? v.toFixed(1) : '—'}</td>`
+      }).join('')
+      return `<tr><td class="td-n">${i + 1}</td><td class="td-st">${esc(r.name)}</td>${cells}</tr>`
     }).join('')
-    return `<tr><td class="td-n">${i + 1}</td><td class="td-st">${esc(r.name)}</td>${cells}</tr>`
-  }).join('')
+    tables += `<div class="course-block"><h2 class="course-heading">${esc(group.courseName)}</h2><table><thead><tr><th>N°</th><th>Nombres y Apellidos</th>${thCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`
+  }
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Consolidado de Notas</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:30px;color:#222;font-size:11px}
 h1{font-size:18px;margin-bottom:4px}
-.sub{font-size:12px;color:#666;margin-bottom:16px}
-table{width:100%;border-collapse:collapse;margin-top:12px}
+.sub{font-size:12px;color:#666;margin-bottom:24px}
+.course-block{margin-bottom:32px}
+.course-heading{font-size:12px;font-weight:700;text-transform:uppercase;color:#3d0e6e;border-bottom:2px solid #3d0e6e;padding-bottom:4px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}
 th{background:#f5f0ff;text-align:center;font-size:9px;padding:6px 4px;border:1px solid #ddd;text-transform:uppercase;color:#555}
 td{padding:5px 4px;border:1px solid #eee;text-align:center;font-size:10px}
 .td-st{text-align:left;font-size:11px;white-space:nowrap}
@@ -398,17 +404,13 @@ td{padding:5px 4px;border:1px solid #eee;text-align:center;font-size:10px}
 .grade-good{color:#2d7a3a}
 .grade-ok{color:#b8860b}
 .grade-low{color:#c0392b}
-.td-avg{font-weight:700;background:#faf5ff}
 ${institutionHeaderCSS()}
-@media print{body{padding:15px}th{font-size:8px}td{font-size:9px}}
+@media print{body{padding:15px}th{font-size:8px}td{font-size:9px}.course-block{page-break-inside:avoid}}
 </style></head><body>
 ${isIncatInstitution() ? buildInstitutionHeaderHTML() : ''}
 <h1>CONSOLIDADO DE NOTAS</h1>
-<p class="sub">Programa: <strong>${esc(courseName)}</strong> — Generado: ${new Date().toLocaleDateString('es')}</p>
-<table>
-<thead><tr><th>N°</th><th>Nombres y Apellidos</th>${thCells}</tr></thead>
-<tbody>${bodyRows}</tbody>
-</table>
+<p class="sub">Generado: ${new Date().toLocaleDateString('es')}</p>
+${tables}
 </body></html>`
 
   const w = window.open('', '_blank')
@@ -424,22 +426,16 @@ async function exportExcel() {
   const ExcelJSModule = await import('exceljs') as any
   const ExcelJSLib: typeof ExcelJS = ExcelJSModule.default ?? ExcelJSModule
   const wb = new ExcelJSLib.Workbook()
-  const coursesToExport = selectedCourseId.value
-    ? [selectedCourseId.value]
-    : Array.from(courseMap.value.keys())
 
-  for (const cid of coursesToExport) {
-    const info = courseMap.value.get(cid)
-    if (!info) continue
-    const sheetName = info.title.slice(0, 31).replace(/[\\/*?\[\]:]/g, '')
+  for (const group of courseGroups.value) {
+    const sheetName = group.courseName.slice(0, 31).replace(/[\\/*?\[\]:]/g, '')
     const ws = wb.addWorksheet(sheetName)
-    const cols = subjectColumns.value
-    const rows = consolidadoData.value.filter(e => e.courseId === cid).sort((a, b) => a.name.localeCompare(b.name))
+    const cols = group.subjects
 
     // Title row
     ws.mergeCells(1, 1, 1, cols.length + 2)
     const titleCell = ws.getCell(1, 1)
-    titleCell.value = `CONSOLIDADO DE NOTAS — ${info.title}`
+    titleCell.value = `CONSOLIDADO DE NOTAS — ${group.courseName}`
     titleCell.font = { bold: true, size: 14, color: { argb: 'FF3D0E6E' } }
     titleCell.alignment = { horizontal: 'center' }
 
@@ -456,7 +452,7 @@ async function exportExcel() {
     })
 
     // Data rows
-    rows.forEach((r, idx) => {
+    group.rows.forEach((r, idx) => {
       const row = ws.getRow(idx + 4)
       row.getCell(1).value = idx + 1
       row.getCell(2).value = r.name
@@ -822,6 +818,31 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   padding: 60px 20px;
   color: #636366;
   font-size: 14px;
+}
+
+/* ── Course sections (todos los cursos) ── */
+.course-section { margin-bottom: 24px; }
+.course-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(191, 90, 242, 0.2);
+  color: #BF5AF2;
+}
+.course-section-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.course-section-count {
+  font-size: 11px;
+  color: #8E8E93;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 8px;
 }
 
 /* ── Export bar ── */
