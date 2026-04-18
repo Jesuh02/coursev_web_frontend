@@ -23,6 +23,9 @@
             <option value="Informática">Informática</option>
             <option value="Ciencias naturales">Ciencias naturales</option>
             <option value="Ciencias Sociales">Ciencias Sociales</option>
+            <option value="Técnico y cursos">Técnico y cursos</option>
+            <option value="Diplomados">Diplomados</option>
+            <option value="Bachillerato">Bachillerato</option>
           </select>
         </div>
 
