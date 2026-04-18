@@ -94,7 +94,6 @@
                       <th v-for="subj in subjectColumns" :key="subj" class="th-subject">
                         <span class="th-subject-text">{{ subj }}</span>
                       </th>
-                      <th class="th-promedio">Prom.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -104,9 +103,6 @@
                         <td class="cell-student">{{ row.name }}</td>
                         <td v-for="subj in subjectColumns" :key="subj" class="cell-grade" :class="gradeClass(row.grades[subj])">
                           {{ row.grades[subj] != null ? row.grades[subj]!.toFixed(1) : '—' }}
-                        </td>
-                        <td class="cell-promedio" :class="gradeClass(row.average)">
-                          <strong>{{ row.average != null ? row.average.toFixed(1) : '—' }}</strong>
                         </td>
                       </tr>
                     </TransitionGroup>
@@ -385,8 +381,7 @@ function exportPDF() {
       const v = r.grades[s]
       return `<td class="td-g ${gradeClass(v)}">${v != null ? v.toFixed(1) : '—'}</td>`
     }).join('')
-    const avg = r.average
-    return `<tr><td class="td-n">${i + 1}</td><td class="td-st">${esc(r.name)}</td>${cells}<td class="td-avg ${gradeClass(avg)}"><strong>${avg != null ? avg.toFixed(1) : '—'}</strong></td></tr>`
+    return `<tr><td class="td-n">${i + 1}</td><td class="td-st">${esc(r.name)}</td>${cells}</tr>`
   }).join('')
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Consolidado de Notas</title>
@@ -411,7 +406,7 @@ ${isIncatInstitution() ? buildInstitutionHeaderHTML() : ''}
 <h1>CONSOLIDADO DE NOTAS</h1>
 <p class="sub">Programa: <strong>${esc(courseName)}</strong> — Generado: ${new Date().toLocaleDateString('es')}</p>
 <table>
-<thead><tr><th>N°</th><th>Nombres y Apellidos</th>${thCells}<th>Prom.</th></tr></thead>
+<thead><tr><th>N°</th><th>Nombres y Apellidos</th>${thCells}</tr></thead>
 <tbody>${bodyRows}</tbody>
 </table>
 </body></html>`
@@ -442,7 +437,7 @@ async function exportExcel() {
     const rows = consolidadoData.value.filter(e => e.courseId === cid).sort((a, b) => a.name.localeCompare(b.name))
 
     // Title row
-    ws.mergeCells(1, 1, 1, cols.length + 3)
+    ws.mergeCells(1, 1, 1, cols.length + 2)
     const titleCell = ws.getCell(1, 1)
     titleCell.value = `CONSOLIDADO DE NOTAS — ${info.title}`
     titleCell.font = { bold: true, size: 14, color: { argb: 'FF3D0E6E' } }
@@ -453,7 +448,6 @@ async function exportExcel() {
     headerRow.getCell(1).value = 'N°'
     headerRow.getCell(2).value = 'Nombres y Apellidos'
     cols.forEach((s, i) => { headerRow.getCell(i + 3).value = s })
-    headerRow.getCell(cols.length + 3).value = 'Promedio'
     headerRow.eachCell(cell => {
       cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6B21A8' } }
@@ -466,22 +460,16 @@ async function exportExcel() {
       const row = ws.getRow(idx + 4)
       row.getCell(1).value = idx + 1
       row.getCell(2).value = r.name
-      const vals: number[] = []
       cols.forEach((s, i) => {
         const v = r.grades[s]
         row.getCell(i + 3).value = v ?? ''
-        if (v != null) vals.push(v)
       })
-      const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-      row.getCell(cols.length + 3).value = avg != null ? Math.round(avg * 10) / 10 : ''
-      row.getCell(cols.length + 3).font = { bold: true }
     })
 
     // Column widths
     ws.getColumn(1).width = 5
     ws.getColumn(2).width = 30
     cols.forEach((_, i) => { ws.getColumn(i + 3).width = 12 })
-    ws.getColumn(cols.length + 3).width = 10
   }
 
   const buf = await wb.xlsx.writeBuffer()
@@ -777,10 +765,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.th-promedio {
-  min-width: 60px;
-  background: rgba(191, 90, 242, 0.15);
-}
 
 .consolidado-row {
   transition: background 0.12s;
@@ -822,14 +806,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   font-weight: 600;
   color: #ccc;
   border-left: 1px solid rgba(255, 255, 255, 0.04);
-}
-.cell-promedio {
-  text-align: center;
-  padding: 8px 4px;
-  font-size: 13px;
-  font-weight: 700;
-  background: rgba(191, 90, 242, 0.06);
-  border-left: 2px solid rgba(191, 90, 242, 0.2);
 }
 
 /* Grade colors */
