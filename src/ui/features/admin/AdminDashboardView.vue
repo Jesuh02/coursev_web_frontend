@@ -510,7 +510,7 @@
                   :yGridLine="false"
                   :xDomainLine="false"
                   :yDomainLine="false"
-                  curveType="monotoneX"
+                  :curveType="CurveType.MonotoneX"
                 />
               </div>
               <div class="api-chart-half">
@@ -560,7 +560,7 @@
                   :yGridLine="false"
                   :xDomainLine="false"
                   :yDomainLine="false"
-                  curveType="monotoneX"
+                  :curveType="CurveType.MonotoneX"
                 />
               </div>
               <div class="api-chart-half">
@@ -2421,7 +2421,7 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
-import { BarChart, AreaChart } from 'vue-chrts'
+import { BarChart, AreaChart, CurveType } from 'vue-chrts'
 
 type EnrollmentTone = 'student' | 'teacher' | 'admin' | 'neutral'
 

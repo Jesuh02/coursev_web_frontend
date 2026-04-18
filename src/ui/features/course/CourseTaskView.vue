@@ -22,11 +22,12 @@
         <p class="field-label mt-16">Descripción</p>
         <textarea v-model="formDescription" class="field-input field-textarea" placeholder="Describe la tarea" rows="4" />
 
-        <p class="field-label mt-16">Fecha y hora límite (opcional)</p>
-        <div class="datetime-row">
-          <input v-model="formDueDate" type="date" class="field-input datetime-date" />
-          <input v-model="formDueTime" type="time" class="field-input datetime-time" :disabled="!formDueDate" />
-        </div>
+        <Calendar
+          v-model="formDueIso"
+          :selection-mode="CalendarSelectionMode.DateTime"
+          label="Fecha y hora límite (opcional)"
+          placeholder="Sin fecha límite"
+        />
 
         <p class="field-label mt-16">Documentos adjuntos</p>
         <div v-if="existingContentItems.length" class="existing-attachments">
@@ -135,6 +136,7 @@ import { taskAdapter, submissionAdapter, contentItemAdapter, uploadFileDirect } 
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
+import { Calendar, CalendarSelectionMode } from '@/ui/shared/components/Calendar'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,8 +160,7 @@ const saving = ref(false)
 const errorMsg = ref('')
 const formTitle = ref('')
 const formDescription = ref('')
-const formDueDate = ref('')
-const formDueTime = ref('23:59')
+const formDueIso = ref<string | null>(null)
 const formFile = ref<File | null>(null)
 const formFileInputRef = ref<HTMLInputElement | null>(null)
 const existingContentItems = ref<ContentItem[]>([])
@@ -169,12 +170,7 @@ function onFormFileSelected(e: Event) {
 }
 
 function buildDueDateIso(): string | null {
-  if (!formDueDate.value) return null
-  const time = formDueTime.value || '23:59'
-  const [year, month, day] = formDueDate.value.split('-').map(Number)
-  const [hours, minutes] = time.split(':').map(Number)
-  // Use numeric constructor to guarantee local time regardless of browser/engine quirks
-  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
+  return formDueIso.value || null
 }
 
 async function deleteContentItem(id: number) {
@@ -358,17 +354,7 @@ onMounted(async () => {
       formTitle.value = t.title ?? ''
       formDescription.value = t.description ?? ''
       const rawDate = t.dueDate ?? t.due_date ?? ''
-      if (rawDate) {
-        const d = new Date(rawDate)
-        const yr = d.getFullYear()
-        const mo = String(d.getMonth() + 1).padStart(2, '0')
-        const dy = String(d.getDate()).padStart(2, '0')
-        formDueDate.value = `${yr}-${mo}-${dy}`
-        formDueTime.value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-      } else {
-        formDueDate.value = ''
-        formDueTime.value = '23:59'
-      }
+      formDueIso.value = rawDate ? new Date(rawDate).toISOString() : null
       existingContentItems.value = items
     } catch { /* empty */ }
     loading.value = false
@@ -421,11 +407,6 @@ onMounted(async () => {
 .field-input:focus { background: #222; }
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .error-msg { font-size: 13px; color: #FF453A; }
-
-.datetime-row { display: flex; gap: 8px; }
-.datetime-date { flex: 1.6; }
-.datetime-time { flex: 1; min-width: 0; }
-.datetime-time:disabled { opacity: 0.4; }
 
 .existing-attachments {
   display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;

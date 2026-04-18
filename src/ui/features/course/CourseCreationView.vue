@@ -35,12 +35,12 @@
             <input v-model="form.hasDeadline" type="checkbox" class="toggle" />
           </label>
           <div v-if="form.hasDeadline" class="deadline-picker">
-            <label class="input-label">Fecha límite del curso</label>
-            <input
+            <Calendar
               v-model="form.deadline"
-              type="datetime-local"
-              class="date-input"
-              :min="minDeadline"
+              :selection-mode="CalendarSelectionMode.DateTime"
+              label="Fecha límite del curso"
+              :min-date="minDeadline"
+              placeholder="Seleccionar fecha límite"
             />
             <p class="deadline-hint">Pasada esta fecha, los colaboradores (rol 2) serán desactivados automáticamente.</p>
           </div>
@@ -155,6 +155,7 @@ import { useRoute, useRouter } from 'vue-router'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
+import { Calendar, CalendarSelectionMode } from '@/ui/shared/components/Calendar'
 import { useAuthStore } from '@/stores/authStore'
 import { useCourseStore } from '@/stores/courseStore'
 import type { User } from '@/domain/models'
@@ -191,11 +192,7 @@ const isEdit = computed(() => !!route.params.id)
 const saveError = ref('')
 
 // Min datetime = now (can't set deadline in the past)
-const minDeadline = computed(() => {
-  const now = new Date()
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-  return now.toISOString().slice(0, 16)
-})
+const minDeadline = computed(() => new Date().toISOString())
 
 const form = reactive({
   title: '',
@@ -244,9 +241,7 @@ onMounted(async () => {
   form.isActive = course.isActive ?? course.is_active ?? true
   if (course.deadline) {
     form.hasDeadline = true
-    const d = new Date(course.deadline)
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-    form.deadline = d.toISOString().slice(0, 16)
+    form.deadline = new Date(course.deadline).toISOString()
   }
 
   // Pre-load existing collaborators
@@ -673,20 +668,6 @@ async function submitCourse() {
   color: #8E8E93;
   font-weight: 500;
 }
-
-.date-input {
-  background: #1C1C1E;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 12px 14px;
-  color: #fff;
-  font-size: 15px;
-  width: 100%;
-  appearance: none;
-  color-scheme: dark;
-}
-
-.date-input:focus { outline: none; border-color: var(--purple-primary, #BF5AF2); }
 
 .deadline-hint {
   font-size: 12px;

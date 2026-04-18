@@ -62,7 +62,7 @@
         </div>
         <div class="row">
           <AppInput v-model="form.telefono" type="tel" label="Teléfono" placeholder="+57" :error="fieldErrors.telefono" />
-          <AppInput v-model="form.fecha_nacimiento" type="date" label="Fecha de nacimiento" :error="fieldErrors.fecha_nacimiento" />
+          <Calendar v-model="form.fecha_nacimiento" label="Fecha de nacimiento" :error="fieldErrors.fecha_nacimiento" placeholder="Seleccionar fecha" />
         </div>
       </section>
 
@@ -127,6 +127,7 @@ import { HttpError, institucionAdapter } from '@/infrastructure/api'
 import type { Institucion } from '@/domain/models'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
+import { Calendar } from '@/ui/shared/components/Calendar'
 
 const route = useRoute()
 const router = useRouter()
