@@ -82,6 +82,82 @@
             </div>
 
             <template v-else>
+              <!-- All periods mode -->
+              <template v-if="selectedPeriodNumber === -999">
+                <div v-if="allPeriodsAllData.length" class="bulletin-export-bar bulletin-export-bar--top">
+                  <button class="export-btn export-pdf" @click="exportAllPeriodsAllPDF">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                    PDF todos
+                  </button>
+                  <button class="export-btn export-excel" @click="exportAllPeriodsAllExcel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                    Excel todos
+                  </button>
+                  <button class="export-btn export-word" @click="exportAllPeriodsAllWord">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                    Word todos
+                  </button>
+                </div>
+                <div v-for="entry in allPeriodsAllData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
+                  <div class="boletin-header-top">
+                    <div class="boletin-logo-placeholder">
+                      <img v-if="getInstitutionLogoUrl()" :src="getInstitutionLogoUrl() || undefined" alt="Escudo" style="width:50px;height:auto" />
+                      <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    </div>
+                    <div class="boletin-institution">
+                      <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
+                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                      <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
+                    </div>
+                  </div>
+                  <div class="boletin-divider" />
+                  <div class="boletin-info-grid">
+                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ courseName || '—' }}</span></div>
+                    <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
+                    <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
+                  </div>
+                  <div class="boletin-divider" />
+                  <template v-if="entry.periods.length">
+                    <template v-for="(period, pIdx) in entry.periods" :key="period.periodName">
+                      <div class="boletin-period-header">{{ period.periodName }}</div>
+                      <table class="boletin-table">
+                        <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                        <tbody>
+                          <tr v-for="row in period.rows" :key="row.subjectId">
+                            <td class="td-modulo">{{ row.subjectName }}</td>
+                            <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ row.notaDefinitiva.toFixed(1) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div class="boletin-promedio">
+                        <span class="promedio-label">PROMEDIO {{ period.periodName.toUpperCase() }}</span>
+                        <span class="promedio-value" :class="notaClass(computePromedio(period.rows))">{{ computePromedio(period.rows).toFixed(1) }}</span>
+                      </div>
+                      <div v-if="pIdx < entry.periods.length - 1" class="boletin-divider" style="margin:12px 0" />
+                    </template>
+                  </template>
+                  <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                    📅 Sin periodos — no hay datos de notas disponibles.
+                  </div>
+                  <div class="boletin-divider" />
+                  <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+                  <template v-if="isIncatInstitution()">
+                    <div class="incat-sig-block" style="margin-top:16px">
+                      <div class="incat-sig-line"></div>
+                      <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                      <p class="incat-sig-title">RECTOR</p>
+                    </div>
+                    <div class="incat-footer-info">
+                      <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                      <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                      <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                      <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+              <!-- Single period mode -->
+              <template v-else>
               <div v-if="allBulletinData.length" class="bulletin-export-bar bulletin-export-bar--top">
                 <button class="export-btn export-pdf" @click="exportAllBulletinsPDF">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
@@ -152,6 +228,7 @@
                   </div>
                 </template>
                 </div>
+              </template>
               </template>
           </div>
 
@@ -545,7 +622,7 @@ watch(() => props.modelValue, async (open) => {
     if (periods.length > 0) {
       selectedPeriodNumber.value = activePeriodName.value
         ? null // active period is the most recent
-        : periods.filter(p => p.periodNumber !== -999).at(-1)?.periodNumber ?? null // highest closed period number
+        : (p => p.length > 0 ? p[p.length - 1].periodNumber : null)(periods.filter(p => p.periodNumber !== -999)) // highest closed period number
     }
   }
 })
@@ -1064,10 +1141,6 @@ function exportAllBulletinsWord() {
   const a = document.createElement('a')
   a.href = url
   a.download = `boletines_todos_${(props.courseName || 'curso').replace(/\s+/g, '_')}.doc`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -1777,6 +1850,17 @@ ${buildInstitutionSignatureAndFooterHTML()}
   font-size: 22px;
   font-weight: 800;
   color: #fff;
+}
+
+.boletin-period-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #BF5AF2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 0 6px;
+  border-bottom: 1px solid rgba(191,90,242,0.2);
+  margin-bottom: 4px;
 }
 
 /* Grade colors */

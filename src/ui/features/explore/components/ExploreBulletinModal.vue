@@ -211,6 +211,82 @@
                 </div>
 
                 <template v-else>
+                  <!-- All-periods mode -->
+                  <template v-if="selectedPeriodNumber === -999">
+                    <div v-if="allPeriodsAllData.length" class="bulletin-export-bar bulletin-export-bar--top">
+                      <button class="export-btn export-pdf" @click="exportAllPeriodsAllPDF">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                        PDF todos
+                      </button>
+                      <button class="export-btn export-excel" @click="exportAllPeriodsAllExcel">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                        Excel todos
+                      </button>
+                      <button class="export-btn export-word" @click="exportAllPeriodsAllWord">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                        Word todos
+                      </button>
+                    </div>
+                    <div v-for="entry in allPeriodsAllData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
+                      <div class="boletin-header-top">
+                        <div class="boletin-logo-placeholder">
+                          <img v-if="institutionLogoUrl" :src="institutionLogoUrl" alt="Escudo" style="width:50px;height:auto" />
+                          <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        </div>
+                        <div class="boletin-institution">
+                          <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
+                          <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                          <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
+                        </div>
+                      </div>
+                      <div class="boletin-divider" />
+                      <div class="boletin-info-grid">
+                        <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
+                        <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ entry.student.fullName || entry.student.username || '—' }}</span></div>
+                        <div v-if="entry.student.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ entry.student.cedula }}</span></div>
+                      </div>
+                      <div class="boletin-divider" />
+                      <template v-if="entry.periods.length">
+                        <template v-for="(period, pIdx) in entry.periods" :key="period.periodName">
+                          <div class="boletin-period-header">{{ period.periodName }}</div>
+                          <table class="boletin-table">
+                            <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                            <tbody>
+                              <tr v-for="row in period.rows" :key="row.subjectId">
+                                <td class="td-modulo">{{ row.subjectName }}</td>
+                                <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <div class="boletin-promedio">
+                            <span class="promedio-label">PROMEDIO {{ period.periodName.toUpperCase() }}</span>
+                            <span class="promedio-value" :class="notaClass(computePromedio(period.rows))">{{ computePromedio(period.rows).toFixed(1) }}</span>
+                          </div>
+                          <div v-if="pIdx < entry.periods.length - 1" class="boletin-divider" style="margin:12px 0" />
+                        </template>
+                      </template>
+                      <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                        📅 Sin periodos — no hay datos de notas disponibles.
+                      </div>
+                      <div class="boletin-divider" />
+                      <div class="boletin-footer"><p class="boletin-generated">Generado el {{ generatedDate }}</p></div>
+                      <template v-if="isIncatInstitution()">
+                        <div class="incat-sig-block" style="margin-top:16px">
+                          <div class="incat-sig-line"></div>
+                          <p class="incat-sig-name">AQUILES AMAYA IGUARAN</p>
+                          <p class="incat-sig-title">RECTOR</p>
+                        </div>
+                        <div class="incat-footer-info">
+                          <p class="incat-footer-slogan"><em>Politécnico &quot;INCAT&quot;, forjando líderes para triunfar!</em></p>
+                          <p class="incat-footer-addr">SEDE PRINCIPAL CALLE 11ª # 11-85 &nbsp; TEL. 3106357993-3156824740</p>
+                          <p class="incat-footer-email">E-mail: politecnicoincat@gmail.com</p>
+                          <p class="incat-footer-city">RIOHACHA- LA GUAJIRA</p>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                  <!-- Single period mode -->
+                  <template v-else>
                   <div v-for="entry in allBulletinData" :key="entry.student.userId" class="bulletin-card bulletin-card--all">
                     <div class="boletin-header-top">
                       <div class="boletin-logo-placeholder">
@@ -280,7 +356,8 @@
                       Word todos
                     </button>
                   </div>
-                </template>
+                  </template><!-- end single-period all-students -->
+                </template><!-- end all-periods/single-period switch -->
               </template>
 
               <!-- Bulletin preview -->
@@ -315,7 +392,26 @@
                     <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
                   </div>
                   <div class="boletin-divider" />
-                  <template v-if="bulletinRows.length">
+                  <template v-if="selectedPeriodNumber === -999 && allPeriodsSingleStudent.length">
+                    <template v-for="(period, pIdx) in allPeriodsSingleStudent" :key="period.periodName">
+                      <div class="boletin-period-header">{{ period.periodName }}</div>
+                      <table class="boletin-table">
+                        <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
+                        <tbody>
+                          <tr v-for="row in period.rows" :key="row.subjectId">
+                            <td class="td-modulo">{{ row.subjectName }}</td>
+                            <td class="td-nota" :class="notaClass(row.notaDefinitiva)">{{ (row.notaDefinitiva ?? 0).toFixed(1) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div class="boletin-promedio">
+                        <span class="promedio-label">PROMEDIO {{ period.periodName.toUpperCase() }}</span>
+                        <span class="promedio-value" :class="notaClass(computePromedio(period.rows))">{{ computePromedio(period.rows).toFixed(1) }}</span>
+                      </div>
+                      <div v-if="pIdx < allPeriodsSingleStudent.length - 1" class="boletin-divider" style="margin:12px 0" />
+                    </template>
+                  </template>
+                  <template v-else-if="bulletinRows.length">
                   <table class="boletin-table">
                     <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
                     <tbody>
@@ -352,15 +448,15 @@
                 </div>
 
                 <div class="bulletin-export-bar">
-                  <button class="export-btn export-pdf" @click="exportBulletinPDF">
+                  <button class="export-btn export-pdf" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSinglePDF() : exportBulletinPDF()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                     PDF
                   </button>
-                  <button class="export-btn export-excel" @click="exportBulletinExcel">
+                  <button class="export-btn export-excel" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSingleExcel() : exportBulletinExcel()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
                     Excel
                   </button>
-                  <button class="export-btn export-word" @click="exportBulletinWord">
+                  <button class="export-btn export-word" @click="selectedPeriodNumber === -999 ? exportAllPeriodsSingleWord() : exportBulletinWord()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                     Word
                   </button>
@@ -426,6 +522,11 @@ const showPlatformBulletin = ref(false)
 const loadingPlatformBulletin = ref(false)
 const platformBulletinData = ref<PlatformBulletinEntry[]>([])
 
+interface AllPeriodsEntry { periodName: string; rows: BulletinRow[] }
+const allPeriodsSingleStudent = ref<AllPeriodsEntry[]>([])
+interface AllPeriodsAllEntry { student: GradeSheetStudent; periods: AllPeriodsEntry[] }
+const allPeriodsAllData = ref<AllPeriodsAllEntry[]>([])
+
 const availablePeriods = computed(() => {
   const periodsByNumber = new Map<number, string>()
   for (const periods of subjectPeriodsMap.value.values()) {
@@ -437,13 +538,19 @@ const availablePeriods = computed(() => {
   }
   const sorted = [...periodsByNumber.entries()].sort((a, b) => a[0] - b[0])
   const historicalEntries = sorted.map(([num, name]) => ({ periodNumber: num as number | null, name }))
+  let entries: { periodNumber: number | null; name: string }[]
   if (activePeriodName.value) {
-    return [
+    entries = [
       { periodNumber: null as number | null, name: 'Periodo actual' },
       ...historicalEntries
     ]
+  } else {
+    entries = historicalEntries
   }
-  return historicalEntries
+  if (entries.length >= 2) {
+    entries.push({ periodNumber: -999, name: 'Todos los periodos' })
+  }
+  return entries
 })
 
 const filteredCourses = computed(() => {
@@ -464,6 +571,7 @@ const filteredStudents = computed(() => {
 })
 
 const currentPeriod = computed(() => {
+  if (selectedPeriodNumber.value === -999) return 'Todos los periodos'
   if (selectedPeriodNumber.value === null) {
     if (activePeriodName.value) return activePeriodName.value
     const now = new Date()
@@ -553,7 +661,7 @@ async function pickCourse(course: Course) {
     if (periods.length > 0) {
       selectedPeriodNumber.value = activePeriodName.value
         ? null
-        : periods[periods.length - 1].periodNumber
+        : (p => p.length > 0 ? p[p.length - 1].periodNumber : null)(periods.filter(p => p.periodNumber !== -999))
     }
   } catch { subjectsForCourse.value = [] }
   finally { loadingSubjects.value = false }
@@ -761,9 +869,14 @@ async function selectStudent(student: GradeSheetStudent) {
   showAllBulletins.value = false
   loadingBulletin.value = true
   bulletinRows.value = []
+  allPeriodsSingleStudent.value = []
   try {
     const sheetsCache = await getGradeSheetsCache()
-    bulletinRows.value = await computeRowsForStudent(student, sheetsCache)
+    if (selectedPeriodNumber.value === -999) {
+      allPeriodsSingleStudent.value = computeAllPeriodRows(student, subjectsForCourse.value.map(s => ({ id: s.id, name: s.name })), sheetsCache, subjectPeriodsMap.value)
+    } else {
+      bulletinRows.value = await computeRowsForStudent(student, sheetsCache)
+    }
   } catch { /* silent */ }
   finally { loadingBulletin.value = false }
 }
@@ -773,14 +886,25 @@ async function selectAllStudents() {
   selectedStudent.value = null
   loadingAllBulletins.value = true
   allBulletinData.value = []
+  allPeriodsAllData.value = []
   try {
     const sheetsCache = await getGradeSheetsCache()
-    const entries: AllBulletinEntry[] = []
-    for (const student of allStudents.value) {
-      const rows = await computeRowsForStudent(student, sheetsCache)
-      entries.push({ student, rows })
+    if (selectedPeriodNumber.value === -999) {
+      const subjectsMeta = subjectsForCourse.value.map(s => ({ id: s.id, name: s.name }))
+      const entries: AllPeriodsAllEntry[] = []
+      for (const student of allStudents.value) {
+        const periods = computeAllPeriodRows(student, subjectsMeta, sheetsCache, subjectPeriodsMap.value)
+        entries.push({ student, periods })
+      }
+      allPeriodsAllData.value = entries
+    } else {
+      const entries: AllBulletinEntry[] = []
+      for (const student of allStudents.value) {
+        const rows = await computeRowsForStudent(student, sheetsCache)
+        entries.push({ student, rows })
+      }
+      allBulletinData.value = entries
     }
-    allBulletinData.value = entries
   } catch { /* silent */ }
   finally { loadingAllBulletins.value = false }
 }
@@ -933,6 +1057,137 @@ function exportAllBulletinsWord() {
   a.href = url
   a.download = `boletines_todos_${(selectedCourse.value?.title || 'curso').replace(/\s+/g, '_')}.doc`
   a.click()
+  URL.revokeObjectURL(url)
+}
+
+/* ── All-periods single student exports ─────────────────────────────── */
+function buildAllPeriodsSingleHTML(forPrint: boolean) {
+  const st = selectedStudent.value
+  const name = escH(st?.fullName || st?.username || 'Estudiante')
+  let body = ''
+  for (const period of allPeriodsSingleStudent.value) {
+    body += `<h3 style="color:#BF5AF2;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;margin-top:16px;border-bottom:1px solid rgba(191,90,242,0.2);padding-bottom:4px">${escH(period.periodName)}</h3>`
+    body += `<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>`
+    for (const row of period.rows) {
+      const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+      const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
+      body += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+    }
+    body += `</tbody></table>`
+    const prom = computePromedio(period.rows)
+    const pc = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+    body += `<div class="promedio"><span class="prom-label">Promedio ${escH(period.periodName)}</span><span class="prom-value" style="color:${pc}">${prom.toFixed(1)}</span></div>`
+  }
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletín Todos los Periodos - ${name}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:40px;color:#222;max-width:700px;margin:0 auto}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:8px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.prom-value{font-size:18px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:20px}table{page-break-inside:avoid}}
+${institutionHeaderCSS()}${institutionSignatureAndFooterCSS()}</style></head><body>
+${buildInstitutionHeaderHTML(getInstitutionDisplayName())}
+<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st?.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>
+${body}
+<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</body></html>`
+}
+
+function exportAllPeriodsSinglePDF() {
+  const html = buildAllPeriodsSingleHTML(true)
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html); win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportAllPeriodsSingleExcel() {
+  const st = selectedStudent.value
+  const studentName = st?.fullName || st?.username || 'Estudiante'
+  let sheets = ''
+  for (const period of allPeriodsSingleStudent.value) {
+    const rows = period.rows.map(r =>
+      `<Row><Cell><Data ss:Type="String">${escH(r.subjectName)}</Data></Cell><Cell><Data ss:Type="Number">${(r.notaDefinitiva ?? 0)}</Data></Cell></Row>`
+    ).join('')
+    const prom = computePromedio(period.rows)
+    sheets += `<Worksheet ss:Name="${escH(period.periodName).substring(0,31)}"><Table><Row><Cell><Data ss:Type="String">Programa</Data></Cell><Cell><Data ss:Type="String">${escH(selectedCourse.value?.title || '—')}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Estudiante</Data></Cell><Cell><Data ss:Type="String">${escH(studentName)}</Data></Cell></Row><Row><Cell><Data ss:Type="String">Periodo</Data></Cell><Cell><Data ss:Type="String">${escH(period.periodName)}</Data></Cell></Row><Row/><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA DEFINITIVA</Data></Cell></Row>${rows}<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row></Table></Worksheet>`
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles>${sheets}</Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = `boletin_todos_periodos_${studentName.replace(/\s+/g, '_')}.xls`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllPeriodsSingleWord() {
+  const html = buildAllPeriodsSingleHTML(false)
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const st = selectedStudent.value
+  a.href = url; a.download = `boletin_todos_periodos_${(st?.fullName || st?.username || 'est').replace(/\s+/g, '_')}.doc`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+/* ── All-periods all students exports ──────────────────────────────── */
+function buildAllPeriodsAllHTML() {
+  let pages = ''
+  for (const entry of allPeriodsAllData.value) {
+    const st = entry.student
+    const name = escH(st.fullName || st.username || 'Estudiante')
+    let body = ''
+    for (const period of entry.periods) {
+      body += `<h3 style="color:#BF5AF2;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;margin-top:16px;border-bottom:1px solid rgba(191,90,242,0.2);padding-bottom:4px">${escH(period.periodName)}</h3>`
+      body += `<table><thead><tr><th style="text-align:left">Módulo</th><th>Nota Definitiva</th></tr></thead><tbody>`
+      for (const row of period.rows) {
+        const nota = (row.notaDefinitiva ?? 0).toFixed(1)
+        const color = (row.notaDefinitiva ?? 0) >= 4 ? '#1A7F37' : (row.notaDefinitiva ?? 0) >= 3 ? '#B45309' : '#B91C1C'
+        body += `<tr><td class="td-mod">${escH(row.subjectName)}</td><td class="td-nota" style="color:${color}">${nota}</td></tr>`
+      }
+      body += `</tbody></table>`
+      const prom = computePromedio(period.rows)
+      const pc = prom >= 4 ? '#1A7F37' : prom >= 3 ? '#B45309' : '#B91C1C'
+      body += `<div class="promedio"><span class="prom-label">Promedio ${escH(period.periodName)}</span><span class="prom-value" style="color:${pc}">${prom.toFixed(1)}</span></div>`
+    }
+    pages += `<div class="page">${buildInstitutionHeaderHTML(getInstitutionDisplayName())}<div class="info"><span class="label">Programa:</span><span class="value">${escH(selectedCourse.value?.title || '—')}</span><span class="label">Estudiante:</span><span class="value">${name}</span>${st.cedula ? `<span class="label">Identificación:</span><span class="value">${escH(st.cedula)}</span>` : ''}<span class="label">Periodo:</span><span class="value">Todos los periodos</span></div>${body}<div class="footer">Generado el ${generatedDate.value}</div>${buildInstitutionSignatureAndFooterHTML()}</div>`
+  }
+  return pages
+}
+
+function exportAllPeriodsAllPDF() {
+  const pages = buildAllPeriodsAllHTML()
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boletines Todos los Periodos</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:20px;color:#222;max-width:700px;margin:0 auto}.page{page-break-after:always;padding:20px 0 40px}.page:last-child{page-break-after:avoid}.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #6A1B9A;padding-bottom:16px}.inst-name{font-size:20px;font-weight:700;color:#6A1B9A;display:block}.inst-sub{font-size:12px;color:#666;display:block;margin-top:2px}.info{margin:20px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px}.label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.value{font-size:13px;font-weight:600}table{width:100%;border-collapse:collapse;margin-top:8px;border:2px solid #333}th{background:#6A1B9A;color:#fff;padding:10px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}td{padding:8px 16px;border-bottom:1px solid #ddd;font-size:13px}.td-mod{font-weight:600;text-transform:uppercase}.td-nota{text-align:center;font-weight:700;font-size:15px}.promedio{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 16px;background:#f5f0ff;border-radius:8px;border:1px solid #d4c5f0}.prom-label{font-weight:700;font-size:13px;text-transform:uppercase;color:#444}.prom-value{font-size:18px;font-weight:800}.footer{margin-top:32px;text-align:center;font-size:11px;color:#888}@media print{body{padding:0}.page{padding:10px 0 20px}}
+${institutionHeaderCSS()}${institutionSignatureAndFooterCSS()}</style></head><body>${pages}</body></html>`
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html); win.document.close()
+  win.onload = () => { win.print(); win.close() }
+}
+
+function exportAllPeriodsAllExcel() {
+  let sheets = ''
+  for (const entry of allPeriodsAllData.value) {
+    const st = entry.student
+    const studentName = escH(st.fullName || st.username || 'Est')
+    let allRows = ''
+    for (const period of entry.periods) {
+      allRows += `<Row><Cell ss:StyleID="b"><Data ss:Type="String">${escH(period.periodName)}</Data></Cell></Row>`
+      allRows += period.rows.map(r =>
+        `<Row><Cell><Data ss:Type="String">${escH(r.subjectName)}</Data></Cell><Cell><Data ss:Type="Number">${(r.notaDefinitiva ?? 0)}</Data></Cell></Row>`
+      ).join('')
+      const prom = computePromedio(period.rows)
+      allRows += `<Row><Cell ss:StyleID="b"><Data ss:Type="String">PROMEDIO</Data></Cell><Cell ss:StyleID="b"><Data ss:Type="Number">${prom.toFixed(1)}</Data></Cell></Row><Row/>`
+    }
+    sheets += `<Worksheet ss:Name="${studentName.substring(0,31)}"><Table><Row><Cell ss:StyleID="h"><Data ss:Type="String">MÓDULO</Data></Cell><Cell ss:StyleID="h"><Data ss:Type="String">NOTA</Data></Cell></Row>${allRows}</Table></Worksheet>`
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6A1B9A" ss:Pattern="Solid"/></Style><Style ss:ID="b"><Font ss:Bold="1"/></Style></Styles>${sheets}</Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = `boletines_todos_periodos_${(selectedCourse.value?.title || 'curso').replace(/\s+/g, '_')}.xls`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllPeriodsAllWord() {
+  const pages = buildAllPeriodsAllHTML()
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}.page{page-break-after:always}table{width:100%;border-collapse:collapse;border:2px solid #333;margin-top:8px}th{background:#6A1B9A;color:#fff;padding:10px}td{padding:8px;border-bottom:1px solid #ddd}</style></head><body>${pages}</body></html>`
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = `boletines_todos_periodos_${(selectedCourse.value?.title || 'curso').replace(/\s+/g, '_')}.doc`; a.click()
   URL.revokeObjectURL(url)
 }
 
