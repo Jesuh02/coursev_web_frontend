@@ -249,6 +249,7 @@
                       </div>
                       <div class="boletin-divider" />
                       <template v-if="entry.periods.length">
+                        <template v-for="(period, pIdx) in entry.periods" :key="period.periodName">
                           <div class="boletin-period-header">{{ period.periodName }}</div>
                           <table class="boletin-table">
                             <thead><tr><th class="th-modulo">MÓDULO</th><th class="th-nota">NOTA DEFINITIVA</th></tr></thead>
@@ -388,8 +389,8 @@
                   </div>
                   <div class="boletin-divider" />
                   <div class="boletin-info-grid">
-                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.category?.toLowerCase() === 'bachillerato' ? selectedCourse.category : selectedCourse.title }}</span></div>
-                    <div v-if="selectedCourse?.category?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ selectedCourse.title }}</span></div>
+                    <div class="boletin-info-row"><span class="boletin-label">PROGRAMA:</span><span class="boletin-value">{{ selectedCourse?.category?.toLowerCase() === 'bachillerato' ? (selectedCourse?.category || '—') : (selectedCourse?.title || '—') }}</span></div>
+                    <div v-if="selectedCourse?.category?.toLowerCase() === 'bachillerato'" class="boletin-info-row"><span class="boletin-label">CICLO:</span><span class="boletin-value">{{ selectedCourse?.title || '—' }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">ESTUDIANTE:</span><span class="boletin-value">{{ selectedStudent?.fullName || selectedStudent?.username || '—' }}</span></div>
                     <div v-if="selectedStudent?.cedula" class="boletin-info-row"><span class="boletin-label">IDENTIFICACIÓN:</span><span class="boletin-value">{{ selectedStudent?.cedula }}</span></div>
                     <div class="boletin-info-row"><span class="boletin-label">PERIODO:</span><span class="boletin-value">{{ currentPeriod }}</span></div>
