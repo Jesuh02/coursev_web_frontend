@@ -149,6 +149,15 @@
               </svg>
               Generar boletín
             </button>
+            <button class="platform-more-option" @click="showMoreMenu = false; showConsolidado = true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+              </svg>
+              Consolidado de notas
+            </button>
 
           </div>
         </Transition>
@@ -170,6 +179,7 @@
     <!-- Modales plataforma -->
     <PlatformGradeReportModal v-model="showPlatformReport" />
     <ExploreBulletinModal v-model="showBulletin" />
+    <ConsolidadoNotasModal v-model="showConsolidado" />
 
 
     <!-- Role selection dialog for docente users -->
@@ -217,6 +227,7 @@ import FilterBottomSheet from './components/FilterBottomSheet.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
 import PlatformGradeReportModal from './components/PlatformGradeReportModal.vue'
 import ExploreBulletinModal from './components/ExploreBulletinModal.vue'
+import ConsolidadoNotasModal from './components/ConsolidadoNotasModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -235,6 +246,7 @@ const showDeleteConfirm = ref(false)
 const isHeaderCollapsed = ref(true)
 const showPlatformReport = ref(false)
 const showBulletin = ref(false)
+const showConsolidado = ref(false)
 
 const showMoreMenu = ref(false)
 const searchPending = ref(false)
