@@ -22,6 +22,10 @@
         <!-- Actions row -->
         <div class="comment-actions">
           <button class="reply-btn" @click="$emit('reply', comment)">Responder</button>
+          <template v-if="currentUserId && comment.usuario_id === currentUserId">
+            <button class="edit-btn" @click="$emit('edit', comment)">Editar</button>
+            <button class="delete-btn" @click="$emit('delete', comment)">Eliminar</button>
+          </template>
         </div>
 
         <!-- Replies -->
@@ -47,6 +51,10 @@
                 <p class="comment-text">{{ reply.comment }}</p>
                 <div class="comment-actions">
                   <button class="reply-btn" @click="$emit('reply', reply)">Responder</button>
+                  <template v-if="currentUserId && reply.usuario_id === currentUserId">
+                    <button class="edit-btn" @click="$emit('edit', reply)">Editar</button>
+                    <button class="delete-btn" @click="$emit('delete', reply)">Eliminar</button>
+                  </template>
                 </div>
               </div>
               <!-- Like reply -->
@@ -107,11 +115,14 @@ const props = defineProps<{
   comment: CommentWithMeta
   replies: CommentWithMeta[]
   highlightedId?: number | null
+  currentUserId?: number | null
 }>()
 
 defineEmits<{
   reply: [c: CommentWithMeta]
   like: [c: CommentWithMeta]
+  edit: [c: CommentWithMeta]
+  delete: [c: CommentWithMeta]
 }>()
 
 const repliesExpanded = ref(false)
@@ -205,6 +216,28 @@ function timeAgo(dateStr?: string | null): string {
   padding: 0;
 }
 .reply-btn:hover { color: #bbb; }
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: #1d9bf0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.edit-btn:hover { color: #4db5f9; }
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #ff4757;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.delete-btn:hover { color: #ff6b7a; }
 
 /* Replies section */
 .replies-section { margin-top: 8px; }

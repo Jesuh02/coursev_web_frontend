@@ -41,9 +41,12 @@
             :comment="comment"
             :replies="getReplies(comment.id)"
             :highlighted-id="highlightedId"
+            :current-user-id="currentUserId"
             :ref="el => setCommentRef(comment.id, el)"
             @reply="startReply"
             @like="toggleCommentLike"
+            @edit="startEdit"
+            @delete="confirmDelete"
           />
         </template>
       </div>
@@ -56,6 +59,18 @@
         <div v-if="replyingTo" class="replying-banner">
           <span class="replying-text">Respondiendo a <strong>@{{ replyingTo.username ?? 'usuario' }}</strong></span>
           <button class="cancel-reply-btn" @click="cancelReply">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </transition>
+
+      <!-- Editing banner -->
+      <transition name="slide-down">
+        <div v-if="editingComment" class="replying-banner editing-banner">
+          <span class="replying-text">Editando comentario</span>
+          <button class="cancel-reply-btn" @click="cancelEdit">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -146,6 +161,7 @@ const comments   = ref<Comment[]>([])
 const totalCount = ref(0)
 const inputText  = ref('')
 const replyingTo = ref<Comment | null>(null)
+const editingComment = ref<Comment | null>(null)
 const highlightedId = ref<number | null>(props.highlightCommentId ?? null)
 
 // DOM refs
@@ -196,16 +212,23 @@ async function loadLikes() {
   }
 }
 
-// ── Submit comment ────────────────────────────────────────────────────────
+// ── Submit comment (create or edit) ───────────────────────────────────────
 async function submitComment() {
   const text = inputText.value.trim()
   if (!text || sending.value) return
   sending.value = true
   try {
-    const parentId = replyingTo.value?.id
-    await commentAdapter.createComment(props.videoId, text, parentId)
+    if (editingComment.value) {
+      // Edit mode
+      await commentAdapter.updateComment(editingComment.value.id, text)
+      cancelEdit()
+    } else {
+      // Create mode
+      const parentId = replyingTo.value?.id
+      await commentAdapter.createComment(props.videoId, text, parentId)
+      cancelReply()
+    }
     inputText.value = ''
-    cancelReply()
     await notifStore.fetchUnreadCount()
     await loadComments()
     nextTick(() => {
@@ -218,11 +241,39 @@ async function submitComment() {
 
 // ── Reply ─────────────────────────────────────────────────────────────────
 function startReply(comment: Comment) {
+  cancelEdit()
   replyingTo.value = comment
   nextTick(() => inputRef.value?.focus())
 }
 function cancelReply() {
   replyingTo.value = null
+}
+
+// ── Edit ──────────────────────────────────────────────────────────────────
+function startEdit(comment: Comment) {
+  cancelReply()
+  editingComment.value = comment
+  inputText.value = comment.comment
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.focus()
+      inputRef.value.style.height = 'auto'
+      inputRef.value.style.height = Math.min(inputRef.value.scrollHeight, 80) + 'px'
+    }
+  })
+}
+function cancelEdit() {
+  editingComment.value = null
+  inputText.value = ''
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+async function confirmDelete(comment: Comment) {
+  if (!confirm('¿Eliminar este comentario?')) return
+  try {
+    await commentAdapter.deleteComment(comment.id)
+    await loadComments()
+  } catch { /* silent */ }
 }
 
 // ── Like ──────────────────────────────────────────────────────────────────
@@ -418,6 +469,12 @@ watch(() => props.videoId, () => {
   color: #aaa;
 }
 .replying-text strong { color: #1d9bf0; }
+
+.editing-banner {
+  background: #2a2215;
+}
+.editing-banner .replying-text { color: #e0a800; }
+
 .cancel-reply-btn {
   background: none;
   border: none;
