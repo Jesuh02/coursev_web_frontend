@@ -313,8 +313,10 @@
             <div class="a-radar-legend">
               <div v-for="(pt, i) in radarAxisPoints" :key="'rl-' + i" class="a-radar-leg-item">
                 <span class="a-radar-dot"></span>
-                <span class="a-radar-leg-label">{{ pt.label }}</span>
-                <span class="a-radar-leg-value">{{ Math.round((radarValues[i] ?? 0) * 100) }}%</span>
+                <div class="a-radar-leg-info">
+                  <span class="a-radar-leg-label">{{ pt.label }}</span>
+                  <span class="a-radar-leg-value">{{ Math.round((radarValues[i] ?? 0) * 100) }}%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -404,8 +406,10 @@
             <div class="a-funnel-legend">
               <div v-for="stage in funnelStages" :key="stage.label" class="a-funnel-legend-item">
                 <span class="a-funnel-dot" :style="{ background: stage.color }" />
-                <span class="a-funnel-legend-label">{{ stage.label }}</span>
-                <span class="a-funnel-legend-pct" :style="{ color: stage.color }">{{ stage.pct }}%</span>
+                <div class="a-funnel-leg-info">
+                  <span class="a-funnel-legend-label">{{ stage.label }}</span>
+                  <span class="a-funnel-legend-pct" :style="{ color: stage.color }">{{ stage.pct }}%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -5932,28 +5936,34 @@ watch(() => route.query, () => {
 .a-radar-leg-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .a-radar-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #BF5AF2;
   flex-shrink: 0;
   box-shadow: none;
 }
+.a-radar-leg-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .a-radar-leg-label {
   font-size: 12px;
   color: #8E8E93;
-  flex: 1;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 .a-radar-leg-value {
-  font-size: 12px;
-  color: #FFFFFF;
-  font-weight: 600;
-  flex-shrink: 0;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #BF5AF2;
+  letter-spacing: -0.02em;
 }
 
 /* ═══════ Donut Chart ═══════ */
@@ -9316,28 +9326,32 @@ watch(() => route.query, () => {
 .a-funnel-legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .a-funnel-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: none;
 }
+.a-funnel-leg-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .a-funnel-legend-label {
   font-size: 12px;
   color: #8E8E93;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 .a-funnel-legend-pct {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
-  flex-shrink: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 /* Institutions Tab Styles (SuperAdmin) */
