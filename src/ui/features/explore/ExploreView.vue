@@ -262,7 +262,7 @@ const categoryOptions = [
   { key: 'all', label: 'Todas las categorías' },
   { key: 'informatica', label: 'Informática' },
   { key: 'cursos', label: 'Cursos' },
-  { key: 'tecnicos', label: 'Técnicos' },
+  { key: 'Técnico', label: 'Técnico' },
   { key: 'diplomados', label: 'Diplomados' },
   { key: 'bachillerato', label: 'Bachillerato' },
 ]
