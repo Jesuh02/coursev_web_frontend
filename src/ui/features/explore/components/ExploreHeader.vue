@@ -52,6 +52,14 @@
         :class="{ active: activeFilter === f.key }"
         @click="$emit('quick-filter', f.key)"
       >{{ f.label }}</button>
+
+      <button
+        v-for="category in categoryOptions"
+        :key="category.key"
+        class="filter-chip filter-chip--category"
+        :class="{ active: activeCategory === category.key }"
+        @click="$emit('select-category', category.key)"
+      >{{ category.label }}</button>
     </div>
 
     <Transition name="header-fade">
@@ -83,6 +91,7 @@ const emit = defineEmits<{
   'clear-filter': []
   'toggle-collapse': []
   'quick-filter': [key: string]
+  'select-category': [key: string]
 }>()
 
 const props = defineProps<{
@@ -90,6 +99,8 @@ const props = defineProps<{
   collapsed: boolean
   activeFilterName: string | null
   activeFilter: string
+  activeCategory: string
+  categoryOptions: Array<{ key: string; label: string }>
   userRole: number
   totalCourses: number
   popularCourses: number
@@ -357,6 +368,12 @@ function onSearchInput(event: Event) {
   border-color: #fff;
   color: #0a0a0a;
   font-weight: 700;
+}
+
+.filter-chip--category.active {
+  background: linear-gradient(135deg, rgba(89, 141, 255, 0.24), rgba(191, 90, 242, 0.24));
+  border-color: rgba(191, 90, 242, 0.45);
+  color: #fff;
 }
 
 .header-fade-enter-active,

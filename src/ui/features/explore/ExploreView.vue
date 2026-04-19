@@ -5,6 +5,8 @@
       :collapsed="isHeaderCollapsed"
       :active-filter-name="activeFilterLabel"
       :active-filter="activeFilter"
+      :active-category="activeCategory"
+      :category-options="categoryOptions"
       :user-role="userRole"
       :total-courses="totalCoursesStat"
       :popular-courses="popularCoursesStat"
@@ -12,23 +14,12 @@
       @clear-filter="clearFilter"
       @toggle-collapse="isHeaderCollapsed = !isHeaderCollapsed"
       @quick-filter="applyQuickFilter"
+      @select-category="selectCategory"
     />
 
     <ExploreSkeleton v-if="showInitialSkeleton" />
 
     <template v-else>
-      <div class="category-filter-bar">
-        <button
-          v-for="category in categoryOptions"
-          :key="category.key"
-          class="category-filter-chip"
-          :class="{ 'category-filter-chip--active': activeCategory === category.key }"
-          @click="selectCategory(category.key)"
-        >
-          {{ category.label }}
-        </button>
-      </div>
-
       <div v-if="displayedCourses.length" class="course-grid">
         <TransitionGroup name="card">
           <CourseCard
@@ -933,49 +924,12 @@ onUnmounted(() => {
   padding: 16px;
 }
 
-.category-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px 0;
-  overflow-x: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.category-filter-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.category-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 18px;
-  border-radius: 999px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 13px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.category-filter-chip--active {
-  background: linear-gradient(135deg, rgba(89, 141, 255, 0.24), rgba(191, 90, 242, 0.24));
-  border-color: rgba(191, 90, 242, 0.45);
-  color: #fff;
-}
-
 @media (max-width: 900px) {
   .course-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 560px) {
   .course-grid { grid-template-columns: 1fr; }
-  .category-filter-bar { padding-top: 10px; }
 }
 
 .card-enter-active {
