@@ -16,12 +16,32 @@
           <span class="comment-time">{{ timeAgo(comment.created_at) }}</span>
         </div>
 
-        <!-- Text -->
-        <p class="comment-text">{{ comment.comment }}</p>
+        <!-- Text (or edit mode) -->
+        <template v-if="editingId === comment.id">
+          <textarea
+            v-model="editText"
+            class="edit-input"
+            rows="2"
+            maxlength="500"
+            @keydown.esc="cancelEdit"
+          />
+          <div class="edit-actions">
+            <button class="edit-btn cancel" @click="cancelEdit">Cancelar</button>
+            <button class="edit-btn save" :disabled="!editText.trim() || savingEdit" @click="saveEdit(comment)">Guardar</button>
+          </div>
+        </template>
+        <p v-else class="comment-text">
+          {{ comment.comment }}
+          <span v-if="(comment as any).updatedAt || (comment as any).updated_at" class="edited-tag">(editado)</span>
+        </p>
 
         <!-- Actions row -->
-        <div class="comment-actions">
+        <div v-if="editingId !== comment.id" class="comment-actions">
           <button class="reply-btn" @click="$emit('reply', comment)">Responder</button>
+          <template v-if="isOwner(comment)">
+            <button class="reply-btn" @click="startEdit(comment)">Editar</button>
+            <button class="reply-btn danger" @click="confirmDelete(comment)">Eliminar</button>
+          </template>
         </div>
 
         <!-- Replies -->
@@ -44,9 +64,29 @@
                   <span class="comment-username">{{ reply.username ?? 'Usuario' }}</span>
                   <span class="comment-time">{{ timeAgo(reply.created_at) }}</span>
                 </div>
-                <p class="comment-text">{{ reply.comment }}</p>
-                <div class="comment-actions">
+                <template v-if="editingId === reply.id">
+                  <textarea
+                    v-model="editText"
+                    class="edit-input"
+                    rows="2"
+                    maxlength="500"
+                    @keydown.esc="cancelEdit"
+                  />
+                  <div class="edit-actions">
+                    <button class="edit-btn cancel" @click="cancelEdit">Cancelar</button>
+                    <button class="edit-btn save" :disabled="!editText.trim() || savingEdit" @click="saveEdit(reply)">Guardar</button>
+                  </div>
+                </template>
+                <p v-else class="comment-text">
+                  {{ reply.comment }}
+                  <span v-if="(reply as any).updatedAt || (reply as any).updated_at" class="edited-tag">(editado)</span>
+                </p>
+                <div v-if="editingId !== reply.id" class="comment-actions">
                   <button class="reply-btn" @click="$emit('reply', reply)">Responder</button>
+                  <template v-if="isOwner(reply)">
+                    <button class="reply-btn" @click="startEdit(reply)">Editar</button>
+                    <button class="reply-btn danger" @click="confirmDelete(reply)">Eliminar</button>
+                  </template>
                 </div>
               </div>
               <!-- Like reply -->
@@ -107,14 +147,55 @@ const props = defineProps<{
   comment: CommentWithMeta
   replies: CommentWithMeta[]
   highlightedId?: number | null
+  currentUserId?: number | null
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   reply: [c: CommentWithMeta]
   like: [c: CommentWithMeta]
+  edit: [payload: { id: number; content: string }]
+  delete: [c: CommentWithMeta]
 }>()
 
 const repliesExpanded = ref(false)
+const editingId = ref<number | null>(null)
+const editText = ref('')
+const savingEdit = ref(false)
+
+function isOwner(c: CommentWithMeta): boolean {
+  const uid = props.currentUserId
+  if (!uid) return false
+  const ownerId = (c as any).usuario_id ?? (c as any).userId
+  return Number(ownerId) === Number(uid)
+}
+
+function startEdit(c: CommentWithMeta) {
+  editingId.value = c.id
+  editText.value = c.comment
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editText.value = ''
+}
+
+async function saveEdit(c: CommentWithMeta) {
+  const content = editText.value.trim()
+  if (!content) return
+  savingEdit.value = true
+  try {
+    emit('edit', { id: c.id, content })
+  } finally {
+    savingEdit.value = false
+    cancelEdit()
+  }
+}
+
+function confirmDelete(c: CommentWithMeta) {
+  if (window.confirm('¿Eliminar este comentario?')) {
+    emit('delete', c)
+  }
+}
 
 // Auto-expand replies if the highlighted comment is a reply inside this comment
 watch(
@@ -205,6 +286,56 @@ function timeAgo(dateStr?: string | null): string {
   padding: 0;
 }
 .reply-btn:hover { color: #bbb; }
+.reply-btn.danger { color: #ff5a5a; }
+.reply-btn.danger:hover { color: #ff8080; }
+
+.edited-tag {
+  font-size: 11px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.edit-input {
+  width: 100%;
+  background: #111;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin: 4px 0 6px;
+}
+.edit-input:focus { border-color: #1d9bf0; }
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.edit-btn {
+  background: none;
+  border: 1px solid #333;
+  color: #ccc;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.edit-btn.save {
+  background: #1d9bf0;
+  border-color: #1d9bf0;
+  color: #fff;
+}
+.edit-btn.save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.edit-btn.cancel:hover { background: rgba(255,255,255,0.06); }
 
 /* Replies section */
 .replies-section { margin-top: 8px; }

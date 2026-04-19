@@ -1273,12 +1273,14 @@ function esc_html(s: string): string {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  transition: padding 0.44s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .report-modal {
   width: 100%;
   max-width: 940px;
   max-height: 92vh;
+  height: 92vh;
   background: #1C1C1E;
   border-radius: 24px;
   overflow: hidden;
@@ -1286,6 +1288,11 @@ function esc_html(s: string): string {
   flex-direction: column;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.7);
   will-change: transform, opacity;
+  transition:
+    max-width  0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    max-height 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    height     0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.44s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .report-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }

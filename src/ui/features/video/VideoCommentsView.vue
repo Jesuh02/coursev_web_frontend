@@ -41,9 +41,12 @@
             :comment="comment"
             :replies="getReplies(comment.id)"
             :highlighted-id="highlightedId"
+            :current-user-id="currentUserId"
             :ref="el => setCommentRef(comment.id, el)"
             @reply="startReply"
             @like="toggleCommentLike"
+            @edit="handleEdit"
+            @delete="handleDelete"
           />
         </template>
       </div>
@@ -223,6 +226,26 @@ function startReply(comment: Comment) {
 }
 function cancelReply() {
   replyingTo.value = null
+}
+
+// ── Edit / Delete ─────────────────────────────────────────────────────────
+async function handleEdit(payload: { id: number; content: string }) {
+  try {
+    await commentAdapter.updateComment(payload.id, payload.content)
+    const c = comments.value.find(x => x.id === payload.id)
+    if (c) c.comment = payload.content
+  } catch { /* silent */ }
+}
+
+async function handleDelete(comment: Comment) {
+  try {
+    await commentAdapter.deleteComment(comment.id)
+    // Remove the comment and any of its replies locally
+    comments.value = comments.value.filter(
+      c => c.id !== comment.id && c.parent_id !== comment.id
+    )
+    totalCount.value = comments.value.length
+  } catch { /* silent */ }
 }
 
 // ── Like ──────────────────────────────────────────────────────────────────

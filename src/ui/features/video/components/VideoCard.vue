@@ -175,6 +175,8 @@ const likeCount = ref(0)
 const commentCount = ref(0)
 const subscribed = ref(false)
 const pipActive = ref(false)
+const isLiking = ref(false)
+const userHasInteractedWithLike = ref(false)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
@@ -262,24 +264,28 @@ function onVideoPause() {
 }
 
 async function loadCounts() {
-  try {
-    const [lc, cc] = await Promise.allSettled([
-      likeAdapter.getLikeCount('video', props.video.id),
-      commentAdapter.getCommentCount(props.video.id),
-    ])
-    if (lc.status === 'fulfilled') likeCount.value = lc.value
-    if (cc.status === 'fulfilled') commentCount.value = cc.value
-  } catch { /* silent */ }
+  const isAuthenticated = tokenStorage.isAuthenticated
+  const [lc, cc, likedResult] = await Promise.allSettled([
+    likeAdapter.getLikeCount('video', props.video.id),
+    commentAdapter.getCommentCount(props.video.id),
+    isAuthenticated
+      ? likeAdapter.checkLike('video', props.video.id)
+      : Promise.resolve(false),
+  ])
 
-  if (tokenStorage.isAuthenticated) {
+  // Only overwrite like state/count if the user hasn't already interacted with the
+  // like button. This prevents a stale async response from undoing an optimistic
+  // update and causing the counter to appear to decrease on the next click.
+  if (!userHasInteractedWithLike.value) {
+    if (lc.status === 'fulfilled') likeCount.value = lc.value
+    if (isAuthenticated && likedResult.status === 'fulfilled') liked.value = (likedResult as PromiseFulfilledResult<boolean>).value
+  }
+  if (cc.status === 'fulfilled') commentCount.value = cc.value
+
+  if (isAuthenticated && props.video.userId) {
     try {
-      liked.value = await likeAdapter.checkLike('video', props.video.id)
+      subscribed.value = await subscriptionAdapter.checkSubscription(props.video.userId)
     } catch { /* silent */ }
-    if (props.video.userId) {
-      try {
-        subscribed.value = await subscriptionAdapter.checkSubscription(props.video.userId)
-      } catch { /* silent */ }
-    }
   }
 }
 
@@ -383,7 +389,9 @@ async function togglePiP() {
 }
 
 async function handleLike() {
-  if (!tokenStorage.isAuthenticated) return
+  if (!tokenStorage.isAuthenticated || isLiking.value) return
+  isLiking.value = true
+  userHasInteractedWithLike.value = true
   liked.value = !liked.value
   likeCount.value += liked.value ? 1 : -1
   try {
@@ -393,6 +401,8 @@ async function handleLike() {
   } catch {
     liked.value = !liked.value
     likeCount.value += liked.value ? 1 : -1
+  } finally {
+    isLiking.value = false
   }
 }
 

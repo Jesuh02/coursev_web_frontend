@@ -987,6 +987,7 @@ function formatGradeTypeLabel(t: string): string {
 async function saveAllGrades() {
   saving.value = true
   try {
+    // ── Manual grades: agrupar por tipo y enviar en paralelo ──
     const byType: Record<string, { studentId: number; grade: number }[]> = {}
     for (const [key, val] of dirtyEntries.value) {
       if (val === null || val === undefined) continue
@@ -997,43 +998,47 @@ async function saveAllGrades() {
       byType[type].push({ studentId: Number(userIdStr), grade: val })
     }
 
-    for (const [type, entries] of Object.entries(byType)) {
-      await gradeAdapter.bulkSetGrades({
-        courseId: props.courseId,
-        subjectId: props.subjectId,
-        gradeType: type,
-        entries,
-      })
-    }
+    await Promise.all(
+      Object.entries(byType).map(([type, entries]) =>
+        gradeAdapter.bulkSetGrades({
+          courseId: props.courseId,
+          subjectId: props.subjectId,
+          gradeType: type,
+          entries,
+        })
+      )
+    )
 
     for (const [key, val] of Object.entries(editedManualGrades.value)) {
       originalManualGrades.value[key] = val
     }
 
-    // Save dirty task grades
-    for (const [key, newGrade] of dirtyTaskEntries.value) {
-      if (newGrade === null || newGrade === undefined) continue
-      const parts = key.split('-')
-      const studentId = Number(parts[0])
-      const taskId = Number(parts.slice(1).join('-'))
-      const tg = getTaskGrade(studentId, taskId)
-      if (tg?.submissionId) {
-        await gradeAdapter.gradeSubmission(tg.submissionId, newGrade)
-        originalTaskGrades.value[key] = newGrade
-        continue
-      }
-
-      // If no submission exists, create one on behalf of the student (requires permissions)
-      try {
-        const created = await submissionAdapter.submitWorkForStudent({ taskId, studentId })
-        if (created && (created as any).id) {
-          await gradeAdapter.gradeSubmission((created as any).id, newGrade)
-          originalTaskGrades.value[key] = newGrade
-        }
-      } catch (err) {
-        console.error('[GradePanel] Error creating submission for student', studentId, 'task', taskId, err)
-      }
-    }
+    // ── Task grades: guardar todas en paralelo ──
+    await Promise.all(
+      dirtyTaskEntries.value
+        .filter(([, newGrade]) => newGrade !== null && newGrade !== undefined)
+        .map(async ([key, newGrade]) => {
+          const parts = key.split('-')
+          const studentId = Number(parts[0])
+          const taskId = Number(parts.slice(1).join('-'))
+          const tg = getTaskGrade(studentId, taskId)
+          if (tg?.submissionId) {
+            await gradeAdapter.gradeSubmission(tg.submissionId, newGrade as number)
+            originalTaskGrades.value[key] = newGrade
+            return
+          }
+          // Si no existe entrega, crear una en nombre del estudiante
+          try {
+            const created = await submissionAdapter.submitWorkForStudent({ taskId, studentId })
+            if (created && (created as any).id) {
+              await gradeAdapter.gradeSubmission((created as any).id, newGrade as number)
+              originalTaskGrades.value[key] = newGrade
+            }
+          } catch (err) {
+            console.error('[GradePanel] Error creating submission for student', studentId, 'task', taskId, err)
+          }
+        })
+    )
 
     emit('saved')
   } catch (err) {

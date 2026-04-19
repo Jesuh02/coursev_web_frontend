@@ -1215,28 +1215,40 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   align-items: center;
   justify-content: center;
   padding: 16px;
+  transition: padding 0.44s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .report-modal {
   width: 100%;
   max-width: 820px;
   max-height: 85vh;
+  height: 85vh;
   background: #1C1C1E;
   border-radius: 24px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: report-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    max-width  0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    max-height 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    height     0.44s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.44s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes report-slide-up {
-  from { opacity: 0; transform: translateY(40px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.report-fade-enter-active { transition: opacity 0.2s; }
-.report-fade-leave-active { transition: opacity 0.15s; }
+.report-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+.report-fade-leave-active { transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 .report-fade-enter-from, .report-fade-leave-to { opacity: 0; }
+.report-fade-enter-active .report-modal { animation: report-expand 0.55s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.report-fade-leave-active .report-modal { animation: report-collapse 0.3s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@keyframes report-expand {
+  0%   { opacity: 0; transform: scale(0.82) translateY(30px); border-radius: 32px; }
+  50%  { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) translateY(0); border-radius: 24px; }
+}
+@keyframes report-collapse {
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.88) translateY(16px); }
+}
 
 .report-header {
   display: flex;

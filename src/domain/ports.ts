@@ -204,6 +204,7 @@ export interface CommentPort {
   getCommentsByVideo(videoId: number, page?: number): Promise<VideoComment[]>
   getCommentCount(videoId: number): Promise<number>
   createComment(videoId: number, comment: string, parentId?: number): Promise<VideoComment>
+  updateComment(id: number, content: string): Promise<VideoComment>
   deleteComment(id: number): Promise<void>
 }
 
