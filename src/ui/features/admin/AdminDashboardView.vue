@@ -6304,6 +6304,7 @@ watch(() => route.query, () => {
 
 .item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .item-info h5 {
@@ -6316,7 +6317,7 @@ watch(() => route.query, () => {
 .progress-bar {
   height: 6px;
   background: #3C3C3E;
-  border-radius: 3px;
+  border-radius: 4px;
   margin-top: 8px;
   overflow: hidden;
 }
@@ -6324,8 +6325,9 @@ watch(() => route.query, () => {
 .progress-fill {
   height: 100%;
   background: #0A84FF;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.6s ease;
+  width: 100%;
 }
 
 .progress-text {
