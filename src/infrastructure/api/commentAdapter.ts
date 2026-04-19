@@ -17,8 +17,5 @@ export const commentAdapter: CommentPort = {
     return api.post<VideoComment>('/comments', body)
   },
 
-  updateComment: (id, content) =>
-    api.put<VideoComment>(`/comments/${id}`, { content }),
-
   deleteComment: (id) => api.delete(`/comments/${id}`),
 }
