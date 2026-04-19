@@ -1,4 +1,4 @@
-const C='coursev-v2',A=['/','index.html','/manifest.json','/descarga.png','/icon-192.png','/icon-512.png']
+const C='coursev-v3',A=['/','index.html','/manifest.json','/descarga.png','/icon-192.png','/icon-512.png','/default-avatar.png','/default-course.png']
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)));self.skipWaiting()})
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()})
 self.addEventListener('fetch',e=>{
@@ -9,7 +9,7 @@ if(u.origin!==self.location.origin)return
 const isNavigate=e.request.mode==='navigate'
 const isAsset=/\.(png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|css|js)(\?.*)?$/.test(u.pathname)
 if(!isNavigate&&isAsset){
-e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>new Response('',{status:503,statusText:'Service Unavailable'}))}))
+e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(r=>{const ct=r.headers.get('Content-Type')||'';if(r.ok&&r.type==='basic'&&!ct.includes('text/html')){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>new Response('',{status:503,statusText:'Service Unavailable'}))}))
 return
 }
 e.respondWith(fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl))}return r}).catch(()=>caches.match(e.request).then(cached=>{if(cached)return cached;if(isNavigate){return caches.match('/index.html').then(i=>i||new Response('<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',{status:503,headers:{'Content-Type':'text/html'}}))}return new Response('',{status:503,statusText:'Service Unavailable'})})))

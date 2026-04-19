@@ -4460,12 +4460,14 @@ const resolveAvatar = (url: string) => {
 }
 const onAvatarError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.onerror = null
+  if (img.dataset.fallback) return   // ya se aplicó el fallback, evitar bucle
+  img.dataset.fallback = '1'
   img.src = '/default-avatar.png'
 }
 const onCourseThumbError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.onerror = null
+  if (img.dataset.fallback) return   // ya se aplicó el fallback, evitar bucle
+  img.dataset.fallback = '1'
   img.src = '/default-course.png'
 }
 const resolveThumbnail = (url: string) => {
