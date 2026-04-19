@@ -9678,12 +9678,14 @@ watch(() => route.query, () => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 24px;
+  padding-bottom: 16px;
   width: 100%;
   max-width: 380px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   overflow-y: auto;
   margin: auto 0;
 }
@@ -9732,6 +9734,12 @@ watch(() => route.query, () => {
   display: flex;
   gap: 10px;
   margin-top: 4px;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-secondary, #1C1C1E);
+  padding-top: 10px;
+  padding-bottom: 4px;
+  z-index: 1;
 }
 
 .inst-modal-btn {
