@@ -6276,7 +6276,8 @@ watch(() => route.query, () => {
 
 .item-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   background: rgba(255,255,255,0.04);
   border-radius: 12px;
   padding: 14px;
