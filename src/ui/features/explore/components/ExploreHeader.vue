@@ -45,23 +45,21 @@
 
     <!-- Filtros estilo YouTube (visibles según rol) -->
     <div class="filter-chips-row">
-      <div class="filter-chips-inner">
-        <button
-          v-for="f in visibleFilters"
-          :key="f.key"
-          class="filter-chip"
-          :class="{ active: activeFilter === f.key }"
-          @click="$emit('quick-filter', f.key)"
-        >{{ f.label }}</button>
+      <button
+        v-for="f in visibleFilters"
+        :key="f.key"
+        class="filter-chip"
+        :class="{ active: activeFilter === f.key }"
+        @click="$emit('quick-filter', f.key)"
+      >{{ f.label }}</button>
 
-        <button
-          v-for="category in categoryOptions"
-          :key="category.key"
-          class="filter-chip filter-chip--category"
-          :class="{ active: activeCategory === category.key }"
-          @click="$emit('select-category', category.key)"
-        >{{ category.label }}</button>
-      </div>
+      <button
+        v-for="category in categoryOptions"
+        :key="category.key"
+        class="filter-chip filter-chip--category"
+        :class="{ active: activeCategory === category.key }"
+        @click="$emit('select-category', category.key)"
+      >{{ category.label }}</button>
     </div>
 
     <Transition name="header-fade">
@@ -338,9 +336,11 @@ function onSearchInput(event: Event) {
 }
 
 .filter-chips-row {
+  display: flex;
+  gap: 8px;
   margin-top: 10px;
   width: 100%;
-  max-width: 680px;
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -348,14 +348,6 @@ function onSearchInput(event: Event) {
 }
 
 .filter-chips-row::-webkit-scrollbar { display: none; }
-
-.filter-chips-inner {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  min-width: max-content;
-  padding: 0 4px;
-}
 
 .filter-chip {
   flex-shrink: 0;
@@ -402,11 +394,6 @@ function onSearchInput(event: Event) {
 @media (max-width: 720px) {
   .stats-row {
     grid-template-columns: 1fr;
-  }
-
-  .filter-chips-inner {
-    justify-content: flex-start;
-    min-width: unset;
   }
 }
 </style>
