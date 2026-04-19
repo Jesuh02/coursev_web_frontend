@@ -5,6 +5,8 @@
       :collapsed="isHeaderCollapsed"
       :active-filter-name="activeFilterLabel"
       :active-filter="activeFilter"
+      :active-category="activeCategory"
+      :category-options="categoryOptions"
       :user-role="userRole"
       :total-courses="totalCoursesStat"
       :popular-courses="popularCoursesStat"
@@ -12,26 +14,29 @@
       @clear-filter="clearFilter"
       @toggle-collapse="isHeaderCollapsed = !isHeaderCollapsed"
       @quick-filter="applyQuickFilter"
+      @select-category="selectCategory"
     />
 
     <ExploreSkeleton v-if="showInitialSkeleton" />
 
-    <div v-else-if="courseStore.courses.length" class="course-grid">
-      <TransitionGroup name="card">
-        <CourseCard
-          v-for="course in courseStore.courses"
-          :key="course.id"
-          :course="course"
-          :creator-name="getCourseCreatorName(course)"
-          :teacher-count="teacherCounts[course.id]"
-          @click="navigateToCourse(course)"
-          @options="canManageCourses ? openCourseOptions($event) : undefined"
-          @info="openInfoDialog($event)"
-        />
-      </TransitionGroup>
-    </div>
+    <template v-else>
+      <div v-if="displayedCourses.length" class="course-grid">
+        <TransitionGroup name="card">
+          <CourseCard
+            v-for="course in displayedCourses"
+            :key="course.id"
+            :course="course"
+            :creator-name="getCourseCreatorName(course)"
+            :teacher-count="teacherCounts[course.id]"
+            @click="navigateToCourse(course)"
+            @options="canManageCourses ? openCourseOptions($event) : undefined"
+            @info="openInfoDialog($event)"
+          />
+        </TransitionGroup>
+      </div>
 
-    <EmptyState v-else icon="search" message="No se encontraron cursos" />
+      <EmptyState v-else icon="search" :message="emptyStateMessage" />
+    </template>
 
     <div v-if="isInteractiveLoading" class="loading-more">
       <div class="spinner" />
@@ -251,6 +256,16 @@ const showConsolidado = ref(false)
 const showMoreMenu = ref(false)
 const searchPending = ref(false)
 const filterPending = ref(false)
+const activeCategory = ref('all')
+
+const categoryOptions = [
+  { key: 'all', label: 'Todas las categorías' },
+  { key: 'informatica', label: 'Informática' },
+  { key: 'cursos', label: 'Cursos' },
+  { key: 'Técnico', label: 'Técnico' },
+  { key: 'diplomados', label: 'Diplomados' },
+  { key: 'bachillerato', label: 'Bachillerato' },
+]
 
 // ── Teacher counts (collaborators per course) ─────────────────────────────
 const teacherCounts = ref<Record<number, number>>({})
@@ -280,6 +295,23 @@ const activeFilterLabel = computed(() => {
     new: 'Nuevos',
   }
   return labels[activeFilter.value] || null
+})
+
+const activeCategoryLabel = computed(() =>
+  categoryOptions.find((option) => option.key === activeCategory.value)?.label ?? 'Categorías',
+)
+
+const displayedCourses = computed(() => {
+  if (activeCategory.value === 'all') return courseStore.courses
+
+  return courseStore.courses.filter((course) =>
+    normalizeCategory(course.category).includes(activeCategory.value),
+  )
+})
+
+const emptyStateMessage = computed(() => {
+  if (activeCategory.value === 'all') return 'No se encontraron cursos'
+  return `No se encontraron cursos en ${activeCategoryLabel.value.toLowerCase()}`
 })
 
 const showInitialSkeleton = computed(() =>
@@ -349,6 +381,14 @@ function mergeUniqueCourses(...courseLists: Course[][]) {
   }
 
   return Array.from(merged.values())
+}
+
+function normalizeCategory(category: string | null | undefined) {
+  return (category ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 }
 
 function isNumericQuery(query: string) {
@@ -654,6 +694,10 @@ function clearFilter() {
   searchPending.value = false
   filterPending.value = false
   void refreshCurrentFilter('all')
+}
+
+function selectCategory(categoryKey: string) {
+  activeCategory.value = categoryKey
 }
 
 function applyQuickFilter(filterKey: string) {
