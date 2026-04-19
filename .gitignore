@@ -27,3 +27,4 @@ dist-ssr
 .env.development
 .env.production
 tsc_b_errors.txt
+institucionesdb.json

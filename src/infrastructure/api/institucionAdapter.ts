@@ -39,6 +39,78 @@ async function fetchAllCrossTenant(): Promise<Institucion[]> {
   return all
 }
 
+/**
+ * Probes all distinct backend servers in parallel to fetch ALL institutions
+ * (including inactive/suspended) for the superadmin view.
+ * Tries the authenticated /admin/all endpoint first; falls back to the public
+ * /cross-tenant endpoint (active-only, no billing fields) when auth is absent
+ * for a given server (e.g. user is only logged into one tenant).
+ */
+async function fetchAdminAllCrossTenant(): Promise<InstitutionAdmin[]> {
+  const servers = Array.from(
+    new Map(TENANTS.map(t => [t.serverUrl.replace(/\/+$/, ''), t])).values(),
+  )
+
+  const settled = await Promise.allSettled(
+    servers.map(async (tenant) => {
+      const baseUrl = tenant.serverUrl.replace(/\/+$/, '')
+
+      // Try authenticated admin endpoint (HttpOnly cookie is sent automatically
+      // for the matching domain when the user is logged into that server).
+      try {
+        const res = await fetch(`${baseUrl}/api/v1/instituciones/admin/all`, {
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        if (res.ok) {
+          const json = await res.json()
+          const list: InstitutionAdmin[] = json.data ?? json ?? []
+          return list.map(inst => ({
+            ...inst,
+            tenantId: inst.tenantId || tenant.id,
+            tenantName: inst.tenantName || tenant.name,
+          }))
+        }
+      } catch { /* fall through to public fallback */ }
+
+      // Fallback: public cross-tenant endpoint (active-only, no billing details)
+      try {
+        const pubRes = await fetch(`${baseUrl}/api/v1/instituciones/cross-tenant`, {
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        })
+        if (pubRes.ok) {
+          const pubJson = await pubRes.json()
+          const list: InstitutionAdmin[] = pubJson.data ?? pubJson ?? []
+          return list.map(inst => ({
+            ...inst,
+            tenantId: inst.tenantId || tenant.id,
+            tenantName: inst.tenantName || tenant.name,
+          }))
+        }
+      } catch { /* ignore */ }
+
+      return [] as InstitutionAdmin[]
+    }),
+  )
+
+  const all: InstitutionAdmin[] = []
+  const seen = new Set<string>()
+
+  for (const r of settled) {
+    if (r.status !== 'fulfilled') continue
+    for (const inst of r.value) {
+      const key = `${inst.tenantId ?? '_'}:${inst.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      all.push(inst)
+    }
+  }
+
+  return all.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+}
+
 export interface InstitutionBillingStatus {
   allowed: boolean
   paymentOverdue?: boolean
@@ -113,7 +185,13 @@ export const institucionAdapter: InstitucionPort & {
 
   getMyBillingStatus: () => api.get<InstitutionBillingStatus>('/instituciones/my/billing-status'),
 
-  getAllAdmin: () => api.get<InstitutionAdmin[]>('/instituciones/admin/all'),
+  async getAllAdmin(): Promise<InstitutionAdmin[]> {
+    try {
+      return await fetchAdminAllCrossTenant()
+    } catch {
+      return api.get<InstitutionAdmin[]>('/instituciones/admin/all')
+    }
+  },
 
   setPaymentDueDate: (id: number, dueDate: string | null, tenantId?: string, billingCycle?: { type: string; day?: number | null; hour?: number | null; minute?: number | null; months?: number[]; billing_action_mode?: string }, clearBillingCycle?: boolean) =>
     api.put<InstitutionAdmin>(`/instituciones/${id}/payment-due`, {
