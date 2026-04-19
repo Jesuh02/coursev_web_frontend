@@ -278,15 +278,20 @@ async function loadCounts() {
   // like button. This prevents a stale async response from undoing an optimistic
   // update and causing the counter to appear to decrease on the next click.
   if (!userHasInteractedWithLike.value) {
-    if (lc.status === 'fulfilled') likeCount.value = lc.value
-    if (isAuthenticated && likedResult.status === 'fulfilled') liked.value = (likedResult as PromiseFulfilledResult<boolean>).value
+    if (isAuthenticated) {
+      // For authenticated users, only set likeCount AND liked together.
+      // Setting the count without knowing the liked status is misleading:
+      // user sees "5 likes + white heart", clicks like, but server finds an
+      // existing like → deletes it → count drops to 4 → user perceives decrease.
+      if (lc.status === 'fulfilled' && likedResult.status === 'fulfilled') {
+        likeCount.value = lc.value
+        liked.value = (likedResult as PromiseFulfilledResult<boolean>).value
+      }
+    } else {
+      if (lc.status === 'fulfilled') likeCount.value = lc.value
+    }
   }
   if (cc.status === 'fulfilled') commentCount.value = cc.value
-  // Only enable optimistic updates when we reliably know both the like count
-  // AND whether the current user has liked. If checkLike failed, liked stays
-  // at its default (false) which would cause the optimistic update to go in
-  // the wrong direction (increment when it should decrement), making the
-  // counter appear to decrease after the server responds with the real value.
   const likeStateReliable = lc.status === 'fulfilled' &&
     (!isAuthenticated || likedResult.status === 'fulfilled')
   countsLoaded.value = likeStateReliable
@@ -402,6 +407,24 @@ async function handleLike() {
   isLiking.value = true
   userHasInteractedWithLike.value = true
 
+  // If we don't have reliable like state (checkLike failed during loadCounts),
+  // fetch it now before toggling. Without knowing the real liked status, the
+  // toggle could go in the wrong direction (user sees white heart but server
+  // finds an existing like and deletes it → count drops).
+  if (!countsLoaded.value) {
+    try {
+      const [isLiked, count] = await Promise.all([
+        likeAdapter.checkLike('video', props.video.id),
+        likeAdapter.getLikeCount('video', props.video.id),
+      ])
+      liked.value = isLiked
+      likeCount.value = count
+      countsLoaded.value = true
+    } catch {
+      // Still can't verify state — proceed without optimistic update
+    }
+  }
+
   const prevLiked = liked.value
   const prevCount = likeCount.value
 
@@ -417,6 +440,8 @@ async function handleLike() {
     // Server response is the source of truth
     liked.value = result.liked
     likeCount.value = result.count
+    // Mark state as reliable for future clicks
+    countsLoaded.value = true
   } catch {
     if (countsLoaded.value) {
       // State was loaded from server before click — rollback is safe
