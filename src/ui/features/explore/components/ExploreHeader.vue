@@ -176,7 +176,7 @@ function onSearchInput(event: Event) {
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 28px;
-  padding: 8px 14px;
+  padding: 4px 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05),
