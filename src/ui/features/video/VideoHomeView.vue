@@ -35,7 +35,6 @@
                 :preload-hint="getPreloadHint(idx)"
                 @playback-state-change="onPlaybackStateChange(idx, $event)"
                 @controls-visibility-change="onControlsVisibilityChange(idx, $event)"
-                @like="onLike(video)"
                 @comment="openComments(video.id)"
                 @share="onShare(video)"
                 @profile="goToProfile(video.userId)"
@@ -95,7 +94,6 @@ import { useVideoStore } from '@/stores/videoStore'
 import { useVideoSocket } from '@/composables/useVideoSocket'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
-import { likeAdapter } from '@/infrastructure/api'
 import type { Video } from '@/domain/models'
 import SearchBar from '@/ui/shared/components/SearchBar.vue'
 import EmptyState from '@/ui/shared/components/EmptyState.vue'
@@ -302,11 +300,7 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-async function onLike(video: Video) {
-  try {
-    await likeAdapter.toggleLike('video', video.id)
-  } catch { /* silent */ }
-}
+
 
 function onShare(video: Video) {
   if (navigator.share) {

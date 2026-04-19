@@ -177,6 +177,7 @@ const subscribed = ref(false)
 const pipActive = ref(false)
 const isLiking = ref(false)
 const userHasInteractedWithLike = ref(false)
+const countsLoaded = ref(false)
 
 const pipSupported = computed(() =>
   typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
@@ -281,6 +282,7 @@ async function loadCounts() {
     if (isAuthenticated && likedResult.status === 'fulfilled') liked.value = (likedResult as PromiseFulfilledResult<boolean>).value
   }
   if (cc.status === 'fulfilled') commentCount.value = cc.value
+  countsLoaded.value = true
 
   if (isAuthenticated && props.video.userId) {
     try {
@@ -392,15 +394,26 @@ async function handleLike() {
   if (!tokenStorage.isAuthenticated || isLiking.value) return
   isLiking.value = true
   userHasInteractedWithLike.value = true
-  liked.value = !liked.value
-  likeCount.value += liked.value ? 1 : -1
+
+  const prevLiked = liked.value
+  const prevCount = likeCount.value
+
+  // Only do optimistic update if initial state has been loaded from the server;
+  // otherwise the defaults (liked=false, count=0) would produce a wrong delta.
+  if (countsLoaded.value) {
+    liked.value = !prevLiked
+    likeCount.value = prevCount + (!prevLiked ? 1 : -1)
+  }
+
   try {
     const result = await likeAdapter.toggleLike('video', props.video.id)
+    // Server response is the source of truth
     liked.value = result.liked
     likeCount.value = result.count
   } catch {
-    liked.value = !liked.value
-    likeCount.value += liked.value ? 1 : -1
+    // Deterministic rollback to pre-click state
+    liked.value = prevLiked
+    likeCount.value = prevCount
   } finally {
     isLiking.value = false
   }

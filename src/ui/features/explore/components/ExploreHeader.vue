@@ -337,10 +337,11 @@ function onSearchInput(event: Event) {
 
 .filter-chips-row {
   display: flex;
+  justify-content: center;
   gap: 8px;
   margin-top: 10px;
   width: 100%;
-  max-width: 100%;
+  max-width: 680px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -394,6 +395,10 @@ function onSearchInput(event: Event) {
 @media (max-width: 720px) {
   .stats-row {
     grid-template-columns: 1fr;
+  }
+
+  .filter-chips-row {
+    justify-content: flex-start;
   }
 }
 </style>
