@@ -16,22 +16,45 @@
 
     <ExploreSkeleton v-if="showInitialSkeleton" />
 
-    <div v-else-if="courseStore.courses.length" class="course-grid">
-      <TransitionGroup name="card">
-        <CourseCard
-          v-for="course in courseStore.courses"
-          :key="course.id"
-          :course="course"
-          :creator-name="getCourseCreatorName(course)"
-          :teacher-count="teacherCounts[course.id]"
-          @click="navigateToCourse(course)"
-          @options="canManageCourses ? openCourseOptions($event) : undefined"
-          @info="openInfoDialog($event)"
-        />
-      </TransitionGroup>
-    </div>
+    <template v-else>
+      <div class="category-filter-bar">
+        <button
+          class="category-filter-btn"
+          :class="{ 'category-filter-btn--active': activeCategory !== 'all' }"
+          @click="showCategoryFilter = true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="3 4 21 4 14 12 14 19 10 21 10 12 3 4" />
+          </svg>
+          <span>{{ activeCategoryLabel }}</span>
+        </button>
 
-    <EmptyState v-else icon="search" message="No se encontraron cursos" />
+        <button
+          v-if="activeCategory !== 'all'"
+          class="category-filter-clear"
+          @click="clearCategoryFilter"
+        >
+          Limpiar
+        </button>
+      </div>
+
+      <div v-if="displayedCourses.length" class="course-grid">
+        <TransitionGroup name="card">
+          <CourseCard
+            v-for="course in displayedCourses"
+            :key="course.id"
+            :course="course"
+            :creator-name="getCourseCreatorName(course)"
+            :teacher-count="teacherCounts[course.id]"
+            @click="navigateToCourse(course)"
+            @options="canManageCourses ? openCourseOptions($event) : undefined"
+            @info="openInfoDialog($event)"
+          />
+        </TransitionGroup>
+      </div>
+
+      <EmptyState v-else icon="search" :message="emptyStateMessage" />
+    </template>
 
     <div v-if="isInteractiveLoading" class="loading-more">
       <div class="spinner" />
@@ -51,6 +74,38 @@
       :active="activeFilter"
       @select="activeFilter = $event"
     />
+
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showCategoryFilter" class="bottom-sheet-overlay" @click="showCategoryFilter = false">
+          <div class="bottom-sheet category-sheet" @click.stop>
+            <div class="category-sheet-header">
+              <h3 class="sheet-title">Filtrar por categoría</h3>
+              <button class="category-sheet-close" aria-label="Cerrar" @click="showCategoryFilter = false">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="category-sheet-options">
+              <button
+                v-for="category in categoryOptions"
+                :key="category.key"
+                class="category-option"
+                :class="{ 'category-option--active': activeCategory === category.key }"
+                @click="selectCategory(category.key)"
+              >
+                <span>{{ category.label }}</span>
+                <svg v-if="activeCategory === category.key" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Bottom sheet de opciones del curso -->
     <Teleport to="body">
@@ -235,6 +290,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const activeFilter = ref('all')
 const showFilter = ref(false)
+const showCategoryFilter = ref(false)
 const courseStore = useCourseStore()
 const sentinel = ref<HTMLElement>()
 let observer: IntersectionObserver | null = null
@@ -251,6 +307,16 @@ const showConsolidado = ref(false)
 const showMoreMenu = ref(false)
 const searchPending = ref(false)
 const filterPending = ref(false)
+const activeCategory = ref('all')
+
+const categoryOptions = [
+  { key: 'all', label: 'Todas las categorías' },
+  { key: 'informatica', label: 'Informática' },
+  { key: 'cursos', label: 'Cursos' },
+  { key: 'tecnicos', label: 'Técnicos' },
+  { key: 'diplomados', label: 'Diplomados' },
+  { key: 'bachillerato', label: 'Bachillerato' },
+]
 
 // ── Teacher counts (collaborators per course) ─────────────────────────────
 const teacherCounts = ref<Record<number, number>>({})
@@ -280,6 +346,23 @@ const activeFilterLabel = computed(() => {
     new: 'Nuevos',
   }
   return labels[activeFilter.value] || null
+})
+
+const activeCategoryLabel = computed(() =>
+  categoryOptions.find((option) => option.key === activeCategory.value)?.label ?? 'Categorías',
+)
+
+const displayedCourses = computed(() => {
+  if (activeCategory.value === 'all') return courseStore.courses
+
+  return courseStore.courses.filter((course) =>
+    normalizeCategory(course.category).includes(activeCategory.value),
+  )
+})
+
+const emptyStateMessage = computed(() => {
+  if (activeCategory.value === 'all') return 'No se encontraron cursos'
+  return `No se encontraron cursos en ${activeCategoryLabel.value.toLowerCase()}`
 })
 
 const showInitialSkeleton = computed(() =>
@@ -349,6 +432,14 @@ function mergeUniqueCourses(...courseLists: Course[][]) {
   }
 
   return Array.from(merged.values())
+}
+
+function normalizeCategory(category: string | null | undefined) {
+  return (category ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 }
 
 function isNumericQuery(query: string) {
@@ -656,6 +747,15 @@ function clearFilter() {
   void refreshCurrentFilter('all')
 }
 
+function selectCategory(categoryKey: string) {
+  activeCategory.value = categoryKey
+  showCategoryFilter.value = false
+}
+
+function clearCategoryFilter() {
+  activeCategory.value = 'all'
+}
+
 function applyQuickFilter(filterKey: string) {
   activeFilter.value = filterKey
 }
@@ -880,12 +980,57 @@ onUnmounted(() => {
   padding: 16px;
 }
 
+.category-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.category-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(4, 10, 24, 0.2);
+}
+
+.category-filter-btn--active {
+  background: linear-gradient(135deg, rgba(89, 141, 255, 0.24), rgba(191, 90, 242, 0.24));
+  border-color: rgba(191, 90, 242, 0.45);
+  color: #fff;
+}
+
+.category-filter-clear {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: #cfd7ea;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .course-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 560px) {
   .course-grid { grid-template-columns: 1fr; }
+  .category-filter-bar { padding-top: 10px; }
+  .category-filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
 
 .card-enter-active {
@@ -921,6 +1066,58 @@ onUnmounted(() => {
 .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px; }
 .bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px; padding: 24px 0; }
 .sheet-title { font-size: 18px; font-weight: 600; color: #fff; padding: 0 24px 16px; }
+.category-sheet {
+  padding-top: 18px;
+}
+
+.category-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 14px;
+}
+
+.category-sheet-header .sheet-title {
+  padding: 0;
+}
+
+.category-sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  color: #8E8E93;
+}
+
+.category-sheet-options {
+  display: grid;
+  gap: 10px;
+  padding: 0 20px;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f4f7ff;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.category-option--active {
+  border-color: rgba(191, 90, 242, 0.6);
+  background: rgba(191, 90, 242, 0.12);
+  color: #fff;
+}
 .sheet-option { display: block; width: 100%; text-align: left; padding: 14px 24px; font-size: 16px; transition: background 0.15s; }
 .sheet-option:hover { background: rgba(255,255,255,0.05); }
 .sheet-option.edit { color: #0A84FF; }
