@@ -465,7 +465,7 @@ async function refreshCurrentFilter(filter = activeFilter.value) {
   if (filter === 'all') {
     searchPending.value = false
     filterPending.value = false
-    await courseStore.fetchCourses(1, 20, requestId)
+    await courseStore.fetchCourses(1, 20)
     return
   }
 
@@ -473,7 +473,7 @@ async function refreshCurrentFilter(filter = activeFilter.value) {
 
   try {
     if (filter === 'popular' || filter === 'new') {
-      await courseStore.fetchByFilter('all', requestId)
+      await courseStore.fetchByFilter('all')
       if (requestId !== searchRequestId) return
 
       const baseCourses = [...courseStore.courses]
@@ -495,7 +495,7 @@ async function refreshCurrentFilter(filter = activeFilter.value) {
       return
     }
 
-    await courseStore.fetchByFilter(filter, requestId)
+    await courseStore.fetchByFilter(filter)
   } finally {
     if (requestId === searchRequestId) filterPending.value = false
   }

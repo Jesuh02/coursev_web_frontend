@@ -282,7 +282,14 @@ async function loadCounts() {
     if (isAuthenticated && likedResult.status === 'fulfilled') liked.value = (likedResult as PromiseFulfilledResult<boolean>).value
   }
   if (cc.status === 'fulfilled') commentCount.value = cc.value
-  countsLoaded.value = true
+  // Only enable optimistic updates when we reliably know both the like count
+  // AND whether the current user has liked. If checkLike failed, liked stays
+  // at its default (false) which would cause the optimistic update to go in
+  // the wrong direction (increment when it should decrement), making the
+  // counter appear to decrease after the server responds with the real value.
+  const likeStateReliable = lc.status === 'fulfilled' &&
+    (!isAuthenticated || likedResult.status === 'fulfilled')
+  countsLoaded.value = likeStateReliable
 
   if (isAuthenticated && props.video.userId) {
     try {
@@ -411,9 +418,15 @@ async function handleLike() {
     liked.value = result.liked
     likeCount.value = result.count
   } catch {
-    // Deterministic rollback to pre-click state
-    liked.value = prevLiked
-    likeCount.value = prevCount
+    if (countsLoaded.value) {
+      // State was loaded from server before click — rollback is safe
+      liked.value = prevLiked
+      likeCount.value = prevCount
+    } else {
+      // State was defaults (not server truth) — re-fetch to get correct values
+      userHasInteractedWithLike.value = false
+      loadCounts()
+    }
   } finally {
     isLiking.value = false
   }

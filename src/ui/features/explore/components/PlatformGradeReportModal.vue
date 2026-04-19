@@ -682,7 +682,7 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
   return sheet.students.map(student => {
     const stTaskGrades = sheet.taskGrades.filter(tg => Number(tg.studentId) === student.userId)
     const taskSum = stTaskGrades.reduce((s, tg) => s + (tg.grade ?? 0), 0)
-    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : null
+    const taskAvg = totalTasks > 0 ? taskSum / totalTasks : 0
     const stManualGrades = sheet.manualGrades.filter(mg => Number(mg.studentId) === student.userId)
     const byType: Record<string, number[]> = {}
     for (const mg of stManualGrades) {
