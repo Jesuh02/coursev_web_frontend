@@ -292,9 +292,15 @@ async function loadCounts() {
     }
   }
   if (cc.status === 'fulfilled') commentCount.value = cc.value
-  const likeStateReliable = lc.status === 'fulfilled' &&
-    (!isAuthenticated || likedResult.status === 'fulfilled')
-  countsLoaded.value = likeStateReliable
+  // Only UPGRADE countsLoaded (false→true), never downgrade (true→false).
+  // A successful toggle in handleLike already set countsLoaded=true; a late
+  // loadCounts response with a failed checkLike must not reset it, otherwise
+  // the next click triggers an unnecessary pre-fetch and can flicker.
+  if (!countsLoaded.value) {
+    const likeStateReliable = lc.status === 'fulfilled' &&
+      (!isAuthenticated || likedResult.status === 'fulfilled')
+    countsLoaded.value = likeStateReliable
+  }
 
   if (isAuthenticated && props.video.userId) {
     try {
@@ -407,51 +413,28 @@ async function handleLike() {
   isLiking.value = true
   userHasInteractedWithLike.value = true
 
-  // If we don't have reliable like state (checkLike failed during loadCounts),
-  // fetch it now before toggling. Without knowing the real liked status, the
-  // toggle could go in the wrong direction (user sees white heart but server
-  // finds an existing like and deletes it → count drops).
-  if (!countsLoaded.value) {
-    try {
-      const [isLiked, count] = await Promise.all([
-        likeAdapter.checkLike('video', props.video.id),
-        likeAdapter.getLikeCount('video', props.video.id),
-      ])
-      liked.value = isLiked
-      likeCount.value = count
-      countsLoaded.value = true
-    } catch {
-      // Still can't verify state — proceed without optimistic update
-    }
-  }
-
   const prevLiked = liked.value
   const prevCount = likeCount.value
 
-  // Only do optimistic update if initial state has been loaded from the server;
-  // otherwise the defaults (liked=false, count=0) would produce a wrong delta.
+  // Optimistic update: toggle heart immediately for instant visual feedback.
+  // Only adjust the count if we have reliable state from the server;
+  // otherwise just toggle the heart and let the server response fill in
+  // the correct count.
+  liked.value = !prevLiked
   if (countsLoaded.value) {
-    liked.value = !prevLiked
     likeCount.value = prevCount + (!prevLiked ? 1 : -1)
   }
 
   try {
     const result = await likeAdapter.toggleLike('video', props.video.id)
-    // Server response is the source of truth
+    // Server response is the source of truth — always overwrite
     liked.value = result.liked
     likeCount.value = result.count
-    // Mark state as reliable for future clicks
     countsLoaded.value = true
   } catch {
-    if (countsLoaded.value) {
-      // State was loaded from server before click — rollback is safe
-      liked.value = prevLiked
-      likeCount.value = prevCount
-    } else {
-      // State was defaults (not server truth) — re-fetch to get correct values
-      userHasInteractedWithLike.value = false
-      loadCounts()
-    }
+    // Rollback to pre-click state
+    liked.value = prevLiked
+    likeCount.value = prevCount
   } finally {
     isLiking.value = false
   }
