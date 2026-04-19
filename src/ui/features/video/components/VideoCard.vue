@@ -408,8 +408,15 @@ async function togglePiP() {
   }
 }
 
+let likeCooldownUntil = 0
+
 async function handleLike() {
   if (!tokenStorage.isAuthenticated || isLiking.value) return
+  // Prevent ultra-rapid clicks: enforce a minimum gap between toggles
+  const now = Date.now()
+  if (now < likeCooldownUntil) return
+  likeCooldownUntil = now + 500
+
   isLiking.value = true
   userHasInteractedWithLike.value = true
 
