@@ -4460,12 +4460,14 @@ const resolveAvatar = (url: string) => {
 }
 const onAvatarError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.onerror = null
+  if (img.dataset.fallback) return   // ya se aplicó el fallback, evitar bucle
+  img.dataset.fallback = '1'
   img.src = '/default-avatar.png'
 }
 const onCourseThumbError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.onerror = null
+  if (img.dataset.fallback) return   // ya se aplicó el fallback, evitar bucle
+  img.dataset.fallback = '1'
   img.src = '/default-course.png'
 }
 const resolveThumbnail = (url: string) => {
@@ -6302,6 +6304,7 @@ watch(() => route.query, () => {
 
 .item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .item-info h5 {
@@ -6314,7 +6317,7 @@ watch(() => route.query, () => {
 .progress-bar {
   height: 6px;
   background: #3C3C3E;
-  border-radius: 3px;
+  border-radius: 4px;
   margin-top: 8px;
   overflow: hidden;
 }
@@ -6322,8 +6325,9 @@ watch(() => route.query, () => {
 .progress-fill {
   height: 100%;
   background: #0A84FF;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.6s ease;
+  width: 100%;
 }
 
 .progress-text {
