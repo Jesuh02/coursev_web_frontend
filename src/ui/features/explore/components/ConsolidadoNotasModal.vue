@@ -332,8 +332,13 @@ async function fetchConsolidado() {
             }
           }
 
-          // Active period counts too
-          if (activeSheet) {
+          // Active period counts only if it has real grade data (manual or task grades).
+          // Without this check, an empty active sheet (after closing a period clears grades)
+          // contributes a 0 for every student, skewing the final average incorrectly.
+          const activeSheetHasGrades = activeSheet &&
+            (activeSheet.manualGrades.length > 0 ||
+              activeSheet.taskGrades.some(tg => tg.grade != null && tg.grade > 0))
+          if (activeSheet && activeSheetHasGrades) {
             const activeNotaMap = computeNotaPonderada(activeSheet)
             for (const st of activeSheet.students) {
               studentInfo.set(st.userId, { fullName: st.fullName ?? null, userId: st.userId })
@@ -342,6 +347,11 @@ async function fetchConsolidado() {
                 if (!periodGrades.has(st.userId)) periodGrades.set(st.userId, [])
                 periodGrades.get(st.userId)!.push(nota)
               }
+            }
+          } else if (activeSheet) {
+            // Still register students so they appear in the consolidado even with no active grades
+            for (const st of activeSheet.students) {
+              studentInfo.set(st.userId, { fullName: st.fullName ?? null, userId: st.userId })
             }
           }
 
