@@ -32,7 +32,7 @@
         </template>
         <p v-else class="comment-text">
           {{ comment.comment }}
-          <span v-if="(comment as any).updatedAt || (comment as any).updated_at" class="edited-tag">(editado)</span>
+          <span v-if="isEdited(comment)" class="edited-tag">(editado)</span>
         </p>
 
         <!-- Actions row -->
@@ -79,7 +79,7 @@
                 </template>
                 <p v-else class="comment-text">
                   {{ reply.comment }}
-                  <span v-if="(reply as any).updatedAt || (reply as any).updated_at" class="edited-tag">(editado)</span>
+                  <span v-if="isEdited(reply)" class="edited-tag">(editado)</span>
                 </p>
                 <div v-if="editingId !== reply.id" class="comment-actions">
                   <button class="reply-btn" @click="$emit('reply', reply)">Responder</button>
@@ -167,6 +167,11 @@ function isOwner(c: CommentWithMeta): boolean {
   if (!uid) return false
   const ownerId = (c as any).usuario_id ?? (c as any).userId
   return Number(ownerId) === Number(uid)
+}
+
+function isEdited(c: CommentWithMeta): boolean {
+  const anyC = c as any
+  return Boolean(anyC.updatedAt || anyC.updated_at)
 }
 
 function startEdit(c: CommentWithMeta) {

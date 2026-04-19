@@ -14,6 +14,14 @@
     <!-- Video Feed Wrapper (centered on desktop) -->
     <div class="video-feed-wrapper">
       <div class="video-feed-stage">
+        <!-- Animated aurora lights around the video feed -->
+        <div class="aurora-lights" aria-hidden="true">
+          <span class="aurora aurora-1"></span>
+          <span class="aurora aurora-2"></span>
+          <span class="aurora aurora-3"></span>
+          <span class="aurora aurora-4"></span>
+        </div>
+
         <div class="video-stage-glow video-stage-glow-left" aria-hidden="true"></div>
         <div class="video-stage-glow video-stage-glow-right" aria-hidden="true"></div>
 
@@ -355,9 +363,87 @@ function logoutAndGoToLogin() {
 
 .video-feed-shell {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 20px);
+  height: calc(100dvh - 96px);
+  max-height: calc(100dvh - 96px);
+  margin: 10px;
   z-index: 1;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Animated lights moving around the video stage (mimics the reference video) */
+.aurora-lights {
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(60px) saturate(1.6);
+  opacity: 0.75;
+  overflow: hidden;
+}
+
+.aurora {
+  position: absolute;
+  width: 55%;
+  height: 55%;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.aurora-1 {
+  background: radial-gradient(circle, #ff2d95 0%, transparent 70%);
+  top: -10%;
+  left: -10%;
+  animation: aurora-move-1 14s linear infinite;
+}
+.aurora-2 {
+  background: radial-gradient(circle, #1d9bf0 0%, transparent 70%);
+  top: 40%;
+  right: -15%;
+  animation: aurora-move-2 18s linear infinite;
+}
+.aurora-3 {
+  background: radial-gradient(circle, #9b5cff 0%, transparent 70%);
+  bottom: -15%;
+  left: 20%;
+  animation: aurora-move-3 20s linear infinite;
+}
+.aurora-4 {
+  background: radial-gradient(circle, #00e0c6 0%, transparent 70%);
+  top: 20%;
+  left: 35%;
+  animation: aurora-move-4 16s linear infinite;
+}
+
+@keyframes aurora-move-1 {
+  0%   { transform: translate(0, 0)         scale(1); }
+  25%  { transform: translate(60%, 30%)     scale(1.2); }
+  50%  { transform: translate(80%, 80%)     scale(0.9); }
+  75%  { transform: translate(20%, 60%)     scale(1.1); }
+  100% { transform: translate(0, 0)         scale(1); }
+}
+@keyframes aurora-move-2 {
+  0%   { transform: translate(0, 0)         scale(1.1); }
+  25%  { transform: translate(-40%, 40%)    scale(0.9); }
+  50%  { transform: translate(-80%, -20%)   scale(1.3); }
+  75%  { transform: translate(-30%, -50%)   scale(1); }
+  100% { transform: translate(0, 0)         scale(1.1); }
+}
+@keyframes aurora-move-3 {
+  0%   { transform: translate(0, 0)         scale(1); }
+  33%  { transform: translate(50%, -60%)    scale(1.15); }
+  66%  { transform: translate(-30%, -30%)   scale(0.95); }
+  100% { transform: translate(0, 0)         scale(1); }
+}
+@keyframes aurora-move-4 {
+  0%   { transform: translate(0, 0)         scale(1); }
+  25%  { transform: translate(-50%, 40%)    scale(1.2); }
+  50%  { transform: translate(30%, 70%)     scale(0.85); }
+  75%  { transform: translate(60%, -30%)    scale(1.15); }
+  100% { transform: translate(0, 0)         scale(1); }
 }
 
 .video-stage-glow {
@@ -365,7 +451,7 @@ function logoutAndGoToLogin() {
 }
 
 .video-home {
-  height: 100dvh;
+  height: 100%;
   width: 100%;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
@@ -376,6 +462,11 @@ function logoutAndGoToLogin() {
 
 .video-home::-webkit-scrollbar {
   display: none;
+}
+
+/* Override each video card height to match the (smaller) scroll shell */
+.video-home :deep(.video-card) {
+  height: 100%;
 }
 
 /* Desktop navigation arrows - hidden on mobile */
