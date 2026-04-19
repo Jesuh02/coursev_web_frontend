@@ -28,6 +28,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                 Generar boletín
               </button>
+              <button class="more-menu-option" @click="showMoreMenu = false; showConsolidado = true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Consolidado de notas
+              </button>
             </div>
           </Transition>
         </div>
@@ -156,6 +160,7 @@
 
     <GradeReportModal v-model="showReport" :course-id="courseId" :course-name="currentCourseName" :subjects="allSubjects" />
     <BulletinModal v-model="showBulletin" :course-id="courseId" :course-name="currentCourseName" :course-category="currentCourseCategory" :subjects="allSubjects" />
+    <ConsolidadoNotasModal v-model="showConsolidado" />
   </div>
 </template>
 
@@ -165,7 +170,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import type { Subject } from '@/domain/models'
-import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter } from '@/infrastructure/api'
+import { subjectAdapter, taskAdapter, topicAdapter, courseAdapter, gradeAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { collaboratorAdapter } from '@/infrastructure/api/collaboratorAdapter'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
@@ -173,6 +178,7 @@ import { useSubjectSocket } from '@/composables/useSubjectSocket'
 import SubjectCard from './components/SubjectCard.vue'
 import GradeReportModal from './components/GradeReportModal.vue'
 import BulletinModal from './components/BulletinModal.vue'
+import ConsolidadoNotasModal from '@/ui/features/explore/components/ConsolidadoNotasModal.vue'
 
 defineOptions({ name: 'SubjectsListView' })
 
@@ -202,6 +208,7 @@ const blockAlert = ref<{ show: boolean; reason: string }>({ show: false, reason:
 const enrollmentApproved = ref(false)
 const showReport = ref(false)
 const showBulletin = ref(false)
+const showConsolidado = ref(false)
 const showMoreMenu = ref(false)
 const reportPulse = ref(true)
 
@@ -571,6 +578,11 @@ async function loadSubjects() {
       return dateA - dateB
     })
     loadSubjectStats()
+    // Pre-warm grade-sheet cache in background so reports open instantly
+    if (authStore.isAdmin || authStore.isDocente || hasCollaboratorAccess.value) {
+      const ids = allSubjects.value.map(s => s.id)
+      gradeAdapter.warmUpGradeSheets(ids) // fire-and-forget
+    }
   } catch {
     errorMessage.value = 'Error al cargar materias'
   } finally {

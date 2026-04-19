@@ -218,7 +218,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCourseStore } from '@/stores/courseStore'
-import { collaboratorAdapter, courseAdapter, userAdapter } from '@/infrastructure/api'
+import { collaboratorAdapter, courseAdapter, userAdapter, gradeAdapter } from '@/infrastructure/api'
 import { subjectCollaboratorAdapter } from '@/infrastructure/api/subjectAdapter'
 import { subjectAdapter } from '@/infrastructure/api'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
@@ -880,6 +880,25 @@ useCourseSocket({
 
 function closeMoreMenu() { showMoreMenu.value = false }
 
+// ── Background warm-up: pre-fetch grade sheets for loaded courses (admin only) ──
+async function warmUpPlatformGradeSheets() {
+  const courses = courseStore.courses.slice(0, 20)
+  const BATCH = 5
+  const allSubjectIds: number[] = []
+  for (let i = 0; i < courses.length; i += BATCH) {
+    const batch = courses.slice(i, i + BATCH)
+    const results = await Promise.allSettled(
+      batch.map(c => subjectAdapter.getSubjectsByCourse(c.id).catch(() => []))
+    )
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        for (const s of (r.value as any[])) allSubjectIds.push(s.id)
+      }
+    }
+  }
+  void gradeAdapter.warmUpGradeSheets(allSubjectIds)
+}
+
 onMounted(() => {
   document.addEventListener('click', closeMoreMenu)
   // Show access denied message from redirect (e.g., revoked enrollment)
@@ -891,6 +910,20 @@ onMounted(() => {
 
   courseStore.fetchCourses()
   courseStore.fetchFilterCounts(authStore.user?.id)
+
+  // Warm up grade-sheet cache once the first page of courses has loaded (admins only)
+  if (authStore.isAdmin) {
+    const stopWatch = watch(
+      () => courseStore.courses.length,
+      (len) => {
+        if (len > 0) {
+          stopWatch()
+          warmUpPlatformGradeSheets()
+        }
+      },
+    )
+  }
+
   observer = new IntersectionObserver(
     (entries) => { if (entries[0]?.isIntersecting) loadMore() },
     { rootMargin: '200px' },
