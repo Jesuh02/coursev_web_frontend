@@ -387,7 +387,7 @@ async function handleGoogleCredential(response: GoogleCredentialResponse) {
     const displayName = payload.name || email.split('@')[0]
     const avatarUrl = payload.picture || undefined
     const result = await resolveGoogleLogin(response.credential, displayName, avatarUrl)
-    await authStore.commitAuth(result, undefined, { idToken: response.credential, displayName, avatarUrl })
+    await authStore.commitAuth(result)
     router.push('/video')
   } catch (e) {
     const suspended = detectSuspendedError(e)
@@ -419,7 +419,7 @@ async function handleLogin(username: string, password: string) {
   pendingPassword.value = password
   try {
     const result = await resolveLogin(username, password)
-    await authStore.commitAuth(result, { username, password })
+    await authStore.commitAuth(result)
     router.push('/video')
   } catch (e) {
     const suspended = detectSuspendedError(e)
@@ -445,7 +445,7 @@ async function handleCedulaSubmit() {
   error.value = ''
   try {
     const result = await resolveLogin(pendingUsername.value, pendingPassword.value, cedula.value.trim())
-    await authStore.commitAuth(result, { username: pendingUsername.value, password: pendingPassword.value })
+    await authStore.commitAuth(result)
     router.push('/video')
   } catch (e) {
     const suspended = detectSuspendedError(e)
@@ -468,15 +468,7 @@ async function handleTenantSelect(match: TenantLoginResult) {
   loading.value = true
   error.value = ''
   try {
-    const hasCredentials = pendingUsername.value && pendingPassword.value
-    const googleData = pendingGoogleIdToken
-      ? { idToken: pendingGoogleIdToken, displayName: pendingGoogleDisplayName, avatarUrl: pendingGoogleAvatarUrl }
-      : undefined
-    await authStore.commitAuth(
-      match,
-      hasCredentials ? { username: pendingUsername.value, password: pendingPassword.value } : undefined,
-      googleData,
-    )
+    await authStore.commitAuth(match)
     // Limpiar datos pendientes de Google
     pendingGoogleIdToken = ''
     pendingGoogleDisplayName = ''

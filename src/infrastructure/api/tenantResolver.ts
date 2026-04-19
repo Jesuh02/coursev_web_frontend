@@ -217,7 +217,7 @@ async function probeSingleServer(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(8_000),
   })
 
   const json: Record<string, unknown> = await res.json().catch(() => ({ success: false }))
