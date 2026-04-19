@@ -19,22 +19,13 @@
     <template v-else>
       <div class="category-filter-bar">
         <button
-          class="category-filter-btn"
-          :class="{ 'category-filter-btn--active': activeCategory !== 'all' }"
-          @click="showCategoryFilter = true"
+          v-for="category in categoryOptions"
+          :key="category.key"
+          class="category-filter-chip"
+          :class="{ 'category-filter-chip--active': activeCategory === category.key }"
+          @click="selectCategory(category.key)"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="3 4 21 4 14 12 14 19 10 21 10 12 3 4" />
-          </svg>
-          <span>{{ activeCategoryLabel }}</span>
-        </button>
-
-        <button
-          v-if="activeCategory !== 'all'"
-          class="category-filter-clear"
-          @click="clearCategoryFilter"
-        >
-          Limpiar
+          {{ category.label }}
         </button>
       </div>
 
@@ -74,38 +65,6 @@
       :active="activeFilter"
       @select="activeFilter = $event"
     />
-
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="showCategoryFilter" class="bottom-sheet-overlay" @click="showCategoryFilter = false">
-          <div class="bottom-sheet category-sheet" @click.stop>
-            <div class="category-sheet-header">
-              <h3 class="sheet-title">Filtrar por categoría</h3>
-              <button class="category-sheet-close" aria-label="Cerrar" @click="showCategoryFilter = false">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <div class="category-sheet-options">
-              <button
-                v-for="category in categoryOptions"
-                :key="category.key"
-                class="category-option"
-                :class="{ 'category-option--active': activeCategory === category.key }"
-                @click="selectCategory(category.key)"
-              >
-                <span>{{ category.label }}</span>
-                <svg v-if="activeCategory === category.key" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
     <!-- Bottom sheet de opciones del curso -->
     <Teleport to="body">
@@ -290,7 +249,6 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const activeFilter = ref('all')
 const showFilter = ref(false)
-const showCategoryFilter = ref(false)
 const courseStore = useCourseStore()
 const sentinel = ref<HTMLElement>()
 let observer: IntersectionObserver | null = null
@@ -749,11 +707,6 @@ function clearFilter() {
 
 function selectCategory(categoryKey: string) {
   activeCategory.value = categoryKey
-  showCategoryFilter.value = false
-}
-
-function clearCategoryFilter() {
-  activeCategory.value = 'all'
 }
 
 function applyQuickFilter(filterKey: string) {
@@ -983,41 +936,37 @@ onUnmounted(() => {
 .category-filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 12px 16px 0;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.category-filter-btn {
+.category-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.category-filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 16px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.88);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 10px 24px rgba(4, 10, 24, 0.2);
+  flex-shrink: 0;
 }
 
-.category-filter-btn--active {
+.category-filter-chip--active {
   background: linear-gradient(135deg, rgba(89, 141, 255, 0.24), rgba(191, 90, 242, 0.24));
   border-color: rgba(191, 90, 242, 0.45);
   color: #fff;
-}
-
-.category-filter-clear {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 999px;
-  color: #cfd7ea;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 @media (max-width: 900px) {
@@ -1027,10 +976,6 @@ onUnmounted(() => {
 @media (max-width: 560px) {
   .course-grid { grid-template-columns: 1fr; }
   .category-filter-bar { padding-top: 10px; }
-  .category-filter-btn {
-    flex: 1;
-    justify-content: center;
-  }
 }
 
 .card-enter-active {
@@ -1066,58 +1011,6 @@ onUnmounted(() => {
 .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px; }
 .bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px; padding: 24px 0; }
 .sheet-title { font-size: 18px; font-weight: 600; color: #fff; padding: 0 24px 16px; }
-.category-sheet {
-  padding-top: 18px;
-}
-
-.category-sheet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px 14px;
-}
-
-.category-sheet-header .sheet-title {
-  padding: 0;
-}
-
-.category-sheet-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-  color: #8E8E93;
-}
-
-.category-sheet-options {
-  display: grid;
-  gap: 10px;
-  padding: 0 20px;
-}
-
-.category-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 16px;
-  text-align: left;
-  font-size: 15px;
-  font-weight: 600;
-  color: #f4f7ff;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.category-option--active {
-  border-color: rgba(191, 90, 242, 0.6);
-  background: rgba(191, 90, 242, 0.12);
-  color: #fff;
-}
 .sheet-option { display: block; width: 100%; text-align: left; padding: 14px 24px; font-size: 16px; transition: background 0.15s; }
 .sheet-option:hover { background: rgba(255,255,255,0.05); }
 .sheet-option.edit { color: #0A84FF; }

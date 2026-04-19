@@ -121,17 +121,22 @@ function onSearchInput(event: Event) {
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 12px 16px 10px;
+  padding: 10px 16px 8px;
   background:
     radial-gradient(120% 140% at 12% 8%, rgba(92, 163, 255, 0.18), transparent 42%),
     radial-gradient(110% 130% at 90% 18%, rgba(188, 138, 255, 0.17), transparent 45%),
     rgba(9, 12, 18, 0.82);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .header-copy {
   margin-bottom: 10px;
+  width: 100%;
+  max-width: 680px;
 }
 
 .header-copy h1 {
@@ -155,10 +160,12 @@ function onSearchInput(event: Event) {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  max-width: 680px;
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 28px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05),
@@ -256,6 +263,8 @@ function onSearchInput(event: Event) {
 
 .stats-row {
   margin-top: 10px;
+  width: 100%;
+  max-width: 680px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -303,6 +312,7 @@ function onSearchInput(event: Event) {
 
 .section-label {
   margin-top: 12px;
+  width: 100%;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -314,6 +324,8 @@ function onSearchInput(event: Event) {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
