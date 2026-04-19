@@ -170,13 +170,14 @@ function onSearchInput(event: Event) {
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   max-width: 680px;
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 28px;
-  padding: 4px 14px;
+  border-radius: 24px;
+  padding: 2px 12px;
+  min-height: 42px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05),
@@ -209,6 +210,8 @@ function onSearchInput(event: Event) {
   flex-shrink: 0;
   color: #b790ff;
   z-index: 1;
+  width: 18px;
+  height: 18px;
 }
 
 .active-filter-chip {
@@ -239,10 +242,11 @@ function onSearchInput(event: Event) {
   background: none;
   border: none;
   color: #f9fbff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   outline: none;
   padding: 0;
+  line-height: 1.2;
   z-index: 1;
 }
 
@@ -253,8 +257,8 @@ function onSearchInput(event: Event) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   color: #cfd7ea;
   z-index: 1;
