@@ -108,6 +108,28 @@
         </transition>
       </div>
     </div>
+
+    <!-- Delete confirmation modal -->
+    <transition name="modal-fade">
+      <div v-if="showDeleteModal" class="delete-modal-backdrop" @click.self="showDeleteModal = false">
+        <div class="delete-modal">
+          <div class="delete-modal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </div>
+          <p class="delete-modal-title">Eliminar comentario</p>
+          <p class="delete-modal-sub">Esta acción no se puede deshacer.</p>
+          <div class="delete-modal-actions">
+            <button class="delete-modal-cancel" @click="showDeleteModal = false">Cancelar</button>
+            <button class="delete-modal-confirm" :disabled="deleting" @click="executeDelete">
+              <span v-if="!deleting">Eliminar</span>
+              <div v-else class="spinner spinner--sm" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
   </Teleport>
 </template>
@@ -157,12 +179,17 @@ interface Comment {
 // ── State ─────────────────────────────────────────────────────────────────
 const loading    = ref(true)
 const sending    = ref(false)
+const deleting   = ref(false)
 const comments   = ref<Comment[]>([])
 const totalCount = ref(0)
 const inputText  = ref('')
 const replyingTo = ref<Comment | null>(null)
 const editingComment = ref<Comment | null>(null)
 const highlightedId = ref<number | null>(props.highlightCommentId ?? null)
+
+// Delete modal state
+const showDeleteModal   = ref(false)
+const commentToDelete   = ref<Comment | null>(null)
 
 // DOM refs
 const contentRef = ref<HTMLElement | null>(null)
@@ -268,12 +295,22 @@ function cancelEdit() {
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────
-async function confirmDelete(comment: Comment) {
-  if (!confirm('¿Eliminar este comentario?')) return
+function confirmDelete(comment: Comment) {
+  commentToDelete.value = comment
+  showDeleteModal.value = true
+}
+
+async function executeDelete() {
+  if (!commentToDelete.value) return
+  deleting.value = true
   try {
-    await commentAdapter.deleteComment(comment.id)
+    await commentAdapter.deleteComment(commentToDelete.value.id)
+    showDeleteModal.value = false
+    commentToDelete.value = null
     await loadComments()
-  } catch { /* silent */ }
+  } catch { /* silent */ } finally {
+    deleting.value = false
+  }
 }
 
 // ── Like ──────────────────────────────────────────────────────────────────
@@ -559,4 +596,106 @@ watch(() => props.videoId, () => {
 .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from,
 .fade-leave-to    { opacity: 0; }
+
+/* ── Delete modal ─────────────────────────────────────────────────────────── */
+.delete-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.delete-modal {
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px 24px 22px;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.delete-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 71, 87, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.delete-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+}
+
+.delete-modal-sub {
+  font-size: 13px;
+  color: #777;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.delete-modal-cancel {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.delete-modal-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+
+.delete-modal-confirm {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 12px;
+  border: none;
+  background: #ff4757;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+.delete-modal-confirm:disabled { opacity: 0.5; cursor: default; }
+.delete-modal-confirm:not(:disabled):hover { opacity: 0.88; }
+
+.spinner--sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.modal-fade-enter-active { transition: opacity 0.18s ease; }
+.modal-fade-leave-active { transition: opacity 0.15s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 </style>
