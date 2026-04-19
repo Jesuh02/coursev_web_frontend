@@ -2099,7 +2099,7 @@
           <div v-if="cycleType" class="cycle-hour-picker">
             <label class="cycle-day-label">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Hora del cobro:
+              Hora del cobro <span style="font-size:11px;color:#8E8E93;font-weight:400;">(hora Colombia UTC-5)</span>:
             </label>
             <div style="display:flex;align-items:center;gap:6px;">
               <select v-model="cycleHour" class="cycle-hour-select">
@@ -2401,20 +2401,35 @@ const normalizeCertificate = (item: Record<string, any>): AdminCertificateItem =
   progressPercentage: Number(item.progressPercentage ?? item.progress_percentage ?? 0) || 0,
 })
 
+const COLOMBIA_TZ = 'America/Bogota'
+
+/** Get Date parts in Colombia timezone */
+const getColombiaDateParts = (d: Date) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: COLOMBIA_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(d)
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value ?? 0)
+  return { year: get('year'), month: get('month') - 1, day: get('day'), hour: get('hour'), minute: get('minute'), second: get('second') }
+}
+
 const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return 'Fecha no disponible'
   const d = new Date(dateStr)
-  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', timeZone: COLOMBIA_TZ })
 }
 
 const formatDateTime = (dateStr?: string | null, overrideHour?: number | null, overrideMinute?: number | null) => {
   if (!dateStr) return 'Fecha no disponible'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
-  const datePart = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
-  const h = String(overrideHour ?? d.getUTCHours()).padStart(2, '0')
-  const m = String(overrideMinute ?? d.getUTCMinutes()).padStart(2, '0')
-  return `${datePart} a las ${h}:${m}`
+  const datePart = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', timeZone: COLOMBIA_TZ })
+  const col = getColombiaDateParts(d)
+  const h = String(overrideHour ?? col.hour).padStart(2, '0')
+  const m = String(overrideMinute ?? col.minute).padStart(2, '0')
+  return `${datePart} a las ${h}:${m} (COT)`
 }
 
 const loadCertificates = async () => {
@@ -3885,7 +3900,7 @@ const formatReinforcementDate = (value: string): string => {
   if (diff < 3_600_000) return `hace ${Math.floor(diff / 60_000)}m`
   if (diff < 86_400_000) return `hace ${Math.floor(diff / 3_600_000)}h`
   if (diff < 604_800_000) return `hace ${Math.floor(diff / 86_400_000)}d`
-  return new Date(parsed).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  return new Date(parsed).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: COLOMBIA_TZ })
 }
 
 const loadReinforcementData = async () => {
@@ -4862,7 +4877,7 @@ const cycleDay = ref(1)
 const cycleHour = ref(8)
 const cycleMinute = ref(0)
 const cycleRecurrence = ref<'once' | 'every_month'>('every_month')
-const cycleSelectedMonth = ref<number>(new Date().getMonth())
+const cycleSelectedMonth = ref<number>(getColombiaDateParts(new Date()).month)
 const CYCLE_MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const cycleActionMode = ref<'warning' | 'suspension'>('warning')
 const cycleQuickMinutes = ref(2)
@@ -4957,10 +4972,10 @@ const openCyclePicker = (inst: InstitutionAdmin) => {
   const savedMonths = (inst as any).billing_cycle_months
   if (Array.isArray(savedMonths) && savedMonths.length > 0 && savedMonths.length < 12) {
     cycleRecurrence.value = 'once'
-    cycleSelectedMonth.value = savedMonths[0] ?? new Date().getMonth()
+    cycleSelectedMonth.value = savedMonths[0] ?? getColombiaDateParts(new Date()).month
   } else {
     cycleRecurrence.value = 'every_month'
-    cycleSelectedMonth.value = new Date().getMonth()
+    cycleSelectedMonth.value = getColombiaDateParts(new Date()).month
   }
 }
 
@@ -4968,7 +4983,7 @@ const formatBillingCycle = (inst: InstitutionAdmin) => {
   if (!inst.billing_cycle_type) return 'No configurado'
   const h = String(inst.billing_cycle_hour ?? 8).padStart(2, '0')
   const m = String(inst.billing_cycle_minute ?? 0).padStart(2, '0')
-  const hourStr = ` a las ${h}:${m}`
+  const hourStr = ` a las ${h}:${m} (COT)`
   if (inst.billing_cycle_type === 'monthly_start') return `Inicio de mes (día 1)${hourStr}`
   if (inst.billing_cycle_type === 'biweekly') return `Quincenal (1 y 15)${hourStr}`
   const savedMonths = (inst as any).billing_cycle_months as number[] | null
@@ -4982,10 +4997,11 @@ const formatBillingCycle = (inst: InstitutionAdmin) => {
 
 const setCycleQuickFromNow = () => {
   const target = new Date(Date.now() + cycleQuickMinutes.value * 60_000)
-  cycleSelectedMonth.value = target.getUTCMonth()
-  cycleDay.value = target.getUTCDate()
-  cycleHour.value = target.getUTCHours()
-  cycleMinute.value = target.getUTCMinutes()
+  const col = getColombiaDateParts(target)
+  cycleSelectedMonth.value = col.month
+  cycleDay.value = col.day
+  cycleHour.value = col.hour
+  cycleMinute.value = col.minute
   if (!cycleType.value) cycleType.value = 'monthly_day'
 }
 
@@ -5007,14 +5023,18 @@ const saveBillingCycle = async () => {
       cyclePayload.months = [cycleSelectedMonth.value]
     }
     // Compute explicit due date so backend doesn't guess with _computeNextDueDate
-    const cycleYear = new Date().getFullYear()
+    // The hour/minute the admin selects is in Colombia time (UTC-5), convert to UTC for storage
+    const colNow = getColombiaDateParts(new Date())
+    const cycleYear = colNow.year
     const cycleMonth = cycleSelectedMonth.value
     const cycleD = cycleType.value === 'monthly_day' ? cycleDay.value : (cycleType.value === 'biweekly' ? 15 : 1)
-    let explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value))
+    // Build date in Colombia time then shift +5h to get UTC
+    const COT_OFFSET_MS = 5 * 60 * 60_000 // Colombia is UTC-5
+    let explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth, cycleD, cycleHour.value, cycleMinute.value) + COT_OFFSET_MS)
     // If the computed date is already in the past and this is a "once" recurrence,
     // keep it as-is (the user explicitly chose it). For recurring, advance to next month.
     if (!isOnce && explicitDueDate.getTime() <= Date.now()) {
-      explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth + 1, cycleD, cycleHour.value, cycleMinute.value))
+      explicitDueDate = new Date(Date.UTC(cycleYear, cycleMonth + 1, cycleD, cycleHour.value, cycleMinute.value) + COT_OFFSET_MS)
     }
     const updated = await institucionAdapter.setPaymentDueDate(
       inst.id,
