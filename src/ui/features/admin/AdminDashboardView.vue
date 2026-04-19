@@ -5946,9 +5946,6 @@ watch(() => route.query, () => {
   font-size: 12px;
   color: #8E8E93;
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   letter-spacing: -0.01em;
 }
 .a-radar-leg-value {
