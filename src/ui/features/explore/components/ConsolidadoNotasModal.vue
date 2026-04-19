@@ -18,8 +18,10 @@
               <p class="consolidado-subtitle">Vista cruzada: estudiantes × materias</p>
             </div>
             <button class="consolidado-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
-              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+              <Transition name="fs-icon" mode="out-in">
+                <svg v-if="!isFullscreen" key="expand" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                <svg v-else key="collapse" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+              </Transition>
             </button>
             <button class="consolidado-close" @click="$emit('update:modelValue', false)" aria-label="Cerrar">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round">
@@ -504,6 +506,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: padding 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .consolidado-modal {
   width: 100%;
@@ -516,6 +519,11 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   overflow: hidden;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
   animation: consolidado-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: max-width, max-height, border-radius;
 }
 @keyframes consolidado-slide-up {
   from { opacity: 0; transform: translateY(40px) scale(0.97); }
@@ -891,13 +899,20 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 .row-fade-leave-to { opacity: 0; }
 .row-fade-move { transition: transform 0.3s ease; }
 
+/* ── Fullscreen icon swap ── */
+.fs-icon-enter-active,
+.fs-icon-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.fs-icon-enter-from { opacity: 0; transform: rotate(45deg) scale(0.6); }
+.fs-icon-leave-to  { opacity: 0; transform: rotate(-45deg) scale(0.6); }
+
 /* ── Fullscreen ── */
 .consolidado-overlay--fs { padding: 0; }
 .consolidado-modal--fs {
-  max-width: 100% !important;
+  max-width: 100vw !important;
   max-height: 100vh !important;
   height: 100vh;
   border-radius: 0;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
 
 @media (max-width: 600px) {
