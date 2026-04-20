@@ -766,10 +766,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 .th-student {
   text-align: left;
   min-width: 180px;
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  background: rgba(28, 28, 30, 0.98);
 }
 .th-subject { min-width: 80px; }
 .th-subject-text {
@@ -802,16 +798,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   font-weight: 500;
   color: #fff;
   white-space: nowrap;
-  position: sticky;
-  left: 0;
-  background: inherit;
-  z-index: 1;
-}
-.consolidado-row:nth-child(even) .cell-student {
-  background: rgba(28, 28, 30, 0.98);
-}
-.consolidado-row:hover .cell-student {
-  background: rgba(44, 44, 46, 0.98);
 }
 .cell-grade {
   text-align: center;
