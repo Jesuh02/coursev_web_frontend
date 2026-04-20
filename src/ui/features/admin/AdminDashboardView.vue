@@ -1843,7 +1843,7 @@
             <div class="cert-info">
               <h5>{{ cert.courseName || `Curso ${cert.courseId}` }}</h5>
               <p class="cert-date">{{ cert.username ? `Estudiante: ${cert.username}` : `Usuario #${cert.userId}` }}</p>
-              <p class="cert-date">Progreso: {{ cert.completedTasks }}/{{ cert.totalTasks }} · {{ cert.progressPercentage }}%</p>
+              <p class="cert-date">Progreso: {{ cert.progressPercentage }}%</p>
               <p v-if="cert.averageGrade !== null" class="cert-date">Promedio: {{ cert.averageGrade }}</p>
               <p class="cert-date">{{ cert.certificateIssuedAt ? `Emitido: ${formatDate(cert.certificateIssuedAt)}` : 'Pendiente de emisión' }}</p>
               <a
