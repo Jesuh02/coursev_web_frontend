@@ -890,78 +890,13 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 /* ── Fullscreen mode ── */
 .consolidado-overlay--fs {
   padding: 0;
-  align-items: flex-start;
 }
 .consolidado-modal--fs {
-  max-width: 100%;
-  max-height: 100dvh;
-  height: 100dvh;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  height: 100vh;
   border-radius: 0;
-  padding-top: env(safe-area-inset-top, 0px);
-}
-.consolidado-modal--fs .consolidado-header {
-  padding-top: max(18px, calc(env(safe-area-inset-top, 0px) + 10px));
-}
-
-/* ── Mobile ── */
-@media (max-width: 600px) {
-  .consolidado-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-  .consolidado-overlay--fs {
-    align-items: flex-start;
-  }
-  .consolidado-modal {
-    max-width: 100%;
-    max-height: 92dvh;
-    border-radius: 20px 20px 0 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: consolidado-slide-up-mobile 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes consolidado-slide-up-mobile {
-    from { opacity: 0; transform: translateY(100%); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .consolidado-modal--fs {
-    border-radius: 0;
-    max-height: 100dvh;
-    height: 100dvh;
-  }
-  .consolidado-header {
-    padding: 16px 16px 12px;
-    padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
-  }
-  .consolidado-title { font-size: 15px; }
-  .consolidado-subtitle { font-size: 11px; }
-  .consolidado-header-icon {
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-  }
-  .consolidado-action-btn,
-  .consolidado-close {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    /* Área táctil mínima recomendada */
-    min-width: 38px;
-    min-height: 38px;
-  }
-  .consolidado-body {
-    padding: 12px 14px;
-  }
-  .consolidado-export-bar {
-    padding: 12px 14px;
-    padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px));
-  }
-  .student-search-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .student-count {
-    font-size: 11px;
-  }
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
 
 /* ── Transitions ── */
@@ -993,15 +928,27 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 }
 
 @media (max-width: 600px) {
+  .consolidado-overlay { align-items: flex-end; padding: 0; }
   .consolidado-modal {
-    max-height: 98vh;
-    border-radius: 16px 16px 0 0;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    /* Deja ~56px libres arriba para que el header quede por debajo de la barra del navegador */
+    top: 56px;
+    height: auto;
+    max-height: none;
+    border-radius: 16px 16px 0 0;
   }
-  .consolidado-overlay { align-items: flex-end; padding: 0; }
+
+  /* Header compacto en móvil */
+  .consolidado-header { padding: 14px 14px 12px; gap: 10px; }
+  .consolidado-header-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .consolidado-title { font-size: 15px; }
+  .consolidado-subtitle { display: none; }
+  .consolidado-action-btn,
+  .consolidado-close { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
+
   .th-subject-text { max-width: 60px; font-size: 8px; }
 }
 </style>
