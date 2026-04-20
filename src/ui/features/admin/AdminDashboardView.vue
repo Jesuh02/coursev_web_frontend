@@ -2025,6 +2025,7 @@
       </template>
 
       <!-- Billing cycle picker modal -->
+      <Teleport to="body">
       <div v-if="datePickerTarget" class="inst-modal-overlay" @click.self="datePickerTarget = null">
         <div class="inst-modal">
           <h3>Ciclo de Pago</h3>
@@ -2179,8 +2180,10 @@
           </div>
         </div>
       </div>
+      </Teleport>
 
       <!-- Suspend reason modal -->
+      <Teleport to="body">
       <div v-if="suspendTarget" class="inst-modal-overlay" @click.self="suspendTarget = null">
         <div class="inst-modal">
           <h3>Suspender Institución</h3>
@@ -2195,8 +2198,10 @@
           </div>
         </div>
       </div>
+      </Teleport>
 
       <!-- Monthly price editor modal -->
+      <Teleport to="body">
       <div v-if="priceEditorTarget" class="inst-modal-overlay" @click.self="priceEditorTarget = null">
         <div class="inst-modal">
           <h3>Precio Mensual</h3>
@@ -2224,6 +2229,7 @@
           </div>
         </div>
       </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -9684,12 +9690,14 @@ watch(() => route.query, () => {
 .inst-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 9999;
   background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+  padding-top: max(env(safe-area-inset-top, 0px), 20px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
   overflow-y: auto;
 }
 
