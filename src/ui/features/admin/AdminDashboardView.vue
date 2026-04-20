@@ -6062,6 +6062,19 @@ watch(() => route.query, () => {
   transition: width 0.8s cubic-bezier(.4,0,.2,1);
 }
 
+/* ═══════ Donut legend: portrait layout ═══════ */
+@media (orientation: portrait) {
+  .a-donut-leg-item {
+    flex-wrap: wrap;
+  }
+  .a-donut-leg-bar-wrap {
+    flex-basis: 100%;
+    width: 100%;
+    height: 5px;
+    margin-left: 20px;
+  }
+}
+
 /* ═══════ Rank Lists ═══════ */
 .a-rank-list { display: flex; flex-direction: column; gap: 6px; }
 .a-rank-row {
