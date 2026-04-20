@@ -1737,8 +1737,18 @@ function esc_html(s: string): string {
 }
 
 @media (max-width: 600px) {
-  .report-modal { max-height: 98vh; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; left: 0; right: 0; }
   .report-overlay { align-items: flex-end; padding: 0; }
+  .report-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* Deja ~56px libres arriba para que el header quede por debajo de la barra del navegador */
+    top: 56px;
+    height: auto;
+    max-height: none;
+    border-radius: 16px 16px 0 0;
+  }
   .cell-feedback { display: none; }
   .cell-date { display: none; }
 
