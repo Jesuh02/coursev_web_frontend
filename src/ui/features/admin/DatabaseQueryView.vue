@@ -152,6 +152,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { chatAdapter, api, tokenStorage } from '@/infrastructure/api'
+import { useAuthStore } from '@/stores/authStore'
 
 interface LocalMessage {
   id: string
@@ -176,6 +177,8 @@ const sessionId = ref(`db_query_${tokenStorage.userId ?? Date.now()}`)
 const copiedMsgId = ref<string | null>(null)
 const likedMsgId = ref<string | null>(null)
 const dislikedMsgId = ref<string | null>(null)
+
+const authStore = useAuthStore()
 
 let mediaRecorder: any = null
 let recognition: any = null
@@ -374,11 +377,13 @@ async function sendQuery() {
     // Excel generation is now handled server-side by /llm/process.
     // A single LLM call generates BOTH the text AND the Excel from the same data,
     // ensuring consistency between what the LLM says and what the Excel contains.
+    const userRoleIds = (authStore.user?.roles ?? []).map((r: any) => Number(r?.id ?? r)).filter(Number.isFinite)
     const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt: text,
       sessionId: sessionId.value,
       userId: tokenStorage.userId,
       username: tokenStorage.username,
+      userRoles: userRoleIds,
       forceMCPTools: true,
     })
 
