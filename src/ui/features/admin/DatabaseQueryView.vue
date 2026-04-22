@@ -70,6 +70,14 @@
           </div>
         </div>
 
+        <!-- Excel download chip -->
+        <div v-if="msg.role === 'assistant' && msg.excelUrl" class="excel-chip-row">
+          <a class="excel-chip" :href="msg.excelUrl" target="_blank" download title="Descargar Excel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar Excel
+          </a>
+        </div>
+
         <!-- Message actions for bot messages -->
         <div v-if="msg.role === 'assistant'" class="msg-actions">
           <button class="msg-action-btn" :class="{ 'msg-action-btn--active': copiedMsgId === msg.id }" @click="copyMessage(msg)" :title="copiedMsgId === msg.id ? 'Copiado' : 'Copiar'">
@@ -149,6 +157,7 @@ interface LocalMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  excelUrl?: string | null
 }
 
 interface LLMApiResponse {
@@ -374,7 +383,8 @@ async function sendQuery() {
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
-    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply })
+    const excelUrl = data.excelUrl || null
+    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl })
 
     // Persist assistant response – independent of next UI action
     persistMessage(reply, false)
@@ -773,6 +783,31 @@ function shareMessage(msg: LocalMessage) {
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* ── Excel download chip ── */
+.excel-chip-row {
+  padding: 0 0 6px 40px;
+  animation: fadeUp .2s ease;
+}
+
+.excel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(52,199,89,0.12);
+  border: 1px solid rgba(52,199,89,0.35);
+  color: #34C759;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.excel-chip:hover {
+  background: rgba(52,199,89,0.22);
+  border-color: rgba(52,199,89,0.6);
 }
 
 /* ── Message action bar ── */
