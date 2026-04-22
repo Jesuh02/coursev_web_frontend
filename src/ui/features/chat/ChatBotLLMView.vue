@@ -168,7 +168,7 @@
 
         <!-- Grade actions below bot message -->
         <div
-          v-if="msg.role === 'assistant' && msg.esCalificacion && !msg.calificationAdded"
+          v-if="msg.role === 'assistant' && !msg.calificationAdded && messageHasGrade(msg) && (msg.submissionId != null || !!selectedTask)"
           class="grade-actions"
         >
           <button class="grade-btn grade-btn--accept" @click="addGrade(msg)">
@@ -184,7 +184,7 @@
             Rechazar
           </button>
         </div>
-        <div v-if="msg.role === 'assistant' && msg.esCalificacion && msg.calificationAdded" class="grade-done">
+        <div v-if="msg.role === 'assistant' && (msg.esCalificacion || msg.nota != null) && msg.calificationAdded" class="grade-done">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Calificación aplicada
         </div>
@@ -1264,6 +1264,12 @@ function rejectGrade(msg: ChatMsg) {
     calification_added: true,
     submission_id: msg.submissionId ?? selectedTask.value?.submissionId ?? null,
   })
+}
+
+function messageHasGrade(msg: ChatMsg): boolean {
+  return msg.esCalificacion === true ||
+    msg.nota != null ||
+    extractGradeFromText(msg.content) != null
 }
 
 function extractGradeFromText(text: string): number | null {
