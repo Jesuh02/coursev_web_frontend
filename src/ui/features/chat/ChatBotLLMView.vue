@@ -168,7 +168,7 @@
 
         <!-- Grade actions below bot message -->
         <div
-          v-if="msg.role === 'assistant' && !msg.calificationAdded && messageHasGrade(msg) && (msg.submissionId != null || !!selectedTask)"
+          v-if="msg.role === 'assistant' && !msg.calificationAdded && messageHasGrade(msg)"
           class="grade-actions"
         >
           <button class="grade-btn grade-btn--accept" @click="addGrade(msg)">
@@ -505,6 +505,7 @@ interface ChatMsg {
   calificationAdded?: boolean
   excelUrl?: string | null
   submissionId?: number | null
+  feedback?: string | null
 }
 
 interface SelectedTaskCtx {
@@ -1158,6 +1159,7 @@ async function sendMessage() {
       calificationAdded: false,
       excelUrl: (data as any).excelUrl ?? null,
       submissionId: ctx?.submissionId ?? null,
+      feedback: (data as any).feedback ?? null,
     }
     messages.value.push(botMsg)
     saveMessageToBackend(botMsg.content, false, {
@@ -1208,7 +1210,8 @@ async function addGrade(msg: ChatMsg) {
   const grade = msg.nota ?? extractGradeFromText(msg.content)
   if (grade == null) return
 
-  const feedback = extractFeedback(msg.content)
+  // Use dedicated feedback from LLM response; fall back to extracting from message content
+  const feedback = msg.feedback ?? extractFeedback(msg.content)
   const ctx = selectedTask.value
 
   try {
