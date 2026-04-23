@@ -26,7 +26,9 @@ function fromBackendRow(row: Record<string, unknown>): ChatMessage {
  */
 function toBackendPayload(message: Partial<ChatMessage> & { sessionId: string; origin?: string }) {
   const extra = message as Record<string, unknown>
+  const numericId = extra.id != null ? Number(extra.id) : null
   return {
+    ...(numericId && !isNaN(numericId) ? { id: numericId } : {}),
     message: message.content ?? '',
     isFromUser: message.role === 'user',
     sessionId: message.sessionId,

@@ -728,10 +728,13 @@ async function loadHistoryFromBackend() {
 async function saveMessageToBackend(
   content: string,
   isFromUser: boolean,
-  extra: Record<string, unknown> = {}
+  extra: Record<string, unknown> = {},
+  msgId?: string
 ) {
   try {
+    const numericId = msgId ? parseInt(msgId, 10) : null
     await chatAdapter.upsertMessage({
+      ...(numericId && !isNaN(numericId) ? { id: numericId } : {}),
       content,
       role: isFromUser ? 'user' : 'assistant',
       sessionId: sessionId.value,
@@ -1214,18 +1217,20 @@ async function addGrade(msg: ChatMsg) {
   const feedback = msg.feedback ?? extractFeedback(msg.content)
   const ctx = selectedTask.value
 
+  // Optimistic update — hide the button immediately so the user gets instant feedback
+  msg.calificationAdded = true
+
   try {
     await submissionAdapter.gradeSubmission(submissionId, grade, feedback)
 
-    msg.calificationAdded = true
-
-    // Persist the calificationAdded flag so it survives a reload
+    // Persist the calificationAdded flag; pass msg.id so the backend does an UPDATE
+    // instead of INSERT, avoiding the idempotency 409 conflict.
     saveMessageToBackend(msg.content, false, {
       has_calification: true,
       calification_value: String(grade),
       calification_added: true,
       submission_id: submissionId,
-    })
+    }, msg.id)
 
     // Track for graded overlay
     gradedTasks.value.unshift({
@@ -1254,19 +1259,28 @@ async function addGrade(msg: ChatMsg) {
     })
     scrollToBottom()
   } catch (e) {
+    // Revert the optimistic update and inform the user
+    msg.calificationAdded = false
     console.error('Error grading submission:', e)
+    messages.value.push({
+      id: crypto.randomUUID(),
+      content: '❌ No se pudo guardar la calificación. Por favor intenta de nuevo.',
+      role: 'assistant',
+      createdAt: new Date().toISOString(),
+    })
+    scrollToBottom()
   }
 }
 
 function rejectGrade(msg: ChatMsg) {
   msg.calificationAdded = true
-  // Persist so the rejection survives a reload
+  // Persist so the rejection survives a reload; pass msg.id for UPDATE instead of INSERT
   saveMessageToBackend(msg.content, false, {
     has_calification: true,
     calification_value: msg.nota != null ? String(msg.nota) : null,
     calification_added: true,
     submission_id: msg.submissionId ?? selectedTask.value?.submissionId ?? null,
-  })
+  }, msg.id)
 }
 
 function messageHasGrade(msg: ChatMsg): boolean {
