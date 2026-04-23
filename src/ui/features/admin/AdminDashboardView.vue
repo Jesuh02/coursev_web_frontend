@@ -1843,7 +1843,7 @@
             <div class="cert-info">
               <h5>{{ cert.courseName || `Curso ${cert.courseId}` }}</h5>
               <p class="cert-date">{{ cert.username ? `Estudiante: ${cert.username}` : `Usuario #${cert.userId}` }}</p>
-              <p class="cert-date">Progreso: {{ cert.completedTasks }}/{{ cert.totalTasks }} · {{ cert.progressPercentage }}%</p>
+              <p class="cert-date">Progreso: {{ cert.progressPercentage }}%</p>
               <p v-if="cert.averageGrade !== null" class="cert-date">Promedio: {{ cert.averageGrade }}</p>
               <p class="cert-date">{{ cert.certificateIssuedAt ? `Emitido: ${formatDate(cert.certificateIssuedAt)}` : 'Pendiente de emisión' }}</p>
               <a
@@ -2025,6 +2025,7 @@
       </template>
 
       <!-- Billing cycle picker modal -->
+      <Teleport to="body">
       <div v-if="datePickerTarget" class="inst-modal-overlay" @click.self="datePickerTarget = null">
         <div class="inst-modal">
           <h3>Ciclo de Pago</h3>
@@ -2179,8 +2180,10 @@
           </div>
         </div>
       </div>
+      </Teleport>
 
       <!-- Suspend reason modal -->
+      <Teleport to="body">
       <div v-if="suspendTarget" class="inst-modal-overlay" @click.self="suspendTarget = null">
         <div class="inst-modal">
           <h3>Suspender Institución</h3>
@@ -2195,8 +2198,10 @@
           </div>
         </div>
       </div>
+      </Teleport>
 
       <!-- Monthly price editor modal -->
+      <Teleport to="body">
       <div v-if="priceEditorTarget" class="inst-modal-overlay" @click.self="priceEditorTarget = null">
         <div class="inst-modal">
           <h3>Precio Mensual</h3>
@@ -2224,6 +2229,7 @@
           </div>
         </div>
       </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -6056,6 +6062,19 @@ watch(() => route.query, () => {
   transition: width 0.8s cubic-bezier(.4,0,.2,1);
 }
 
+/* ═══════ Donut legend: portrait layout ═══════ */
+@media (orientation: portrait) {
+  .a-donut-leg-item {
+    flex-wrap: wrap;
+  }
+  .a-donut-leg-bar-wrap {
+    flex-basis: 100%;
+    width: 100%;
+    height: 5px;
+    margin-left: 20px;
+  }
+}
+
 /* ═══════ Rank Lists ═══════ */
 .a-rank-list { display: flex; flex-direction: column; gap: 6px; }
 .a-rank-row {
@@ -9684,12 +9703,14 @@ watch(() => route.query, () => {
 .inst-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 9999;
   background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+  padding-top: max(env(safe-area-inset-top, 0px), 20px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
   overflow-y: auto;
 }
 
@@ -9698,12 +9719,14 @@ watch(() => route.query, () => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 24px;
+  padding-bottom: 16px;
   width: 100%;
   max-width: 380px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   overflow-y: auto;
   margin: auto 0;
 }
@@ -9752,6 +9775,12 @@ watch(() => route.query, () => {
   display: flex;
   gap: 10px;
   margin-top: 4px;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-secondary, #1C1C1E);
+  padding-top: 10px;
+  padding-bottom: 4px;
+  z-index: 1;
 }
 
 .inst-modal-btn {

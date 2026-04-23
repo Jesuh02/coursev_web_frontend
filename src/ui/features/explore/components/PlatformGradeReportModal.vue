@@ -1737,10 +1737,32 @@ function esc_html(s: string): string {
 }
 
 @media (max-width: 600px) {
-  .report-modal { max-height: 98vh; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; left: 0; right: 0; }
   .report-overlay { align-items: flex-end; padding: 0; }
+  .report-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* Deja ~56px libres arriba para que el header quede por debajo de la barra del navegador */
+    top: 56px;
+    height: auto;
+    max-height: none;
+    border-radius: 16px 16px 0 0;
+  }
   .cell-feedback { display: none; }
   .cell-date { display: none; }
+
+  /* Header compacto en móvil */
+  .report-header { padding: 14px 14px 12px; gap: 10px; }
+  .report-header-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .report-header-icon svg { width: 18px; height: 18px; }
+  .report-title { font-size: 15px; }
+  .report-subtitle { display: none; }
+
+  /* Tabla: encabezados más compactos */
+  .grade-table th { padding: 7px 6px; font-size: 9px; }
+  .grade-table td { padding: 6px 6px; }
+  .cell-student { min-width: 70px; }
 }
 
 /* ── INCAT Institution Header (in-app) ── */

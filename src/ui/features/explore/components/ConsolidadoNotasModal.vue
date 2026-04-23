@@ -766,10 +766,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 .th-student {
   text-align: left;
   min-width: 180px;
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  background: rgba(28, 28, 30, 0.98);
 }
 .th-subject { min-width: 80px; }
 .th-subject-text {
@@ -802,16 +798,6 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   font-weight: 500;
   color: #fff;
   white-space: nowrap;
-  position: sticky;
-  left: 0;
-  background: inherit;
-  z-index: 1;
-}
-.consolidado-row:nth-child(even) .cell-student {
-  background: rgba(28, 28, 30, 0.98);
-}
-.consolidado-row:hover .cell-student {
-  background: rgba(44, 44, 46, 0.98);
 }
 .cell-grade {
   text-align: center;
@@ -887,6 +873,18 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 .export-pdf   { background: rgba(255, 69, 58, 0.12); color: #FF6961; }
 .export-excel { background: rgba(52, 199, 89, 0.12); color: #34C759; }
 
+/* ── Fullscreen mode ── */
+.consolidado-overlay--fs {
+  padding: 0;
+}
+.consolidado-modal--fs {
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  height: 100vh;
+  border-radius: 0;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
 /* ── Transitions ── */
 .consolidado-fade-enter-active { transition: opacity 0.25s ease; }
 .consolidado-fade-leave-active { transition: opacity 0.2s ease; }
@@ -916,15 +914,27 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 }
 
 @media (max-width: 600px) {
+  .consolidado-overlay { align-items: flex-end; padding: 0; }
   .consolidado-modal {
-    max-height: 98vh;
-    border-radius: 16px 16px 0 0;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    /* Deja ~56px libres arriba para que el header quede por debajo de la barra del navegador */
+    top: 56px;
+    height: auto;
+    max-height: none;
+    border-radius: 16px 16px 0 0;
   }
-  .consolidado-overlay { align-items: flex-end; padding: 0; }
+
+  /* Header compacto en móvil */
+  .consolidado-header { padding: 14px 14px 12px; gap: 10px; }
+  .consolidado-header-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .consolidado-title { font-size: 15px; }
+  .consolidado-subtitle { display: none; }
+  .consolidado-action-btn,
+  .consolidado-close { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
+
   .th-subject-text { max-width: 60px; font-size: 8px; }
 }
 </style>
