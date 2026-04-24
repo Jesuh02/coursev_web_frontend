@@ -58,6 +58,18 @@
               </span>
               <span class="menu-label">LLM DB</span>
             </button>
+
+            <!-- ICFES: simulacro adaptativo, visible para todos -->
+            <button class="menu-item" @click="navigate('/icfes')">
+              <span class="menu-icon icon-green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  <path d="M9 7h7M9 11h7"/>
+                </svg>
+              </span>
+              <span class="menu-label">ICFES</span>
+            </button>
           </div>
         </transition>
       </div>
@@ -349,6 +361,12 @@ function goToMyProfile() {
 .icon-cyan {
   background: linear-gradient(145deg, #22d3ee, #0e7490);
   box-shadow: 0 4px 14px rgba(34, 211, 238, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.icon-green {
+  background: linear-gradient(145deg, #34d399, #047857);
+  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
