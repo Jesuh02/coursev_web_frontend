@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
   // Reinforcement
   { path: '/reinforcement/:courseId', name: 'reinforcementLearning', component: () => import('@/ui/features/reinforcement/ReinforcementLearningView.vue'), props: true, meta: { hideNav: true } },
   { path: '/evaluative-reinforcement', name: 'evaluativeReinforcement', component: () => import('@/ui/features/reinforcement/EvaluativeReinforcementView.vue'), meta: { hideNav: true } },
+
+  // ICFES
+  { path: '/icfes', name: 'icfesHome', component: () => import('@/ui/features/icfes/IcfesHomeView.vue') },
+  { path: '/icfes/exam/:area', name: 'icfesExam', component: () => import('@/ui/features/icfes/IcfesExamView.vue'), props: true, meta: { hideNav: true } },
+  { path: '/icfes/results', name: 'icfesResults', component: () => import('@/ui/features/icfes/IcfesResultsView.vue'), meta: { hideNav: true } },
+
   { path: '/course-selection', name: 'courseSelection', component: () => import('@/ui/features/reinforcement/CourseSelectionView.vue'), meta: { hideNav: true } },
   { path: '/subject-selection/:courseId', name: 'subjectSelection', component: () => import('@/ui/features/reinforcement/SubjectSelectionView.vue'), props: true, meta: { hideNav: true } },
 
