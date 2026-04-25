@@ -241,7 +241,17 @@ function computeMockResult(session: IcfesSession, answers: IcfesAnswer[]): Icfes
 
 // ────────────────── PUBLIC API ──────────────────
 function shouldFallback(err: unknown): boolean {
-  if (err instanceof HttpError) return err.statusCode === 404 || err.statusCode === 501
+  if (err instanceof HttpError) {
+    // 404/501: endpoint no disponible
+    // 409: backend sin preguntas suficientes (banco vacío) → usar mock
+    // 5xx: errores del servidor → degradar a mock para no bloquear al usuario
+    return (
+      err.statusCode === 404 ||
+      err.statusCode === 409 ||
+      err.statusCode === 501 ||
+      err.statusCode >= 500
+    )
+  }
   return true // red caída / timeout / CORS
 }
 
