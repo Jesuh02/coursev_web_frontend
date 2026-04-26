@@ -70,6 +70,23 @@ export interface IcfesSubtopicBreakdown {
   status: 'strength' | 'risk' | 'gap'
 }
 
+export interface IcfesReviewOption {
+  id: 'A' | 'B' | 'C' | 'D'
+  text: string
+  isCorrect: boolean
+}
+
+export interface IcfesQuestionReview {
+  questionId: string
+  stem: string
+  subtopic: string
+  selected: 'A' | 'B' | 'C' | 'D' | null
+  correct: 'A' | 'B' | 'C' | 'D' | null
+  isCorrect: boolean
+  explanation: string | null
+  options: IcfesReviewOption[]
+}
+
 export interface IcfesResult {
   id: string
   sessionId: string
@@ -83,6 +100,7 @@ export interface IcfesResult {
   durationSeconds: number
   breakdown: IcfesSubtopicBreakdown[]
   recommendations: string[]
+  questions?: IcfesQuestionReview[]
 }
 
 // ────────────────── ÁREAS (metadata UI fija) ──────────────────
@@ -206,14 +224,26 @@ function computeMockResult(session: IcfesSession, answers: IcfesAnswer[]): Icfes
   const byId = new Map(answers.map(a => [a.questionId, a]))
   let correct = 0, incorrect = 0, unanswered = 0
   const subMap = new Map<string, { total: number; correct: number; time: number }>()
+  const review: IcfesQuestionReview[] = []
   for (const q of session.questions) {
     const a = byId.get(q.id)
     const row = subMap.get(q.subtopic) ?? { total: 0, correct: 0, time: 0 }
     row.total++; row.time += a?.timeMs ?? 0
+    const isCorrect = !!a && a.selected != null && a.selected === q.correct
     if (!a || a.selected == null) unanswered++
-    else if (a.selected === q.correct) { correct++; row.correct++ }
+    else if (isCorrect) { correct++; row.correct++ }
     else incorrect++
     subMap.set(q.subtopic, row)
+    review.push({
+      questionId: q.id,
+      stem: q.stem,
+      subtopic: q.subtopic,
+      selected: a?.selected ?? null,
+      correct: q.correct ?? null,
+      isCorrect,
+      explanation: q.explanation ?? null,
+      options: q.options.map(o => ({ id: o.id, text: o.text, isCorrect: o.id === q.correct })),
+    })
   }
   const total = session.questions.length
   const grade = total ? +(10 * (correct / total)).toFixed(1) : 0
@@ -236,6 +266,7 @@ function computeMockResult(session: IcfesSession, answers: IcfesAnswer[]): Icfes
     createdAt: new Date().toISOString(),
     total, correct, incorrect, unanswered, grade, durationSeconds,
     breakdown, recommendations,
+    questions: review,
   }
 }
 

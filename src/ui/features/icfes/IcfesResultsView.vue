@@ -100,6 +100,54 @@
           </ul>
         </section>
 
+        <!-- Revisión de respuestas -->
+        <section v-if="result.questions && result.questions.length" class="block">
+          <h2 class="block-title">📝 Revisión de respuestas</h2>
+          <div class="review-list">
+            <article
+              v-for="(q, i) in result.questions"
+              :key="q.questionId"
+              class="rev-item"
+              :class="{
+                'rev-ok': q.isCorrect,
+                'rev-err': !q.isCorrect && q.selected,
+                'rev-skip': !q.selected,
+              }"
+            >
+              <header class="rev-head">
+                <span class="rev-num">#{{ i + 1 }}</span>
+                <span class="rev-status">
+                  <template v-if="q.isCorrect">✅ Correcta</template>
+                  <template v-else-if="q.selected">❌ Incorrecta</template>
+                  <template v-else>⭕ En blanco</template>
+                </span>
+                <span class="rev-sub">{{ q.subtopic }}</span>
+              </header>
+              <p class="rev-stem">{{ q.stem }}</p>
+              <ul class="rev-opts">
+                <li
+                  v-for="opt in q.options"
+                  :key="opt.id"
+                  class="rev-opt"
+                  :class="{
+                    'opt-correct': opt.isCorrect,
+                    'opt-selected-wrong': q.selected === opt.id && !opt.isCorrect,
+                  }"
+                >
+                  <span class="rev-opt-bullet">{{ opt.id }}</span>
+                  <span class="rev-opt-text">{{ opt.text }}</span>
+                  <span v-if="opt.isCorrect" class="rev-tag tag-ok">Respuesta correcta</span>
+                  <span v-else-if="q.selected === opt.id" class="rev-tag tag-err">Tu respuesta</span>
+                </li>
+              </ul>
+              <div v-if="q.explanation" class="rev-expl">
+                <span class="rev-expl-label">💡 Explicación</span>
+                <p>{{ q.explanation }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <!-- Actions -->
         <div class="actions">
           <button class="btn-secondary" @click="goHome">Volver al inicio</button>
@@ -376,6 +424,97 @@ const confetti = Array.from({ length: 50 }, (_, i) => {
   position: absolute;
   left: 12px; top: 10px;
   color: #C084FC;
+}
+
+/* Review */
+.review-list { display: flex; flex-direction: column; gap: 14px; }
+.rev-item {
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.07);
+  border-left: 4px solid rgba(255,255,255,.18);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+}
+.rev-item.rev-ok   { border-left-color: #30D158; }
+.rev-item.rev-err  { border-left-color: #FF453A; }
+.rev-item.rev-skip { border-left-color: #FFD60A; }
+.rev-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.rev-num    { font-size: 12px; font-weight: 900; color: #9CA3AF; }
+.rev-status { font-size: 12px; font-weight: 800; }
+.rev-ok    .rev-status { color: #30D158; }
+.rev-err   .rev-status { color: #FF453A; }
+.rev-skip  .rev-status { color: #FFD60A; }
+.rev-sub {
+  margin-left: auto;
+  font-size: 11px; font-weight: 700; color: #C084FC;
+  background: rgba(192,132,252,.1);
+  border: 1px solid rgba(192,132,252,.25);
+  padding: 3px 8px; border-radius: 999px;
+}
+.rev-stem {
+  margin: 0 0 10px;
+  font-size: 13.5px; line-height: 1.5; color: #E5E7EB;
+}
+.rev-opts {
+  list-style: none; margin: 0 0 10px; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.rev-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  font-size: 12.5px; color: #D1D5DB;
+}
+.rev-opt.opt-correct {
+  background: rgba(48,209,88,.1);
+  border-color: rgba(48,209,88,.4);
+  color: #fff;
+}
+.rev-opt.opt-selected-wrong {
+  background: rgba(255,69,58,.08);
+  border-color: rgba(255,69,58,.4);
+}
+.rev-opt-bullet {
+  width: 24px; height: 24px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  font-weight: 900; font-size: 12px;
+}
+.opt-correct .rev-opt-bullet {
+  background: linear-gradient(135deg,#30D158,#10B981); color: #fff;
+}
+.opt-selected-wrong .rev-opt-bullet {
+  background: rgba(255,69,58,.25); color: #FF6B60;
+}
+.rev-opt-text { flex: 1; line-height: 1.4; }
+.rev-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: .3px;
+  padding: 3px 8px; border-radius: 999px;
+  white-space: nowrap;
+}
+.tag-ok  { background: rgba(48,209,88,.18);  color: #30D158; }
+.tag-err { background: rgba(255,69,58,.18);  color: #FF6B60; }
+.rev-expl {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(139,92,246,.1), rgba(0,212,255,.06));
+  border: 1px solid rgba(139,92,246,.25);
+  border-radius: 10px;
+}
+.rev-expl-label {
+  display: block;
+  font-size: 11px; font-weight: 800; letter-spacing: .4px;
+  color: #C084FC; margin-bottom: 4px;
+}
+.rev-expl p {
+  margin: 0;
+  font-size: 12.5px; line-height: 1.55; color: #E5E7EB;
 }
 
 /* Actions */
