@@ -80,7 +80,13 @@
                 v-for="opt in current.options"
                 :key="opt.id"
                 class="option"
-                :class="{ selected: selected === opt.id }"
+                :class="{
+                  selected: selected === opt.id,
+                  'is-correct': revealed && current.correct === opt.id,
+                  'is-wrong': revealed && selected === opt.id && current.correct !== opt.id,
+                  'is-locked': revealed && selected !== opt.id && current.correct !== opt.id,
+                }"
+                :disabled="revealed"
                 @click="selectOption(opt.id)"
               >
                 <span class="opt-bullet">{{ opt.id }}</span>
@@ -96,6 +102,29 @@
                 </span>
               </button>
             </div>
+
+            <!-- Feedback inmediato -->
+            <Transition name="fb">
+              <div
+                v-if="revealed"
+                class="feedback"
+                :class="isAnswerCorrect ? 'fb-ok' : 'fb-err'"
+              >
+                <div class="fb-head">
+                  <span class="fb-ic">{{ isAnswerCorrect ? '✅' : '❌' }}</span>
+                  <span class="fb-title">
+                    {{ isAnswerCorrect ? '¡Respuesta correcta!' : 'Respuesta incorrecta' }}
+                  </span>
+                  <span v-if="!isAnswerCorrect && current.correct" class="fb-pill">
+                    Correcta: <b>{{ current.correct }}</b>
+                  </span>
+                </div>
+                <p v-if="current.explanation" class="fb-text">{{ current.explanation }}</p>
+                <p v-else class="fb-text fb-muted">
+                  No hay explicación disponible para esta pregunta.
+                </p>
+              </div>
+            </Transition>
           </div>
         </Transition>
       </main>
@@ -178,6 +207,7 @@ const area = computed(() => findArea(areaCode))
 const phase = ref<'loading' | 'running' | 'error'>('loading')
 const session = ref<IcfesSession | null>(null)
 const answers = ref<IcfesAnswer[]>([])
+const revealedFlags = ref<boolean[]>([])
 const currentIndex = ref(0)
 const slideDir = ref<'slide-l' | 'slide-r'>('slide-l')
 const showExit = ref(false)
@@ -185,6 +215,10 @@ const submitting = ref(false)
 
 const current = computed<IcfesQuestion>(() => session.value!.questions[currentIndex.value])
 const selected = computed(() => answers.value[currentIndex.value]?.selected ?? null)
+const revealed = computed(() => !!revealedFlags.value[currentIndex.value])
+const isAnswerCorrect = computed(() =>
+  !!selected.value && !!current.value?.correct && selected.value === current.value.correct,
+)
 const progressPct = computed(() => {
   if (!session.value) return 0
   return ((currentIndex.value + (selected.value ? 1 : 0)) / session.value.questions.length) * 100
@@ -217,12 +251,15 @@ function getOptImgAlt(q: IcfesQuestion, id: 'A'|'B'|'C'|'D'): string {
 }
 
 function selectOption(id: 'A'|'B'|'C'|'D') {
+  // Una vez revelada, no permitir cambiar
+  if (revealedFlags.value[currentIndex.value]) return
   const now = Date.now()
   const row = answers.value[currentIndex.value] ?? { questionId: current.value.id, selected: null, timeMs: 0 }
   row.selected = id
   row.timeMs += now - qStart
   qStart = now
   answers.value[currentIndex.value] = row
+  revealedFlags.value[currentIndex.value] = true
 }
 
 function next() {
@@ -252,6 +289,7 @@ async function loadSession() {
     const s = await icfesAdapter.startSession(areaCode)
     session.value = s
     answers.value = s.questions.map(q => ({ questionId: q.id, selected: null, timeMs: 0 }))
+    revealedFlags.value = s.questions.map(() => false)
     secondsLeft.value = s.durationSeconds
     phase.value = 'running'
     qStart = Date.now()
@@ -481,6 +519,35 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   color: #fff;
   box-shadow: 0 0 0 3px rgba(139,92,246,.12);
 }
+.option:disabled { cursor: default; }
+.option.is-correct {
+  background: linear-gradient(135deg, rgba(48,209,88,.22), rgba(16,185,129,.12));
+  border-color: #30D158;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(48,209,88,.18);
+}
+.option.is-correct .opt-bullet {
+  background: linear-gradient(135deg,#30D158,#10B981);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(48,209,88,.5);
+}
+.option.is-correct .opt-check { opacity: 1; transform: scale(1); }
+.option.is-wrong {
+  background: linear-gradient(135deg, rgba(255,69,58,.22), rgba(220,38,38,.12));
+  border-color: #FF453A;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(255,69,58,.18);
+}
+.option.is-wrong .opt-bullet {
+  background: linear-gradient(135deg,#FF453A,#DC2626);
+  color: #fff;
+}
+.option.is-wrong .opt-check {
+  opacity: 1;
+  transform: scale(1);
+  background: linear-gradient(135deg,#FF453A,#DC2626);
+}
+.option.is-locked { opacity: .55; }
 .opt-bullet {
   width: 32px; height: 32px; flex-shrink: 0;
   display: grid; place-items: center;
@@ -507,6 +574,52 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   transition: all .25s cubic-bezier(.34,1.56,.64,1);
 }
 .option.selected .opt-check { opacity: 1; transform: scale(1); }
+
+/* Feedback inmediato */
+.feedback {
+  margin-top: 14px;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1.5px solid;
+}
+.feedback.fb-ok {
+  background: linear-gradient(135deg, rgba(48,209,88,.14), rgba(16,185,129,.06));
+  border-color: rgba(48,209,88,.4);
+}
+.feedback.fb-err {
+  background: linear-gradient(135deg, rgba(255,69,58,.14), rgba(220,38,38,.06));
+  border-color: rgba(255,69,58,.4);
+}
+.fb-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.fb-ic { font-size: 18px; }
+.fb-title {
+  font-size: 14px; font-weight: 800;
+}
+.fb-ok  .fb-title { color: #30D158; }
+.fb-err .fb-title { color: #FF6B60; }
+.fb-pill {
+  margin-left: auto;
+  font-size: 11px; font-weight: 700; letter-spacing: .3px;
+  color: #30D158;
+  background: rgba(48,209,88,.14);
+  border: 1px solid rgba(48,209,88,.3);
+  padding: 4px 10px; border-radius: 999px;
+}
+.fb-pill b { font-weight: 900; margin-left: 2px; }
+.fb-text {
+  margin: 0;
+  font-size: 13px; line-height: 1.55; color: #E5E7EB;
+}
+.fb-text.fb-muted { color: #9CA3AF; font-style: italic; }
+
+.fb-enter-from { opacity: 0; transform: translateY(-6px); }
+.fb-leave-to   { opacity: 0; transform: translateY(-6px); }
+.fb-enter-active, .fb-leave-active {
+  transition: opacity .22s ease, transform .22s ease;
+}
 
 /* Footer */
 .exam-foot {

@@ -141,6 +141,8 @@ interface ServerSession {
     stem: string
     options: { id: 'A' | 'B' | 'C' | 'D'; text: string }[]
     images?: IcfesQuestionImage[]
+    correct?: 'A' | 'B' | 'C' | 'D' | null
+    explanation?: string | null
   }>
 }
 
@@ -155,6 +157,8 @@ function normalizeQuestion(q: ServerSession['questions'][number], area: IcfesAre
     stem: q.stem,
     options: q.options,
     images: q.images ?? [],
+    correct: q.correct ?? undefined,
+    explanation: q.explanation ?? undefined,
   }
 }
 
