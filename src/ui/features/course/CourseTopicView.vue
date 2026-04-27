@@ -157,6 +157,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Topic, ContentItem, Task } from '@/domain/models'
 import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect, buildProxyFileUrl } from '@/infrastructure/api'
+import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -284,6 +285,21 @@ async function handleSave() {
       const created = await topicAdapter.createTopic(payload as Partial<Topic>)
       if (pendingFiles.value.length && created?.id) {
         await uploadPendingFiles(created.id)
+      }
+      // Auto-iniciar un periodo si la materia no tiene uno activo todavía.
+      // Se ejecuta el primer "Nuevo Tema" creado tras cerrar el periodo (o al inicio).
+      if (subjectId.value && subjectId.value > 0) {
+        try {
+          const periods = await periodAdapter.listBySubject(subjectId.value)
+          const hasActive = (periods || []).some(p => p.snapshot === null)
+          if (!hasActive) {
+            await periodAdapter.startPeriod({
+              courseId: Number(courseId.value),
+              subjectId: Number(subjectId.value),
+              startsAt: new Date().toISOString(),
+            })
+          }
+        } catch { /* non-critical: la creación del tema no debe fallar por esto */ }
       }
     } else {
       const id = topicId.value!
