@@ -387,6 +387,23 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Modal confirmar eliminación de tema -->
+    <Teleport to="body">
+      <div v-if="topicToDelete !== null" class="confirm-modal-overlay" @click.self="topicToDelete = null">
+        <div class="confirm-modal">
+          <div class="confirm-modal-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </div>
+          <h3 class="confirm-modal-title">¿Deseas eliminar este tema?</h3>
+          <p class="confirm-modal-text">Esta acción no se puede deshacer y eliminará también su contenido y tareas asociadas.</p>
+          <div class="confirm-modal-actions">
+            <button class="confirm-modal-btn cancel" @click="topicToDelete = null">Cancelar</button>
+            <button class="confirm-modal-btn danger" @click="confirmDeleteTopic">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -448,6 +465,7 @@ const collaboratorAccess = ref(false)
 const isSubjectCreator = ref(false)
 const showGradePanel = ref(false)
 const taskToDelete = ref<{ taskId: number; topicId: number } | null>(null)
+const topicToDelete = ref<number | null>(null)
 const isCourseCreator = computed(() => {
   const currentUserId = Number(authStore.user?.id ?? 0)
   const creatorId = Number(course.value?.creatorUserId ?? course.value?.creator_user_id ?? 0)
@@ -841,7 +859,14 @@ function toggleTaskDescription(taskId: number) {
   else expandedTaskDescriptions.add(taskId)
 }
 
-async function deleteTopic(topicId: number) {
+function deleteTopic(topicId: number) {
+  topicToDelete.value = topicId
+}
+
+async function confirmDeleteTopic() {
+  if (topicToDelete.value === null) return
+  const topicId = topicToDelete.value
+  topicToDelete.value = null
   try {
     await topicAdapter.deleteTopic(topicId)
     topics.value = topics.value.filter(t => t.id !== topicId)
