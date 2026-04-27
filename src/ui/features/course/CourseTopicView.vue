@@ -158,6 +158,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Topic, ContentItem, Task } from '@/domain/models'
 import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect, buildProxyFileUrl } from '@/infrastructure/api'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
+import { gradeSheetCache } from '@/infrastructure/api/gradeSheetCache'
 
 const route = useRoute()
 const router = useRouter()
@@ -298,6 +299,8 @@ async function handleSave() {
               subjectId: Number(subjectId.value),
               startsAt: new Date().toISOString(),
             })
+            // Invalidar cache de la planilla para que GradePanel refleje el periodo activo
+            gradeSheetCache.invalidate(Number(subjectId.value))
           }
         } catch { /* non-critical: la creación del tema no debe fallar por esto */ }
       }

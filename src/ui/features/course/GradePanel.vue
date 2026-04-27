@@ -707,6 +707,14 @@ async function loadPeriods() {
   periodsLoading.value = true
   try {
     periods.value = await periodAdapter.listBySubject(props.subjectId)
+    // Si hay un periodo activo (snapshot === null), salir del estado "between periods"
+    const hasActive = periods.value.some(p => p.snapshot === null)
+    if (hasActive) {
+      betweenPeriods.value = false
+      const active = periods.value.find(p => p.snapshot === null)
+      activePeriodStartedAt.value = active?.startsAt ?? null
+    }
+    hasClosedPeriods.value = periods.value.some(p => p.snapshot !== null)
   } catch { periods.value = [] }
   periodsLoading.value = false
 }
