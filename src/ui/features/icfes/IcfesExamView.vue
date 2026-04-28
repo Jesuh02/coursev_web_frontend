@@ -22,7 +22,7 @@
       <span class="err-ic">⚠️</span>
       <h2>No se pudo cargar el simulacro</h2>
       <button class="btn-ghost" @click="loadSession">Reintentar</button>
-      <button class="btn-ghost" @click="$router.back()">Volver</button>
+      <button class="btn-ghost" @click="goHome">Volver</button>
     </div>
 
     <!-- ░░ Running ░░ -->
@@ -328,9 +328,13 @@ async function finish() {
 }
 
 function onAttemptExit() { showExit.value = true }
-function exitNow() {
+function goHome() {
   if (timerId != null) window.clearInterval(timerId)
-  router.back()
+  router.replace({ name: 'icfesHome' })
+}
+function exitNow() {
+  showExit.value = false
+  goHome()
 }
 
 onMounted(loadSession)
