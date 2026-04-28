@@ -140,6 +140,9 @@ async function sendMessage() {
       ...(submissionId.value != null && { submissionId: submissionId.value }),
       ...(courseId.value != null && { courseId: courseId.value }),
       sessionId: sessionId.value,
+      // Acorta el timeout del modelo primario (Qwen) a 10s y delega en DeepSeek
+      // como fallback rapido si Qwen demora demasiado en responder.
+      fastMode: true,
     })
 
     const assistantMsg: LocalMessage = {
