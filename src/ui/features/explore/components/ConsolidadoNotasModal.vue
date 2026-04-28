@@ -151,7 +151,7 @@ import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, ensureInstitutionLogoDataUrl } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -385,7 +385,8 @@ async function fetchConsolidado() {
 }
 
 // ── Export PDF (print-based) ──
-function exportPDF() {
+async function exportPDF() {
+  await ensureInstitutionLogoDataUrl()
   const groups = courseGroups.value
   let tables = ''
   for (const group of groups) {

@@ -381,7 +381,7 @@ import type { GradeSheet, GradeSheetStudent } from '@/infrastructure/api/gradeAd
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { courseAdapter, subjectAdapter } from '@/infrastructure/api'
-import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, getInstitutionDisplayName, getInstitutionLogoUrl, isIncatInstitution, institutionHeaderCSS, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines, ensureInstitutionLogoDataUrl } from '@/utils/institutionHeader'
 
 interface BulletinSubject {
   id: number
@@ -727,6 +727,10 @@ async function generatePlatformBulletin() {
 }
 
 function exportPlatformBulletinPDF() {
+  ensureInstitutionLogoDataUrl().then(() => doExportPlatformBulletinPDF())
+}
+
+function doExportPlatformBulletinPDF() {
   const pages: string[] = []
   for (const entry of platformBulletinData.value) {
     const st = entry.student
@@ -828,6 +832,10 @@ function exportPlatformBulletinWord() {
 }
 
 function exportAllBulletinsPDF() {
+  ensureInstitutionLogoDataUrl().then(() => doExportAllBulletinsPDF())
+}
+
+function doExportAllBulletinsPDF() {
   const pages: string[] = []
   for (const entry of allBulletinData.value) {
     const st = entry.student
@@ -890,6 +898,10 @@ ${institutionSignatureAndFooterCSS()}
 }
 
 function exportBulletinPDF() {
+  ensureInstitutionLogoDataUrl().then(() => doExportBulletinPDF())
+}
+
+function doExportBulletinPDF() {
   const html = buildBulletinPrintHTML()
   const win = window.open('', '_blank')
   if (!win) return

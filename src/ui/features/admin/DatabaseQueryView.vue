@@ -385,6 +385,9 @@ async function sendQuery() {
       username: tokenStorage.username,
       userRoles: userRoleIds,
       forceMCPTools: true,
+      // Acorta el timeout del modelo primario (Qwen) a 10s y delega en DeepSeek
+      // como fallback rapido si Qwen demora demasiado en responder.
+      fastMode: true,
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'

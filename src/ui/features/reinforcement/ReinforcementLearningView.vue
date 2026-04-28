@@ -1686,22 +1686,72 @@ const ORDERING_DEPENDENCY_RULES: [RegExp, RegExp][] = [
 ]
 
 /**
- * Valida un ordering por dependencias lógicas en lugar de comparación rígida.
- * Acepta CUALQUIER orden que respete todas las dependencias.
+ * Valida un ordering por dependencias lógicas detectadas en los propios items.
+ *
+ * Reglas de aceptación (todas deben cumplirse):
+ *   1. Debe existir AL MENOS UN par (prerequisito, dependiente) cuyos patrones
+ *      coincidan con dos items DISTINTOS de la pregunta. Si no hay dependencias
+ *      detectables, NO se acepta orden alternativo: solo vale `correctOrder`.
+ *   2. Para cada par detectado, el item dependiente debe ir DESPUÉS del
+ *      prerequisito en el orden del usuario.
+ *   3. Las posiciones relativas de los items dependientes/prerequisito en el
+ *      orden del usuario deben coincidir con las del `correctOrder` para los
+ *      items NO involucrados en ninguna dependencia (no se permite mover
+ *      libremente pasos no relacionados).
  */
-function isOrderingCorrectByDependencies(userIndices: number[], items: string[]): boolean {
+function isOrderingCorrectByDependencies(
+  userIndices: number[],
+  items: string[],
+  correctOrder: number[],
+): boolean {
   if (!items.length || userIndices.length !== items.length) return false
+  if (correctOrder.length !== items.length) return false
   const userTexts = userIndices.map(i => items[i] ?? '')
   if (userTexts.some(t => !t)) return false
 
-  for (let i = 0; i < userTexts.length; i++) {
-    for (let j = i + 1; j < userTexts.length; j++) {
-      for (const [prereq, dependent] of ORDERING_DEPENDENCY_RULES) {
-        // userTexts[i] es dependiente y userTexts[j] es prerequisito → VIOLACIÓN
-        if (dependent.test(userTexts[i]) && prereq.test(userTexts[j])) return false
+  // Paso 1: detectar pares de dependencia que realmente existen entre items distintos.
+  type DepPair = { prereqIdx: number; dependentIdx: number }
+  const detectedPairs: DepPair[] = []
+  const involvedIdx = new Set<number>()
+
+  for (const [prereqPattern, dependentPattern] of ORDERING_DEPENDENCY_RULES) {
+    for (let a = 0; a < items.length; a++) {
+      for (let b = 0; b < items.length; b++) {
+        if (a === b) continue
+        if (prereqPattern.test(items[a] ?? '') && dependentPattern.test(items[b] ?? '')) {
+          // Evitar duplicados exactos
+          if (!detectedPairs.some(p => p.prereqIdx === a && p.dependentIdx === b)) {
+            detectedPairs.push({ prereqIdx: a, dependentIdx: b })
+          }
+          involvedIdx.add(a)
+          involvedIdx.add(b)
+        }
       }
     }
   }
+
+  if (detectedPairs.length === 0) return false
+
+  // Paso 2: cada dependencia detectada debe respetarse en el orden del usuario.
+  const posInUser = new Map<number, number>()
+  userIndices.forEach((origIdx, pos) => posInUser.set(origIdx, pos))
+  for (const { prereqIdx, dependentIdx } of detectedPairs) {
+    const pPos = posInUser.get(prereqIdx)
+    const dPos = posInUser.get(dependentIdx)
+    if (pPos === undefined || dPos === undefined) return false
+    if (pPos >= dPos) return false
+  }
+
+  // Paso 3: los pasos NO involucrados en ninguna dependencia deben mantener
+  // exactamente la posición que tienen en `correctOrder`. Esto evita aceptar
+  // permutaciones arbitrarias que solo coincidan parcialmente con dependencias.
+  for (let pos = 0; pos < correctOrder.length; pos++) {
+    const origIdx = correctOrder[pos]
+    if (!involvedIdx.has(origIdx)) {
+      if (userIndices[pos] !== origIdx) return false
+    }
+  }
+
   return true
 }
 
@@ -1719,13 +1769,17 @@ function checkOrdering() {
   if (answered.value) return
   const q = currentQ.value
   const items = q.items ?? q.options ?? []
+  const correctSeq = q.correctOrder ?? []
 
   // Comparación estricta primero
-  let correct = JSON.stringify(orderingUserSeq.value) === JSON.stringify(q.correctOrder ?? [])
+  let correct = JSON.stringify(orderingUserSeq.value) === JSON.stringify(correctSeq)
 
-  // Si falla la estricta, validar por dependencias lógicas
-  if (!correct && items.length >= 2) {
-    correct = isOrderingCorrectByDependencies(orderingUserSeq.value, items)
+  // Si falla la estricta, validar por dependencias lógicas detectadas en los items.
+  // Solo se acepta un orden alternativo si los items contienen dependencias
+  // explícitas y el usuario las respetó (los pasos sin dependencia deben
+  // permanecer en su posición original de `correctOrder`).
+  if (!correct && items.length >= 2 && correctSeq.length === items.length) {
+    correct = isOrderingCorrectByDependencies(orderingUserSeq.value, items, correctSeq)
   }
 
   fillCorrect.value = correct

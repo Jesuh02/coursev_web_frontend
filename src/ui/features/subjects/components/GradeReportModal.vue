@@ -224,7 +224,7 @@ import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
 import { useAuthStore } from '@/stores/authStore'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines, ensureInstitutionLogoDataUrl } from '@/utils/institutionHeader'
 
 const props = defineProps<{
   modelValue: boolean
@@ -640,7 +640,8 @@ async function fetchReport() {
 }
 
 // ── PDF export (print-based) ──
-function exportPDF() {
+async function exportPDF() {
+  await ensureInstitutionLogoDataUrl()
   const html = buildPrintableHTML()
   const win = window.open('', '_blank')
   if (!win) return
