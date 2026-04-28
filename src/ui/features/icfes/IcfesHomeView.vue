@@ -215,7 +215,7 @@ const particles = Array.from({ length: 16 }, (_, i) => ({
 .icfes-body {
   position: relative;
   z-index: 1;
-  padding: 12px 16px calc(110px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 16px 90px;
   max-width: 560px;
   margin: 0 auto;
   display: flex;

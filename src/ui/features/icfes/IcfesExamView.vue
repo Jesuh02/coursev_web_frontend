@@ -131,11 +131,6 @@
 
       <!-- Footer nav -->
       <footer class="exam-foot">
-        <button class="nav-btn" :disabled="currentIndex === 0" @click="prev">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-          Anterior
-        </button>
-
         <div class="dots">
           <span
             v-for="(q, i) in session.questions"
@@ -148,24 +143,31 @@
           />
         </div>
 
-        <button
-          v-if="currentIndex < session.questions.length - 1"
-          class="nav-btn primary"
-          :disabled="!selected"
-          @click="next"
-        >
-          Siguiente
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-        </button>
-        <button
-          v-else
-          class="nav-btn finish"
-          :disabled="submitting"
-          @click="finish"
-        >
-          <span v-if="!submitting">Finalizar</span>
-          <span v-else class="dot-loader"><span/><span/><span/></span>
-        </button>
+        <div class="foot-actions">
+          <button class="nav-btn" :disabled="currentIndex === 0" @click="prev">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+            Anterior
+          </button>
+
+          <button
+            v-if="currentIndex < session.questions.length - 1"
+            class="nav-btn primary"
+            :disabled="!selected"
+            @click="next"
+          >
+            Siguiente
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+          <button
+            v-else
+            class="nav-btn finish"
+            :disabled="submitting"
+            @click="finish"
+          >
+            <span v-if="!submitting">Finalizar</span>
+            <span v-else class="dot-loader"><span/><span/><span/></span>
+          </button>
+        </div>
       </footer>
     </template>
 
@@ -457,7 +459,7 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
 /* Body */
 .exam-body {
   flex: 1;
-  padding: 18px 16px 24px;
+  padding: 18px 16px 32px;
   max-width: 620px;
   width: 100%;
   margin: 0 auto;
@@ -628,12 +630,18 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
 /* Footer */
 .exam-foot {
   position: sticky; bottom: 0; z-index: 10;
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(10,10,15,.8);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(10,10,15,.85);
   backdrop-filter: blur(14px);
   border-top: 1px solid rgba(255,255,255,.06);
 }
+.foot-actions {
+  display: flex; align-items: center; gap: 10px;
+}
+.foot-actions .nav-btn:first-child { margin-right: auto; }
+.foot-actions .nav-btn.primary,
+.foot-actions .nav-btn.finish { margin-left: auto; }
 .nav-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 11px 16px; font-size: 13px; font-weight: 800;
@@ -658,9 +666,18 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   min-width: 118px; justify-content: center;
 }
 
-.dots { flex: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.dots {
+  display: flex; flex-wrap: nowrap; justify-content: center;
+  gap: 5px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+.dots::-webkit-scrollbar { display: none; }
 .dot  {
-  width: 6px; height: 6px; border-radius: 50%;
+  flex: 0 0 auto;
+  width: 7px; height: 7px; border-radius: 50%;
   background: rgba(255,255,255,.14);
   transition: all .2s;
 }
@@ -723,6 +740,20 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
 }
 
 /* Responsive */
+@media (max-width: 480px) {
+  .exam-head { padding: 8px 10px; gap: 8px; }
+  .icon-btn { width: 34px; height: 34px; }
+  .timer { padding: 6px 10px; font-size: 12px; }
+  .exam-body { padding: 14px 12px 24px; }
+  .q-card { padding: 14px 12px 12px; border-radius: 16px; }
+  .q-stem { font-size: 15px; }
+  .option { padding: 12px 12px; }
+  .opt-text { font-size: 13.5px; }
+  .opt-bullet { width: 28px; height: 28px; font-size: 13px; }
+  .nav-btn { padding: 10px 12px; font-size: 12.5px; }
+  .nav-btn.finish { min-width: 100px; }
+  .dot { width: 6px; height: 6px; }
+}
 @media (min-width: 680px) {
   .q-stem { font-size: 17px; }
   .opt-text { font-size: 15px; }
