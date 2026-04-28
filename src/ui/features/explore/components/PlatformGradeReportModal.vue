@@ -319,7 +319,7 @@ import { gradeAdapter } from '@/infrastructure/api/gradeAdapter'
 import type { GradeSheet } from '@/infrastructure/api/gradeAdapter'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import type { GradePeriod } from '@/infrastructure/api/periodAdapter'
-import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, getInstitutionLogoUrl, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines } from '@/utils/institutionHeader'
+import { buildInstitutionHeaderHTML, institutionHeaderCSS, isIncatInstitution, getInstitutionLogoUrl, buildInstitutionSignatureAndFooterHTML, institutionSignatureAndFooterCSS, getInstitutionFooterLines, ensureInstitutionLogoDataUrl } from '@/utils/institutionHeader'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -708,7 +708,8 @@ function computeGradeSummaries(sheet: GradeSheet): GradeSummaryRow[] {
 }
 
 // ── PDF export (print) ──────────────────────────────────────────────────
-function exportPDF() {
+async function exportPDF() {
+  await ensureInstitutionLogoDataUrl()
   const win = window.open('', '_blank')
   if (!win) return
   win.document.write(buildPrintableHTML('pdf'))
@@ -951,7 +952,8 @@ async function exportExcel() {
 }
 
 // ── Word export (.doc as HTML) ──────────────────────────────────────────
-function exportWord() {
+async function exportWord() {
+  await ensureInstitutionLogoDataUrl()
   const html = buildPrintableHTML('word')
   downloadBlob(html, `reporte_plataforma_${Date.now()}.doc`, 'application/msword')
 }

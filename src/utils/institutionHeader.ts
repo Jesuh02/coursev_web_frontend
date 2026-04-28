@@ -25,14 +25,79 @@ export function isIncatInstitution(): boolean {
   return name.includes('incat') || name.includes('politecnico institucional del caribe') || name.includes('politécnico institucional del caribe')
 }
 
+// ── Logo cache: convert remote logo to base64 data URL so it appears reliably
+// inside printable windows (window.open + print) where the remote image often
+// does not finish loading before window.print() is invoked.
+let cachedLogoDataUrl: string | null = null
+let cachedLogoPromise: Promise<string | null> | null = null
+
+async function fetchLogoAsDataUrl(url: string): Promise<string | null> {
+  // Try fetch first (works if CORS allows it — R2 public buckets typically do)
+  try {
+    const res = await fetch(url, { mode: 'cors', cache: 'force-cache' })
+    if (res.ok) {
+      const blob = await res.blob()
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader()
+        fr.onload = () => resolve(fr.result as string)
+        fr.onerror = () => reject(fr.error)
+        fr.readAsDataURL(blob)
+      })
+    }
+  } catch { /* fall through to <img>+canvas */ }
+
+  // Fallback: load via Image + canvas (requires CORS header on the server)
+  try {
+    return await new Promise<string | null>((resolve) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { resolve(null); return }
+          ctx.drawImage(img, 0, 0)
+          resolve(canvas.toDataURL('image/jpeg', 0.92))
+        } catch { resolve(null) }
+      }
+      img.onerror = () => resolve(null)
+      img.src = url
+    })
+  } catch { return null }
+}
+
+/**
+ * Preload the institution logo and cache it as a base64 data URL so subsequent
+ * calls to buildInstitutionHeaderHTML() embed the image inline. Should be
+ * awaited before generating any printable HTML for INCAT users.
+ */
+export async function ensureInstitutionLogoDataUrl(): Promise<string | null> {
+  if (!isIncatInstitution()) return null
+  if (cachedLogoDataUrl) return cachedLogoDataUrl
+  if (cachedLogoPromise) return cachedLogoPromise
+  cachedLogoPromise = fetchLogoAsDataUrl(INCAT_LOGO_URL).then((dataUrl) => {
+    cachedLogoDataUrl = dataUrl
+    return dataUrl
+  })
+  return cachedLogoPromise
+}
+
+/** Returns the inlined data URL if cached, otherwise the remote URL. */
+function resolveLogoSrc(): string {
+  return cachedLogoDataUrl || INCAT_LOGO_URL
+}
+
 /**
  * Returns HTML string for the institution header to use in printable reports.
  * If the user does not belong to INCAT, returns a generic header.
  */
 export function buildInstitutionHeaderHTML(fallbackName?: string): string {
   if (isIncatInstitution()) {
+    const logoSrc = resolveLogoSrc()
     return `<div class="inst-header" style="display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:20px;border-bottom:2px solid #8B0000;padding-bottom:16px">
-  <img src="${INCAT_LOGO_URL}" alt="Escudo INCAT" style="width:80px;height:auto;object-fit:contain" crossorigin="anonymous" />
+  <img src="${logoSrc}" alt="Escudo INCAT" style="width:80px;height:auto;object-fit:contain" crossorigin="anonymous" />
   <div style="text-align:center;flex:1">
     <div style="font-size:16px;font-weight:800;color:#8B0000;text-transform:uppercase;letter-spacing:1px">${INCAT_HEADER_LINES[0]}</div>
     <div style="font-size:10px;color:#333;margin-top:3px">${INCAT_HEADER_LINES[1]}</div>
@@ -61,9 +126,10 @@ export function getInstitutionDisplayName(): string {
 
 /**
  * Returns logo URL if INCAT user, otherwise null.
+ * Returns the cached data URL when available so it can be inlined in print HTML.
  */
 export function getInstitutionLogoUrl(): string | null {
-  return isIncatInstitution() ? INCAT_LOGO_URL : null
+  return isIncatInstitution() ? resolveLogoSrc() : null
 }
 
 /**
