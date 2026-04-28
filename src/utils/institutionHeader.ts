@@ -1,6 +1,12 @@
 import { useBillingStore } from '@/stores/billingStore'
 
-const INCAT_LOGO_URL = 'https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/incat.jpg'
+// Local copy of the logo (served from the same origin under /incat.jpg).
+// Using a same-origin URL avoids issues where remote images fail to load inside
+// `window.open('', '_blank')` documents (about:blank) due to referrer/CSP/CORS
+// policies in some browsers.
+const INCAT_LOGO_LOCAL_URL = '/incat.jpg'
+const INCAT_LOGO_REMOTE_URL = 'https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/incat.jpg'
+const INCAT_LOGO_URL = INCAT_LOGO_LOCAL_URL
 const INCAT_INSTITUTION_NAME = 'Politécnico Institucional del Caribe Incat'
 
 const INCAT_FOOTER_SLOGAN = 'Politécnico "INCAT", forjando líderes para triunfar!'
@@ -77,10 +83,13 @@ export async function ensureInstitutionLogoDataUrl(): Promise<string | null> {
   if (!isIncatInstitution()) return null
   if (cachedLogoDataUrl) return cachedLogoDataUrl
   if (cachedLogoPromise) return cachedLogoPromise
-  cachedLogoPromise = fetchLogoAsDataUrl(INCAT_LOGO_URL).then((dataUrl) => {
+  // Try local first (same-origin, always works), fall back to remote URL.
+  cachedLogoPromise = (async () => {
+    let dataUrl = await fetchLogoAsDataUrl(INCAT_LOGO_LOCAL_URL)
+    if (!dataUrl) dataUrl = await fetchLogoAsDataUrl(INCAT_LOGO_REMOTE_URL)
     cachedLogoDataUrl = dataUrl
     return dataUrl
-  })
+  })()
   return cachedLogoPromise
 }
 
