@@ -389,9 +389,10 @@ async function sendQuery() {
       username: tokenStorage.username,
       userRoles: userRoleIds,
       forceMCPTools: true,
-      // Acorta el timeout del modelo primario (Qwen) a 10s y delega en DeepSeek
-      // como fallback rapido si Qwen demora demasiado en responder.
-      fastMode: true,
+      // fastMode desactivado: el fallback a DeepSeek esta devolviendo
+      // 402 "Insufficient Balance", asi que dejamos que Qwen disponga de su
+      // timeout completo en lugar de caer al fallback roto a los 10s.
+      fastMode: false,
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
