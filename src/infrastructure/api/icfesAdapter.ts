@@ -8,6 +8,9 @@
 
 import { api, HttpError } from './httpClient'
 import { LC_BANK_2024_2025 } from './icfesLCBank'
+import { LC_BANK_2022 } from './icfesLC2022Bank'
+import { MAT_BANK_2020 } from './icfesMATBank'
+import { ING_BANK_2024_2025 } from './icfesINGBank'
 
 export type IcfesArea = 'LC' | 'MAT' | 'SOC' | 'CN' | 'ING'
 
@@ -164,13 +167,13 @@ function normalizeQuestion(q: ServerSession['questions'][number], area: IcfesAre
 }
 
 // ────────────────── MOCK BANK (fallback offline) ──────────────────
-co// Banco real curado a partir de docs/icfes_content/2024-2025/lectura critica/lecturacritica2024-2025.txt
-  LC:  LC_BANK_2024_2025
-  LC:  buildMockBank('LC',  'Comprensión lectora',       ['Inferencia', 'Tesis y argumentos', 'Tipología textual', 'Cohesión']),
-  MAT: buildMockBank('MAT', 'Razonamiento cuantitativo', ['Funciones', 'Geometría', 'Estadística', 'Álgebra']),
+const MOCK_BANK: Record<IcfesArea, IcfesQuestion[]> = {
+  // Banco real curado: 2024-2025 + 2022
+  LC:  [...LC_BANK_2024_2025, ...LC_BANK_2022],
+  MAT: MAT_BANK_2020,
   SOC: buildMockBank('SOC', 'Ciudadanía',                ['Constitución', 'Historia de Colombia', 'Democracia', 'Economía']),
   CN:  buildMockBank('CN',  'Ciencias',                  ['Leyes de Newton', 'Química orgánica', 'Genética', 'Ecosistemas']),
-  ING: buildMockBank('ING', 'English',                   ['Reading', 'Vocabulary', 'Grammar', 'Listening']),
+  ING: ING_BANK_2024_2025,
 }
 
 function buildMockBank(area: IcfesArea, topic: string, subtopics: string[]): IcfesQuestion[] {
