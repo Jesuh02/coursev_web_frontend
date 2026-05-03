@@ -205,10 +205,13 @@ async function loadHistory() {
     const data = await chatAdapter.getMyMessagesByOrigin('db_query')
     console.log(`[DatabaseQuery] loadHistory: ${Array.isArray(data) ? data.length : 0} mensajes cargados (userId=${tokenStorage.userId})`)
     if (Array.isArray(data) && data.length > 0) {
-      messages.value = data.map((m) => ({
+      messages.value = data.map((m: any) => ({
         id: String(m.id || '') || crypto.randomUUID(),
         role: m.role,
         content: m.content,
+        // Restore the Excel download chip after a reload — backend stores it
+        // in chat_messages.excel_url and the adapter maps it to excelUrl.
+        excelUrl: m.excelUrl ?? null,
       }))
       scrollToBottom()
     }
@@ -341,7 +344,7 @@ function esc(s: string) {
 
 // ── Save helper ──
 
-async function persistMessage(content: string, isFromUser: boolean) {
+async function persistMessage(content: string, isFromUser: boolean, excelUrl: string | null = null) {
   try {
     await chatAdapter.upsertMessage({
       content,
@@ -349,6 +352,7 @@ async function persistMessage(content: string, isFromUser: boolean) {
       sessionId: sessionId.value,
       origin: 'db_query',
       username: tokenStorage.username ?? null,
+      excelUrl,
     } as any)
     console.log('[DatabaseQuery] Mensaje guardado en backend (origin=db_query)')
   } catch (err) {
@@ -385,17 +389,19 @@ async function sendQuery() {
       username: tokenStorage.username,
       userRoles: userRoleIds,
       forceMCPTools: true,
-      // Acorta el timeout del modelo primario (Qwen) a 10s y delega en DeepSeek
-      // como fallback rapido si Qwen demora demasiado en responder.
-      fastMode: true,
+      // fastMode desactivado: el fallback a DeepSeek esta devolviendo
+      // 402 "Insufficient Balance", asi que dejamos que Qwen disponga de su
+      // timeout completo en lugar de caer al fallback roto a los 10s.
+      fastMode: false,
     })
 
     const reply = data.respuesta_texto || data.response || 'Sin respuesta del servidor'
     const excelUrl = data.excelUrl || null
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: reply, excelUrl })
 
-    // Persist assistant response – independent of next UI action
-    persistMessage(reply, false)
+    // Persist assistant response – independent of next UI action.
+    // Save the excelUrl so the download button can be restored on reload.
+    persistMessage(reply, false, excelUrl)
   } catch {
     messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
   }

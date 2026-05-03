@@ -7,6 +7,7 @@
  */
 
 import { api, HttpError } from './httpClient'
+import { LC_BANK_2024_2025 } from './icfesLCBank'
 
 export type IcfesArea = 'LC' | 'MAT' | 'SOC' | 'CN' | 'ING'
 
@@ -163,7 +164,8 @@ function normalizeQuestion(q: ServerSession['questions'][number], area: IcfesAre
 }
 
 // ────────────────── MOCK BANK (fallback offline) ──────────────────
-const MOCK_BANK: Record<IcfesArea, IcfesQuestion[]> = {
+co// Banco real curado a partir de docs/icfes_content/2024-2025/lectura critica/lecturacritica2024-2025.txt
+  LC:  LC_BANK_2024_2025
   LC:  buildMockBank('LC',  'Comprensión lectora',       ['Inferencia', 'Tesis y argumentos', 'Tipología textual', 'Cohesión']),
   MAT: buildMockBank('MAT', 'Razonamiento cuantitativo', ['Funciones', 'Geometría', 'Estadística', 'Álgebra']),
   SOC: buildMockBank('SOC', 'Ciudadanía',                ['Constitución', 'Historia de Colombia', 'Democracia', 'Economía']),

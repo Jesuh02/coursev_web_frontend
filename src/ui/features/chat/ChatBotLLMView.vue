@@ -1250,6 +1250,10 @@ async function addGrade(msg: ChatMsg) {
       content: confirmContent,
       role: 'assistant',
       createdAt: new Date().toISOString(),
+      // Mark as already-handled so the grading button doesn't reappear on this
+      // confirmation message (its text contains "X/10" which would otherwise
+      // trigger messageHasGrade()).
+      calificationAdded: true,
     })
     saveMessageToBackend(confirmContent, false, {
       has_calification: true,
@@ -1267,6 +1271,7 @@ async function addGrade(msg: ChatMsg) {
       content: '❌ No se pudo guardar la calificación. Por favor intenta de nuevo.',
       role: 'assistant',
       createdAt: new Date().toISOString(),
+      calificationAdded: true,
     })
     scrollToBottom()
   }
