@@ -28,6 +28,15 @@ const JONATHAN_PASSAGE = `My name is Jonathan and last year I had a wonderful ex
 
 const VALENTINE_PASSAGE = `It's always a lot of fun to get a card or some chocolates, but (22) _______ do we do this? There is a lot of mystery about this day. One of the (23) _______ says that the original Valentine was a priest. When the King found (24) _______ he ordered soldiers to kill Valentine! Women buy (25) _______ 90% of the cards, but gentlemen still buy the most chocolates and flowers...`
 
+// Titled passage constants (used as readingPassage for grouped questions)
+const RP_COFFEE = `COFFEE\n\n${COFFEE_PASSAGE}`
+const RP_JAMES_SALTER = `JAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}`
+const RP_SWIFT_PIZZA = `SWIFT PIZZA AND SANDWICH HOUSE\n\n${SWIFT_PIZZA_PASSAGE}`
+const RP_WOLF = `THE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}`
+const RP_ARTISTIC = `MY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}`
+const RP_JONATHAN = `JONATHAN'S TRIP TO COLOMBIA\n\n${JONATHAN_PASSAGE}`
+const RP_VALENTINE = `VALENTINE'S DAY\n\n${VALENTINE_PASSAGE}`
+
 type INGQ = Omit<IcfesQuestion, 'area' | 'topic'>
 
 const items: INGQ[] = [
@@ -169,7 +178,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q09',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (9):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (9):',
+
     options: [
       { id: 'A', text: 'much' },
       { id: 'B', text: 'more' },
@@ -183,7 +194,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q10',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (10):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (10):',
+
     options: [
       { id: 'A', text: 'during' },
       { id: 'B', text: 'until' },
@@ -197,7 +210,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q11',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (11):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (11):',
+
     options: [
       { id: 'A', text: 'when' },
       { id: 'B', text: 'which' },
@@ -211,7 +226,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q12',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (12):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (12):',
+
     options: [
       { id: 'A', text: 'among' },
       { id: 'B', text: 'about' },
@@ -225,7 +242,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q13',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (13):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (13):',
+
     options: [
       { id: 'A', text: 'describe' },
       { id: 'B', text: 'described' },
@@ -239,7 +258,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q14',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (14):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (14):',
+
     options: [
       { id: 'A', text: 'drink' },
       { id: 'B', text: 'drinking' },
@@ -253,7 +274,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q15',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (15):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (15):',
+
     options: [
       { id: 'A', text: "mustn't" },
       { id: 'B', text: "couldn't" },
@@ -267,7 +290,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q16',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nCOFFEE\n\n${COFFEE_PASSAGE}\n\nChoose the correct word for blank (16):`,
+    readingPassage: RP_COFFEE,
+    stem: 'Choose the correct word for blank (16):',
+
     options: [
       { id: 'A', text: 'While' },
       { id: 'B', text: 'Except' },
@@ -286,7 +311,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q17',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nJames Salter played an important part in the making of movies...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'James Salter played an important part in the making of movies...',
+
     options: [
       { id: 'A', text: 'from 1960 to 1979.' },
       { id: 'B', text: 'in 1957.' },
@@ -300,7 +327,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q18',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nPassionate Falsehoods is...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'Passionate Falsehoods is...',
+
     options: [
       { id: 'A', text: 'a newspaper.' },
       { id: 'B', text: 'a play.' },
@@ -314,7 +343,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q19',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nSalter had nice and difficult times when he was...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'Salter had nice and difficult times when he was...',
+
     options: [
       { id: 'A', text: 'an actor.' },
       { id: 'B', text: 'making movies.' },
@@ -328,7 +359,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q20',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nThe Last Book was written by...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'The Last Book was written by...',
+
     options: [
       { id: 'A', text: 'James Salter.' },
       { id: 'B', text: 'Deborah Treisman.' },
@@ -342,7 +375,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q21',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nJames Salter thinks that his work in the cinema business was...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'James Salter thinks that his work in the cinema business was...',
+
     options: [
       { id: 'A', text: 'not useful.' },
       { id: 'B', text: 'not hard.' },
@@ -356,7 +391,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q22',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nReading about James Salter's years in the cinema could be...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'Reading about James Salter\'s years in the cinema could be...',
+
     options: [
       { id: 'A', text: 'clever enough.' },
       { id: 'B', text: 'just fair.' },
@@ -370,7 +407,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q23',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJAMES SALTER'S DAYS IN FILM\n\n${JAMES_SALTER_PASSAGE}\n\nThe Last Book can be found...`,
+    readingPassage: RP_JAMES_SALTER,
+    stem: 'The Last Book can be found...',
+
     options: [
       { id: 'A', text: 'in museums.' },
       { id: 'B', text: 'at a café.' },
@@ -389,7 +428,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q24',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nSWIFT PIZZA AND SANDWICH HOUSE\n\n${SWIFT_PIZZA_PASSAGE}\n\nAccording to the text, the customer...`,
+    readingPassage: RP_SWIFT_PIZZA,
+    stem: 'According to the text, the customer...',
+
     options: [
       { id: 'A', text: 'left a £25 tip to the waiters who work there.' },
       { id: 'B', text: 'celebrated Christmas and New Year at this restaurant.' },
@@ -403,7 +444,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E1-Q25',
     subtopic: 'Reading Comprehension',
     difficulty: 4,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nSWIFT PIZZA AND SANDWICH HOUSE\n\n${SWIFT_PIZZA_PASSAGE}\n\nIt can be inferred from the text that Mark...`,
+    readingPassage: RP_SWIFT_PIZZA,
+    stem: 'It can be inferred from the text that Mark...',
+
     options: [
       { id: 'A', text: 'does not like cooking food for himself.' },
       { id: 'B', text: 'almost always eats hamburgers.' },
@@ -563,7 +606,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q10',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nTHE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}\n\nChoose the correct word for blank (10):`,
+    readingPassage: RP_WOLF,
+    stem: 'Choose the correct word for blank (10):',
+
     options: [
       { id: 'A', text: 'saying' },
       { id: 'B', text: 'said' },
@@ -577,7 +622,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q11',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nTHE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}\n\nChoose the correct word for blank (11):`,
+    readingPassage: RP_WOLF,
+    stem: 'Choose the correct word for blank (11):',
+
     options: [
       { id: 'A', text: 'its' },
       { id: 'B', text: 'his' },
@@ -591,7 +638,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q12',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nTHE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}\n\nChoose the correct word for blank (12):`,
+    readingPassage: RP_WOLF,
+    stem: 'Choose the correct word for blank (12):',
+
     options: [
       { id: 'A', text: 'This' },
       { id: 'B', text: 'That' },
@@ -605,7 +654,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q13',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nTHE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}\n\nChoose the correct word for blank (13):`,
+    readingPassage: RP_WOLF,
+    stem: 'Choose the correct word for blank (13):',
+
     options: [
       { id: 'A', text: 'larger' },
       { id: 'B', text: 'largest' },
@@ -619,7 +670,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q14',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nTHE ETHIOPIAN WOLF\n\n${WOLF_PASSAGE}\n\nChoose the correct word for blank (14):`,
+    readingPassage: RP_WOLF,
+    stem: 'Choose the correct word for blank (14):',
+
     options: [
       { id: 'A', text: 'in' },
       { id: 'B', text: 'along' },
@@ -638,7 +691,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q15',
     subtopic: 'Reading Comprehension',
     difficulty: 2,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nMY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}\n\nWhere was the painter from?`,
+    readingPassage: RP_ARTISTIC,
+    stem: 'Where was the painter from?',
+
     options: [
       { id: 'A', text: 'Ireland' },
       { id: 'B', text: 'Spain' },
@@ -652,7 +707,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q16',
     subtopic: 'Reading Comprehension',
     difficulty: 2,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nMY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}\n\nShe was mostly excited by the...`,
+    readingPassage: RP_ARTISTIC,
+    stem: 'She was mostly excited by the...',
+
     options: [
       { id: 'A', text: "painter's ability." },
       { id: 'B', text: "painter's voice." },
@@ -666,7 +723,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q17',
     subtopic: 'Reading Comprehension',
     difficulty: 2,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nMY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}\n\nHow often did she watch the show?`,
+    readingPassage: RP_ARTISTIC,
+    stem: 'How often did she watch the show?',
+
     options: [
       { id: 'A', text: 'three times a week' },
       { id: 'B', text: 'once a week' },
@@ -680,7 +739,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q18',
     subtopic: 'Reading Comprehension',
     difficulty: 2,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nMY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}\n\nShe could not get oil paints because she...`,
+    readingPassage: RP_ARTISTIC,
+    stem: 'She could not get oil paints because she...',
+
     options: [
       { id: 'A', text: "didn't speak Spanish." },
       { id: 'B', text: 'was too young.' },
@@ -694,7 +755,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q19',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nMY ARTISTIC ADVENTURE\n\n${ARTISTIC_PASSAGE}\n\nStopping painting was...`,
+    readingPassage: RP_ARTISTIC,
+    stem: 'Stopping painting was...',
+
     options: [
       { id: 'A', text: "the painter's idea." },
       { id: 'B', text: "her mother's order." },
@@ -713,7 +776,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q20',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJONATHAN'S TRIP TO COLOMBIA\n\n${JONATHAN_PASSAGE}\n\nWhat is the writer trying to do in this article?`,
+    readingPassage: RP_JONATHAN,
+    stem: 'What is the writer trying to do in this article?',
+
     options: [
       { id: 'A', text: 'encouraging tourists to visit Colombia.' },
       { id: 'B', text: 'convincing people to buy a Colombian coffee farm.' },
@@ -727,7 +792,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q21',
     subtopic: 'Reading Comprehension',
     difficulty: 3,
-    stem: `READ THE ARTICLE AND ANSWER THE QUESTIONS.\n\nJONATHAN'S TRIP TO COLOMBIA\n\n${JONATHAN_PASSAGE}\n\nWhat can a reader find out from this text?`,
+    readingPassage: RP_JONATHAN,
+    stem: 'What can a reader find out from this text?',
+
     options: [
       { id: 'A', text: 'how to grow coffee on the farm.' },
       { id: 'B', text: 'when the best time to visit the farm is.' },
@@ -746,7 +813,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q22',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nVALENTINE'S DAY\n\n${VALENTINE_PASSAGE}\n\nChoose the correct word for blank (22):`,
+    readingPassage: RP_VALENTINE,
+    stem: 'Choose the correct word for blank (22):',
+
     options: [
       { id: 'A', text: 'where' },
       { id: 'B', text: 'why' },
@@ -760,7 +829,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q23',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nVALENTINE'S DAY\n\n${VALENTINE_PASSAGE}\n\nChoose the correct word for blank (23):`,
+    readingPassage: RP_VALENTINE,
+    stem: 'Choose the correct word for blank (23):',
+
     options: [
       { id: 'A', text: 'essays' },
       { id: 'B', text: 'stories' },
@@ -774,7 +845,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q24',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nVALENTINE'S DAY\n\n${VALENTINE_PASSAGE}\n\nChoose the correct word for blank (24):`,
+    readingPassage: RP_VALENTINE,
+    stem: 'Choose the correct word for blank (24):',
+
     options: [
       { id: 'A', text: 'off' },
       { id: 'B', text: 'in' },
@@ -788,7 +861,9 @@ const items: INGQ[] = [
     id: 'ING-2024-E2-Q25',
     subtopic: 'Grammar in Context',
     difficulty: 2,
-    stem: `READ THE TEXT AND SELECT THE CORRECT WORD FOR EACH BLANK.\n\nVALENTINE'S DAY\n\n${VALENTINE_PASSAGE}\n\nChoose the correct word for blank (25):`,
+    readingPassage: RP_VALENTINE,
+    stem: 'Choose the correct word for blank (25):',
+
     options: [
       { id: 'A', text: 'almost' },
       { id: 'B', text: 'only' },
