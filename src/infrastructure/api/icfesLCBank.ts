@@ -114,7 +114,8 @@ type LCQ = Omit<IcfesQuestion, 'area' | 'topic'>
 const items: LCQ[] = [
   {
     id: 'LC-2425-01', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_DESCARTES}\n\n1. A juzgar por su estilo, tema y estructura, ¿en cuál de los siguientes contextos estaría inscrito más apropiadamente el pasaje anterior?`,
+    stem: `1. A juzgar por su estilo, tema y estructura, ¿en cuál de los siguientes contextos estaría inscrito más apropiadamente el pasaje anterior?`,
+    readingPassage: P_DESCARTES,
     options: [
       { id: 'A', text: 'En una revista académica, como parte de un artículo sobre los orígenes y la importancia de la filosofía cartesiana.' },
       { id: 'B', text: 'En un discurso ofrecido a un grupo conformado por aficionados al estudio de asesinatos en la historia de la filosofía.' },
@@ -126,7 +127,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-02', subtopic: 'Inferencia', difficulty: 2,
-    stem: `${P_VALLENATO}\n\n2. El autor cita el verso de La gota fría para apoyar la idea de que los acordeoneros viajaban para asistir a diferentes piquerias, porque en este se hace referencia a`,
+    stem: `2. El autor cita el verso de La gota fría para apoyar la idea de que los acordeoneros viajaban para asistir a diferentes piquerias, porque en este se hace referencia a`,
+    readingPassage: P_VALLENATO,
     options: [
       { id: 'A', text: 'un acordeonero que cantaba colitas, llamado Lorenzo Morales.' },
       { id: 'B', text: 'Urumita, un pueblo famoso por la realización de colitas.' },
@@ -138,7 +140,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-03', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_VALLENATO}\n\n3. El autor introduce la cita de López Michelsen con el fin de presentar la opinión de un conocedor del vallenato y`,
+    stem: `3. El autor introduce la cita de López Michelsen con el fin de presentar la opinión de un conocedor del vallenato y`,
+    readingPassage: P_VALLENATO,
     options: [
       { id: 'A', text: 'reforzar la tesis principal del texto, según la cual las colitas fueron divulgadoras del género.' },
       { id: 'B', text: 'señalar una posición discutible sobre el papel que desempeñaron las colitas en el origen del género.' },
@@ -150,7 +153,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-04', subtopic: 'Inferencia', difficulty: 2,
-    stem: `${P_SINREMEDIO}\n\n4. A partir de sus pensamientos y actitudes, es posible concluir que Escobar es un hombre`,
+    stem: `4. A partir de sus pensamientos y actitudes, es posible concluir que Escobar es un hombre`,
+    readingPassage: P_SINREMEDIO,
     options: [
       { id: 'A', text: 'psicótico y con tendencias depresivas.' },
       { id: 'B', text: 'entusiasta y entregado a su pareja.' },
@@ -162,7 +166,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-05', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_PRIVACIDAD}\n\n5. ¿Cuál de los siguientes enunciados sintetiza mejor el contenido del primer párrafo?`,
+    stem: `5. ¿Cuál de los siguientes enunciados sintetiza mejor el contenido del primer párrafo?`,
+    readingPassage: P_PRIVACIDAD,
     options: [
       { id: 'A', text: 'Una profunda tradición intelectual ha configurado el concepto de límite como el espacio de defensa que crean los seres a su alrededor.' },
       { id: 'B', text: 'Internet ha generado cambios en el concepto tradicional de límite, tal como lo define la etología y la antropología.' },
@@ -174,7 +179,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-06', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_PRIVACIDAD}\n\n6. En el tercer párrafo, cuando el autor menciona a las naciones que se forman fuera de las fronteras físicas, hace referencia a`,
+    stem: `6. En el tercer párrafo, cuando el autor menciona a las naciones que se forman fuera de las fronteras físicas, hace referencia a`,
+    readingPassage: P_PRIVACIDAD,
     options: [
       { id: 'A', text: 'los individuos de una misma cultura que viven en territorios diferentes.' },
       { id: 'B', text: 'la fluencia migratoria que genera el amplio número de turistas.' },
@@ -186,7 +192,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-07', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_GOOGLE}\n\n7. En el último párrafo del texto se`,
+    stem: `7. En el último párrafo del texto se`,
+    readingPassage: P_GOOGLE,
     options: [
       { id: 'A', text: 'legitiman las prácticas del manejo de información en Internet que buscan distraernos a como dé lugar.' },
       { id: 'B', text: 'desestima la efectividad de las estrategias publicitarias utilizadas en la web para obtener información.' },
@@ -198,7 +205,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-08', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_GOOGLE}\n\n8. Considere el siguiente enunciado: "Pero, sea lo que sea, se trata de otra forma de leer, y detrás subyace otra forma de pensar… Quizás incluso, una nueva manera de ser". Esta frase, dentro de la globalidad del texto, es`,
+    stem: `8. Considere el siguiente enunciado: "Pero, sea lo que sea, se trata de otra forma de leer, y detrás subyace otra forma de pensar… Quizás incluso, una nueva manera de ser". Esta frase, dentro de la globalidad del texto, es`,
+    readingPassage: P_GOOGLE,
     options: [
       { id: 'A', text: 'una idea introductoria.' },
       { id: 'B', text: 'una conclusión del texto.' },
@@ -210,7 +218,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-09', subtopic: 'Inferencia', difficulty: 2,
-    stem: `${P_DEMOCRACIA}\n\n9. Según el texto (iii), ¿qué posiciones políticas se identifican como democráticas?`,
+    stem: `9. Según el texto (iii), ¿qué posiciones políticas se identifican como democráticas?`,
+    readingPassage: P_DEMOCRACIA,
     options: [
       { id: 'A', text: 'Solo las posiciones políticas que no son extremistas.' },
       { id: 'B', text: 'Las posiciones políticas más recientes históricamente.' },
@@ -222,7 +231,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-10', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_DEMOCRACIA}\n\n10. ¿Cuál de las siguientes afirmaciones se infiere del texto (i)?`,
+    stem: `10. ¿Cuál de las siguientes afirmaciones se infiere del texto (i)?`,
+    readingPassage: P_DEMOCRACIA,
     options: [
       { id: 'A', text: 'El votante medio no podría explicar en cinco minutos qué es la democracia.' },
       { id: 'B', text: 'La mayoría de los votantes en los sistemas democráticos son ignorantes o incompetentes.' },
@@ -234,7 +244,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-11', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_FEYERABEND}\n\n11. ¿Cuál de las siguientes opciones describe mejor la relación entre el contenido del texto y el título de la obra de la que se extrajo ("Tratado contra el método")?`,
+    stem: `11. ¿Cuál de las siguientes opciones describe mejor la relación entre el contenido del texto y el título de la obra de la que se extrajo ("Tratado contra el método")?`,
+    readingPassage: P_FEYERABEND,
     options: [
       { id: 'A', text: 'El texto introduce la propuesta de un nuevo método para la investigación científica, diferente del tradicional.' },
       { id: 'B', text: 'El texto ataca diferentes ideas a propósito de qué es aquello en lo que consiste el llamado "método científico".' },
@@ -246,7 +257,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-12', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_FEYERABEND}\n\n12. El autor del texto aplica a la filosofía de la ciencia el principio del liberalismo, según el cual "todos los ciudadanos son iguales ante la ley y ante el Estado". ¿Cuál de las siguientes afirmaciones refleja de manera más directa la influencia de las ideas liberales?`,
+    stem: `12. El autor del texto aplica a la filosofía de la ciencia el principio del liberalismo, según el cual "todos los ciudadanos son iguales ante la ley y ante el Estado". ¿Cuál de las siguientes afirmaciones refleja de manera más directa la influencia de las ideas liberales?`,
+    readingPassage: P_FEYERABEND,
     options: [
       { id: 'A', text: 'La tarea del científico no ha de ser por más tiempo la glorificación de dios.' },
       { id: 'B', text: 'Toda teoría particular, todo cuento de hadas, todo mito, forman parte del conocimiento.' },
@@ -284,7 +296,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-15', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_1984}\n\n15. La frase "figúrate una bota aplastando un rostro humano…incesantemente"`,
+    stem: `15. La frase "figúrate una bota aplastando un rostro humano…incesantemente"`,
+    readingPassage: P_1984,
     options: [
       { id: 'A', text: 'explica los planes para el futuro del régimen.' },
       { id: 'B', text: 'ejemplifica las ideas transmitidas al pueblo.' },
@@ -296,7 +309,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-16', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_1984}\n\n16. ¿Cuál de las siguientes afirmaciones es incompatible con las políticas del Partido?`,
+    stem: `16. ¿Cuál de las siguientes afirmaciones es incompatible con las políticas del Partido?`,
+    readingPassage: P_1984,
     options: [
       { id: 'A', text: 'El pueblo debe mantenerse unido.' },
       { id: 'B', text: 'La individualidad debe ser eliminada.' },
@@ -308,7 +322,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-17', subtopic: 'Cohesión', difficulty: 2,
-    stem: `${P_FOTOGRAFIA}\n\n17. En la frase "Las fotografías son la prueba irrecusable de que se hizo la excursión", ¿cuál de las siguientes palabras es un sinónimo de la palabra 'irrecusable'?`,
+    stem: `17. En la frase "Las fotografías son la prueba irrecusable de que se hizo la excursión", ¿cuál de las siguientes palabras es un sinónimo de la palabra 'irrecusable'?`,
+    readingPassage: P_FOTOGRAFIA,
     options: [
       { id: 'A', text: 'Inminente.' },
       { id: 'B', text: 'Concluyente.' },
@@ -320,7 +335,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-18', subtopic: 'Tipología textual', difficulty: 4,
-    stem: `${P_FOTOGRAFIA}\n\n18. Considere el siguiente resumen del texto: "La autora analiza la relación entre el turismo y la fotografía, teniendo en cuenta que los cosmopolitas ven en sus viajes al acto de fotografiar como una necesidad. Según ella, ese acto acaba por convertirse en una práctica trivial con la que solo se busca mitigar la desorientación general que causan los viajes. Así, la fotografía se convierte para los cosmopolitas japoneses, estadounidenses y alemanes en una especie de reemplazo del trabajo al que están acostumbrados". El anterior resumen se puede describir como inadecuado porque`,
+    stem: `18. Considere el siguiente resumen del texto: "La autora analiza la relación entre el turismo y la fotografía, teniendo en cuenta que los cosmopolitas ven en sus viajes al acto de fotografiar como una necesidad. Según ella, ese acto acaba por convertirse en una práctica trivial con la que solo se busca mitigar la desorientación general que causan los viajes. Así, la fotografía se convierte para los cosmopolitas japoneses, estadounidenses y alemanes en una especie de reemplazo del trabajo al que están acostumbrados". El anterior resumen se puede describir como inadecuado porque`,
+    readingPassage: P_FOTOGRAFIA,
     options: [
       { id: 'A', text: 'expone ideas contrarias a las afirmaciones principales del texto.' },
       { id: 'B', text: 'se centra en un tipo particular de turistas y no en los turistas en general.' },
@@ -332,7 +348,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-19', subtopic: 'Inferencia', difficulty: 4,
-    stem: `${P_AGUADO}\n\n19. De acuerdo con el texto, se puede afirmar que la descripción de los indios de Ibagué hecha por Aguado corresponde a`,
+    stem: `19. De acuerdo con el texto, se puede afirmar que la descripción de los indios de Ibagué hecha por Aguado corresponde a`,
+    readingPassage: P_AGUADO,
     options: [
       { id: 'A', text: 'un periodo anterior a la llegada de los españoles al continente americano.' },
       { id: 'B', text: 'el proceso de fundación de la ciudad colonial de Ibagué.' },
@@ -344,7 +361,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-20', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_AGUADO}\n\n20. ¿Cuál de los siguientes títulos se ajusta mejor al contenido del texto?`,
+    stem: `20. ¿Cuál de los siguientes títulos se ajusta mejor al contenido del texto?`,
+    readingPassage: P_AGUADO,
     options: [
       { id: 'A', text: 'Civilización y barbarie en la colonización española.' },
       { id: 'B', text: 'Fray Pedro de Aguado y la construcción retórica del indígena.' },
@@ -369,7 +387,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-22', subtopic: 'Tesis y argumentos', difficulty: 2,
-    stem: `${P_THOREAU}\n\n22. ¿Cuál de los siguientes es un ejemplo que menciona el autor para apoyar su posición frente a los Gobiernos?`,
+    stem: `22. ¿Cuál de los siguientes es un ejemplo que menciona el autor para apoyar su posición frente a los Gobiernos?`,
+    readingPassage: P_THOREAU,
     options: [
       { id: 'A', text: 'La guerra con México.' },
       { id: 'B', text: 'Los abusos del ejército.' },
@@ -381,7 +400,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-23', subtopic: 'Cohesión', difficulty: 2,
-    stem: `${P_GOMEZDAVILA}\n\n23. De acuerdo con el aforismo "Los sistemas filosóficos difieren los unos de los otros menos en la manera de resolver que en la manera de escamotear los problemas", la principal diferencia entre un sistema filosófico y otro consiste en la manera de`,
+    stem: `23. De acuerdo con el aforismo "Los sistemas filosóficos difieren los unos de los otros menos en la manera de resolver que en la manera de escamotear los problemas", la principal diferencia entre un sistema filosófico y otro consiste en la manera de`,
+    readingPassage: P_GOMEZDAVILA,
     options: [
       { id: 'A', text: 'plantear los problemas.' },
       { id: 'B', text: 'resolver los problemas.' },
@@ -393,7 +413,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-24', subtopic: 'Inferencia', difficulty: 4,
-    stem: `${P_GOODALL}\n\n24. Considere el enunciado: "No me di cuenta de que no era científico discutir sobre el comportamiento en términos de motivación o propósito". ¿Qué prejuicio cuestiona la autora?`,
+    stem: `24. Considere el enunciado: "No me di cuenta de que no era científico discutir sobre el comportamiento en términos de motivación o propósito". ¿Qué prejuicio cuestiona la autora?`,
+    readingPassage: P_GOODALL,
     options: [
       { id: 'A', text: 'Los animales tienen mente y, por tanto, deben tratarse como seres con personalidades o emociones.' },
       { id: 'B', text: 'La etología es una ciencia "dura" que se esfuerza por mantener a raya las explicaciones subjetivas.' },
@@ -405,7 +426,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-25', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_CRATES}\n\n25. ¿Cuál de los siguientes enunciados se contradice con la tesis central del texto?`,
+    stem: `25. ¿Cuál de los siguientes enunciados se contradice con la tesis central del texto?`,
+    readingPassage: P_CRATES,
     options: [
       { id: 'A', text: 'No todo se divide entre lo que depende y lo que no depende de nosotros.' },
       { id: 'B', text: 'Alejarnos de alguien no depende de nosotros mismos.' },
@@ -418,7 +440,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-26', subtopic: 'Tesis y argumentos', difficulty: 2,
-    stem: `${P_GOMBRICH}\n\n26. En el texto, el autor hace referencia a Rubens para mostrar que`,
+    stem: `26. En el texto, el autor hace referencia a Rubens para mostrar que`,
+    readingPassage: P_GOMBRICH,
     options: [
       { id: 'A', text: 'a todos nos atrae lo bello y por fortuna el arte lo recoge en la pintura.' },
       { id: 'B', text: 'el público siempre exige que el artista refleje la realidad en los cuadros.' },
@@ -430,7 +453,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-27', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_GOMBRICH}\n\n27. ¿Cuál de los siguientes enunciados expresa un juicio de valor presente en el texto?`,
+    stem: `27. ¿Cuál de los siguientes enunciados expresa un juicio de valor presente en el texto?`,
+    readingPassage: P_GOMBRICH,
     options: [
       { id: 'A', text: 'Mientras Rubens dibujó la juventud, Durero dibujó la vejez.' },
       { id: 'B', text: 'Los golfillos del pintor español Murillo tienen gran encanto.' },
@@ -442,7 +466,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-28', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_GOMBRICH}\n\n28. ¿Cuál de los siguientes títulos podría ser el más adecuado para el texto anterior?`,
+    stem: `28. ¿Cuál de los siguientes títulos podría ser el más adecuado para el texto anterior?`,
+    readingPassage: P_GOMBRICH,
     options: [
       { id: 'A', text: 'En defensa del mal gusto en el arte.' },
       { id: 'B', text: 'El arte como modelo de la realidad.' },
@@ -454,7 +479,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-29', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_GIGES}\n\n29. ¿Cuál de las siguientes afirmaciones contradice las ideas que presenta el autor?`,
+    stem: `29. ¿Cuál de las siguientes afirmaciones contradice las ideas que presenta el autor?`,
+    readingPassage: P_GIGES,
     options: [
       { id: 'A', text: 'Algunas personas actúan justamente a pesar de poder actuar de manera injusta.' },
       { id: 'B', text: 'La injusticia, contrariamente a la justicia, es natural en el ser humano.' },
@@ -466,7 +492,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-30', subtopic: 'Tipología textual', difficulty: 4,
-    stem: `${P_GIGES}\n\n30. ¿Cuál de las siguientes afirmaciones sintetiza adecuadamente las ideas contenidas en el primer párrafo?`,
+    stem: `30. ¿Cuál de las siguientes afirmaciones sintetiza adecuadamente las ideas contenidas en el primer párrafo?`,
+    readingPassage: P_GIGES,
     options: [
       { id: 'A', text: 'El que alguien sea justo es un deber que se deriva de la conciencia moral.' },
       { id: 'B', text: 'El que alguien sea justo resulta de una imposición; sin las restricciones de la ley toda persona buscará satisfacer sus deseos.' },
@@ -478,7 +505,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-31', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_GIGES}\n\n31. ¿Qué propósito general tiene el autor al introducir el relato sobre el anillo de Giges, y cómo lo alcanza?`,
+    stem: `31. ¿Qué propósito general tiene el autor al introducir el relato sobre el anillo de Giges, y cómo lo alcanza?`,
+    readingPassage: P_GIGES,
     options: [
       { id: 'A', text: 'Promover en la audiencia la idea de que es más ventajoso seguir el camino de la injusticia.' },
       { id: 'B', text: 'Convencer a la audiencia de que todo hombre cometerá injusticias cuando tenga la oportunidad.' },
@@ -490,7 +518,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-32', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_GIGES}\n\n32. ¿Cuál de las siguientes afirmaciones constituye una razón a favor de la tesis principal del texto, a saber, que cuando alguien actúa justamente lo hace por obligación y no voluntariamente?`,
+    stem: `32. ¿Cuál de las siguientes afirmaciones constituye una razón a favor de la tesis principal del texto, a saber, que cuando alguien actúa justamente lo hace por obligación y no voluntariamente?`,
+    readingPassage: P_GIGES,
     options: [
       { id: 'A', text: 'La gente se ve obligada a actuar justamente.' },
       { id: 'B', text: 'Solo la igualdad garantiza el respeto por la ley.' },
@@ -502,7 +531,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-33', subtopic: 'Inferencia', difficulty: 4,
-    stem: `${P_GIGES}\n\n33. ¿Cuál presenta un supuesto subyacente a la afirmación "Todo hombre piensa que la injusticia le brinda más ventajas individuales que la justicia, y está en lo cierto, si habla de acuerdo con esta teoría"?`,
+    stem: `33. ¿Cuál presenta un supuesto subyacente a la afirmación "Todo hombre piensa que la injusticia le brinda más ventajas individuales que la justicia, y está en lo cierto, si habla de acuerdo con esta teoría"?`,
+    readingPassage: P_GIGES,
     options: [
       { id: 'A', text: 'La injusticia brinda las mismas ventajas individuales que la justicia.' },
       { id: 'B', text: 'La justicia, al igual que la injusticia, brinda ventajas individuales.' },
@@ -514,7 +544,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-34', subtopic: 'Cohesión', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n34. La función del conector "sin embargo" del penúltimo párrafo es`,
+    stem: `34. La función del conector "sin embargo" del penúltimo párrafo es`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'introducir un nuevo tema de reflexión.' },
       { id: 'B', text: 'negar información suministrada previamente.' },
@@ -526,7 +557,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-35', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n35. Para el autor, el amor o el enamoramiento son`,
+    stem: `35. Para el autor, el amor o el enamoramiento son`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'las bases fundamentales del matrimonio y de la familia.' },
       { id: 'B', text: 'amenazas al respeto y la solidaridad debida a la familia.' },
@@ -538,7 +570,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-36', subtopic: 'Cohesión', difficulty: 2,
-    stem: `${P_MATRIMONIO}\n\n36. La palabra 'dote' del segundo párrafo puede remplazarse, sin que la frase pierda su significado, por`,
+    stem: `36. La palabra 'dote' del segundo párrafo puede remplazarse, sin que la frase pierda su significado, por`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'ahorros de la futura esposa.' },
       { id: 'B', text: 'dinero de los familiares.' },
@@ -550,7 +583,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-37', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n37. El tercer párrafo del texto`,
+    stem: `37. El tercer párrafo del texto`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'presenta un paralelo entre las concepciones del amor y el matrimonio en la China tradicional y en Occidente.' },
       { id: 'B', text: 'demuestra que en China el enamoramiento entre esposos era una amenaza al respeto y la solidaridad de la familia.' },
@@ -562,7 +596,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-38', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n38. ¿Cuál de los siguientes enunciados apoya la idea de que el amor maduro y sincero no siempre ha sido considerado como la base de la familia?`,
+    stem: `38. ¿Cuál de los siguientes enunciados apoya la idea de que el amor maduro y sincero no siempre ha sido considerado como la base de la familia?`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'En los años 50 se produjo una marcada distinción entre los roles masculino y femenino en la familia.' },
       { id: 'B', text: 'La idea del amor como la razón que ha de llevar al matrimonio surgió con el movimiento romántico en el siglo XVIII.' },
@@ -574,7 +609,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-39', subtopic: 'Tesis y argumentos', difficulty: 2,
-    stem: `${P_MATRIMONIO}\n\n39. ¿Cuál de los siguientes ejemplos ilustra la idea de la familia como una institución política y económica?`,
+    stem: `39. ¿Cuál de los siguientes ejemplos ilustra la idea de la familia como una institución política y económica?`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'En la Edad Media la mujer aportaba una dote en el momento de casarse.' },
       { id: 'B', text: 'Entre los fulbes africanos es común que las mujeres nieguen amar a sus maridos.' },
@@ -586,7 +622,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-40', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n40. ¿Qué implicación sobre el matrimonio entre los fulbes africanos puede derivarse a partir de lo dicho por el autor?`,
+    stem: `40. ¿Qué implicación sobre el matrimonio entre los fulbes africanos puede derivarse a partir de lo dicho por el autor?`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'Que en esa comunidad no sucede que haya amor entre esposos.' },
       { id: 'B', text: 'Que en esa comunidad el amor no es una condición necesaria para el matrimonio.' },
@@ -598,7 +635,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-41', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_MATRIMONIO}\n\n41. De acuerdo con el texto, ¿qué se puede concluir acerca del matrimonio?`,
+    stem: `41. De acuerdo con el texto, ¿qué se puede concluir acerca del matrimonio?`,
+    readingPassage: P_MATRIMONIO,
     options: [
       { id: 'A', text: 'Que es una institución que tiene únicamente propósitos económicos y políticos.' },
       { id: 'B', text: 'Que es la base de la familia en culturas tan diversas y complejas como las nuestras.' },
@@ -610,7 +648,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-42', subtopic: 'Inferencia', difficulty: 4,
-    stem: `${P_TRANSITO}\n\n42. De la información del cuadro inferior izquierdo, donde se presentan estadísticas sobre la cantidad relativa de muertes por accidentes de tránsito en función de la región, se puede inferir`,
+    stem: `42. De la información del cuadro inferior izquierdo, donde se presentan estadísticas sobre la cantidad relativa de muertes por accidentes de tránsito en función de la región, se puede inferir`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'cuáles son los países donde menos se utilizan vehículos motorizados.' },
       { id: 'B', text: 'que en el Pacífico y en Asia hay el mismo número de muertes por accidentes de tránsito.' },
@@ -623,7 +662,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-43', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_TRANSITO}\n\n43. De acuerdo con la información presentada sobre el porcentaje de muertes por tipo de vehículo, se puede afirmar que es más probable que alguien que haya muerto por accidente de tránsito hubiera estado desplazándose`,
+    stem: `43. De acuerdo con la información presentada sobre el porcentaje de muertes por tipo de vehículo, se puede afirmar que es más probable que alguien que haya muerto por accidente de tránsito hubiera estado desplazándose`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'a pie.' },
       { id: 'B', text: 'en moto.' },
@@ -636,7 +676,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-44', subtopic: 'Tipología textual', difficulty: 4,
-    stem: `${P_TRANSITO}\n\n44. Considere la siguiente descripción del contenido de la infografía: «La infografía muestra datos sobre la frecuencia de los accidentes de tránsito en el mundo, y ejemplos relacionados. Además, informa sobre la mortalidad por género, por ingresos, por número de vehículos, por tipo de vehículo y por ubicación regional». Esta descripción es insatisfactoria porque`,
+    stem: `44. Considere la siguiente descripción del contenido de la infografía: «La infografía muestra datos sobre la frecuencia de los accidentes de tránsito en el mundo, y ejemplos relacionados. Además, informa sobre la mortalidad por género, por ingresos, por número de vehículos, por tipo de vehículo y por ubicación regional». Esta descripción es insatisfactoria porque`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'pasa por alto información esencial contenida en la infografía.' },
       { id: 'B', text: 'el orden de su contenido no corresponde con el de la infografía.' },
@@ -649,7 +690,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-45', subtopic: 'Cohesión', difficulty: 3,
-    stem: `${P_TRANSITO}\n\n45. En el enunciado "los países de ingresos medios solo tienen la mitad de los vehículos existentes en el mundo y, a pesar de eso, sufren el 80% de las muertes por accidente de tránsito", la conjunción 'a pesar de' cumple la función de`,
+    stem: `45. En el enunciado "los países de ingresos medios solo tienen la mitad de los vehículos existentes en el mundo y, a pesar de eso, sufren el 80% de las muertes por accidente de tránsito", la conjunción 'a pesar de' cumple la función de`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'resaltar que el índice de muertes por accidente de tránsito en países de ingresos medios es bastante elevado dadas sus condiciones particulares.' },
       { id: 'B', text: 'oponer el alto número de vehículos en países de ingresos medios frente al bajo porcentaje de muertes por accidente de tránsito.' },
@@ -662,7 +704,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-46', subtopic: 'Inferencia', difficulty: 4,
-    stem: `${P_TRANSITO}\n\n46. A partir de las gráficas sobre la relación entre el número de vehículos y el número de muertes en accidentes de tránsito se puede inferir que, comparada con la población de los países de ingresos medios, la de los países de ingresos altos`,
+    stem: `46. A partir de las gráficas sobre la relación entre el número de vehículos y el número de muertes en accidentes de tránsito se puede inferir que, comparada con la población de los países de ingresos medios, la de los países de ingresos altos`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'tiene más vehículos por persona.' },
       { id: 'B', text: 'usa menos el vehículo particular.' },
@@ -675,7 +718,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-47', subtopic: 'Tipología textual', difficulty: 2,
-    stem: `${P_TRANSITO}\n\n47. A propósito del cuadro que presenta la información según la cual 3 de 4 de los fallecidos en accidentes de tránsito son del sexo masculino, se puede afirmar que las figuras que acompañan el texto`,
+    stem: `47. A propósito del cuadro que presenta la información según la cual 3 de 4 de los fallecidos en accidentes de tránsito son del sexo masculino, se puede afirmar que las figuras que acompañan el texto`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'ilustran la información presentada.' },
       { id: 'B', text: 'profundizan la información dada.' },
@@ -688,7 +732,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-48', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_TRANSITO}\n\n48. A partir de la información presentada, se puede afirmar que el autor de la infografía tiene como propósito`,
+    stem: `48. A partir de la información presentada, se puede afirmar que el autor de la infografía tiene como propósito`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'sensibilizar al espectador sobre los riesgos de morir en un accidente de tránsito.' },
       { id: 'B', text: 'incentivar al espectador a que use formas de movilidad alternas al automóvil.' },
@@ -701,7 +746,8 @@ const items: LCQ[] = [
   },
   {
     id: 'LC-2425-49', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_TRANSITO}\n\n49. De acuerdo con el contenido de la información presentada, ¿a cuál de los siguientes contextos se adecuaría mejor la infografía?`,
+    stem: `49. De acuerdo con el contenido de la información presentada, ¿a cuál de los siguientes contextos se adecuaría mejor la infografía?`,
+    readingPassage: P_TRANSITO,
     options: [
       { id: 'A', text: 'Una protesta ecológica en contra del uso de vehículos motorizados.' },
       { id: 'B', text: 'Una exposición sobre el transporte público como alternativa de movilidad.' },

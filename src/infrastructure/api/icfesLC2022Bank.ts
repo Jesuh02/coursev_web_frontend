@@ -66,7 +66,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   // ── TEXTO 1: El origen del mal (Tolstoi) ── Q01–Q03 ──────────────────────
   {
     id: 'LC-2022-01', subtopic: 'Tesis y argumentos', difficulty: 1,
-    stem: `${P_ORIGEN_MAL}\n\n1. De acuerdo con expresiones del texto anterior como "¡Qué intranquilidad siente uno!", "¡Cuántos perecemos víctimas del hambre!" y "¡Cuántos mueren así entre nosotros!", el narrador pretende principalmente:`,
+    stem: `1. De acuerdo con expresiones del texto anterior como "¡Qué intranquilidad siente uno!", "¡Cuántos perecemos víctimas del hambre!" y "¡Cuántos mueren así entre nosotros!", el narrador pretende principalmente:`,
+    readingPassage: P_ORIGEN_MAL,
     options: [
       { id: 'A', text: 'Alarmar a los interlocutores.' },
       { id: 'B', text: 'Despertar la ira de los interlocutores.' },
@@ -78,7 +79,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-02', subtopic: 'Cohesión', difficulty: 1,
-    stem: `${P_ORIGEN_MAL}\n\n2. Según el texto, la serpiente intervino luego de que lo hicieran:`,
+    stem: `2. Según el texto, la serpiente intervino luego de que lo hicieran:`,
+    readingPassage: P_ORIGEN_MAL,
     options: [
       { id: 'A', text: 'El cuervo y el palomo.' },
       { id: 'B', text: 'El cuervo y el ciervo.' },
@@ -90,7 +92,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-03', subtopic: 'Tipología textual', difficulty: 1,
-    stem: `${P_ORIGEN_MAL}\n\n3. De acuerdo con el texto anterior, los personajes de la historia son:`,
+    stem: `3. De acuerdo con el texto anterior, los personajes de la historia son:`,
+    readingPassage: P_ORIGEN_MAL,
     options: [
       { id: 'A', text: 'El ermitaño, la serpiente, los lobos y el árbol.' },
       { id: 'B', text: 'El ermitaño, el cuervo, la serpiente, el gavilán y el árbol.' },
@@ -103,7 +106,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   // ── TEXTO 2: Insectos a la carta (Infografía FAO) ── Q04–Q07 ──────────────
   {
     id: 'LC-2022-04', subtopic: 'Inferencia', difficulty: 2,
-    stem: `${P_INSECTOS}\n\n4. Los datos que se presentan en el texto se han tomado de:`,
+    stem: `4. Los datos que se presentan en el texto se han tomado de:`,
+    readingPassage: P_INSECTOS,
     options: [
       { id: 'A', text: 'Mario Chumpitazi.' },
       { id: 'B', text: 'La FAO.' },
@@ -115,7 +119,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-05', subtopic: 'Inferencia', difficulty: 2,
-    stem: `${P_INSECTOS}\n\n5. De acuerdo con el texto anterior, el ícono de sostenibilidad da a entender que la producción y el consumo de insectos:`,
+    stem: `5. De acuerdo con el texto anterior, el ícono de sostenibilidad da a entender que la producción y el consumo de insectos:`,
+    readingPassage: P_INSECTOS,
     options: [
       { id: 'A', text: 'Forman parte de un programa de seguridad alimentaria que proveerá los alimentos que se demandarán a nivel mundial.' },
       { id: 'B', text: 'Forman parte de un proceso de reciclaje exitoso: recolección, remanufacturación y circulación del producto para la venta.' },
@@ -127,7 +132,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-06', subtopic: 'Tipología textual', difficulty: 2,
-    stem: `${P_INSECTOS}\n\n6. Suponga que van a publicarse cuatro informes que tienen los títulos de las opciones de respuesta. ¿Dentro de cuál podría incluirse el texto anterior, de manera que el título resulte pertinente?`,
+    stem: `6. Suponga que van a publicarse cuatro informes que tienen los títulos de las opciones de respuesta. ¿Dentro de cuál podría incluirse el texto anterior, de manera que el título resulte pertinente?`,
+    readingPassage: P_INSECTOS,
     options: [
       { id: 'A', text: 'De la sobreexplotación a la gestión inteligente de los recursos naturales.' },
       { id: 'B', text: 'Saciedad y obesidad, hambruna y malnutrición: una paradoja global.' },
@@ -139,7 +145,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-07', subtopic: 'Cohesión', difficulty: 3,
-    stem: `${P_INSECTOS}\n\n7. Considere la siguiente información que no está en el texto anterior: "No se conocen casos de transmisión de enfermedades o parásitos a humanos derivados del consumo de insectos (siempre que los insectos hayan sido manipulados en las mismas condiciones de higiene que cualquier otro alimento)" [FAO, 2013]. ¿Con cuál de los apartados del texto "INSECTOS A LA CARTA" está relacionada la anterior información?`,
+    stem: `7. Considere la siguiente información que no está en el texto anterior: "No se conocen casos de transmisión de enfermedades o parásitos a humanos derivados del consumo de insectos (siempre que los insectos hayan sido manipulados en las mismas condiciones de higiene que cualquier otro alimento)" [FAO, 2013]. ¿Con cuál de los apartados del texto "INSECTOS A LA CARTA" está relacionada la anterior información?`,
+    readingPassage: P_INSECTOS,
     options: [
       { id: 'A', text: '«¿Cuántas especies de insectos podemos consumir?»' },
       { id: 'B', text: '«Producción de carne».' },
@@ -152,7 +159,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   // ── TEXTO 3: Monólogo de Hamlet (Shakespeare) ── Q08–Q11 ──────────────────
   {
     id: 'LC-2022-08', subtopic: 'Tesis y argumentos', difficulty: 2,
-    stem: `${P_HAMLET}\n\n8. De acuerdo con el texto anterior, ¿a qué conclusión llega el príncipe Hamlet en sus reflexiones?`,
+    stem: `8. De acuerdo con el texto anterior, ¿a qué conclusión llega el príncipe Hamlet en sus reflexiones?`,
+    readingPassage: P_HAMLET,
     options: [
       { id: 'A', text: 'Ante el dolor de la vida, es preferible el suicidio.' },
       { id: 'B', text: 'La incertidumbre nos impide actuar.' },
@@ -164,7 +172,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-09', subtopic: 'Tipología textual', difficulty: 2,
-    stem: `${P_HAMLET}\n\n9. ¿Cuál de las siguientes opciones describe el tema principal del texto anterior?`,
+    stem: `9. ¿Cuál de las siguientes opciones describe el tema principal del texto anterior?`,
+    readingPassage: P_HAMLET,
     options: [
       { id: 'A', text: 'El sentido de la vida.' },
       { id: 'B', text: 'La cobardía y el temor.' },
@@ -176,7 +185,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-10', subtopic: 'Tipología textual', difficulty: 3,
-    stem: `${P_HAMLET}\n\n10. ¿Cuál de los siguientes adjetivos describe mejor el texto anterior?`,
+    stem: `10. ¿Cuál de los siguientes adjetivos describe mejor el texto anterior?`,
+    readingPassage: P_HAMLET,
     options: [
       { id: 'A', text: 'Filosófico, porque argumenta a favor de la existencia de la vida después de la muerte.' },
       { id: 'B', text: 'Dramático, porque presenta el monólogo de un personaje en un contexto teatral.' },
@@ -188,7 +198,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-11', subtopic: 'Valoración argumentativa', difficulty: 4,
-    stem: `${P_HAMLET}\n\n11. A partir del texto anterior, ¿con cuál de las siguientes afirmaciones Hamlet NO estaría de acuerdo?`,
+    stem: `11. A partir del texto anterior, ¿con cuál de las siguientes afirmaciones Hamlet NO estaría de acuerdo?`,
+    readingPassage: P_HAMLET,
     options: [
       { id: 'A', text: 'No sabemos lo que hay después de la muerte.' },
       { id: 'B', text: 'La incertidumbre es parte de la existencia.' },
@@ -201,7 +212,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   // ── TEXTO 4: Filología y los Diálogos de Platón (Dennett) ── Q12–Q16 ──────
   {
     id: 'LC-2022-12', subtopic: 'Tipología textual', difficulty: 4,
-    stem: `${P_FILOLOGIA}\n\n12. Teniendo en cuenta la forma, el contenido y el estilo del texto anterior, se puede afirmar que este es:`,
+    stem: `12. Teniendo en cuenta la forma, el contenido y el estilo del texto anterior, se puede afirmar que este es:`,
+    readingPassage: P_FILOLOGIA,
     options: [
       { id: 'A', text: 'Un ensayo sobre el rol de los Diálogos en la historia de la filosofía.' },
       { id: 'B', text: 'Un estudio comparativo sobre el desarrollo de la filología y el darwinismo.' },
@@ -213,7 +225,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-13', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_FILOLOGIA}\n\n13. Según el segundo párrafo del texto anterior, ¿cuál de las siguientes palabras es un sinónimo de la palabra linajes?`,
+    stem: `13. Según el segundo párrafo del texto anterior, ¿cuál de las siguientes palabras es un sinónimo de la palabra linajes?`,
+    readingPassage: P_FILOLOGIA,
     options: [
       { id: 'A', text: 'Modelos.' },
       { id: 'B', text: 'Familias.' },
@@ -225,7 +238,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-14', subtopic: 'Cohesión', difficulty: 3,
-    stem: `${P_FILOLOGIA}\n\n14. El autor del texto anterior hace alusión a los Diálogos en el primer párrafo para referirse a:`,
+    stem: `14. El autor del texto anterior hace alusión a los Diálogos en el primer párrafo para referirse a:`,
+    readingPassage: P_FILOLOGIA,
     options: [
       { id: 'A', text: 'Las obras de Darwin y las teorías filosóficas de Platón.' },
       { id: 'B', text: 'Los textos de los estudiosos de Platón.' },
@@ -237,7 +251,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-15', subtopic: 'Valoración argumentativa', difficulty: 4,
-    stem: `${P_FILOLOGIA}\n\n15. Considere los siguientes enunciados del texto anterior:\n1. "En los tiempos de Darwin, los filólogos que dedicaban su vida profesional a recrear el origen de sus «testigos» habían tenido éxito al descubrir la totalidad de los linajes de copias de copias, y pudieron deducir muchos hechos curiosos acerca de las circunstancias históricas de su nacimiento, de su reproducción y, eventualmente, de su muerte."\n2. "Un grupo concreto de errores en los manuscritos, no corregidos y vueltos a copiar en todos los manuscritos descendientes de un particular linaje, se debía casi siempre al hecho de que el escriba que transcribía el dictado no pronunciaba el griego de la misma forma en que lo hacía el lector del texto y, en consecuencia, entendía incorrectamente un determinado fonema."\n¿Cuál de las siguientes opciones describe la relación entre 1 y 2?`,
+    stem: `15. Considere los siguientes enunciados del texto anterior:\n1. "En los tiempos de Darwin, los filólogos que dedicaban su vida profesional a recrear el origen de sus «testigos» habían tenido éxito al descubrir la totalidad de los linajes de copias de copias, y pudieron deducir muchos hechos curiosos acerca de las circunstancias históricas de su nacimiento, de su reproducción y, eventualmente, de su muerte."\n2. "Un grupo concreto de errores en los manuscritos, no corregidos y vueltos a copiar en todos los manuscritos descendientes de un particular linaje, se debía casi siempre al hecho de que el escriba que transcribía el dictado no pronunciaba el griego de la misma forma en que lo hacía el lector del texto y, en consecuencia, entendía incorrectamente un determinado fonema."\n¿Cuál de las siguientes opciones describe la relación entre 1 y 2?`,
+    readingPassage: P_FILOLOGIA,
     options: [
       { id: 'A', text: 'El primer enunciado es una razón a favor de lo dicho en el segundo.' },
       { id: 'B', text: 'El segundo enunciado es un ejemplo que explica lo dicho en el primero.' },
@@ -249,7 +264,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-16', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_FILOLOGIA}\n\n16. ¿Cuál de las siguientes opciones es la pregunta central a la que responde el texto anterior?`,
+    stem: `16. ¿Cuál de las siguientes opciones es la pregunta central a la que responde el texto anterior?`,
+    readingPassage: P_FILOLOGIA,
     options: [
       { id: 'A', text: '¿Cuál fue la influencia de la selección natural en campos como la filología griega?' },
       { id: 'B', text: '¿Por qué la existencia actual de los Diálogos de Platón puede considerarse milagrosa?' },
@@ -262,7 +278,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   // ── TEXTO 5: El arte de tener razón (Schopenhauer) ── Q17–Q20 ──────────────
   {
     id: 'LC-2022-17', subtopic: 'Tesis y argumentos', difficulty: 3,
-    stem: `${P_SCHOPENHAUER}\n\n17. ¿Cuál de los siguientes enunciados presenta el tema principal del texto anterior?`,
+    stem: `17. ¿Cuál de los siguientes enunciados presenta el tema principal del texto anterior?`,
+    readingPassage: P_SCHOPENHAUER,
     options: [
       { id: 'A', text: '"Uno puede, pues, tener razón objetiva en el asunto mismo y, sin embargo, carecer de esta a ojos de los presentes".' },
       { id: 'B', text: '"La dialéctica erística es el arte de discutir, y de discutir de tal modo que uno siempre lleve razón, es decir, per fas et nefas".' },
@@ -274,7 +291,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-18', subtopic: 'Inferencia', difficulty: 3,
-    stem: `${P_SCHOPENHAUER}\n\n18. De acuerdo con la frase «Pero a la vanidad innata se añaden en la mayoría la locuacidad y la innata mala fe», ¿cuál de las siguientes palabras es un antónimo de la palabra «locuacidad»?`,
+    stem: `18. De acuerdo con la frase «Pero a la vanidad innata se añaden en la mayoría la locuacidad y la innata mala fe», ¿cuál de las siguientes palabras es un antónimo de la palabra «locuacidad»?`,
+    readingPassage: P_SCHOPENHAUER,
     options: [
       { id: 'A', text: 'Ingenuidad.' },
       { id: 'B', text: 'Cordura.' },
@@ -286,7 +304,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-19', subtopic: 'Valoración argumentativa', difficulty: 4,
-    stem: `${P_SCHOPENHAUER}\n\n19. De acuerdo con los dos últimos párrafos del texto, el último párrafo presenta`,
+    stem: `19. De acuerdo con los dos últimos párrafos del texto, el último párrafo presenta`,
+    readingPassage: P_SCHOPENHAUER,
     options: [
       { id: 'A', text: 'un desarrollo de la idea del párrafo anterior, pues proporciona un nuevo argumento mediante el cual se justifica la idea de que la mala fe está siempre presente en las discusiones.' },
       { id: 'B', text: 'la antítesis de la idea del párrafo anterior, pues plantea una forma alternativa de entender la mala fe: esta no solo no es problemática en las discusiones, sino que de hecho es ventajosa para cada interlocutor.' },
@@ -298,7 +317,8 @@ const items: Omit<IcfesQuestion, 'area' | 'topic'>[] = [
   },
   {
     id: 'LC-2022-20', subtopic: 'Tesis y argumentos', difficulty: 4,
-    stem: `${P_SCHOPENHAUER}\n\n20. Según el último párrafo del texto anterior, es acertado afirmar que el autor`,
+    stem: `20. Según el último párrafo del texto anterior, es acertado afirmar que el autor`,
+    readingPassage: P_SCHOPENHAUER,
     options: [
       { id: 'A', text: 'incita al uso de la mala fe en los debates.' },
       { id: 'B', text: 'celebra la existencia de la dialéctica erística.' },

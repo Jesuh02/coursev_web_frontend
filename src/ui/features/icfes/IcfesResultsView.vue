@@ -123,6 +123,13 @@
                 </span>
                 <span class="rev-sub">{{ q.subtopic }}</span>
               </header>
+              <div v-if="q.readingPassage" class="rev-passage">
+                <header class="rev-passage-head">
+                  <span>📖</span>
+                  <span class="rev-passage-label">Texto de referencia</span>
+                </header>
+                <p class="rev-passage-text">{{ q.readingPassage }}</p>
+              </div>
               <p class="rev-stem">{{ q.stem }}</p>
               <ul class="rev-opts">
                 <li
@@ -453,6 +460,27 @@ const confetti = Array.from({ length: 50 }, (_, i) => {
   background: rgba(192,132,252,.1);
   border: 1px solid rgba(192,132,252,.25);
   padding: 3px 8px; border-radius: 999px;
+}
+.rev-passage {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(99,102,241,.10) 0%, rgba(139,92,246,.06) 100%);
+  border: 1px solid rgba(139,92,246,.28);
+  max-height: 38vh;
+  overflow-y: auto;
+}
+.rev-passage-head {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+}
+.rev-passage-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #C4B5FD;
+}
+.rev-passage-text {
+  font-size: 13px; line-height: 1.6; color: rgba(255,255,255,.88);
+  white-space: pre-line; margin: 0;
 }
 .rev-stem {
   margin: 0 0 10px;
