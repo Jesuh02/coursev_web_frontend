@@ -45,6 +45,12 @@ export interface IcfesQuestion {
   difficulty: 1 | 2 | 3 | 4 | 5
   stem: string
   context?: string
+  /**
+   * Texto de lectura compartido por varias preguntas del mismo grupo.
+   * Se muestra al estudiante por encima del enunciado cuando está presente
+   * (ej. lecturas tipo "RESPONDA LAS PREGUNTAS X A Y…").
+   */
+  readingPassage?: string | null
   options: IcfesOption[]
   images?: IcfesQuestionImage[]
   correct?: 'A' | 'B' | 'C' | 'D'   // el backend NO lo devuelve (seguridad)
@@ -83,6 +89,7 @@ export interface IcfesReviewOption {
 export interface IcfesQuestionReview {
   questionId: string
   stem: string
+  readingPassage?: string | null
   subtopic: string
   selected: 'A' | 'B' | 'C' | 'D' | null
   correct: 'A' | 'B' | 'C' | 'D' | null
@@ -143,6 +150,7 @@ interface ServerSession {
     subtopic: string | null
     difficulty: number
     stem: string
+    readingPassage?: string | null
     options: { id: 'A' | 'B' | 'C' | 'D'; text: string }[]
     images?: IcfesQuestionImage[]
     correct?: 'A' | 'B' | 'C' | 'D' | null
@@ -159,6 +167,7 @@ function normalizeQuestion(q: ServerSession['questions'][number], area: IcfesAre
     subtopic: q.subtopic ?? '',
     difficulty: diff,
     stem: q.stem,
+    readingPassage: q.readingPassage ?? null,
     options: q.options,
     images: q.images ?? [],
     correct: q.correct ?? undefined,

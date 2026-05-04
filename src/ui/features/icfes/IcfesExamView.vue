@@ -61,6 +61,19 @@
               </span>
             </div>
 
+            <!-- Lectura compartida (cuando varias preguntas comparten un texto) -->
+            <section
+              v-if="current.readingPassage"
+              class="q-passage"
+              aria-label="Texto de lectura para esta pregunta"
+            >
+              <header class="q-passage-head">
+                <span class="q-passage-ic">📖</span>
+                <span class="q-passage-title">Lectura</span>
+              </header>
+              <p class="q-passage-text">{{ current.readingPassage }}</p>
+            </section>
+
             <!-- Enunciado -->
             <p class="q-stem">{{ current.stem }}</p>
 
@@ -497,6 +510,30 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   display: block; max-width: 100%; height: auto;
   margin: 0 0 14px; border-radius: 12px;
   border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Lectura compartida por varias preguntas */
+.q-passage {
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(99,102,241,.10) 0%, rgba(139,92,246,.06) 100%);
+  border: 1px solid rgba(139,92,246,.28);
+  max-height: 42vh;
+  overflow-y: auto;
+}
+.q-passage-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.q-passage-ic { font-size: 16px; }
+.q-passage-title {
+  font-size: 11px; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #C4B5FD;
+}
+.q-passage-text {
+  font-size: 14.5px; line-height: 1.6; color: rgba(255,255,255,.92);
+  white-space: pre-line; margin: 0;
 }
 
 /* Options */
