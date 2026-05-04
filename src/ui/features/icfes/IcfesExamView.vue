@@ -136,6 +136,25 @@
                 <p v-else class="fb-text fb-muted">
                   No hay explicación disponible para esta pregunta.
                 </p>
+                <div class="fb-actions">
+                  <button
+                    v-if="currentIndex < session.questions.length - 1"
+                    class="nav-btn primary fb-next-btn"
+                    @click="next"
+                  >
+                    Siguiente pregunta
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
+                  <button
+                    v-else
+                    class="nav-btn finish fb-next-btn"
+                    :disabled="submitting"
+                    @click="finish"
+                  >
+                    <span v-if="!submitting">Finalizar simulacro</span>
+                    <span v-else class="dot-loader"><span/><span/><span/></span>
+                  </button>
+                </div>
               </div>
             </Transition>
           </div>
@@ -657,6 +676,13 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   font-size: 13px; line-height: 1.55; color: #E5E7EB;
 }
 .fb-text.fb-muted { color: #9CA3AF; font-style: italic; }
+.fb-actions {
+  margin-top: 12px;
+}
+.fb-next-btn {
+  width: 100%;
+  justify-content: center;
+}
 
 .fb-enter-from { opacity: 0; transform: translateY(-6px); }
 .fb-leave-to   { opacity: 0; transform: translateY(-6px); }
