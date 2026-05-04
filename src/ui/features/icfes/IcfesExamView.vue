@@ -120,6 +120,7 @@
             <Transition name="fb">
               <div
                 v-if="revealed"
+                ref="feedbackRef"
                 class="feedback"
                 :class="isAnswerCorrect ? 'fb-ok' : 'fb-err'"
               >
@@ -220,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   icfesAdapter,
@@ -246,6 +247,7 @@ const currentIndex = ref(0)
 const slideDir = ref<'slide-l' | 'slide-r'>('slide-l')
 const showExit = ref(false)
 const submitting = ref(false)
+const feedbackRef = ref<HTMLElement | null>(null)
 
 const current = computed<IcfesQuestion>(() => session.value!.questions[currentIndex.value])
 const selected = computed(() => answers.value[currentIndex.value]?.selected ?? null)
@@ -294,6 +296,11 @@ function selectOption(id: 'A'|'B'|'C'|'D') {
   qStart = now
   answers.value[currentIndex.value] = row
   revealedFlags.value[currentIndex.value] = true
+
+  // Keep the in-card "Siguiente pregunta" button visible on mobile.
+  void nextTick(() => {
+    feedbackRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  })
 }
 
 function next() {
@@ -643,6 +650,7 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   padding: 14px 14px 12px;
   border-radius: 14px;
   border: 1.5px solid;
+  scroll-margin-bottom: 120px;
 }
 .feedback.fb-ok {
   background: linear-gradient(135deg, rgba(48,209,88,.14), rgba(16,185,129,.06));
@@ -807,7 +815,7 @@ onBeforeUnmount(() => { if (timerId != null) window.clearInterval(timerId) })
   .exam-head { padding: 8px 10px; gap: 8px; }
   .icon-btn { width: 34px; height: 34px; }
   .timer { padding: 6px 10px; font-size: 12px; }
-  .exam-body { padding: 14px 12px 24px; }
+  .exam-body { padding: 14px 12px calc(120px + env(safe-area-inset-bottom)); }
   .q-card { padding: 14px 12px 12px; border-radius: 16px; }
   .q-stem { font-size: 15px; }
   .option { padding: 12px 12px; }
