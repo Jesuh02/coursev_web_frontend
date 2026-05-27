@@ -87,6 +87,15 @@ const routes: RouteRecordRaw[] = [
   { path: '/course-selection', name: 'courseSelection', component: () => import('@/ui/features/reinforcement/CourseSelectionView.vue'), meta: { hideNav: true } },
   { path: '/subject-selection/:courseId', name: 'subjectSelection', component: () => import('@/ui/features/reinforcement/SubjectSelectionView.vue'), props: true, meta: { hideNav: true } },
 
+  // Learning (AI comic & video)
+  { path: '/learning', name: 'learningHome', component: () => import('@/ui/features/learning/LearningHomeView.vue'), meta: { hideNav: true } },
+  { path: '/learning/course-selection', name: 'learningCourseSelection', component: () => import('@/ui/features/learning/LearningCourseSelectionView.vue'), meta: { hideNav: true } },
+  { path: '/learning/course/:courseId/topic-selection', name: 'learningTopicSelection', component: () => import('@/ui/features/learning/LearningTopicSelectionView.vue'), props: true, meta: { hideNav: true } },
+  { path: '/learning/course/:courseId/topic/:topicId/task-selection', name: 'learningTaskSelection', component: () => import('@/ui/features/learning/LearningTaskSelectionView.vue'), props: true, meta: { hideNav: true } },
+  { path: '/learning/course/:courseId/topic/:topicId/task/:taskId/mode', name: 'learningMode', component: () => import('@/ui/features/learning/LearningModeView.vue'), props: true, meta: { hideNav: true } },
+  { path: '/learning/course/:courseId/topic/:topicId/task/:taskId/comic', name: 'learningComic', component: () => import('@/ui/features/learning/LearningComicView.vue'), props: true, meta: { hideNav: true } },
+  { path: '/learning/course/:courseId/topic/:topicId/task/:taskId/video', name: 'learningVideo', component: () => import('@/ui/features/learning/LearningVideoView.vue'), props: true, meta: { hideNav: true } },
+
   // Admin
   { path: '/admin', name: 'adminDashboard', component: () => import('@/ui/features/admin/AdminDashboardView.vue') },
   { path: '/admin/database', name: 'databaseQuery', component: () => import('@/ui/features/admin/DatabaseQueryView.vue'), meta: { hideNav: true } },

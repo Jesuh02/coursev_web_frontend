@@ -36,6 +36,17 @@
               <span class="menu-label">LLM Refuerzo</span>
             </button>
 
+            <!-- Aprendizaje: cómic + video con IA, visible para todos -->
+            <button class="menu-item" @click="navigate('/learning')">
+              <span class="menu-icon icon-pink">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M4 4h12a2 2 0 0 1 2 2v14l-4-3-4 3-4-3-4 3V6a2 2 0 0 1 2-2z"/>
+                  <path d="M8 9h6M8 13h4"/>
+                </svg>
+              </span>
+              <span class="menu-label">Aprendizaje</span>
+            </button>
+
             <!-- LLM Tareas: solo rol 2 (docente) y rol 3 (admin) -->
             <button v-if="isAdminOrDocente" class="menu-item" @click="navigate('/chatbot')">
               <span class="menu-icon icon-orange">
@@ -367,6 +378,12 @@ function goToMyProfile() {
 .icon-green {
   background: linear-gradient(145deg, #34d399, #047857);
   box-shadow: 0 4px 14px rgba(52, 211, 153, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.icon-pink {
+  background: linear-gradient(145deg, #f472b6, #be185d);
+  box-shadow: 0 4px 14px rgba(244, 114, 182, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
