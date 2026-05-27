@@ -49,7 +49,8 @@
           @error="videoError = true"
         />
         <div v-else class="vv-no-video">
-          <p class="al-sub">No se pudo reproducir el video. Intenta regenerar.</p>
+          <p class="al-sub">No se pudo reproducir el video en el navegador.</p>
+          <a v-if="result?.videoUrl" :href="result.videoUrl" target="_blank" rel="noopener noreferrer" class="al-cta al-cta--accent" style="margin-top:14px; display:inline-block;">Abrir video ↗</a>
         </div>
       </div>
       <div class="vv-info">
