@@ -31,11 +31,13 @@ export interface VideoSlide {
 
 export interface VideoLearningResult {
   jobId?: string
+  status?: 'processing' | 'completed' | 'error'
   title: string
   videoUrl: string
   posterUrl?: string
   durationSeconds?: number
   slides?: VideoSlide[]
+  error?: string
 }
 
 export interface LearningContext {
@@ -50,7 +52,11 @@ export const learningAdapter = {
   },
 
   async generateVideo(ctx: LearningContext): Promise<VideoLearningResult> {
-    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 600_000)
+    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 120_000)
+  },
+
+  async pollVideoStatus(jobId: string): Promise<VideoLearningResult> {
+    return api.get<VideoLearningResult>(`/learning/video/status/${jobId}`)
   },
 
   async regeneratePanel(jobId: string, panelIndex: number): Promise<ComicPanel> {

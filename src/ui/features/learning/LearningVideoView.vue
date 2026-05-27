@@ -111,16 +111,40 @@ async function generate() {
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
     })
-    result.value = data
-    status.value = 'ready'
-    await nextTick()
-    runReady()
+    if (data.status === 'processing' && data.jobId) {
+      await pollUntilReady(data.jobId)
+    } else {
+      result.value = data
+      status.value = 'ready'
+      await nextTick()
+      runReady()
+    }
   } catch (e: unknown) {
     errorMsg.value = e instanceof Error ? e.message : 'Ocurrió un error al generar el video.'
     status.value = 'error'
   } finally {
     isGenerating.value = false
   }
+}
+
+async function pollUntilReady(jobId: string) {
+  const maxAttempts = 70 // ~5.8 min at 5 s intervals
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 5_000))
+    const job = await learningAdapter.pollVideoStatus(jobId)
+    if (job.status === 'completed') {
+      result.value = job
+      status.value = 'ready'
+      await nextTick()
+      runReady()
+      return
+    }
+    if (job.status === 'error') {
+      throw new Error(job.error || 'Error generando el video.')
+    }
+    // still 'processing' — keep polling
+  }
+  throw new Error('Tiempo de espera agotado esperando el video.')
 }
 
 function startLoading() {
