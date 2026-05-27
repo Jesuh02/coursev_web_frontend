@@ -24,9 +24,16 @@
         </div>
       </section>
 
-      <!-- Animated mascots -->
+      <!-- Hero video -->
       <section class="lh-scene" ref="sceneEl">
-        <AnimalsScene />
+        <video
+          class="lh-video"
+          src="https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/Ni%C3%B1o_corriendo_hacia_templo_cono%E2%80%A6_202605271506.mp4"
+          autoplay
+          loop
+          muted
+          playsinline
+        />
       </section>
 
       <!-- Feature trio -->
@@ -72,7 +79,6 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import AnimalsScene from './components/AnimalsScene.vue'
 
 const router = useRouter()
 
@@ -275,9 +281,19 @@ onMounted(() => {
   border-radius: 10px;
 }
 
-/* ── Scene ── */
+/* ── Scene / video ── */
 .lh-scene {
   margin: 32px 0 44px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(29, 29, 31, 0.12);
+}
+.lh-video {
+  width: 100%;
+  display: block;
+  border-radius: 24px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 /* ── Feature cards ── */
