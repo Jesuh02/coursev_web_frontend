@@ -12,8 +12,15 @@
   --apple-ink: #1d1d1f;
   --apple-midnight: #000000;
 
-  /* App-tinted accents (replacing Signal Blue with the app palette) */
-  --apple-accent-cyan: #00B8D4;        /* slightly deeper than feed cyan for AA contrast on white */
+  /* Apple primary accents — design.md aligned */
+  --apple-signal-blue: #0071e3;        /* primary CTA only */
+  --apple-glaucus-blue: #0066cc;       /* interactive text / ghost accents */
+  --apple-accent: var(--apple-signal-blue);
+
+  /* Decorative-only accents (illustrations, soft chip backgrounds).
+     Do NOT use these for interactive state, active step indicators,
+     focus rings, or CTAs — design.md mandates a single chromatic accent. */
+  --apple-accent-cyan: #00B8D4;
   --apple-accent-cyan-soft: #E0F7FB;
   --apple-accent-purple: #7C3AED;
   --apple-accent-purple-soft: #EDE9FE;
@@ -56,7 +63,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--apple-accent-purple);
+  color: var(--apple-graphite);
 }
 
 .al-display {
@@ -107,14 +114,24 @@
 }
 .al-cta:hover { transform: scale(1.02); }
 .al-cta:active { transform: scale(.98); }
-.al-cta--accent {
-  background: linear-gradient(135deg, var(--apple-accent-cyan), var(--apple-accent-purple));
+.al-cta {
+  padding: 12px 22px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.016em;
 }
+.al-cta--accent {
+  background: var(--apple-signal-blue);
+  color: var(--apple-snow);
+}
+.al-cta--accent:hover { background: #0077ed; transform: none; opacity: .92; }
 .al-cta--ghost {
   background: transparent;
-  color: var(--apple-ink);
-  border: 1px solid var(--apple-silver);
+  color: var(--apple-glaucus-blue);
+  border: none;
+  padding: 12px 4px;
 }
+.al-cta--ghost:hover { opacity: .75; transform: none; }
 
 .al-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -133,7 +150,7 @@
 .al-row:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(29,29,31,0.07);
-  border-color: rgba(124,58,237,0.18);
+  border-color: rgba(0,113,227,0.20);
 }
 .al-row:active { transform: scale(.99); }
 
@@ -165,7 +182,7 @@
   font-size: 24px; color: var(--apple-silver);
   flex-shrink: 0; transition: transform .2s, color .2s;
 }
-.al-row:hover .al-row__chev { color: var(--apple-accent-purple); transform: translateX(4px); }
+.al-row:hover .al-row__chev { color: var(--apple-signal-blue); transform: translateX(4px); }
 
 .al-search {
   display: flex; align-items: center; gap: 10px;
@@ -177,8 +194,8 @@
   transition: border-color .2s, box-shadow .2s;
 }
 .al-search:focus-within {
-  border-color: var(--apple-accent-purple);
-  box-shadow: 0 0 0 4px rgba(124,58,237,0.10);
+  border-color: var(--apple-signal-blue);
+  box-shadow: 0 0 0 4px rgba(0,113,227,0.10);
 }
 .al-search input {
   flex: 1; border: none; outline: none; background: transparent;

@@ -176,16 +176,15 @@ onMounted(generate)
 }
 .orb {
   position: absolute;
-  width: 96px; height: 96px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #B2EBF2, #00B8D4 60%, #7C3AED);
-  box-shadow: 0 16px 48px rgba(0,184,212,0.35);
+  width: 88px; height: 88px; border-radius: 50%;
+  background: #1d1d1f;
 }
 .ring {
   position: absolute;
-  width: 96px; height: 96px; border-radius: 50%;
-  border: 2px solid rgba(0,184,212,0.45);
+  width: 88px; height: 88px; border-radius: 50%;
+  border: 1px solid rgba(29,29,31,0.20);
 }
-.ring--2 { border-color: rgba(124,58,237,0.45); }
+.ring--2 { border-color: rgba(29,29,31,0.12); }
 
 .gen-steps {
   list-style: none; padding: 0; margin: 18px 0 0;
@@ -198,16 +197,16 @@ onMounted(generate)
 }
 .gen-steps li::before {
   content: '';
-  position: absolute; left: 0; top: 6px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--apple-accent-cyan);
+  position: absolute; left: 0; top: 7px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #d6d6d6;
 }
 
 .player-wrap {
   border-radius: var(--apple-r-card);
   overflow: hidden;
   background: #000;
-  box-shadow: 0 24px 64px rgba(29,29,31,0.14);
+  box-shadow: 0 12px 32px rgba(29,29,31,0.10);
 }
 .player {
   width: 100%;

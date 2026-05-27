@@ -135,21 +135,24 @@ function select(course: Course) {
 }
 .step-dot {
   display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
-  font-size: 13px; font-weight: 700; flex-shrink: 0;
-  background: #E5E5EA; color: #8E8E93;
-  transition: background 0.3s, color 0.3s;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-family: var(--apple-font-display);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+  background: #f5f5f7; color: #707070;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 .step-dot--active {
-  background: #7C3AED; color: #fff;
-  box-shadow: 0 0 0 4px rgba(124,58,237,0.18);
+  background: #1d1d1f; color: #ffffff;
 }
 .step-dot--done {
-  background: #00B8D4; color: #fff;
+  background: #ffffff; color: #1d1d1f;
+  box-shadow: inset 0 0 0 1px #d6d6d6;
 }
 .step-line {
-  flex: 1; height: 3px; border-radius: 2px;
-  background: #E5E5EA; margin: 0 4px;
+  flex: 1; height: 2px; border-radius: 2px;
+  background: #f5f5f7; margin: 0 6px;
 }
-.step-line--done { background: #00B8D4; }
+.step-line--done { background: #d6d6d6; }
 </style>

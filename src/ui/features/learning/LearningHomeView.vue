@@ -1,54 +1,64 @@
 <template>
-  <div class="al-root learning-home">
+  <div class="lh-root">
     <TopBar title="Aprendizaje" @back="$router.back()" />
 
-    <div class="al-shell">
+    <div class="lh-shell">
       <!-- Hero -->
-      <section class="hero" ref="heroEl">
-        <p class="al-eyebrow">Aprendizaje · IA</p>
-        <h1 class="al-display hero-title">
+      <section class="lh-hero" ref="heroEl">
+        <p class="lh-eyebrow">Aprendizaje · IA</p>
+        <h1 class="lh-display">
           Aprende con cómics<br />
           y videos hechos por IA.
         </h1>
-        <p class="al-sub hero-sub">
+        <p class="lh-sub">
           Convertimos los temas y tareas de tu curso en historias visuales,
           a tu ritmo, con la estética de un producto premium.
         </p>
 
-        <div class="hero-actions" ref="ctaEl">
-          <button class="al-cta al-cta--accent" @click="start">
+        <div class="lh-actions" ref="ctaEl">
+          <button class="lh-btn lh-btn--primary" @click="start">
             <span>Comenzar</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
-          <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Más tarde</button>
+          <button class="lh-btn lh-btn--ghost" @click="$router.push('/video')">Más tarde</button>
         </div>
       </section>
 
       <!-- Animated mascots -->
-      <section class="scene-wrap" ref="sceneEl">
+      <section class="lh-scene" ref="sceneEl">
         <AnimalsScene />
       </section>
 
       <!-- Feature trio -->
-      <section class="features">
-        <div v-for="(f, i) in features" :key="f.title" class="feature al-card" :ref="el => setFeatureRef(el, i)">
-          <div class="feature__icon" :style="{ background: f.bg, color: f.fg }">
+      <section class="lh-features">
+        <div
+          v-for="(f, i) in features"
+          :key="f.title"
+          class="lh-feature"
+          :ref="el => setFeatureRef(el, i)"
+        >
+          <div class="lh-feature__icon" :style="{ background: f.bg, color: f.fg }">
             <span v-html="f.icon" />
           </div>
-          <h3 class="feature__title">{{ f.title }}</h3>
-          <p class="feature__body">{{ f.body }}</p>
+          <h3 class="lh-feature__title">{{ f.title }}</h3>
+          <p class="lh-feature__body">{{ f.body }}</p>
         </div>
       </section>
 
       <!-- How it works -->
-      <section class="steps">
-        <h2 class="al-display steps__title">Tres pasos. Cero fricción.</h2>
-        <ol class="steps__list">
-          <li v-for="(s, i) in steps" :key="s.title" :ref="el => setStepRef(el, i)">
-            <span class="step__num">{{ String(i + 1).padStart(2, '0') }}</span>
-            <div>
-              <h4>{{ s.title }}</h4>
-              <p>{{ s.body }}</p>
+      <section class="lh-steps">
+        <h2 class="lh-section-heading">Tres pasos. Cero fricción.</h2>
+        <ol class="lh-steps__list">
+          <li
+            v-for="(s, i) in steps"
+            :key="s.title"
+            class="lh-step"
+            :ref="el => setStepRef(el, i)"
+          >
+            <span class="lh-step__num">{{ String(i + 1).padStart(2, '0') }}</span>
+            <div class="lh-step__content">
+              <h4 class="lh-step__title">{{ s.title }}</h4>
+              <p class="lh-step__body">{{ s.body }}</p>
             </div>
           </li>
         </ol>
@@ -108,50 +118,47 @@ function start() {
 
 onMounted(() => {
   // Hero entrance — staggered
-  const heroChildren = heroEl.value ? Array.from(heroEl.value.querySelectorAll<HTMLElement>('.al-eyebrow, .hero-title, .hero-sub, .hero-actions')) : []
+  const heroChildren = heroEl.value
+    ? Array.from(heroEl.value.querySelectorAll<HTMLElement>('.lh-eyebrow, .lh-display, .lh-sub, .lh-actions'))
+    : []
   if (heroChildren.length) {
     animate(heroChildren, {
       opacity: [0, 1],
-      translateY: [24, 0],
+      translateY: [20, 0],
       duration: 700,
-      delay: utils.stagger(110),
+      delay: utils.stagger(100),
       ease: 'outCubic',
     })
   }
   if (sceneEl.value) {
-    animate(sceneEl.value, { opacity: [0, 1], scale: [0.96, 1], duration: 900, delay: 250, ease: 'outCubic' })
+    animate(sceneEl.value, { opacity: [0, 1], scale: [0.97, 1], duration: 900, delay: 200, ease: 'outCubic' })
   }
   if (featureRefs.length) {
     animate(featureRefs, {
       opacity: [0, 1],
-      translateY: [22, 0],
+      translateY: [18, 0],
       duration: 600,
-      delay: utils.stagger(90, { start: 500 }),
+      delay: utils.stagger(80, { start: 450 }),
       ease: 'outCubic',
     })
   }
   if (stepRefs.length) {
     animate(stepRefs, {
       opacity: [0, 1],
-      translateX: [-20, 0],
-      duration: 600,
-      delay: utils.stagger(110, { start: 800 }),
+      translateX: [-16, 0],
+      duration: 550,
+      delay: utils.stagger(100, { start: 750 }),
       ease: 'outCubic',
     })
   }
 
-  // Subtle CTA pulse
+  // Subtle CTA float
   if (ctaEl.value) {
-    const primary = ctaEl.value.querySelector<HTMLElement>('.al-cta--accent')
+    const primary = ctaEl.value.querySelector<HTMLElement>('.lh-btn--primary')
     if (primary) {
       animate(primary, {
-        boxShadow: [
-          '0 0 0 0 rgba(124, 58, 237, 0.0)',
-          '0 0 0 14px rgba(124, 58, 237, 0.0)',
-          '0 0 0 0 rgba(124, 58, 237, 0.0)',
-        ],
-        translateY: [0, -2, 0],
-        duration: 2400,
+        translateY: [0, -3, 0],
+        duration: 3200,
         loop: true,
         ease: 'inOutSine',
       })
@@ -161,81 +168,226 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/apple-tokens.css';
+/* ─────────────────────────────────────────────
+   Apple (España) · LearningHomeView
+   Signal Blue = #0071e3  ·  Ink = #1d1d1f
+   Snow = #fff  ·  Cloud = #f5f5f7
+   Graphite = #707070  ·  Silver = #d6d6d6
+───────────────────────────────────────────── */
 
-.learning-home { padding-top: 0; }
-
-.hero {
-  padding: 28px 4px 8px;
+/* ── Root & shell ── */
+.lh-root {
+  min-height: 100dvh;
+  background: #fbfbfd;
+  color: #1d1d1f;
+  font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
 }
-.hero-title { max-width: 520px; }
-.hero-sub { max-width: 520px; margin-top: 8px; }
-.hero-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
 
-.scene-wrap { margin: 28px 0 36px; }
+.lh-shell {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 22px 100px;
+}
 
-.features {
+/* ── Typography helpers ── */
+.lh-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #707070;
+  margin: 0 0 12px;
+}
+
+.lh-display {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.003em;
+  color: #1d1d1f;
+  margin: 0 0 14px;
+}
+
+.lh-sub {
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.016em;
+  color: #707070;
+  margin: 0;
+  max-width: 460px;
+}
+
+.lh-section-heading {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.014em;
+  color: #1d1d1f;
+  margin: 0 0 20px;
+}
+
+/* ── Hero ── */
+.lh-hero {
+  padding: 32px 0 8px;
+}
+
+.lh-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ── */
+.lh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.016em;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.lh-btn:hover  { opacity: 0.82; }
+.lh-btn:active { transform: scale(0.97); }
+
+.lh-btn--primary {
+  background: #0071e3;
+  color: #ffffff;
+  padding: 12px 22px;
+  border-radius: 980px;
+}
+
+.lh-btn--ghost {
+  background: transparent;
+  color: #0066cc;
+  padding: 12px 2px;
+  border-radius: 10px;
+}
+
+/* ── Scene ── */
+.lh-scene {
+  margin: 32px 0 44px;
+}
+
+/* ── Feature cards ── */
+.lh-features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 12px;
+  margin-bottom: 52px;
+}
+
+.lh-feature {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 22px 20px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lh-feature:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(29, 29, 31, 0.09), 0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+
+.lh-feature__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+.lh-feature__title {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  color: #1d1d1f;
+  margin: 0 0 6px;
+}
+
+.lh-feature__body {
+  font-size: 13px;
+  line-height: 1.52;
+  letter-spacing: -0.006em;
+  color: #707070;
+  margin: 0;
+}
+
+/* ── Steps ── */
+.lh-steps {
   margin-bottom: 40px;
 }
-.feature { padding: 22px; }
-.feature__icon {
-  width: 48px; height: 48px;
-  border-radius: 14px;
-  display: grid; place-items: center;
-  font-size: 22px;
-  margin-bottom: 14px;
-}
-.feature__title {
-  font-family: var(--apple-font-display);
-  font-size: 20px; font-weight: 600;
-  letter-spacing: -0.01em;
-  margin: 0 0 6px;
-  color: var(--apple-ink);
-}
-.feature__body {
-  font-size: 14px; line-height: 1.5;
-  color: var(--apple-graphite); margin: 0;
-}
 
-.steps__title {
-  font-size: 32px;
-  margin-bottom: 18px;
-}
-.steps__list {
-  list-style: none; padding: 0; margin: 0;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.steps__list li {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 18px 20px;
-  background: var(--apple-snow);
-  border-radius: 22px;
-  border: 1px solid rgba(0,0,0,0.04);
-}
-.step__num {
-  font-family: var(--apple-font-display);
-  font-size: 14px; font-weight: 700;
-  color: var(--apple-accent-purple);
-  letter-spacing: 0.08em;
-  min-width: 28px; padding-top: 2px;
-}
-.steps__list h4 {
-  margin: 0 0 4px;
-  font-family: var(--apple-font-display);
-  font-size: 17px; font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--apple-ink);
-}
-.steps__list p {
+.lh-steps__list {
+  list-style: none;
+  padding: 0;
   margin: 0;
-  font-size: 14px; color: var(--apple-graphite); line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
+.lh-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px;
+  background: #f5f5f7;
+  border-radius: 22px;
+}
+
+.lh-step__num {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0071e3;
+  min-width: 26px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.lh-step__title {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  color: #1d1d1f;
+  margin: 0 0 4px;
+}
+
+.lh-step__body {
+  font-size: 13px;
+  line-height: 1.52;
+  letter-spacing: -0.006em;
+  color: #707070;
+  margin: 0;
+}
+
+/* ── Responsive ── */
 @media (max-width: 480px) {
-  .al-display { font-size: 34px; }
-  .steps__title { font-size: 26px; }
+  .lh-display         { font-size: 34px; }
+  .lh-section-heading { font-size: 24px; }
+  .lh-sub             { font-size: 15px; }
+  .lh-features        { grid-template-columns: 1fr 1fr; }
+  .lh-btn             { font-size: 16px; }
 }
 </style>

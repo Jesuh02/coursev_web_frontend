@@ -165,8 +165,8 @@ onMounted(generate)
   margin-bottom: 16px;
 }
 .gen-spinner span {
-  width: 14px; height: 14px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--apple-accent-cyan), var(--apple-accent-purple));
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #1d1d1f;
 }
 .gen-steps {
   list-style: none; padding: 0; margin: 18px 0 0;
@@ -181,9 +181,9 @@ onMounted(generate)
 }
 .gen-steps li::before {
   content: '';
-  position: absolute; left: 0; top: 6px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--apple-accent-purple);
+  position: absolute; left: 0; top: 7px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #d6d6d6;
 }
 
 .panels {
@@ -197,16 +197,16 @@ onMounted(generate)
   position: relative;
   background: var(--apple-snow);
   border-radius: var(--apple-r-card);
-  padding: 20px;
-  border: 1px solid rgba(0,0,0,0.05);
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   overflow: hidden;
 }
 .panel-num {
-  position: absolute; top: 14px; right: 16px;
+  position: absolute; top: 16px; right: 18px;
   font-family: var(--apple-font-display);
-  font-size: 13px; font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--apple-accent-purple);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--apple-graphite);
 }
 .panel-image {
   width: 100%; aspect-ratio: 4 / 3;

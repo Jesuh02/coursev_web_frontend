@@ -10,9 +10,11 @@
       </header>
 
       <div class="modes">
-        <button class="mode-card mode-card--comic" ref="comicCardEl" @click="go('comic')">
+        <button class="mode-card" ref="comicCardEl" @click="go('comic')">
           <div class="mode-icon-row">
-            <div class="mode-icon" :style="{ background: '#EDE9FE', color: '#7C3AED' }">📖</div>
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7v14H4z"/><path d="M13 5h7v14h-7z"/><path d="M4 12h7M13 12h7"/></svg>
+            </div>
             <span class="mode-tag">Imágenes</span>
           </div>
           <h2 class="mode-title">Cómic ilustrado</h2>
@@ -22,16 +24,18 @@
           </p>
           <span class="mode-cta">
             Crear cómic
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6" /></svg>
           </span>
           <div class="mode-deco mode-deco--comic" aria-hidden="true">
             <span class="panel p1" /><span class="panel p2" /><span class="panel p3" /><span class="panel p4" />
           </div>
         </button>
 
-        <button class="mode-card mode-card--video" ref="videoCardEl" @click="go('video')">
+        <button class="mode-card" ref="videoCardEl" @click="go('video')">
           <div class="mode-icon-row">
-            <div class="mode-icon" :style="{ background: '#E0F7FB', color: '#00838F' }">🎬</div>
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="15" height="14" rx="2"/><path d="M18 9l4-2v10l-4-2z"/></svg>
+            </div>
             <span class="mode-tag">Video</span>
           </div>
           <h2 class="mode-title">Video corto narrado</h2>
@@ -41,7 +45,7 @@
           </p>
           <span class="mode-cta">
             Crear video
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6" /></svg>
           </span>
           <div class="mode-deco mode-deco--video" aria-hidden="true">
             <div class="play-orb" />
@@ -86,13 +90,13 @@ onMounted(() => {
     })
   }
 
-  // Floating panel deco
+  // Subtle floating decoration
   const panels = comicCardEl.value?.querySelectorAll<HTMLElement>('.panel')
   if (panels?.length) {
     animate(Array.from(panels), {
-      translateY: [-4, 6, -4],
-      duration: 3200,
-      delay: utils.stagger(180),
+      translateY: [-2, 3, -2],
+      duration: 3600,
+      delay: utils.stagger(200),
       loop: true,
       ease: 'inOutSine',
     })
@@ -100,9 +104,8 @@ onMounted(() => {
   const orb = videoCardEl.value?.querySelector<HTMLElement>('.play-orb')
   if (orb) {
     animate(orb, {
-      scale: [1, 1.08, 1],
-      boxShadow: ['0 0 0 0 rgba(0,184,212,0.45)', '0 0 0 18px rgba(0,184,212,0)', '0 0 0 0 rgba(0,184,212,0)'],
-      duration: 2400, loop: true, ease: 'inOutSine',
+      scale: [1, 1.04, 1],
+      duration: 2800, loop: true, ease: 'inOutSine',
     })
   }
 })
@@ -116,89 +119,95 @@ onMounted(() => {
 .modes {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 @media (min-width: 720px) { .modes { grid-template-columns: 1fr 1fr; } }
 
 .mode-card {
   position: relative;
   text-align: left;
-  background: var(--apple-snow);
-  border: 1px solid rgba(0,0,0,0.05);
-  border-radius: var(--apple-r-card);
+  background: #ffffff;
+  border: none;
+  border-radius: 28px;
   padding: 28px;
   cursor: pointer;
   overflow: hidden;
-  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s, border-color .25s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform .25s cubic-bezier(.22,1,.36,1),
+              box-shadow .25s cubic-bezier(.22,1,.36,1);
 }
 .mode-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 22px 48px rgba(29,29,31,0.10);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(29,29,31,0.08);
 }
-.mode-card--comic:hover { border-color: rgba(124,58,237,0.25); }
-.mode-card--video:hover { border-color: rgba(0,184,212,0.25); }
 
-.mode-icon-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.mode-icon-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .mode-icon {
-  width: 44px; height: 44px;
-  border-radius: 14px;
+  width: 40px; height: 40px;
+  border-radius: 12px;
   display: grid; place-items: center;
-  font-size: 22px;
+  background: #f5f5f7;
+  color: #1d1d1f;
 }
 .mode-tag {
+  font-family: 'SF Pro Text', system-ui, sans-serif;
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--apple-graphite);
+  color: #707070;
 }
 
 .mode-title {
-  font-family: var(--apple-font-display);
-  font-size: 26px; font-weight: 700;
-  letter-spacing: -0.005em;
-  color: var(--apple-ink);
+  font-family: 'SF Pro Display', system-ui, sans-serif;
+  font-size: 24px; font-weight: 600;
+  letter-spacing: -0.009em;
+  color: #1d1d1f;
   margin: 0 0 8px;
 }
 .mode-body {
   font-size: 15px; line-height: 1.5;
-  color: var(--apple-graphite);
+  letter-spacing: -0.012em;
+  color: #707070;
   margin: 0 0 22px;
   max-width: 380px;
 }
 .mode-cta {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
   font-size: 15px; font-weight: 600;
-  color: var(--apple-accent-purple);
+  letter-spacing: -0.014em;
+  color: #0066cc;
+  transition: gap .2s ease;
 }
-.mode-card--video .mode-cta { color: var(--apple-accent-cyan); }
+.mode-card:hover .mode-cta { gap: 10px; }
 
+/* ---- Decorative background art (kept very subtle) ---- */
 .mode-deco {
   position: absolute;
-  right: -10px; bottom: -10px;
-  width: 160px; height: 160px;
+  right: -16px; bottom: -16px;
+  width: 140px; height: 140px;
   pointer-events: none;
-  opacity: 0.85;
+  opacity: 0.55;
 }
 .mode-deco--comic {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
   padding: 16px;
 }
 .mode-deco--comic .panel {
-  background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
-  border-radius: 10px;
+  background: #f5f5f7;
+  border-radius: 8px;
 }
-.mode-deco--comic .p2 { background: linear-gradient(135deg, #FFE0B2, #FFCC80); }
-.mode-deco--comic .p3 { background: linear-gradient(135deg, #C8E6C9, #A5D6A7); }
-.mode-deco--comic .p4 { background: linear-gradient(135deg, #FFC1D5, #FF8FAF); }
+.mode-deco--comic .p2 { background: #efeff2; }
+.mode-deco--comic .p3 { background: #ebebef; }
+.mode-deco--comic .p4 { background: #e7e7eb; }
 
 .mode-deco--video {
   display: grid; place-items: center;
 }
 .play-orb {
-  width: 110px; height: 110px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #B2EBF2, #00B8D4 70%);
+  width: 96px; height: 96px; border-radius: 50%;
+  background: #f5f5f7;
   position: relative;
 }
 .play-orb::after {
@@ -206,8 +215,8 @@ onMounted(() => {
   position: absolute; top: 50%; left: 56%;
   width: 0; height: 0;
   transform: translate(-50%, -50%);
-  border-left: 22px solid #fff;
-  border-top: 14px solid transparent;
-  border-bottom: 14px solid transparent;
+  border-left: 18px solid #d6d6d6;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
 }
 </style>
