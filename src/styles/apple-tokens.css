@@ -264,6 +264,7 @@
   letter-spacing: -0.016em;
 }
 .al-search input::placeholder { color: var(--apple-graphite); }
+.al-search__icon { color: var(--apple-graphite); flex-shrink: 0; }
 
 .al-empty {
   text-align: center; padding: 64px 24px;
