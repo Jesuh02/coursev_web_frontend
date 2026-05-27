@@ -28,7 +28,7 @@
       <section class="lh-scene" ref="sceneEl">
         <video
           class="lh-video"
-          src="https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/Ni%C3%B1o_corriendo_hacia_templo_cono%E2%80%A6_202605271506.mp4"
+          src="https://pub-9f393625246c4018b5613be60b01bda1.r2.dev/Ni%C3%B1o_corriendo_hacia_templo_cono%E2%80%A6_202605271506%20(1).mp4"
           autoplay
           loop
           muted
