@@ -40,12 +40,13 @@
     <div v-else-if="status === 'ready' && result" class="vv-ready">
       <div class="player-wrap" ref="playerEl">
         <video
-          v-if="result.videoUrl"
+          v-if="result.videoUrl && !videoError"
           class="player"
           :src="result.videoUrl"
           :poster="result.posterUrl"
           controls
           playsinline
+          @error="videoError = true"
         />
         <SlideshowPlayer
           v-else-if="result.slides && result.slides.length"
@@ -84,6 +85,7 @@ const status = ref<'loading' | 'ready' | 'error'>('loading')
 const result = ref<VideoLearningResult | null>(null)
 const errorMsg = ref('')
 const isGenerating = ref(false)
+const videoError = ref(false)
 
 const orbEl = ref<HTMLElement | null>(null)
 const ring1El = ref<HTMLElement | null>(null)
@@ -103,6 +105,7 @@ async function generate() {
   status.value = 'loading'
   errorMsg.value = ''
   result.value = null
+  videoError.value = false
   await nextTick()
   startLoading()
   try {
