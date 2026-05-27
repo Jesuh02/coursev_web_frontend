@@ -48,17 +48,15 @@
           playsinline
           @error="videoError = true"
         />
-        <SlideshowPlayer
-          v-else-if="result.slides && result.slides.length"
-          :slides="result.slides"
-          :poster="result.posterUrl"
-        />
+        <div v-else class="vv-no-video">
+          <p class="al-sub">No se pudo reproducir el video. Intenta regenerar.</p>
+        </div>
       </div>
       <div class="vv-info">
         <header class="head" ref="headEl">
-          <p class="al-eyebrow">{{ result.videoUrl ? 'Video generado' : 'Presentación generada' }}</p>
+          <p class="al-eyebrow">Video generado</p>
           <h1 class="al-display">{{ result.title }}</h1>
-          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · {{ result.videoUrl ? 'IA · OpenRouter' : `${result.slides?.length} escenas · IA` }}</p>
+          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
         </header>
         <div class="footer-actions">
           <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
@@ -74,7 +72,6 @@ import { onMounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import SlideshowPlayer from './components/SlideshowPlayer.vue'
 import { learningAdapter, type VideoLearningResult } from '@/infrastructure/api/learningAdapter'
 import { useTheme } from '@/composables/useTheme'
 
@@ -131,7 +128,7 @@ async function generate() {
 }
 
 async function pollUntilReady(jobId: string) {
-  const maxAttempts = 70 // ~5.8 min at 5 s intervals
+  const maxAttempts = 100 // ~8.3 min at 5 s intervals — covers Kling v3 Pro generation time
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise<void>((resolve) => setTimeout(resolve, 5_000))
     const job = await learningAdapter.pollVideoStatus(jobId)
@@ -278,6 +275,15 @@ onMounted(generate)
   display: block;
   aspect-ratio: 16 / 9;
   background: #000;
+}
+
+.vv-no-video {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  color: var(--apple-graphite);
 }
 
 .footer-actions {
