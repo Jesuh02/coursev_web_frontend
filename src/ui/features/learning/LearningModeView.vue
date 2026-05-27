@@ -121,8 +121,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/apple-tokens.css';
-
 .head { padding: 16px 0 24px; }
 
 .modes {

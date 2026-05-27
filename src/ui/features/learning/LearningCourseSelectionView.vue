@@ -135,7 +135,6 @@ function select(course: Course) {
 </script>
 
 <style scoped>
-@import '@/styles/apple-tokens.css';
 .head { padding: 16px 0 8px; }
 
 .step-bar {

@@ -54,11 +54,20 @@ export class HttpError extends Error {
   }
 }
 
+// In-memory access token — fallback for browsers that block cross-site HttpOnly cookies
+// (third-party cookie deprecation). Not persisted to localStorage to limit XSS exposure;
+// a page reload triggers a transparent refresh that restores it.
+let _accessToken: string | null = null
+
 export const tokenStorage = {
-  // Token is now stored in an HttpOnly cookie — no longer in localStorage.
-  // The setter keeps the session_active flag so `isAuthenticated` survives page reloads.
-  get token() { return null as string | null },
-  set token(v: string | null) { v ? localStorage.setItem(SESSION_ACTIVE_KEY, 'true') : localStorage.removeItem(SESSION_ACTIVE_KEY) },
+  // Access token kept in memory (module variable) so it survives within a session
+  // even when cross-origin HttpOnly cookies are blocked by the browser.
+  // The setter also keeps the session_active flag so `isAuthenticated` survives page reloads.
+  get token() { return _accessToken },
+  set token(v: string | null) {
+    _accessToken = v
+    v ? localStorage.setItem(SESSION_ACTIVE_KEY, 'true') : localStorage.removeItem(SESSION_ACTIVE_KEY)
+  },
 
   // Refresh token stored in localStorage as fallback for browsers that block
   // cross-site HttpOnly cookies (third-party cookie deprecation).
@@ -74,6 +83,7 @@ export const tokenStorage = {
   get isAuthenticated() { return localStorage.getItem(SESSION_ACTIVE_KEY) === 'true' },
 
   clear() {
+    _accessToken = null
     localStorage.removeItem(TOKEN_KEY)        // Clean up any legacy values
     localStorage.removeItem(REFRESH_KEY)      // Clean up any legacy values
     localStorage.removeItem(SESSION_ACTIVE_KEY)
@@ -106,9 +116,11 @@ async function tryRefresh(): Promise<boolean> {
         body: JSON.stringify(rt ? { refreshToken: rt } : {}),
       })
       if (res.ok) {
-        // Persist the rotated refresh token so the next refresh also works.
+        // Persist the rotated refresh token and capture the new access token
+        // so Bearer-header auth works when cross-site cookies are blocked.
         try {
           const json = await res.json() as ApiResponse<{ accessToken: string; refreshToken: string }>
+          if (json.data?.accessToken) tokenStorage.token = json.data.accessToken
           if (json.data?.refreshToken) tokenStorage.refreshToken = json.data.refreshToken
         } catch { /* response already consumed or malformed — ignore */ }
       }
@@ -121,7 +133,9 @@ async function tryRefresh(): Promise<boolean> {
 
 function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' }
-  // Authorization is handled via HttpOnly cookie (credentials: 'include' on each request)
+  // Include Bearer token when available (fallback for browsers that block cross-site
+  // HttpOnly cookies). The cookie path still works in parallel for browsers that support it.
+  if (_accessToken) h['Authorization'] = `Bearer ${_accessToken}`
   // Include X-Tenant-ID header to ensure requests target the correct tenant database
   const selectedTenantId = localStorage.getItem('selected_tenant_id')
   if (selectedTenantId) h['X-Tenant-ID'] = selectedTenantId

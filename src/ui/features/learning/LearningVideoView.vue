@@ -41,18 +41,24 @@
 
       <template v-else-if="status === 'ready' && result">
         <header class="head" ref="headEl">
-          <p class="al-eyebrow">Video generado</p>
+          <p class="al-eyebrow">{{ result.videoUrl ? 'Video generado' : 'Presentación generada' }}</p>
           <h1 class="al-display">{{ result.title }}</h1>
-          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter</p>
+          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · {{ result.videoUrl ? 'IA · OpenRouter' : `${result.slides?.length} escenas · IA` }}</p>
         </header>
 
         <div class="player-wrap" ref="playerEl">
           <video
+            v-if="result.videoUrl"
             class="player"
             :src="result.videoUrl"
             :poster="result.posterUrl"
             controls
             playsinline
+          />
+          <SlideshowPlayer
+            v-else-if="result.slides && result.slides.length"
+            :slides="result.slides"
+            :poster="result.posterUrl"
           />
         </div>
 
@@ -70,6 +76,7 @@ import { onMounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
+import SlideshowPlayer from './components/SlideshowPlayer.vue'
 import { learningAdapter, type VideoLearningResult } from '@/infrastructure/api/learningAdapter'
 import { useTheme } from '@/composables/useTheme'
 
@@ -169,8 +176,6 @@ onMounted(generate)
 </script>
 
 <style scoped>
-@import '@/styles/apple-tokens.css';
-
 .head { padding: 16px 0 20px; }
 
 .gen-state {

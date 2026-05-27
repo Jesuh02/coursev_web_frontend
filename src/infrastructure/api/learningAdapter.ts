@@ -23,12 +23,19 @@ export interface ComicResult {
   panels: ComicPanel[]
 }
 
+export interface VideoSlide {
+  imageUrl: string
+  narration: string
+  duration: number
+}
+
 export interface VideoLearningResult {
   jobId?: string
   title: string
   videoUrl: string
   posterUrl?: string
   durationSeconds?: number
+  slides?: VideoSlide[]
 }
 
 export interface LearningContext {

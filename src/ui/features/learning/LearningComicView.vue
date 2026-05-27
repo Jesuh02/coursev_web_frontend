@@ -259,8 +259,6 @@ onMounted(generate)
 </script>
 
 <style scoped>
-@import '@/styles/apple-tokens.css';
-
 .comic-root {
   display: flex;
   flex-direction: column;
