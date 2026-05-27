@@ -9,64 +9,61 @@
       </template>
     </TopBar>
 
-    <div class="al-shell">
-
-      <div v-if="status === 'loading'" class="gen-state">
-        <div class="orb-stage">
-          <div class="orb" ref="orbEl" />
-          <div class="ring" ref="ring1El" />
-          <div class="ring ring--2" ref="ring2El" />
-        </div>
-        <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
-        <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
-        <p class="al-sub" style="text-align:center;">
-          Estamos generando guion, voz y secuencia visual a partir del contenido del curso.
-        </p>
-        <ul class="gen-steps" ref="stepsEl">
-          <li>Extrayendo materiales del tema y la tarea…</li>
-          <li>Construyendo guion y voz con el modelo de texto…</li>
-          <li>Generando escenas con el modelo de video…</li>
-          <li>Ensamblando la pieza final…</li>
-        </ul>
+    <div v-if="status === 'loading'" class="gen-state gen-center">
+      <div class="orb-stage">
+        <div class="orb" ref="orbEl" />
+        <div class="ring" ref="ring1El" />
+        <div class="ring ring--2" ref="ring2El" />
       </div>
+      <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
+      <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
+      <p class="al-sub" style="text-align:center;">
+        Estamos generando guion, voz y secuencia visual a partir del contenido del curso.
+      </p>
+      <ul class="gen-steps" ref="stepsEl">
+        <li>Extrayendo materiales del tema y la tarea…</li>
+        <li>Construyendo guion y voz con el modelo de texto…</li>
+        <li>Generando escenas con el modelo de video…</li>
+        <li>Ensamblando la pieza final…</li>
+      </ul>
+    </div>
 
-      <div v-else-if="status === 'error'" class="al-empty">
-        <h2 class="al-display" style="font-size: 24px;">No pudimos generar tu video</h2>
-        <p>{{ errorMsg }}</p>
-        <div style="display:flex; gap: 10px; justify-content:center; margin-top: 16px; flex-wrap:wrap;">
-          <button class="al-cta al-cta--accent" @click="generate">Reintentar</button>
-          <button class="al-cta al-cta--ghost" @click="$router.back()">Volver</button>
-        </div>
+    <div v-else-if="status === 'error'" class="al-empty gen-center">
+      <h2 class="al-display" style="font-size: 24px;">No pudimos generar tu video</h2>
+      <p>{{ errorMsg }}</p>
+      <div style="display:flex; gap: 10px; justify-content:center; margin-top: 16px; flex-wrap:wrap;">
+        <button class="al-cta al-cta--accent" @click="generate">Reintentar</button>
+        <button class="al-cta al-cta--ghost" @click="$router.back()">Volver</button>
       </div>
+    </div>
 
-      <template v-else-if="status === 'ready' && result">
+    <div v-else-if="status === 'ready' && result" class="vv-ready">
+      <div class="player-wrap" ref="playerEl">
+        <video
+          v-if="result.videoUrl"
+          class="player"
+          :src="result.videoUrl"
+          :poster="result.posterUrl"
+          controls
+          playsinline
+        />
+        <SlideshowPlayer
+          v-else-if="result.slides && result.slides.length"
+          :slides="result.slides"
+          :poster="result.posterUrl"
+        />
+      </div>
+      <div class="vv-info">
         <header class="head" ref="headEl">
           <p class="al-eyebrow">{{ result.videoUrl ? 'Video generado' : 'Presentación generada' }}</p>
           <h1 class="al-display">{{ result.title }}</h1>
           <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · {{ result.videoUrl ? 'IA · OpenRouter' : `${result.slides?.length} escenas · IA` }}</p>
         </header>
-
-        <div class="player-wrap" ref="playerEl">
-          <video
-            v-if="result.videoUrl"
-            class="player"
-            :src="result.videoUrl"
-            :poster="result.posterUrl"
-            controls
-            playsinline
-          />
-          <SlideshowPlayer
-            v-else-if="result.slides && result.slides.length"
-            :slides="result.slides"
-            :poster="result.posterUrl"
-          />
-        </div>
-
         <div class="footer-actions">
           <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
           <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Terminar</button>
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
@@ -176,7 +173,34 @@ onMounted(generate)
 </script>
 
 <style scoped>
-.head { padding: 16px 0 20px; }
+.al-root {
+  display: flex;
+  flex-direction: column;
+}
+
+.gen-center {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 20px 48px;
+}
+
+.head { padding: 12px 0 8px; }
+
+.vv-ready {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.vv-info {
+  padding: 12px 16px 32px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
 
 .gen-state {
   padding: 56px 16px;
@@ -217,10 +241,10 @@ onMounted(generate)
 }
 
 .player-wrap {
-  border-radius: var(--apple-r-card);
+  width: 100%;
   overflow: hidden;
   background: #000;
-  box-shadow: 0 12px 32px rgba(29,29,31,0.10);
+  flex-shrink: 0;
 }
 .player {
   width: 100%;
@@ -232,6 +256,24 @@ onMounted(generate)
 .footer-actions {
   display: flex; gap: 12px; flex-wrap: wrap;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 20px;
+}
+
+@media (min-width: 600px) {
+  .vv-info {
+    padding: 16px 24px 40px;
+  }
+}
+
+@media (min-width: 860px) {
+  .player-wrap {
+    max-width: 1080px;
+    margin: 16px auto 0;
+    border-radius: var(--apple-r-card);
+    box-shadow: 0 8px 32px rgba(29,29,31,0.12);
+  }
+  .vv-info {
+    max-width: 1080px;
+  }
 }
 </style>

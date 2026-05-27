@@ -46,11 +46,11 @@ export interface LearningContext {
 
 export const learningAdapter = {
   async generateComic(ctx: LearningContext): Promise<ComicResult> {
-    return api.postSlow<ComicResult>('/learning/comic', ctx, 180_000)
+    return api.postSlow<ComicResult>('/learning/comic', ctx, 600_000)
   },
 
   async generateVideo(ctx: LearningContext): Promise<VideoLearningResult> {
-    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 300_000)
+    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 600_000)
   },
 
   async regeneratePanel(jobId: string, panelIndex: number): Promise<ComicPanel> {

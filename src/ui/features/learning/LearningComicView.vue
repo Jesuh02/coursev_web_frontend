@@ -373,7 +373,7 @@ onMounted(generate)
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 8px 20px 6px;
+  padding: 5px 16px 4px;
   background: var(--apple-snow);
   border-bottom: 1px solid var(--apple-border);
 }
@@ -445,9 +445,9 @@ onMounted(generate)
 }
 .slide-text {
   flex-shrink: 0;
-  padding: 14px 20px 10px;
+  padding: 10px 16px 8px;
   background: var(--apple-snow);
-  max-height: 38%;
+  max-height: 22%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -485,13 +485,13 @@ onMounted(generate)
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 6px 12px;
   background: var(--apple-snow);
   border-top: 1px solid var(--apple-border);
 }
 .nav-arrow {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   background: var(--apple-cloud);
@@ -502,8 +502,8 @@ onMounted(generate)
   transition: background 0.15s, transform 0.12s, opacity 0.18s;
 }
 .nav-arrow svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   color: var(--apple-ink);
 }
 .nav-arrow:not(:disabled):hover { background: rgba(0, 0, 0, 0.1); }
@@ -538,17 +538,17 @@ onMounted(generate)
   flex-shrink: 0;
   display: flex;
   gap: 10px;
-  padding: 10px 20px 18px;
+  padding: 7px 16px 12px;
   justify-content: center;
   background: var(--apple-snow);
 }
 
 @media (min-width: 600px) {
-  .comic-header { padding: 10px 32px 8px; }
+  .comic-header { padding: 6px 28px 5px; }
   .comic-title-text { font-size: 18px; }
-  .slide-text { padding: 18px 32px 14px; }
-  .nav-bar { padding: 12px 32px; }
-  .footer-actions { padding: 12px 32px 24px; }
+  .slide-text { padding: 12px 28px 10px; }
+  .nav-bar { padding: 8px 28px; }
+  .footer-actions { padding: 8px 28px 16px; }
 }
 
 @media (min-width: 860px) {
