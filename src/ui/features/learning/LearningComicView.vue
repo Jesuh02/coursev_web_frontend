@@ -71,6 +71,7 @@ const route = useRoute()
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const result = ref<ComicResult | null>(null)
 const errorMsg = ref('')
+const isGenerating = ref(false)
 
 const spinnerEl = ref<HTMLElement | null>(null)
 const stepsEl = ref<HTMLElement | null>(null)
@@ -85,6 +86,8 @@ const generationSteps = [
 ]
 
 async function generate() {
+  if (isGenerating.value) return
+  isGenerating.value = true
   status.value = 'loading'
   errorMsg.value = ''
   result.value = null
@@ -103,6 +106,8 @@ async function generate() {
   } catch (e: unknown) {
     errorMsg.value = e instanceof Error ? e.message : 'Ocurrió un error al generar el cómic.'
     status.value = 'error'
+  } finally {
+    isGenerating.value = false
   }
 }
 

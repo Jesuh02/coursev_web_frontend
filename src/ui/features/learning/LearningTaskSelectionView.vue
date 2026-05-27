@@ -3,6 +3,15 @@
     <TopBar title="Elige una tarea" @back="$router.back()" />
 
     <div class="al-shell">
+      <!-- Step progress -->
+      <div class="step-bar">
+        <span class="step-dot step-dot--done">✓</span>
+        <span class="step-line step-line--done" />
+        <span class="step-dot step-dot--done">✓</span>
+        <span class="step-line step-line--done" />
+        <span class="step-dot step-dot--active">3</span>
+      </div>
+
       <header class="head" ref="headEl">
         <p class="al-eyebrow">Paso 3 de 3</p>
         <h1 class="al-display">¿Qué tarea?</h1>
@@ -110,4 +119,28 @@ function select(task: Task) {
 <style scoped>
 @import '@/styles/apple-tokens.css';
 .head { padding: 16px 0 8px; }
+
+.step-bar {
+  display: flex; align-items: center;
+  gap: 0; padding: 20px 0 4px;
+}
+.step-dot {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+  background: #E5E5EA; color: #8E8E93;
+  transition: background 0.3s, color 0.3s;
+}
+.step-dot--active {
+  background: #7C3AED; color: #fff;
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.18);
+}
+.step-dot--done {
+  background: #00B8D4; color: #fff;
+}
+.step-line {
+  flex: 1; height: 3px; border-radius: 2px;
+  background: #E5E5EA; margin: 0 4px;
+}
+.step-line--done { background: #00B8D4; }
 </style>

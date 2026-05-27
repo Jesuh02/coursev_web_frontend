@@ -70,6 +70,7 @@ const route = useRoute()
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const result = ref<VideoLearningResult | null>(null)
 const errorMsg = ref('')
+const isGenerating = ref(false)
 
 const orbEl = ref<HTMLElement | null>(null)
 const ring1El = ref<HTMLElement | null>(null)
@@ -84,6 +85,8 @@ function formatDuration(s: number) {
 }
 
 async function generate() {
+  if (isGenerating.value) return
+  isGenerating.value = true
   status.value = 'loading'
   errorMsg.value = ''
   result.value = null
@@ -102,6 +105,8 @@ async function generate() {
   } catch (e: unknown) {
     errorMsg.value = e instanceof Error ? e.message : 'Ocurrió un error al generar el video.'
     status.value = 'error'
+  } finally {
+    isGenerating.value = false
   }
 }
 
