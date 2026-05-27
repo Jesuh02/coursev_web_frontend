@@ -1,6 +1,13 @@
 <template>
   <div class="al-root">
-    <TopBar :title="result?.title || 'Video IA'" @back="$router.back()" />
+    <TopBar :title="result?.title || 'Video IA'" @back="$router.back()">
+      <template #right>
+        <button class="theme-btn" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'">
+          <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </template>
+    </TopBar>
 
     <div class="al-shell">
 
@@ -64,8 +71,10 @@ import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import { learningAdapter, type VideoLearningResult } from '@/infrastructure/api/learningAdapter'
+import { useTheme } from '@/composables/useTheme'
 
 const route = useRoute()
+const { isDark, toggleTheme } = useTheme()
 
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const result = ref<VideoLearningResult | null>(null)
@@ -177,14 +186,14 @@ onMounted(generate)
 .orb {
   position: absolute;
   width: 88px; height: 88px; border-radius: 50%;
-  background: #1d1d1f;
+  background: var(--apple-ink);
 }
 .ring {
   position: absolute;
   width: 88px; height: 88px; border-radius: 50%;
-  border: 1px solid rgba(29,29,31,0.20);
+  border: 1px solid var(--apple-ring-a);
 }
-.ring--2 { border-color: rgba(29,29,31,0.12); }
+.ring--2 { border-color: var(--apple-ring-b); }
 
 .gen-steps {
   list-style: none; padding: 0; margin: 18px 0 0;
@@ -199,7 +208,7 @@ onMounted(generate)
   content: '';
   position: absolute; left: 0; top: 7px;
   width: 6px; height: 6px; border-radius: 50%;
-  background: #d6d6d6;
+  background: var(--apple-silver);
 }
 
 .player-wrap {

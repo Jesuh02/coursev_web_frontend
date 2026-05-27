@@ -1,6 +1,13 @@
 <template>
   <div class="al-root">
-    <TopBar title="Tu modo de aprendizaje" @back="$router.back()" />
+    <TopBar title="Tu modo de aprendizaje" @back="$router.back()">
+      <template #right>
+        <button class="theme-btn" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'">
+          <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </template>
+    </TopBar>
 
     <div class="al-shell">
       <header class="head" ref="headEl">
@@ -61,9 +68,11 @@ import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const route = useRoute()
+const { isDark, toggleTheme } = useTheme()
 
 const headEl = ref<HTMLElement | null>(null)
 const comicCardEl = ref<HTMLElement | null>(null)
@@ -126,7 +135,7 @@ onMounted(() => {
 .mode-card {
   position: relative;
   text-align: left;
-  background: #ffffff;
+  background: var(--apple-snow);
   border: none;
   border-radius: 28px;
   padding: 28px;
@@ -138,7 +147,7 @@ onMounted(() => {
 }
 .mode-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 40px rgba(29,29,31,0.08);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.12);
 }
 
 .mode-icon-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
@@ -146,27 +155,27 @@ onMounted(() => {
   width: 40px; height: 40px;
   border-radius: 12px;
   display: grid; place-items: center;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: var(--apple-cloud);
+  color: var(--apple-ink);
 }
 .mode-tag {
   font-family: 'SF Pro Text', system-ui, sans-serif;
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase;
-  color: #707070;
+  color: var(--apple-graphite);
 }
 
 .mode-title {
   font-family: 'SF Pro Display', system-ui, sans-serif;
   font-size: 24px; font-weight: 600;
   letter-spacing: -0.009em;
-  color: #1d1d1f;
+  color: var(--apple-ink);
   margin: 0 0 8px;
 }
 .mode-body {
   font-size: 15px; line-height: 1.5;
   letter-spacing: -0.012em;
-  color: #707070;
+  color: var(--apple-graphite);
   margin: 0 0 22px;
   max-width: 380px;
 }
@@ -195,19 +204,19 @@ onMounted(() => {
   padding: 16px;
 }
 .mode-deco--comic .panel {
-  background: #f5f5f7;
+  background: var(--apple-cloud);
   border-radius: 8px;
 }
-.mode-deco--comic .p2 { background: #efeff2; }
-.mode-deco--comic .p3 { background: #ebebef; }
-.mode-deco--comic .p4 { background: #e7e7eb; }
+.mode-deco--comic .p2 { background: var(--apple-cloud); opacity: 0.85; }
+.mode-deco--comic .p3 { background: var(--apple-cloud); opacity: 0.70; }
+.mode-deco--comic .p4 { background: var(--apple-cloud); opacity: 0.55; }
 
 .mode-deco--video {
   display: grid; place-items: center;
 }
 .play-orb {
   width: 96px; height: 96px; border-radius: 50%;
-  background: #f5f5f7;
+  background: var(--apple-cloud);
   position: relative;
 }
 .play-orb::after {
@@ -215,7 +224,7 @@ onMounted(() => {
   position: absolute; top: 50%; left: 56%;
   width: 0; height: 0;
   transform: translate(-50%, -50%);
-  border-left: 18px solid #d6d6d6;
+  border-left: 18px solid var(--apple-silver);
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
 }

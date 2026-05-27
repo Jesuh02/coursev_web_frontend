@@ -1,6 +1,13 @@
 <template>
   <div class="lh-root">
-    <TopBar title="Aprendizaje" @back="$router.back()" />
+    <TopBar title="Aprendizaje" @back="$router.back()">
+      <template #right>
+        <button class="theme-btn" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'">
+          <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </template>
+    </TopBar>
 
     <div class="lh-shell">
       <!-- Hero -->
@@ -79,8 +86,10 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 
 const heroEl = ref<HTMLElement | null>(null)
 const ctaEl = ref<HTMLElement | null>(null)
@@ -184,11 +193,14 @@ onMounted(() => {
 /* ── Root & shell ── */
 .lh-root {
   min-height: 100dvh;
-  background: #fbfbfd;
-  color: #1d1d1f;
+  background: var(--apple-mist);
+  color: var(--apple-ink);
   font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
+  /* Bridge apple tokens into global token space so TopBar adapts */
+  --bg-primary: var(--apple-snow);
+  --text-primary: var(--apple-ink);
 }
 
 .lh-shell {
@@ -203,7 +215,7 @@ onMounted(() => {
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #707070;
+  color: var(--apple-graphite);
   margin: 0 0 12px;
 }
 
@@ -214,7 +226,7 @@ onMounted(() => {
   font-weight: 700;
   line-height: 1.06;
   letter-spacing: -0.003em;
-  color: #1d1d1f;
+  color: var(--apple-ink);
   margin: 0 0 14px;
 }
 
@@ -222,7 +234,7 @@ onMounted(() => {
   font-size: 17px;
   line-height: 1.47;
   letter-spacing: -0.016em;
-  color: #707070;
+  color: var(--apple-graphite);
   margin: 0;
   max-width: 460px;
 }
@@ -233,7 +245,7 @@ onMounted(() => {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.014em;
-  color: #1d1d1f;
+  color: var(--apple-ink);
   margin: 0 0 20px;
 }
 
@@ -305,16 +317,16 @@ onMounted(() => {
 }
 
 .lh-feature {
-  background: #ffffff;
+  background: var(--apple-snow);
   border-radius: 28px;
   padding: 22px 20px 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--apple-border);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
               box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .lh-feature:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(29, 29, 31, 0.09), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--apple-border);
 }
 
 .lh-feature__icon {
@@ -333,7 +345,7 @@ onMounted(() => {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.016em;
-  color: #1d1d1f;
+  color: var(--apple-ink);
   margin: 0 0 6px;
 }
 
@@ -341,7 +353,7 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.52;
   letter-spacing: -0.006em;
-  color: #707070;
+  color: var(--apple-graphite);
   margin: 0;
 }
 
@@ -364,7 +376,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 16px;
   padding: 20px 22px;
-  background: #f5f5f7;
+  background: var(--apple-cloud);
   border-radius: 22px;
 }
 
@@ -386,7 +398,7 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.016em;
-  color: #1d1d1f;
+  color: var(--apple-ink);
   margin: 0 0 4px;
 }
 
@@ -394,7 +406,7 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.52;
   letter-spacing: -0.006em;
-  color: #707070;
+  color: var(--apple-graphite);
   margin: 0;
 }
 

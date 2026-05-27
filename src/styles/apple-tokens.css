@@ -36,6 +36,63 @@
   --apple-r-field: 28px;
   --apple-r-button: 980px;
   --apple-r-link: 10px;
+
+  /* Semantic tokens — adapt in dark mode */
+  --apple-border: rgba(0, 0, 0, 0.06);
+  --apple-border-strong: rgba(0, 0, 0, 0.12);
+  --apple-skeleton-shimmer: #ececef;
+  --apple-ring-a: rgba(29, 29, 31, 0.20);
+  --apple-ring-b: rgba(29, 29, 31, 0.12);
+}
+
+/* ── Dark Mode (system preference, unless overridden) ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --apple-snow:    #1c1c1e;
+    --apple-cloud:   #2c2c2e;
+    --apple-mist:    #000000;
+    --apple-silver:  #48484a;
+    --apple-graphite:#98989d;
+    --apple-steel:   #c7c7cc;
+    --apple-ink:     #f5f5f7;
+    --apple-border:        rgba(255, 255, 255, 0.08);
+    --apple-border-strong: rgba(255, 255, 255, 0.14);
+    --apple-skeleton-shimmer: #3a3a3c;
+    --apple-ring-a:  rgba(255, 255, 255, 0.20);
+    --apple-ring-b:  rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* ── Manual dark override ─────────────────────────────────────────── */
+[data-theme="dark"] {
+  --apple-snow:    #1c1c1e;
+  --apple-cloud:   #2c2c2e;
+  --apple-mist:    #000000;
+  --apple-silver:  #48484a;
+  --apple-graphite:#98989d;
+  --apple-steel:   #c7c7cc;
+  --apple-ink:     #f5f5f7;
+  --apple-border:        rgba(255, 255, 255, 0.08);
+  --apple-border-strong: rgba(255, 255, 255, 0.14);
+  --apple-skeleton-shimmer: #3a3a3c;
+  --apple-ring-a:  rgba(255, 255, 255, 0.20);
+  --apple-ring-b:  rgba(255, 255, 255, 0.12);
+}
+
+/* ── Manual light override (force light even on dark-mode OS) ─────── */
+[data-theme="light"] {
+  --apple-snow:    #ffffff;
+  --apple-cloud:   #f5f5f7;
+  --apple-mist:    #fbfbfd;
+  --apple-silver:  #d6d6d6;
+  --apple-graphite:#707070;
+  --apple-steel:   #474747;
+  --apple-ink:     #1d1d1f;
+  --apple-border:        rgba(0, 0, 0, 0.06);
+  --apple-border-strong: rgba(0, 0, 0, 0.12);
+  --apple-skeleton-shimmer: #ececef;
+  --apple-ring-a:  rgba(29, 29, 31, 0.20);
+  --apple-ring-b:  rgba(29, 29, 31, 0.12);
 }
 
 /* Shared Apple-styled primitives for .learning-* views */
@@ -47,6 +104,9 @@
   letter-spacing: -0.016em;
   position: relative;
   overflow-x: hidden;
+  /* Bridge apple tokens into global token space so TopBar adapts */
+  --bg-primary: var(--apple-snow);
+  --text-primary: var(--apple-ink);
 }
 
 .al-shell {
@@ -141,7 +201,7 @@
   gap: 16px;
   padding: 16px;
   background: var(--apple-snow);
-  border: 1px solid rgba(0,0,0,0.04);
+  border: 1px solid var(--apple-border);
   border-radius: 22px;
   text-align: left;
   cursor: pointer;
@@ -187,7 +247,7 @@
 .al-search {
   display: flex; align-items: center; gap: 10px;
   background: var(--apple-snow);
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid var(--apple-border);
   border-radius: var(--apple-r-field);
   padding: 12px 18px;
   margin: 20px 0;
@@ -211,7 +271,7 @@
 }
 
 .al-skeleton {
-  background: linear-gradient(90deg, var(--apple-cloud) 0%, #ececef 50%, var(--apple-cloud) 100%);
+  background: linear-gradient(90deg, var(--apple-cloud) 0%, var(--apple-skeleton-shimmer) 50%, var(--apple-cloud) 100%);
   background-size: 200% 100%;
   animation: alShimmer 1.4s ease infinite;
   border-radius: 22px;
@@ -227,3 +287,20 @@
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
 }
+
+/* ── Theme toggle button (used in all learning TopBar right-slots) ── */
+.theme-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--apple-graphite);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+}
+.theme-btn:hover  { background: var(--apple-cloud); color: var(--apple-ink); }
+.theme-btn:active { transform: scale(0.88); }
