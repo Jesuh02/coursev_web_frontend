@@ -48,14 +48,50 @@
           playsinline
           @error="videoError = true"
         />
+        <!-- Narrated slideshow fallback (when video model returned 402 / unavailable) -->
+        <div v-else-if="result.slides && result.slides.length" class="vv-slideshow">
+          <div class="slide" v-if="result.slides[slideIndex]">
+            <img
+              v-if="result.slides[slideIndex].imageUrl"
+              :src="result.slides[slideIndex].imageUrl"
+              class="slide-img"
+              alt=""
+            />
+            <div v-else class="slide-placeholder" />
+            <p class="slide-narration">{{ result.slides[slideIndex].narration }}</p>
+          </div>
+          <div class="slide-nav">
+            <button class="slide-btn" :disabled="slideIndex === 0" @click="slideIndex--">‹</button>
+            <span class="slide-counter">{{ slideIndex + 1 }} / {{ result.slides.length }}</span>
+            <button class="slide-btn" :disabled="slideIndex === result.slides.length - 1" @click="slideIndex++">›</button>
+          </div>
+        </div>
         <div v-else class="vv-no-video">
           <p class="al-sub">No se pudo reproducir el video en el navegador.</p>
           <a v-if="result?.videoUrl" :href="result.videoUrl" target="_blank" rel="noopener noreferrer" class="al-cta al-cta--accent" style="margin-top:14px; display:inline-block;">Abrir video ↗</a>
         </div>
       </div>
+
+      <!-- Credits banner — shown below the player/slideshow when 402 was the cause -->
+      <div v-if="result.insufficientCredits" class="credits-banner">
+        <div class="credits-banner__content">
+          <span class="credits-banner__icon">⚡</span>
+          <div>
+            <strong>Créditos de OpenRouter agotados</strong>
+            <p>El modelo de video (Kling v3 Pro) requiere créditos en tu cuenta de OpenRouter. Se generó una presentación de imágenes como alternativa.</p>
+          </div>
+          <a
+            href="https://openrouter.ai/credits"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="al-cta al-cta--accent credits-banner__btn"
+          >Comprar créditos ↗</a>
+        </div>
+      </div>
+
       <div class="vv-info">
         <header class="head" ref="headEl">
-          <p class="al-eyebrow">Video generado</p>
+          <p class="al-eyebrow">{{ result.slides && !result.videoUrl ? 'Presentación generada' : 'Video generado' }}</p>
           <h1 class="al-display">{{ result.title }}</h1>
           <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
         </header>
@@ -84,6 +120,7 @@ const result = ref<VideoLearningResult | null>(null)
 const errorMsg = ref('')
 const isGenerating = ref(false)
 const videoError = ref(false)
+const slideIndex = ref(0)
 
 const orbEl = ref<HTMLElement | null>(null)
 const ring1El = ref<HTMLElement | null>(null)
@@ -104,6 +141,7 @@ async function generate() {
   errorMsg.value = ''
   result.value = null
   videoError.value = false
+  slideIndex.value = 0
   await nextTick()
   startLoading()
   try {
@@ -285,6 +323,111 @@ onMounted(generate)
   justify-content: center;
   background: #111;
   color: var(--apple-graphite);
+}
+
+.vv-slideshow {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.slide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.slide-img {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  object-fit: contain;
+  background: #000;
+}
+.slide-placeholder {
+  flex: 1;
+  background: #111;
+}
+.slide-narration {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e5e5e7;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.8);
+  margin: 0;
+  max-height: 72px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.slide-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px;
+  background: rgba(0,0,0,0.6);
+}
+.slide-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0 8px;
+  line-height: 1;
+}
+.slide-btn:disabled { opacity: 0.25; cursor: default; }
+.slide-counter {
+  font-size: 12px;
+  color: #aaa;
+  min-width: 48px;
+  text-align: center;
+}
+
+.credits-banner {
+  background: #1c1400;
+  border-bottom: 1px solid #7c5a00;
+  padding: 12px 16px;
+}
+.credits-banner__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 860px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.credits-banner__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.credits-banner__content > div {
+  flex: 1;
+  min-width: 180px;
+}
+.credits-banner__content strong {
+  display: block;
+  font-size: 14px;
+  color: #f5c518;
+  margin-bottom: 2px;
+}
+.credits-banner__content p {
+  font-size: 12px;
+  color: #c9a830;
+  margin: 0;
+  line-height: 1.45;
+}
+.credits-banner__btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 13px;
+  padding: 7px 14px;
 }
 
 .footer-actions {

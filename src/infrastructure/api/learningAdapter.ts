@@ -38,6 +38,7 @@ export interface VideoLearningResult {
   durationSeconds?: number
   slides?: VideoSlide[]
   error?: string
+  insufficientCredits?: boolean
 }
 
 export interface LearningContext {
