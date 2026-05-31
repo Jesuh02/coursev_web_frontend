@@ -176,10 +176,10 @@ function normalizeQuestion(q: ServerSession['questions'][number], area: IcfesAre
 }
 
 // ────────────────── MOCK BANK (fallback offline) ──────────────────
+// Banco real curado a partir de docs/icfes_content/2024-2025/lectura critica/lecturacritica2024-2025.txt
 const MOCK_BANK: Record<IcfesArea, IcfesQuestion[]> = {
-  // Banco real curado: 2024-2025 + 2022
-  LC:  [...LC_BANK_2024_2025, ...LC_BANK_2022],
-  MAT: MAT_BANK_2020,
+  LC:  LC_BANK_2024_2025,
+  MAT: buildMockBank('MAT', 'Razonamiento cuantitativo', ['Funciones', 'Geometría', 'Estadística', 'Álgebra']),
   SOC: buildMockBank('SOC', 'Ciudadanía',                ['Constitución', 'Historia de Colombia', 'Democracia', 'Economía']),
   CN:  buildMockBank('CN',  'Ciencias',                  ['Leyes de Newton', 'Química orgánica', 'Genética', 'Ecosistemas']),
   ING: ING_BANK_2024_2025,

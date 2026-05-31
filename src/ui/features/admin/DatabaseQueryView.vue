@@ -144,15 +144,38 @@
         <button v-else class="action-btn action-btn--mic" @click="startRecording">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
         </button>
+
+        <!-- Sign language (LSC) capture -->
+        <button
+          v-if="!inputText.trim() && !isRecording"
+          class="action-btn action-btn--sign"
+          @click="openSignCamera"
+          title="Escribir con lengua de señas"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+        </button>
       </div>
     </div>
+
+    <!-- Sign Language Modal -->
+    <SignLanguageCamera
+      v-if="showSignCamera"
+      @close="showSignCamera = false"
+      @confirm="onSignTextConfirmed"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
-import { chatAdapter, api, tokenStorage } from '@/infrastructure/api'
+import { chatAdapter, api, tokenStorage, HttpError } from '@/infrastructure/api'
 import { useAuthStore } from '@/stores/authStore'
+import SignLanguageCamera from '@/ui/shared/components/SignLanguageCamera.vue'
 
 interface LocalMessage {
   id: string
@@ -177,6 +200,7 @@ const sessionId = ref(`db_query_${tokenStorage.userId ?? Date.now()}`)
 const copiedMsgId = ref<string | null>(null)
 const likedMsgId = ref<string | null>(null)
 const dislikedMsgId = ref<string | null>(null)
+const showSignCamera = ref(false)
 
 const authStore = useAuthStore()
 
@@ -288,6 +312,23 @@ function stopRecording() {
     recognition.stop()
   }
   isRecording.value = false
+}
+
+// ── Sign Language (LSC) ──
+function openSignCamera() {
+  showSignCamera.value = true
+}
+
+function onSignTextConfirmed(text: string) {
+  // Append (or set) detected text into the chat input so the user can review
+  // it and send it like any other message.
+  const current = inputText.value.trim()
+  inputText.value = current ? `${current} ${text}` : text
+  showSignCamera.value = false
+  nextTick(() => {
+    autoResize()
+    inputRef.value?.focus()
+  })
 }
 
 // ── Markdown / Tables ──
@@ -402,8 +443,14 @@ async function sendQuery() {
     // Persist assistant response – independent of next UI action.
     // Save the excelUrl so the download button can be restored on reload.
     persistMessage(reply, false, excelUrl)
-  } catch {
-    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: 'Error al procesar la consulta.' })
+  } catch (err) {
+    const errorMessage = err instanceof HttpError
+      ? `❌ ${err.message}`
+      : err instanceof Error
+        ? `❌ ${err.message}`
+        : '❌ Error al procesar la consulta.'
+
+    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: errorMessage })
   }
   isTyping.value = false
   scrollToBottom()
@@ -779,6 +826,15 @@ function shareMessage(msg: LocalMessage) {
   color: rgba(255,255,255,0.5);
 }
 .action-btn--mic:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+.action-btn--sign {
+  background: transparent;
+  color: rgba(0,212,255,0.7);
+}
+.action-btn--sign:hover {
+  color: #00D4FF;
+  background: rgba(0,212,255,0.1);
+}
 
 .action-btn--recording {
   background: #FF3B30;
