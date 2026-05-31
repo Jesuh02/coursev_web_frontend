@@ -13,10 +13,7 @@
       <!-- Hero -->
       <section class="lh-hero" ref="heroEl">
         <p class="lh-eyebrow">Aprendizaje · IA</p>
-        <h1 class="lh-display">
-          Aprende con cómics<br />
-          y videos hechos por IA.
-        </h1>
+        <h1 class="lh-display" v-html="displayWithCursor" />
         <p class="lh-sub">
           Convertimos los temas y tareas de tu curso en historias visuales,
           a tu ritmo, con la estética de un producto premium.
@@ -82,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -90,6 +87,39 @@ import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
+
+// ── Typewriter ──
+const FULL_DISPLAY_TEXT = 'Aprende con cómics<br>y videos hechos por IA.'
+const typedDisplay = ref('')
+const typingDone = ref(false)
+
+const displayWithCursor = computed(() =>
+  typedDisplay.value + (typingDone.value ? '' : '<span class="lh-cursor">▌</span>')
+)
+
+function runTypewriter(startDelay = 200) {
+  const segments: Array<{ text: string; isTag: boolean }> = []
+  let i = 0
+  while (i < FULL_DISPLAY_TEXT.length) {
+    if (FULL_DISPLAY_TEXT[i] === '<') {
+      const end = FULL_DISPLAY_TEXT.indexOf('>', i)
+      segments.push({ text: FULL_DISPLAY_TEXT.slice(i, end + 1), isTag: true })
+      i = end + 1
+    } else {
+      segments.push({ text: FULL_DISPLAY_TEXT[i], isTag: false })
+      i++
+    }
+  }
+  let idx = 0
+  function tick() {
+    if (idx >= segments.length) { typingDone.value = true; return }
+    typedDisplay.value += segments[idx].text
+    const delay = segments[idx].isTag ? 0 : 48
+    idx++
+    setTimeout(tick, delay)
+  }
+  setTimeout(tick, startDelay)
+}
 
 const heroEl = ref<HTMLElement | null>(null)
 const ctaEl = ref<HTMLElement | null>(null)
@@ -132,6 +162,8 @@ function start() {
 }
 
 onMounted(() => {
+  runTypewriter(180)
+
   // Hero entrance — staggered
   const heroChildren = heroEl.value
     ? Array.from(heroEl.value.querySelectorAll<HTMLElement>('.lh-eyebrow, .lh-display, .lh-sub, .lh-actions'))
@@ -408,6 +440,21 @@ onMounted(() => {
   letter-spacing: -0.006em;
   color: var(--apple-graphite);
   margin: 0;
+}
+
+/* ── Typewriter cursor ── */
+.lh-cursor {
+  display: inline-block;
+  font-weight: 300;
+  color: #0071e3;
+  animation: lh-blink 0.75s step-end infinite;
+  margin-left: 2px;
+  vertical-align: baseline;
+  line-height: 1;
+}
+@keyframes lh-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* ── Responsive ── */
