@@ -1184,9 +1184,18 @@ async function sendMessage() {
       setTimeout(() => authStore.logout(), 2000)
       return
     }
+
+    const errorMessage = e instanceof HttpError
+      ? `❌ ${e.message}`
+      : e instanceof DOMException && e.name === 'AbortError'
+        ? '❌ La solicitud tardó demasiado. Intenta de nuevo.'
+        : e instanceof Error
+          ? `❌ ${e.message}`
+          : '❌ Error al procesar el mensaje. Por favor intenta de nuevo.'
+
     const errMsg: ChatMsg = {
       id: crypto.randomUUID(),
-      content: '❌ Error al procesar el mensaje. Por favor intenta de nuevo.',
+      content: errorMessage,
       role: 'assistant',
       createdAt: new Date().toISOString(),
     }
