@@ -46,13 +46,21 @@ export function getSelectedTenant(): TenantConfig | null {
 /**
  * Marks a tenant as selected and updates the HTTP client base URL
  * so all subsequent API calls go to that tenant's server.
+ *
+ * `issuingServerUrl` (when provided) overrides the canonical tenant.serverUrl.
+ * This is critical in multi-server setups where the same tenant DB is
+ * registered on more than one backend: the JWT was signed with the issuing
+ * server's JWT_SECRET and is only verifiable there.
  */
-export function setSelectedTenant(id: string): void {
+export function setSelectedTenant(id: string, issuingServerUrl?: string): void {
   const tenant = TENANTS.find(t => t.id === id)
   if (!tenant) return
+  const serverUrl = (issuingServerUrl && issuingServerUrl.trim())
+    ? issuingServerUrl.replace(/\/+$/, '')
+    : tenant.serverUrl
   localStorage.setItem(SELECTED_TENANT_KEY, id)
-  localStorage.setItem(SELECTED_SERVER_KEY, tenant.serverUrl)
-  setApiBase(tenant.serverUrl)
+  localStorage.setItem(SELECTED_SERVER_KEY, serverUrl)
+  setApiBase(serverUrl)
 }
 
 /**

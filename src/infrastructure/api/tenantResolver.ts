@@ -16,6 +16,12 @@ export interface TenantLoginResult {
   data: AuthResponse
   /** Hash of persona's cedula (identificacion_original) — used to verify identity across tenants */
   personaCedulaHash?: string | null
+  /**
+   * The backend server URL that actually issued this match's accessToken.
+   * Critical when more than one server has the same tenant registered: the JWT
+   * was signed with that server's JWT_SECRET and is only verifiable by it.
+   */
+  issuingServerUrl?: string
 }
 
 /**
@@ -107,9 +113,13 @@ export async function resolveGoogleLogin(
 /**
  * Commits a previously resolved match: stores the tenant selection and
  * switches the HTTP client base URL to that tenant's server.
+ *
+ * Uses `issuingServerUrl` (the server that actually signed the accessToken)
+ * when available, so subsequent requests reach the server that can verify the
+ * JWT signature. Falls back to the tenant config's canonical serverUrl.
  */
 export function commitTenantSelection(result: TenantLoginResult): void {
-  setSelectedTenant(result.tenant.id)
+  setSelectedTenant(result.tenant.id, result.issuingServerUrl)
 }
 
 // ──────────── Internals ─────────────────────────────────────────────────────
@@ -182,13 +192,29 @@ async function probeAllServers(
     throw lastError ?? new Error('Credenciales inválidas')
   }
 
-  // Deduplicate by tenant id
-  const seen = new Set<string>()
-  const unique = allMatches.filter(m => {
-    if (seen.has(m.tenant.id)) return false
-    seen.add(m.tenant.id)
-    return true
-  })
+  // Deduplicate by tenant id.
+  // CRITICAL: when more than one server has the same tenant registered, both
+  // return a match for the same tenant.id but each accessToken is signed with
+  // its issuing server's JWT_SECRET. We must keep the match whose issuing
+  // server matches the tenant's canonical home server (TENANTS[id].serverUrl),
+  // otherwise subsequent requests to that home server will 401 on signature
+  // verification.
+  const byTenant = new Map<string, TenantLoginResult>()
+  for (const m of allMatches) {
+    const home = TENANTS.find(t => t.id === m.tenant.id)?.serverUrl
+    const existing = byTenant.get(m.tenant.id)
+    if (!existing) {
+      byTenant.set(m.tenant.id, m)
+      continue
+    }
+    // Prefer the match issued by the tenant's home server (token verifiable there).
+    const existingIsHome = home && existing.issuingServerUrl === home
+    const candidateIsHome = home && m.issuingServerUrl === home
+    if (candidateIsHome && !existingIsHome) {
+      byTenant.set(m.tenant.id, m)
+    }
+  }
+  const unique = [...byTenant.values()]
 
   if (unique.length > 1) {
     const hashes = unique.map(m => m.personaCedulaHash).filter(Boolean)
@@ -203,7 +229,7 @@ async function probeAllServers(
     throw new MultipleTenantError(unique)
   }
 
-  setSelectedTenant(unique[0].tenant.id)
+  setSelectedTenant(unique[0].tenant.id, unique[0].issuingServerUrl)
   return unique[0]
 }
 
@@ -263,5 +289,6 @@ function mapToTenantLoginResult(
       refreshToken: match.refreshToken,
     } as AuthResponse,
     personaCedulaHash: (match.personaCedulaHash as string) || null,
+    issuingServerUrl: fallbackServerUrl.replace(/\/+$/, ''),
   }
 }

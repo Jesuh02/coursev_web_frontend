@@ -156,7 +156,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       _resetUserStores()
       tokenStorage.clear()
-      setSelectedTenant(result.tenant.id)
+      // Preserve issuingServerUrl: the JWT was signed by that server and must
+      // be sent back to it for signature verification.
+      setSelectedTenant(result.tenant.id, result.issuingServerUrl)
 
       const res = result.data
       tokenStorage.token = res.accessToken
