@@ -116,9 +116,9 @@ const errorMsg = ref<string | null>(null)
 const currentDetection = ref<Detection | null>(null)
 const composedText = ref('')
 
-// ── Backend proxy a Roboflow (la API key vive en el servidor) ──
+// ── Backend proxy a HuggingFace (el token vive en el servidor) ──
 // Endpoint: POST /api/v1/sign-language/infer  { imageBase64 }
-// Si el backend devuelve ROBOFLOW_NOT_CONFIGURED se activa modo simulación.
+// Si el backend devuelve HF_NOT_CONFIGURED se activa modo simulación.
 let simulationMode = false
 
 // Detección estable: la letra se "fija" cuando se mantiene N ciclos
@@ -230,8 +230,8 @@ async function inferWithBackend(): Promise<Detection | null> {
     return data?.detection ?? null
   } catch (err) {
     // If the backend isn't configured, fall back to simulation so the demo still works.
-    if (err instanceof HttpError && err.errorCode === 'ROBOFLOW_NOT_CONFIGURED') {
-      console.warn('[SignLanguage] Backend sin ROBOFLOW_API_KEY → modo simulación')
+    if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
+      console.warn('[SignLanguage] Backend sin HF_API_TOKEN → modo simulación')
       simulationMode = true
       return simulateDetection()
     }
