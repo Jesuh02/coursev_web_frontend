@@ -60,6 +60,22 @@
           <span class="sl-composed-text">{{ composedText || 'Haz una seña frente a la cámara…' }}</span>
           <span v-if="composedText" class="sl-cursor">|</span>
         </div>
+        <transition name="sl-pop">
+          <div v-if="lastRecognition && lastRecognition.kind !== 'unknown'" class="sl-meta">
+            <span v-if="HAND_LABEL[lastRecognition.handedness]" class="sl-chip sl-chip--hand">
+              {{ HAND_LABEL[lastRecognition.handedness] }}
+            </span>
+            <span v-if="INTENT_LABEL[lastRecognition.nonManual.intent]" class="sl-chip sl-chip--intent">
+              {{ INTENT_LABEL[lastRecognition.nonManual.intent] }}
+            </span>
+            <span v-if="lastRecognition.motion.trajectory" class="sl-chip sl-chip--motion">
+              {{ lastRecognition.motion.trajectory }}
+            </span>
+            <span class="sl-chip sl-chip--conf">
+              {{ Math.round(lastRecognition.confidence * 100) }}%
+            </span>
+          </div>
+        </transition>
       </div>
 
       <!-- Controls -->
@@ -92,9 +108,12 @@
 
       <!-- Hint -->
       <p class="sl-hint">
-        Mantén una seña ~1.5s para fijar la letra. Haz una pausa entre palabras.
-        Al pulsar "Usar texto", la IA convierte la secuencia de letras en una frase
-        en español (por ejemplo, <em>HHOLLA KOMO ESTAS</em> → <em>Hola, ¿cómo estás?</em>).
+        Detecta el <strong>alfabeto</strong> manteniendo la seña quieta ~1 s y
+        también <strong>palabras y frases dinámicas</strong> (hola, gracias,
+        ¿cómo estás?, buenos días) cuando hay movimiento. Reconoce <strong>ambas
+        manos</strong> y la <strong>intención</strong> del gesto (pregunta,
+        exclamación, negación). Al pulsar "Usar texto", la IA limpia tildes y
+        puntuación en español.
       </p>
       <p v-if="composeError" class="sl-error-inline">{{ composeError }}</p>
     </div>
@@ -110,9 +129,47 @@ interface Detection {
   confidence: number
 }
 
-interface InferResponse {
+interface FrameResponse {
   detection: Detection | null
+  alternatives?: Detection[]
+  draft: string
+  eventCount: number
+  pushed: boolean
   model: string
+}
+
+interface ClipRecognition {
+  text: string
+  kind: 'word' | 'phrase' | 'letter' | 'unknown'
+  confidence: number
+  alternatives: string[]
+  handedness: 'left' | 'right' | 'both' | 'none'
+  motion: {
+    trajectory: string
+    direction: string | null
+    repeated: boolean
+    contact: 'none' | 'hand-hand' | 'hand-face' | 'hand-body'
+  }
+  nonManual: {
+    facial: string | null
+    intent: 'statement' | 'question' | 'exclamation' | 'negation' | 'affirmation' | 'unknown'
+  }
+  reasoning: string
+  model: string
+}
+
+interface ClipResponse {
+  recognition: ClipRecognition | null
+  pushed: boolean
+  draft: string
+  eventCount: number
+}
+
+interface ComposeResponse {
+  text: string
+  source: 'llm' | 'local'
+  raw: string
+  draft?: string
 }
 
 const emit = defineEmits<{
@@ -130,27 +187,52 @@ const errorMsg = ref<string | null>(null)
 const currentDetection = ref<Detection | null>(null)
 const composedText = ref('')
 const facingMode = ref<'user' | 'environment'>('user')
+const lastRecognition = ref<ClipRecognition | null>(null)
+const isRecognizingClip = ref(false)
 
-// ── Backend proxy a HuggingFace (el token vive en el servidor) ──
-// Endpoint: POST /api/v1/sign-language/infer  { imageBase64 }
-// Si el backend devuelve HF_NOT_CONFIGURED se activa modo simulación.
+// ── Pipeline híbrida (alfabeto estático + VLM dinámico) ──
+//
+// El backend expone dos pipelines complementarias:
+//   • /sign-language/session/:id/frame  → clasificador ONNX local (A-Z) para
+//     señas ESTÁTICAS (deletreo).
+//   • /sign-language/session/:id/clip   → VLM (Qwen2.5-VL / Gemini-Flash) que
+//     interpreta un CLIP de frames y reconoce palabras/frases ("hola", "¿cómo
+//     estás?", "gracias"), AMBAS manos y la INTENCIÓN del movimiento.
+//
+// El frontend decide a cuál llamar usando un detector de movimiento sencillo
+// (frame-difference sobre una versión muy reducida del video):
+//   • Si la mano está quieta ≥ ~700 ms → /frame (deletreo).
+//   • Si detecta movimiento sostenido y luego se detiene (o llena el buffer)
+//     → /clip con los últimos ~6 frames (palabra/frase + intención).
+//
+// La sesión vive en el servidor: el draft acumulado (letras + palabras
+// intercaladas) se devuelve en cada respuesta y reemplaza `composedText`.
 let simulationMode = false
+const SAMPLE_INTERVAL_MS = 180   // captura un frame cada 180 ms (~5.5 fps)
+const STILL_HOLD_MS = 700        // tiempo de quietud antes de mandar /frame
+const MOTION_THRESHOLD = 9        // diff medio (0-255) para considerar "movimiento"
+const CLIP_MIN_FRAMES = 4
+const CLIP_MAX_FRAMES = 8
+const CLIP_MAX_DURATION_MS = 2000
+const CLIP_COOLDOWN_MS = 600      // espera tras un /clip antes de mandar otro
+const SAME_LETTER_COOLDOWN_MS = 1000
+const FRAME_COOLDOWN_MS = 450     // espera entre llamadas /frame
 
-// Detección estable: la letra se "fija" cuando se mantiene N ciclos seguidos.
-// Con INFER_INTERVAL_MS=350 y STABILITY_THRESHOLD=2 → ~700ms para confirmar.
-// SAME_LETTER_COOLDOWN_MS evita que la misma letra se repita mientras se
-// mantiene la seña sin querer.
-const STABILITY_THRESHOLD = 2
-const CONFIDENCE_THRESHOLD = 0.52
-const INFER_INTERVAL_MS = 350
-const SAME_LETTER_COOLDOWN_MS = 1100
-
+const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
-let inferTimer: ReturnType<typeof setInterval> | null = null
-let lastLabel: string | null = null
-let stableCount = 0
-let lastConfirmedLabel: string | null = null
-let lastConfirmedAt = 0
+let sampleTimer: ReturnType<typeof setInterval> | null = null
+let frameBuffer: string[] = []          // base64 (sin prefijo) en orden cronológico
+let frameStartedAt = 0                  // timestamp del primer frame en motion
+let prevGrayscale: Uint8ClampedArray | null = null
+let consecutiveMotion = 0               // muestras seguidas con movimiento
+let consecutiveStill = 0                // muestras seguidas sin movimiento
+let lastFrameSentAt = 0
+let lastClipSentAt = 0
+let lastConfirmedLetter: string | null = null
+let lastConfirmedLetterAt = 0
+const diffCanvas = document.createElement('canvas')
+diffCanvas.width = 64
+diffCanvas.height = 48
 
 // ── Lifecycle ──
 onMounted(async () => {
@@ -161,12 +243,16 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('visibilitychange', onVisibilityChange)
   stopCamera()
+  // limpiar sesión en el servidor (best-effort)
+  if (!simulationMode) {
+    api.delete(`/sign-language/session/${encodeURIComponent(sessionId)}`).catch(() => { /* ignore */ })
+  }
 })
 
 function onVisibilityChange() {
   if (document.hidden) {
-    if (inferTimer) { clearInterval(inferTimer); inferTimer = null }
-  } else if (isStreaming.value && !inferTimer) {
+    if (sampleTimer) { clearInterval(sampleTimer); sampleTimer = null }
+  } else if (isStreaming.value && !sampleTimer) {
     startInferenceLoop()
   }
 }
@@ -199,9 +285,9 @@ async function startCamera() {
 }
 
 function stopCamera() {
-  if (inferTimer) {
-    clearInterval(inferTimer)
-    inferTimer = null
+  if (sampleTimer) {
+    clearInterval(sampleTimer)
+    sampleTimer = null
   }
   if (stream) {
     stream.getTracks().forEach(t => t.stop())
@@ -210,80 +296,181 @@ function stopCamera() {
   isStreaming.value = false
 }
 
-// ── Inferencia ──
+// ── Bucle de captura + decisión ──
 function startInferenceLoop() {
-  inferTimer = setInterval(runInference, INFER_INTERVAL_MS)
+  sampleTimer = setInterval(tick, SAMPLE_INTERVAL_MS)
 }
 
-async function runInference() {
-  if (isInferring.value || !videoEl.value || !canvasEl.value) return
-  if (videoEl.value.readyState < 2) return
-
-  isInferring.value = true
-  try {
-    const detection = simulationMode
-      ? simulateDetection()
-      : await inferWithBackend()
-
-    if (detection && detection.confidence >= CONFIDENCE_THRESHOLD) {
-      currentDetection.value = detection
-      handleStableDetection(detection)
-    }
-  } catch (err) {
-    console.warn('[SignLanguage] Falló inferencia:', err)
-  } finally {
-    isInferring.value = false
-  }
-}
-
-function handleStableDetection(d: Detection) {
-  if (d.label === lastLabel) {
-    stableCount++
-  } else {
-    // Nueva letra detectada: reiniciar contador inmediatamente
-    lastLabel = d.label
-    stableCount = 1
-  }
-
-  if (stableCount >= STABILITY_THRESHOLD) {
-    const now = Date.now()
-    const sameLetterTooSoon =
-      d.label === lastConfirmedLabel &&
-      now - lastConfirmedAt < SAME_LETTER_COOLDOWN_MS
-
-    if (!sameLetterTooSoon) {
-      composedText.value += d.label
-      lastConfirmedLabel = d.label
-      lastConfirmedAt = now
-      stableCount = 0
-      lastLabel = null
-      setTimeout(() => { currentDetection.value = null }, 250)
-    }
-  }
-}
-
-async function inferWithBackend(): Promise<Detection | null> {
-  const v = videoEl.value!
-  const c = canvasEl.value!
+function captureJpegBase64(quality = 0.7): string | null {
+  const v = videoEl.value
+  const c = canvasEl.value
+  if (!v || !c || v.readyState < 2) return null
   c.width = v.videoWidth
   c.height = v.videoHeight
   const ctx = c.getContext('2d')
   if (!ctx) return null
   ctx.drawImage(v, 0, 0, c.width, c.height)
-  const dataUrl = c.toDataURL('image/jpeg', 0.7)
-  const base64 = dataUrl.split(',')[1]
+  return c.toDataURL('image/jpeg', quality).split(',')[1]
+}
 
+/**
+ * Devuelve la diferencia media (0-255) entre el frame actual y el anterior,
+ * usando una copia muy reducida en escala de grises. Sirve como detector de
+ * movimiento barato para decidir entre /frame (estático) y /clip (dinámico).
+ */
+function computeMotion(): number {
+  const v = videoEl.value
+  if (!v || v.readyState < 2) return 0
+  const ctx = diffCanvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) return 0
+  ctx.drawImage(v, 0, 0, diffCanvas.width, diffCanvas.height)
+  const { data } = ctx.getImageData(0, 0, diffCanvas.width, diffCanvas.height)
+  const gray = new Uint8ClampedArray(diffCanvas.width * diffCanvas.height)
+  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+    gray[j] = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0
+  }
+  let diff = 0
+  if (prevGrayscale && prevGrayscale.length === gray.length) {
+    for (let k = 0; k < gray.length; k++) diff += Math.abs(gray[k] - prevGrayscale[k])
+    diff /= gray.length
+  }
+  prevGrayscale = gray
+  return diff
+}
+
+async function tick() {
+  if (!isStreaming.value) return
+  if (isInferring.value && isRecognizingClip.value) return
+
+  const motion = computeMotion()
+  const moving = motion > MOTION_THRESHOLD
+  const now = Date.now()
+
+  // Buffer rodante de frames recientes (siempre, para tener material si el
+  // usuario empieza a moverse de repente).
+  const jpeg = captureJpegBase64(0.65)
+  if (jpeg) {
+    if (frameBuffer.length === 0) frameStartedAt = now
+    frameBuffer.push(jpeg)
+    if (frameBuffer.length > CLIP_MAX_FRAMES + 2) frameBuffer.shift()
+  }
+
+  if (moving) {
+    consecutiveMotion++
+    consecutiveStill = 0
+    recentMotionSamples++
+  } else {
+    consecutiveStill++
+    consecutiveMotion = 0
+  }
+
+  // — Caso A: el clip está listo (movimiento sostenido + se detuvo, o se
+  //   alcanzó el largo máximo). Mandamos al VLM.
+  const clipReady =
+    frameBuffer.length >= CLIP_MIN_FRAMES &&
+    recentMotionSamples >= 2 &&
+    (
+      consecutiveStill >= 2 ||
+      frameBuffer.length >= CLIP_MAX_FRAMES ||
+      (now - frameStartedAt) >= CLIP_MAX_DURATION_MS
+    )
+
+  if (clipReady && now - lastClipSentAt > CLIP_COOLDOWN_MS && !isRecognizingClip.value) {
+    const framesToSend = frameBuffer.slice(-CLIP_MAX_FRAMES)
+    frameBuffer = []
+    recentMotionSamples = 0
+    lastClipSentAt = now
+    void sendClipToVLM(framesToSend)
+    return
+  }
+
+  // — Caso B: mano quieta el tiempo suficiente → mandamos un único frame al
+  //   clasificador de alfabeto.
+  const stillEnough =
+    !moving &&
+    consecutiveStill * SAMPLE_INTERVAL_MS >= STILL_HOLD_MS &&
+    now - lastFrameSentAt > FRAME_COOLDOWN_MS &&
+    now - lastClipSentAt > CLIP_COOLDOWN_MS
+
+  if (stillEnough && !isInferring.value && jpeg) {
+    lastFrameSentAt = now
+    void sendFrameToAlphabet(jpeg)
+  }
+}
+
+let recentMotionSamples = 0
+
+async function sendFrameToAlphabet(base64: string) {
+  if (simulationMode) {
+    const sim = simulateDetection()
+    if (sim) applyLetter(sim)
+    return
+  }
+  isInferring.value = true
   try {
-    const data = await api.post<InferResponse>('/sign-language/infer', { imageBase64: base64 })
-    return data?.detection ?? null
+    const data = await api.post<FrameResponse>(
+      `/sign-language/session/${encodeURIComponent(sessionId)}/frame`,
+      { imageBase64: base64, minConfidence: 0.5 },
+    )
+    if (data?.detection) {
+      currentDetection.value = data.detection
+      setTimeout(() => { if (currentDetection.value === data.detection) currentDetection.value = null }, 600)
+    }
+    if (typeof data?.draft === 'string') composedText.value = data.draft
   } catch (err) {
-    // If the backend isn't configured, fall back to simulation so the demo still works.
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
       console.warn('[SignLanguage] Backend sin HF_API_TOKEN → modo simulación')
       simulationMode = true
-      return simulateDetection()
+    } else {
+      console.warn('[SignLanguage] /frame falló:', err)
     }
-    throw err
+  } finally {
+    isInferring.value = false
+  }
+}
+
+async function sendClipToVLM(frames: string[]) {
+  if (simulationMode || !frames.length) return
+  isRecognizingClip.value = true
+  try {
+    const data = await api.post<ClipResponse>(
+      `/sign-language/session/${encodeURIComponent(sessionId)}/clip`,
+      { frames, minConfidence: 0.4 },
+    )
+    if (data?.recognition) {
+      lastRecognition.value = data.recognition
+      // Si fue una letra (deletreo), mostrarla como detección visual.
+      if (data.recognition.kind === 'letter' && data.recognition.text) {
+        currentDetection.value = {
+          label: data.recognition.text.toUpperCase(),
+          confidence: data.recognition.confidence,
+        }
+        setTimeout(() => { currentDetection.value = null }, 700)
+      }
+    }
+    if (typeof data?.draft === 'string') composedText.value = data.draft
+  } catch (err) {
+    if (err instanceof HttpError && (err.errorCode === 'VLM_NOT_CONFIGURED' || err.statusCode === 503)) {
+      // VLM no disponible: el sistema sigue funcionando con solo el alfabeto.
+      console.warn('[SignLanguage] VLM no disponible, manteniendo solo deletreo.')
+    } else {
+      console.warn('[SignLanguage] /clip falló:', err)
+    }
+  } finally {
+    isRecognizingClip.value = false
+  }
+}
+
+function applyLetter(d: Detection) {
+  currentDetection.value = d
+  const now = Date.now()
+  const sameLetterTooSoon =
+    d.label === lastConfirmedLetter && now - lastConfirmedLetterAt < SAME_LETTER_COOLDOWN_MS
+  if (!sameLetterTooSoon) {
+    composedText.value += d.label
+    lastConfirmedLetter = d.label
+    lastConfirmedLetterAt = now
+    setTimeout(() => { currentDetection.value = null }, 350)
   }
 }
 
@@ -291,11 +478,26 @@ async function inferWithBackend(): Promise<Detection | null> {
 const SIM_ALPHABET = 'HOLA MUNDO'
 let simIndex = 0
 function simulateDetection(): Detection | null {
-  // Solo emite cada ~2 ciclos para simular detección estable
   if (Math.random() < 0.4) return null
   const ch = SIM_ALPHABET[simIndex % SIM_ALPHABET.length]
   simIndex++
   return { label: ch, confidence: 0.85 }
+}
+
+// ── Etiquetas legibles para handedness / intent ──
+const HAND_LABEL: Record<ClipRecognition['handedness'], string> = {
+  left: 'Mano izquierda',
+  right: 'Mano derecha',
+  both: 'Ambas manos',
+  none: '',
+}
+const INTENT_LABEL: Record<ClipRecognition['nonManual']['intent'], string> = {
+  statement: 'Afirmación',
+  question: 'Pregunta',
+  exclamation: 'Exclamación',
+  negation: 'Negación',
+  affirmation: 'Sí',
+  unknown: '',
 }
 
 // ── Acciones de composición ──
@@ -305,12 +507,12 @@ function clearText() {
   composedText.value = ''
   composedPhrase.value = null
   composeError.value = null
-}
-
-interface ComposeResponse {
-  text: string
-  source: 'llm' | 'local'
-  raw: string
+  lastRecognition.value = null
+  frameBuffer = []
+  // reiniciar sesión en el servidor también
+  if (!simulationMode) {
+    api.delete(`/sign-language/session/${encodeURIComponent(sessionId)}`).catch(() => { /* ignore */ })
+  }
 }
 
 const composedPhrase = ref<string | null>(null)
@@ -318,24 +520,34 @@ const isComposing = ref(false)
 const composeError = ref<string | null>(null)
 
 /**
- * Pide al backend que convierta la secuencia ruidosa de letras en una
- * frase en español natural (LLM + heurísticas). Se invoca al pulsar
- * "Usar texto"; si el servidor falla devolvemos la cadena cruda.
+ * Cierra la sesión en el servidor: éste pasa el draft completo (letras +
+ * palabras detectadas por el VLM) por el LLM para puntuación / tildes /
+ * mayúsculas y devuelve la frase final en español natural.
  */
-async function composePhraseRemote(raw: string): Promise<string> {
-  if (!raw.trim()) return ''
+async function finalizeSessionRemote(): Promise<string> {
+  const fallback = composedText.value.trim()
+  if (!fallback) return ''
   isComposing.value = true
   composeError.value = null
   try {
-    const data = await api.post<ComposeResponse>('/sign-language/compose', {
-      rawSequence: raw,
-      useLLM: true,
-    })
-    return data?.text || raw
+    const data = await api.post<ComposeResponse>(
+      `/sign-language/session/${encodeURIComponent(sessionId)}/finalize`,
+      { useLLM: true },
+    )
+    return data?.text || fallback
   } catch (err) {
-    console.warn('[SignLanguage] compose falló:', err)
-    composeError.value = 'No se pudo afinar la frase, se usará el texto crudo.'
-    return raw
+    console.warn('[SignLanguage] finalize falló, usando /compose como respaldo:', err)
+    try {
+      const data = await api.post<ComposeResponse>('/sign-language/compose', {
+        rawSequence: fallback,
+        useLLM: true,
+      })
+      return data?.text || fallback
+    } catch (err2) {
+      console.warn('[SignLanguage] compose también falló:', err2)
+      composeError.value = 'No se pudo afinar la frase, se usará el texto crudo.'
+      return fallback
+    }
   } finally {
     isComposing.value = false
   }
@@ -345,15 +557,13 @@ async function confirm() {
   const text = composedText.value.trim()
   if (!text || isComposing.value) return
 
-  // Si estamos en modo simulación no llamamos al compositor remoto (el
-  // backend está caído / no configurado). Devolvemos el texto tal cual.
   if (simulationMode) {
     emit('confirm', text)
     close()
     return
   }
 
-  const phrase = await composePhraseRemote(text)
+  const phrase = await finalizeSessionRemote()
   composedPhrase.value = phrase
   emit('confirm', phrase)
   close()
@@ -559,6 +769,27 @@ function close() {
   margin-left: 1px;
 }
 @keyframes sl-blink { 50% { opacity: 0; } }
+
+.sl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sl-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.sl-chip--hand { color: #FFD479; border-color: rgba(255,212,121,0.25); }
+.sl-chip--intent { color: #7BD0FF; border-color: rgba(123,208,255,0.25); }
+.sl-chip--motion { color: #B8FF7B; border-color: rgba(184,255,123,0.25); }
+.sl-chip--conf { color: rgba(255,255,255,0.6); }
 
 /* Controls */
 .sl-controls {
