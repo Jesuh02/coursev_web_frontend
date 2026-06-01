@@ -52,6 +52,9 @@
     </button>
 
     <div class="input-area">
+      <button class="sl-btn" :class="{ 'sl-btn--active': isSignLangMode }" @click="openSignLang" title="Lenguaje de señas">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isSignLangMode ? '#BF5AF2' : '#8E8E93'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+      </button>
       <button class="mic-btn" @click="toggleVoice">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isRecording ? '#FF453A' : '#8E8E93'" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
       </button>
@@ -65,11 +68,45 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
       </button>
     </div>
+
+    <!-- Sign Language Modal -->
+    <div v-if="isSignLangMode" class="sl-overlay" @click.self="closeSignLang">
+      <div class="sl-modal">
+        <div class="sl-modal-header">
+          <div class="sl-modal-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            Lenguaje de Señas
+          </div>
+          <button class="sl-close-btn" @click="closeSignLang">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <video ref="slVideo" class="sl-video" autoplay muted playsinline />
+        <div class="sl-result-row">
+          <div v-if="slDetected" class="sl-letter-badge">{{ slDetected }}</div>
+          <div v-if="slDetected" class="sl-conf-label">{{ slConfidence }}% confianza</div>
+          <div v-else class="sl-hint">Muestra una seña y presiona Capturar</div>
+        </div>
+        <div class="sl-accumulated">
+          <span v-if="slAccumulated" class="sl-accumulated-text">{{ slAccumulated }}</span>
+          <span v-else class="sl-accumulated-empty">Sin texto aún</span>
+        </div>
+        <div class="sl-controls">
+          <button class="sl-ctrl-btn sl-ctrl-capture" :disabled="slCapturing" @click="slCaptureLetter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M6.343 17.657A8 8 0 1 1 17.657 6.343"/></svg>
+            {{ slCapturing ? 'Detectando...' : 'Capturar' }}
+          </button>
+          <button class="sl-ctrl-btn" @click="slAddSpace">Espacio</button>
+          <button class="sl-ctrl-btn" @click="slDeleteLast">&#x232B;</button>
+          <button class="sl-ctrl-btn sl-ctrl-insert" :disabled="!slAccumulated.trim()" @click="slInsert">Insertar al chat</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
@@ -189,6 +226,69 @@ function clearChat() {
 function toggleVoice() {
   isRecording.value = !isRecording.value
 }
+
+// ── Lenguaje de Señas ─────────────────────────────────────────────
+const isSignLangMode = ref(false)
+const slVideo = ref<HTMLVideoElement | null>(null)
+const slDetected = ref('')
+const slConfidence = ref(0)
+const slAccumulated = ref('')
+const slCapturing = ref(false)
+let slStream: MediaStream | null = null
+
+async function openSignLang() {
+  isSignLangMode.value = true
+  slDetected.value = ''
+  slAccumulated.value = ''
+  slConfidence.value = 0
+  await nextTick()
+  try {
+    slStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+    if (slVideo.value) slVideo.value.srcObject = slStream
+  } catch {
+    isSignLangMode.value = false
+  }
+}
+
+function closeSignLang() {
+  isSignLangMode.value = false
+  slStream?.getTracks().forEach(t => t.stop())
+  slStream = null
+}
+
+async function slCaptureLetter() {
+  const video = slVideo.value
+  if (!video || slCapturing.value) return
+  slCapturing.value = true
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 320
+    canvas.height = video.videoHeight || 240
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    const b64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
+    const res = await api.post<{ success: boolean; data?: { detection: { label: string; confidence: number } | null } }>('/sign-language/infer', { imageBase64: b64 })
+    if (res?.data?.detection) {
+      slDetected.value = res.data.detection.label
+      slConfidence.value = Math.round(res.data.detection.confidence * 100)
+      slAccumulated.value += res.data.detection.label
+    }
+  } catch { /* silent */ }
+  slCapturing.value = false
+}
+
+function slAddSpace() { slAccumulated.value += ' ' }
+function slDeleteLast() { slAccumulated.value = slAccumulated.value.slice(0, -1) }
+
+function slInsert() {
+  if (!slAccumulated.value.trim()) return
+  const sep = inputText.value && !inputText.value.endsWith(' ') ? ' ' : ''
+  inputText.value += sep + slAccumulated.value.trim()
+  closeSignLang()
+}
+
+onUnmounted(() => {
+  closeSignLang()
+})
 </script>
 
 <style scoped>
@@ -355,4 +455,141 @@ function toggleVoice() {
 }
 
 .send-btn:disabled { opacity: 0.4; }
+
+/* ── Sign Language ── */
+.sl-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.sl-btn:hover { background: rgba(191,90,242,0.12); }
+.sl-btn--active { background: rgba(191,90,242,0.18); }
+
+.sl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.sl-modal {
+  background: #1C1C1E;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 20px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sl-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sl-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sl-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sl-video {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 16px;
+  background: #000;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.sl-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.sl-letter-badge {
+  font-size: 28px;
+  font-weight: 900;
+  color: #BF5AF2;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(191,90,242,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sl-conf-label { font-size: 13px; color: #8E8E93; }
+.sl-hint { font-size: 13px; color: #636366; font-style: italic; }
+
+.sl-accumulated {
+  min-height: 40px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.sl-accumulated-text { font-size: 18px; color: #fff; font-weight: 600; letter-spacing: 3px; }
+.sl-accumulated-empty { font-size: 14px; color: #555; }
+
+.sl-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.sl-ctrl-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+  color: #ccc;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.sl-ctrl-btn:hover:not(:disabled) { background: rgba(255,255,255,0.13); }
+.sl-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
+
+.sl-ctrl-capture {
+  background: rgba(191,90,242,0.15);
+  color: #BF5AF2;
+  border: 1px solid rgba(191,90,242,0.3);
+}
+.sl-ctrl-capture:hover:not(:disabled) { background: rgba(191,90,242,0.25); }
+
+.sl-ctrl-insert {
+  background: rgba(48,209,88,0.12);
+  color: #30D158;
+  border: 1px solid rgba(48,209,88,0.25);
+}
+.sl-ctrl-insert:hover:not(:disabled) { background: rgba(48,209,88,0.2); }
 </style>
