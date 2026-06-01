@@ -152,11 +152,21 @@ let lastConfirmedAt = 0
 // ── Lifecycle ──
 onMounted(async () => {
   await startCamera()
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
   stopCamera()
 })
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    if (inferTimer) { clearInterval(inferTimer); inferTimer = null }
+  } else if (isStreaming.value && !inferTimer) {
+    startInferenceLoop()
+  }
+}
 
 async function flipCamera() {
   if (isFlipping.value) return
