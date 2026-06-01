@@ -133,15 +133,21 @@ const facingMode = ref<'user' | 'environment'>('user')
 // Si el backend devuelve HF_NOT_CONFIGURED se activa modo simulación.
 let simulationMode = false
 
-// Detección estable: la letra se "fija" cuando se mantiene N ciclos
-const STABILITY_THRESHOLD = 3
-const CONFIDENCE_THRESHOLD = 0.55
-const INFER_INTERVAL_MS = 700
+// Detección estable: la letra se "fija" cuando se mantiene N ciclos seguidos.
+// Con INFER_INTERVAL_MS=350 y STABILITY_THRESHOLD=2 → ~700ms para confirmar.
+// SAME_LETTER_COOLDOWN_MS evita que la misma letra se repita mientras se
+// mantiene la seña sin querer.
+const STABILITY_THRESHOLD = 2
+const CONFIDENCE_THRESHOLD = 0.52
+const INFER_INTERVAL_MS = 350
+const SAME_LETTER_COOLDOWN_MS = 1100
 
 let stream: MediaStream | null = null
 let inferTimer: ReturnType<typeof setInterval> | null = null
 let lastLabel: string | null = null
 let stableCount = 0
+let lastConfirmedLabel: string | null = null
+let lastConfirmedAt = 0
 
 // ── Lifecycle ──
 onMounted(async () => {
@@ -221,17 +227,25 @@ function handleStableDetection(d: Detection) {
   if (d.label === lastLabel) {
     stableCount++
   } else {
+    // Nueva letra detectada: reiniciar contador inmediatamente
     lastLabel = d.label
     stableCount = 1
   }
-  if (stableCount === STABILITY_THRESHOLD) {
-    // Letra confirmada: agregar al texto
-    composedText.value += d.label
-    // Pequeño "cooldown": reiniciar para que no se repita
-    stableCount = 0
-    lastLabel = null
-    // Feedback visual breve
-    setTimeout(() => { currentDetection.value = null }, 350)
+
+  if (stableCount >= STABILITY_THRESHOLD) {
+    const now = Date.now()
+    const sameLetterTooSoon =
+      d.label === lastConfirmedLabel &&
+      now - lastConfirmedAt < SAME_LETTER_COOLDOWN_MS
+
+    if (!sameLetterTooSoon) {
+      composedText.value += d.label
+      lastConfirmedLabel = d.label
+      lastConfirmedAt = now
+      stableCount = 0
+      lastLabel = null
+      setTimeout(() => { currentDetection.value = null }, 250)
+    }
   }
 }
 
