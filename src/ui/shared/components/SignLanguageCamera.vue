@@ -80,20 +80,23 @@
 
       <!-- Footer actions -->
       <div class="sl-footer">
-        <button class="sl-btn sl-btn--ghost" @click="close">Cancelar</button>
+        <button class="sl-btn sl-btn--ghost" @click="close" :disabled="isComposing">Cancelar</button>
         <button
           class="sl-btn sl-btn--primary"
-          :disabled="!composedText.trim()"
+          :disabled="!composedText.trim() || isComposing"
           @click="confirm"
         >
-          Usar texto
+          {{ isComposing ? 'Componiendo…' : 'Usar texto' }}
         </button>
       </div>
 
       <!-- Hint -->
       <p class="sl-hint">
-        Mantén una seña ~1.5s para fijar la letra. Para demos sin API: el modo simulación añadirá letras de prueba.
+        Mantén una seña ~1.5s para fijar la letra. Haz una pausa entre palabras.
+        Al pulsar "Usar texto", la IA convierte la secuencia de letras en una frase
+        en español (por ejemplo, <em>HHOLLA KOMO ESTAS</em> → <em>Hola, ¿cómo estás?</em>).
       </p>
+      <p v-if="composeError" class="sl-error-inline">{{ composeError }}</p>
     </div>
   </div>
 </template>
@@ -298,12 +301,61 @@ function simulateDetection(): Detection | null {
 // ── Acciones de composición ──
 function addSpace() { composedText.value += ' ' }
 function backspace() { composedText.value = composedText.value.slice(0, -1) }
-function clearText() { composedText.value = '' }
+function clearText() {
+  composedText.value = ''
+  composedPhrase.value = null
+  composeError.value = null
+}
 
-function confirm() {
+interface ComposeResponse {
+  text: string
+  source: 'llm' | 'local'
+  raw: string
+}
+
+const composedPhrase = ref<string | null>(null)
+const isComposing = ref(false)
+const composeError = ref<string | null>(null)
+
+/**
+ * Pide al backend que convierta la secuencia ruidosa de letras en una
+ * frase en español natural (LLM + heurísticas). Se invoca al pulsar
+ * "Usar texto"; si el servidor falla devolvemos la cadena cruda.
+ */
+async function composePhraseRemote(raw: string): Promise<string> {
+  if (!raw.trim()) return ''
+  isComposing.value = true
+  composeError.value = null
+  try {
+    const data = await api.post<ComposeResponse>('/sign-language/compose', {
+      rawSequence: raw,
+      useLLM: true,
+    })
+    return data?.text || raw
+  } catch (err) {
+    console.warn('[SignLanguage] compose falló:', err)
+    composeError.value = 'No se pudo afinar la frase, se usará el texto crudo.'
+    return raw
+  } finally {
+    isComposing.value = false
+  }
+}
+
+async function confirm() {
   const text = composedText.value.trim()
-  if (!text) return
-  emit('confirm', text)
+  if (!text || isComposing.value) return
+
+  // Si estamos en modo simulación no llamamos al compositor remoto (el
+  // backend está caído / no configurado). Devolvemos el texto tal cual.
+  if (simulationMode) {
+    emit('confirm', text)
+    close()
+    return
+  }
+
+  const phrase = await composePhraseRemote(text)
+  composedPhrase.value = phrase
+  emit('confirm', phrase)
   close()
 }
 
@@ -462,6 +514,16 @@ function close() {
   background: rgba(0,0,0,0.7);
   color: #FF453A;
   font-size: 13px;
+  text-align: center;
+}
+
+.sl-error-inline {
+  margin: 0 18px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 69, 58, 0.12);
+  color: #FF453A;
+  font-size: 11px;
   text-align: center;
 }
 
