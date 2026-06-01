@@ -14,7 +14,7 @@
 
       <!-- Camera viewport -->
       <div class="sl-viewport">
-        <video ref="videoEl" class="sl-video" autoplay playsinline muted />
+        <video ref="videoEl" class="sl-video" :class="{ 'sl-video--mirror': facingMode === 'user' }" autoplay playsinline muted />
         <canvas ref="canvasEl" class="sl-canvas-hidden" />
 
         <!-- Status badges -->
@@ -26,6 +26,16 @@
             Detectando…
           </span>
         </div>
+
+        <!-- Flip camera button -->
+        <button class="sl-flip-btn" @click="flipCamera" title="Cambiar cámara" :disabled="isFlipping">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 7h-3a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+            <path d="M15 13a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+            <path d="M18 3l2 2-2 2"/>
+            <path d="M6 3L4 5l2 2"/>
+          </svg>
+        </button>
 
         <!-- Detected letter overlay -->
         <transition name="sl-pop">
@@ -112,9 +122,11 @@ const videoEl = ref<HTMLVideoElement>()
 const canvasEl = ref<HTMLCanvasElement>()
 const isStreaming = ref(false)
 const isInferring = ref(false)
+const isFlipping = ref(false)
 const errorMsg = ref<string | null>(null)
 const currentDetection = ref<Detection | null>(null)
 const composedText = ref('')
+const facingMode = ref<'user' | 'environment'>('user')
 
 // ── Backend proxy a HuggingFace (el token vive en el servidor) ──
 // Endpoint: POST /api/v1/sign-language/infer  { imageBase64 }
@@ -140,10 +152,19 @@ onUnmounted(() => {
   stopCamera()
 })
 
+async function flipCamera() {
+  if (isFlipping.value) return
+  isFlipping.value = true
+  facingMode.value = facingMode.value === 'user' ? 'environment' : 'user'
+  stopCamera()
+  await startCamera()
+  isFlipping.value = false
+}
+
 async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { facingMode: facingMode.value, width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false,
     })
     if (videoEl.value) {
@@ -342,7 +363,9 @@ function close() {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* espejo, más natural para el usuario */
+}
+.sl-video--mirror {
+  transform: scaleX(-1); /* espejo solo para cámara frontal */
 }
 .sl-canvas-hidden { display: none; }
 
@@ -353,6 +376,27 @@ function close() {
   display: flex;
   gap: 6px;
 }
+
+.sl-flip-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.2s;
+  backdrop-filter: blur(4px);
+}
+.sl-flip-btn:hover:not(:disabled) { background: rgba(0,0,0,0.75); }
+.sl-flip-btn:active:not(:disabled) { transform: rotate(180deg); }
+.sl-flip-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .sl-status-badge {
   font-size: 10px;
   font-weight: 700;
