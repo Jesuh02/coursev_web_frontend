@@ -140,7 +140,7 @@ interface FrameResponse {
 
 interface ClipRecognition {
   text: string
-  kind: 'word' | 'phrase' | 'letter' | 'unknown'
+  kind: 'word' | 'phrase' | 'letter' | 'number' | 'unknown'
   confidence: number
   alternatives: string[]
   handedness: 'left' | 'right' | 'both' | 'none'
@@ -208,23 +208,25 @@ const isRecognizingClip = ref(false)
 // La sesión vive en el servidor: el draft acumulado (letras + palabras
 // intercaladas) se devuelve en cada respuesta y reemplaza `composedText`.
 let simulationMode = false
-// 10 fps: el doble de la tasa anterior. Más frames por segundo = más evidencia
-// micro-temporal para que el VLM distinga señas similares (la diferencia entre
-// "hola" / "maravilloso" / "ocupado" está en la VIBRACIÓN y ALTERNANCIA del
-// movimiento, que se pierde a 5 fps).
-const SAMPLE_INTERVAL_MS = 100
-const STILL_HOLD_MS = 1200        // quietud sostenida antes de probar deletreo
-const MOTION_THRESHOLD = 4         // diff medio (0-255) para considerar "movimiento"
-const CLIP_MIN_FRAMES = 8          // mínimo 8 frames (~800 ms a 10 fps) para evidencia temporal real
-const CLIP_MAX_FRAMES = 12         // clips más largos → mejor discriminación entre señas
-const CLIP_BUFFER_MAX = 18         // buffer rodante un poco mayor que CLIP_MAX_FRAMES
-const CLIP_MIN_DURATION_MS = 800   // un clip dinámico debe durar al menos 800 ms
-const CLIP_MAX_DURATION_MS = 2200  // y como mucho 2.2 s
-const CLIP_COOLDOWN_MS = 1000      // espera tras un /clip antes de mandar otro
-const CLIP_MIN_CONFIDENCE = 0.6    // confianza mínima del VLM para empujar al draft (el server filtra igual)
-const SAME_LETTER_COOLDOWN_MS = 1200
-const FRAME_COOLDOWN_MS = 600      // espera entre llamadas /frame
-const MOTION_MEMORY_MS = 2500      // ventana en la que un /clip todavía 'gana' sobre /frame
+// ~12.5 fps de muestreo. Más frames por segundo = más evidencia micro-temporal
+// para que el VLM distinga señas similares (la diferencia entre
+// "hola" / "maravilloso" / "ocupado" / "fine" está en la VIBRACIÓN y
+// ALTERNANCIA del movimiento, que se pierde con pocos frames). Y tiempos
+// MÁS PERMISIVOS para que vocales/letras/números vuelvan a detectarse y para
+// no perder señas dinámicas cortas como "sí", "no", "ok".
+const SAMPLE_INTERVAL_MS = 80
+const STILL_HOLD_MS = 650          // quietud sostenida antes de probar deletreo (antes 1200 → bloqueaba vocales)
+const MOTION_THRESHOLD = 5         // diff medio (0-255) para considerar "movimiento" (un poco menos sensible para que mano quieta cuente como quieta)
+const CLIP_MIN_FRAMES = 5          // antes 8 → señas cortas como "sí", "no", "ok" no llegaban al VLM
+const CLIP_MAX_FRAMES = 14         // clips más largos → mejor discriminación entre señas
+const CLIP_BUFFER_MAX = 22         // buffer rodante un poco mayor que CLIP_MAX_FRAMES
+const CLIP_MIN_DURATION_MS = 450   // un clip dinámico breve (sí/no/ok) tiene ~500 ms
+const CLIP_MAX_DURATION_MS = 2800  // y como mucho 2.8 s para frases largas (¿cómo estás?, buenos días)
+const CLIP_COOLDOWN_MS = 700       // espera tras un /clip antes de mandar otro (antes 1000)
+const CLIP_MIN_CONFIDENCE = 0.55   // confianza mínima del VLM para empujar al draft (el server filtra igual)
+const SAME_LETTER_COOLDOWN_MS = 900
+const FRAME_COOLDOWN_MS = 450      // espera entre llamadas /frame (antes 600)
+const MOTION_MEMORY_MS = 1200      // ventana en la que un /clip todavía 'gana' sobre /frame (antes 2500 → bloqueaba el deletreo demasiado tiempo)
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
@@ -468,8 +470,8 @@ async function sendClipToVLM(frames: string[]) {
     )
     if (data?.recognition) {
       lastRecognition.value = data.recognition
-      // Si fue una letra (deletreo), mostrarla como detección visual.
-      if (data.recognition.kind === 'letter' && data.recognition.text) {
+      // Si fue una letra o un número (deletreo), mostrarla como detección visual.
+      if ((data.recognition.kind === 'letter' || data.recognition.kind === 'number') && data.recognition.text) {
         currentDetection.value = {
           label: data.recognition.text.toUpperCase(),
           confidence: data.recognition.confidence,
