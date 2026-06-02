@@ -209,14 +209,15 @@ const isRecognizingClip = ref(false)
 // intercaladas) se devuelve en cada respuesta y reemplaza `composedText`.
 let simulationMode = false
 const SAMPLE_INTERVAL_MS = 180   // captura un frame cada 180 ms (~5.5 fps)
-const STILL_HOLD_MS = 700        // tiempo de quietud antes de mandar /frame
-const MOTION_THRESHOLD = 9        // diff medio (0-255) para considerar "movimiento"
-const CLIP_MIN_FRAMES = 4
+const STILL_HOLD_MS = 1200       // quietud sostenida antes de probar deletreo (más estricto)
+const MOTION_THRESHOLD = 4        // diff medio (0-255) para considerar "movimiento" (era 9, demasiado alto)
+const CLIP_MIN_FRAMES = 3         // basta con 3 frames si hay movimiento claro
 const CLIP_MAX_FRAMES = 8
-const CLIP_MAX_DURATION_MS = 2000
-const CLIP_COOLDOWN_MS = 600      // espera tras un /clip antes de mandar otro
-const SAME_LETTER_COOLDOWN_MS = 1000
-const FRAME_COOLDOWN_MS = 450     // espera entre llamadas /frame
+const CLIP_MAX_DURATION_MS = 1800
+const CLIP_COOLDOWN_MS = 800      // espera tras un /clip antes de mandar otro
+const SAME_LETTER_COOLDOWN_MS = 1200
+const FRAME_COOLDOWN_MS = 600     // espera entre llamadas /frame
+const MOTION_MEMORY_MS = 2500     // ventana en la que un /clip todavía 'gana' sobre /frame
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
@@ -226,6 +227,8 @@ let frameStartedAt = 0                  // timestamp del primer frame en motion
 let prevGrayscale: Uint8ClampedArray | null = null
 let consecutiveMotion = 0               // muestras seguidas con movimiento
 let consecutiveStill = 0                // muestras seguidas sin movimiento
+let recentMotionSamples = 0             // muestras con movimiento desde el último envío
+let lastMotionAt = 0                    // timestamp del último frame con movimiento
 let lastFrameSentAt = 0
 let lastClipSentAt = 0
 let lastConfirmedLetter: string | null = null
@@ -340,7 +343,18 @@ function computeMotion(): number {
 
 async function tick() {
   if (!isStreaming.value) return
-  if (isInferring.value && isRecognizingClip.value) return
+  // Si CUALQUIERA de las dos pipelines está en vuelo, no disparamos nada
+  // (antes era `&&`, lo que dejaba que /frame se siguiera ejecutando
+  // mientras el VLM tardaba 5-10 s y por eso "solo aparecían letras").
+  if (isInferring.value || isRecognizingClip.value) {
+    // Aun así seguimos llenando el buffer para no perder el clip en curso.
+    const j = captureJpegBase64(0.65)
+    if (j) {
+      frameBuffer.push(j)
+      if (frameBuffer.length > CLIP_MAX_FRAMES + 2) frameBuffer.shift()
+    }
+    return
+  }
 
   const motion = computeMotion()
   const moving = motion > MOTION_THRESHOLD
@@ -359,23 +373,24 @@ async function tick() {
     consecutiveMotion++
     consecutiveStill = 0
     recentMotionSamples++
+    lastMotionAt = now
   } else {
     consecutiveStill++
     consecutiveMotion = 0
   }
 
-  // — Caso A: el clip está listo (movimiento sostenido + se detuvo, o se
-  //   alcanzó el largo máximo). Mandamos al VLM.
+  // — Caso A: el clip está listo (hubo movimiento y ahora se detuvo, o se
+  //   alcanzó el largo/duración máxima). Mandamos al VLM.
   const clipReady =
     frameBuffer.length >= CLIP_MIN_FRAMES &&
-    recentMotionSamples >= 2 &&
+    recentMotionSamples >= 1 &&
     (
       consecutiveStill >= 2 ||
       frameBuffer.length >= CLIP_MAX_FRAMES ||
       (now - frameStartedAt) >= CLIP_MAX_DURATION_MS
     )
 
-  if (clipReady && now - lastClipSentAt > CLIP_COOLDOWN_MS && !isRecognizingClip.value) {
+  if (clipReady && now - lastClipSentAt > CLIP_COOLDOWN_MS) {
     const framesToSend = frameBuffer.slice(-CLIP_MAX_FRAMES)
     frameBuffer = []
     recentMotionSamples = 0
@@ -384,21 +399,23 @@ async function tick() {
     return
   }
 
-  // — Caso B: mano quieta el tiempo suficiente → mandamos un único frame al
-  //   clasificador de alfabeto.
+  // — Caso B: mano quieta el tiempo suficiente → mandamos UN frame al
+  //   clasificador de alfabeto. Solo si NO hubo movimiento reciente (de lo
+  //   contrario podríamos cortar una seña dinámica en curso y empujar una
+  //   vocal espuria al draft).
+  const noRecentMotion = now - lastMotionAt > MOTION_MEMORY_MS
   const stillEnough =
     !moving &&
+    noRecentMotion &&
     consecutiveStill * SAMPLE_INTERVAL_MS >= STILL_HOLD_MS &&
     now - lastFrameSentAt > FRAME_COOLDOWN_MS &&
     now - lastClipSentAt > CLIP_COOLDOWN_MS
 
-  if (stillEnough && !isInferring.value && jpeg) {
+  if (stillEnough && jpeg) {
     lastFrameSentAt = now
     void sendFrameToAlphabet(jpeg)
   }
 }
-
-let recentMotionSamples = 0
 
 async function sendFrameToAlphabet(base64: string) {
   if (simulationMode) {
@@ -509,6 +526,11 @@ function clearText() {
   composeError.value = null
   lastRecognition.value = null
   frameBuffer = []
+  recentMotionSamples = 0
+  consecutiveMotion = 0
+  consecutiveStill = 0
+  lastMotionAt = 0
+  lastConfirmedLetter = null
   // reiniciar sesión en el servidor también
   if (!simulationMode) {
     api.delete(`/sign-language/session/${encodeURIComponent(sessionId)}`).catch(() => { /* ignore */ })
