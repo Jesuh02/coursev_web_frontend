@@ -352,25 +352,13 @@ function computeMotion(): number {
 
 async function tick() {
   if (!isStreaming.value) return
-  // Si CUALQUIERA de las dos pipelines está en vuelo, no disparamos nada
-  // (antes era `&&`, lo que dejaba que /frame se siguiera ejecutando
-  // mientras el VLM tardaba 5-10 s y por eso "solo aparecían letras").
-  if (isInferring.value || isRecognizingClip.value) {
-    // Aun así seguimos llenando el buffer para no perder el clip en curso.
-    const j = captureJpegBase64(0.65)
-    if (j) {
-      frameBuffer.push(j)
-      if (frameBuffer.length > CLIP_BUFFER_MAX) frameBuffer.shift()
-    }
-    return
-  }
 
+  // Siempre calcular movimiento y llenar buffer, independientemente de qué
+  // pipeline esté en vuelo. Así no perdemos frames mientras el VLM procesa.
   const motion = computeMotion()
   const moving = motion > MOTION_THRESHOLD
   const now = Date.now()
 
-  // Buffer rodante de frames recientes (siempre, para tener material si el
-  // usuario empieza a moverse de repente).
   const jpeg = captureJpegBase64(0.65)
   if (jpeg) {
     if (frameBuffer.length === 0) frameStartedAt = now
@@ -388,11 +376,9 @@ async function tick() {
     consecutiveMotion = 0
   }
 
-  // — Caso A: el clip está listo (hubo movimiento sostenido y ahora se detuvo,
-  //   o se alcanzó el largo/duración máxima). Mandamos al VLM solo si hay
-  //   suficiente evidencia temporal — clips demasiado cortos producen
-  //   alucinaciones (el VLM colapsa a "hola"/"¿cómo estás?" cuando no tiene
-  //   información suficiente).
+  // — Caso A: clip listo → enviar al VLM, pero SOLO si el VLM no está ya
+  //   procesando otro clip. El clasificador de letras (/frame) puede correr
+  //   en paralelo con el VLM — son pipelines independientes.
   const clipDuration = now - frameStartedAt
   const clipReady =
     frameBuffer.length >= CLIP_MIN_FRAMES &&
@@ -404,7 +390,7 @@ async function tick() {
       clipDuration >= CLIP_MAX_DURATION_MS
     )
 
-  if (clipReady && now - lastClipSentAt > CLIP_COOLDOWN_MS) {
+  if (clipReady && !isRecognizingClip.value && now - lastClipSentAt > CLIP_COOLDOWN_MS) {
     const framesToSend = frameBuffer.slice(-CLIP_MAX_FRAMES)
     frameBuffer = []
     recentMotionSamples = 0
@@ -413,10 +399,13 @@ async function tick() {
     return
   }
 
-  // — Caso B: mano quieta el tiempo suficiente → mandamos UN frame al
-  //   clasificador de alfabeto. Solo si NO hubo movimiento reciente (de lo
-  //   contrario podríamos cortar una seña dinámica en curso y empujar una
-  //   vocal espuria al draft).
+  // — Caso B: mano quieta → clasificador de alfabeto (/frame).
+  //   Solo bloqueamos si /frame YA está en vuelo (isInferring). El VLM
+  //   corriendo en paralelo NO impide la detección de letras y vocales.
+  //   (Antes `isRecognizingClip` también bloqueaba, lo que dejaba 6-10 s
+  //    sin ninguna detección durante cada llamada al VLM.)
+  if (isInferring.value) return
+
   const noRecentMotion = now - lastMotionAt > MOTION_MEMORY_MS
   const stillEnough =
     !moving &&
@@ -441,7 +430,10 @@ async function sendFrameToAlphabet(base64: string) {
   try {
     const data = await api.post<FrameResponse>(
       `/sign-language/session/${encodeURIComponent(sessionId)}/frame`,
-      { imageBase64: base64, minConfidence: 0.5 },
+      // _t: nonce de tiempo para que cada request tenga hash único y no sea
+      // bloqueado por el IdempotencyGuard aunque el frame base64 sea idéntico
+      // (ocurre cuando la mano está quieta sosteniendo una letra/vocal).
+      { imageBase64: base64, minConfidence: 0.5, _t: Date.now() },
     )
     if (data?.detection) {
       currentDetection.value = data.detection
