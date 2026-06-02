@@ -208,16 +208,23 @@ const isRecognizingClip = ref(false)
 // La sesión vive en el servidor: el draft acumulado (letras + palabras
 // intercaladas) se devuelve en cada respuesta y reemplaza `composedText`.
 let simulationMode = false
-const SAMPLE_INTERVAL_MS = 180   // captura un frame cada 180 ms (~5.5 fps)
-const STILL_HOLD_MS = 1200       // quietud sostenida antes de probar deletreo (más estricto)
-const MOTION_THRESHOLD = 4        // diff medio (0-255) para considerar "movimiento" (era 9, demasiado alto)
-const CLIP_MIN_FRAMES = 3         // basta con 3 frames si hay movimiento claro
-const CLIP_MAX_FRAMES = 8
-const CLIP_MAX_DURATION_MS = 1800
-const CLIP_COOLDOWN_MS = 800      // espera tras un /clip antes de mandar otro
+// 10 fps: el doble de la tasa anterior. Más frames por segundo = más evidencia
+// micro-temporal para que el VLM distinga señas similares (la diferencia entre
+// "hola" / "maravilloso" / "ocupado" está en la VIBRACIÓN y ALTERNANCIA del
+// movimiento, que se pierde a 5 fps).
+const SAMPLE_INTERVAL_MS = 100
+const STILL_HOLD_MS = 1200        // quietud sostenida antes de probar deletreo
+const MOTION_THRESHOLD = 4         // diff medio (0-255) para considerar "movimiento"
+const CLIP_MIN_FRAMES = 8          // mínimo 8 frames (~800 ms a 10 fps) para evidencia temporal real
+const CLIP_MAX_FRAMES = 12         // clips más largos → mejor discriminación entre señas
+const CLIP_BUFFER_MAX = 18         // buffer rodante un poco mayor que CLIP_MAX_FRAMES
+const CLIP_MIN_DURATION_MS = 800   // un clip dinámico debe durar al menos 800 ms
+const CLIP_MAX_DURATION_MS = 2200  // y como mucho 2.2 s
+const CLIP_COOLDOWN_MS = 1000      // espera tras un /clip antes de mandar otro
+const CLIP_MIN_CONFIDENCE = 0.6    // confianza mínima del VLM para empujar al draft (el server filtra igual)
 const SAME_LETTER_COOLDOWN_MS = 1200
-const FRAME_COOLDOWN_MS = 600     // espera entre llamadas /frame
-const MOTION_MEMORY_MS = 2500     // ventana en la que un /clip todavía 'gana' sobre /frame
+const FRAME_COOLDOWN_MS = 600      // espera entre llamadas /frame
+const MOTION_MEMORY_MS = 2500      // ventana en la que un /clip todavía 'gana' sobre /frame
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
@@ -351,7 +358,7 @@ async function tick() {
     const j = captureJpegBase64(0.65)
     if (j) {
       frameBuffer.push(j)
-      if (frameBuffer.length > CLIP_MAX_FRAMES + 2) frameBuffer.shift()
+      if (frameBuffer.length > CLIP_BUFFER_MAX) frameBuffer.shift()
     }
     return
   }
@@ -366,7 +373,7 @@ async function tick() {
   if (jpeg) {
     if (frameBuffer.length === 0) frameStartedAt = now
     frameBuffer.push(jpeg)
-    if (frameBuffer.length > CLIP_MAX_FRAMES + 2) frameBuffer.shift()
+    if (frameBuffer.length > CLIP_BUFFER_MAX) frameBuffer.shift()
   }
 
   if (moving) {
@@ -379,15 +386,20 @@ async function tick() {
     consecutiveMotion = 0
   }
 
-  // — Caso A: el clip está listo (hubo movimiento y ahora se detuvo, o se
-  //   alcanzó el largo/duración máxima). Mandamos al VLM.
+  // — Caso A: el clip está listo (hubo movimiento sostenido y ahora se detuvo,
+  //   o se alcanzó el largo/duración máxima). Mandamos al VLM solo si hay
+  //   suficiente evidencia temporal — clips demasiado cortos producen
+  //   alucinaciones (el VLM colapsa a "hola"/"¿cómo estás?" cuando no tiene
+  //   información suficiente).
+  const clipDuration = now - frameStartedAt
   const clipReady =
     frameBuffer.length >= CLIP_MIN_FRAMES &&
-    recentMotionSamples >= 1 &&
+    recentMotionSamples >= 3 &&
+    clipDuration >= CLIP_MIN_DURATION_MS &&
     (
-      consecutiveStill >= 2 ||
+      consecutiveStill >= 3 ||
       frameBuffer.length >= CLIP_MAX_FRAMES ||
-      (now - frameStartedAt) >= CLIP_MAX_DURATION_MS
+      clipDuration >= CLIP_MAX_DURATION_MS
     )
 
   if (clipReady && now - lastClipSentAt > CLIP_COOLDOWN_MS) {
@@ -452,7 +464,7 @@ async function sendClipToVLM(frames: string[]) {
   try {
     const data = await api.post<ClipResponse>(
       `/sign-language/session/${encodeURIComponent(sessionId)}/clip`,
-      { frames, minConfidence: 0.4 },
+      { frames, minConfidence: CLIP_MIN_CONFIDENCE },
     )
     if (data?.recognition) {
       lastRecognition.value = data.recognition
