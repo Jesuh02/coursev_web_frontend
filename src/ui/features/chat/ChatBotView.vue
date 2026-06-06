@@ -361,10 +361,12 @@ function extractPlan(raw: string): CoursePlan | null {
           topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
             title: String(t.title ?? t.name ?? ''),
             description: String(t.description ?? ''),
+            contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
             tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
               title: String(k.title ?? ''),
               description: String(k.description ?? ''),
               dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
+              contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
             })),
           })),
         })),
@@ -442,6 +444,7 @@ interface TopicForContent {
   id: number
   title: string
   description?: string
+  contentDescription?: string
   subjectName: string
 }
 
@@ -451,10 +454,10 @@ function rejectCoursePlan() {
   courseCreateError.value = ''
   isCourseMode.value = false
   messages.value.push({
-    id: Date.now(),
+    id: crypto.randomUUID(),
     role: 'assistant',
     content: 'Plan cancelado. Puedes pedirme otro curso cuando quieras. 😊',
-    ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    createdAt: new Date().toISOString(),
   })
 }
 
@@ -502,6 +505,7 @@ async function createCourseFromPlan() {
           id: topicId,
           title: topic.title,
           description: topic.description ?? '',
+          contentDescription: topic.contentDescription,
           subjectName: subject.name,
         })
 
