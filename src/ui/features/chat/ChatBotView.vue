@@ -437,6 +437,13 @@ function weekToIso(week?: number | null): string | null {
   return d.toISOString()
 }
 
+interface TopicForContent {
+  id: number
+  title: string
+  description?: string
+  subjectName: string
+}
+
 async function createCourseFromPlan() {
   if (!coursePlan.value || isCreatingCourse.value) return
   isCreatingCourse.value = true
@@ -455,6 +462,8 @@ async function createCourseFromPlan() {
     }) as unknown as { id?: number }
     const courseId = course?.id
     if (!courseId) throw new Error('No se pudo crear el curso')
+
+    const topicsForContent: TopicForContent[] = []
 
     for (const subject of plan.subjects) {
       const createdSubject = await subjectAdapter.createSubject({
@@ -475,6 +484,13 @@ async function createCourseFromPlan() {
         const topicId = createdTopic?.id
         if (!topicId) continue
 
+        topicsForContent.push({
+          id: topicId,
+          title: topic.title,
+          description: topic.description ?? '',
+          subjectName: subject.name,
+        })
+
         for (const task of topic.tasks ?? []) {
           await taskAdapter.createTask({
             title: task.title,
@@ -486,10 +502,24 @@ async function createCourseFromPlan() {
       }
     }
     createdCourseId.value = courseId
+
+    // Generate educational Word documents for each topic in the background (non-blocking)
+    if (topicsForContent.length > 0) {
+      generateCourseDocuments(courseId, plan.title, topicsForContent)
+    }
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
   } finally {
     isCreatingCourse.value = false
+  }
+}
+
+async function generateCourseDocuments(courseId: number, courseTitle: string, topics: TopicForContent[]) {
+  try {
+    await api.post('/llm/generate-course-content', { courseId, courseTitle, topics })
+  } catch {
+    // Non-blocking: course is already created; content generation failure is not fatal
+    console.warn('[ChatBot] Content generation failed — course structure is intact')
   }
 }
 
