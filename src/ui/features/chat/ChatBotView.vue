@@ -160,8 +160,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { chatAdapter, submissionAdapter, courseAdapter, subjectAdapter, topicAdapter, taskAdapter, tokenStorage } from '@/infrastructure/api'
-import type { Topic, Task } from '@/domain/models'
+import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import ChatBubble from './components/ChatBubble.vue'
 import CoursePlanCard, { type CoursePlan } from './components/CoursePlanCard.vue'
@@ -434,22 +433,6 @@ function buildPlannerPrompt(userText: string): string {
   return `Petición: "${userText}"${current}`
 }
 
-/** Convierte un número de semana relativo en una fecha ISO de entrega. */
-function weekToIso(week?: number | null): string | null {
-  if (!week || week < 1) return null
-  const d = new Date()
-  d.setDate(d.getDate() + week * 7)
-  return d.toISOString()
-}
-
-interface TopicForContent {
-  id: number
-  title: string
-  description?: string
-  contentDescription?: string
-  subjectName: string
-}
-
 function rejectCoursePlan() {
   coursePlan.value = null
   createdCourseId.value = null
@@ -468,78 +451,15 @@ async function createCourseFromPlan() {
   isCreatingCourse.value = true
   courseCreateError.value = ''
   try {
-    const plan = coursePlan.value
-    const course = await courseAdapter.createCourse({
-      title: plan.title,
-      description: plan.description ?? '',
-      category: plan.category || 'General',
-      creatorUsername: tokenStorage.username ?? '',
-      isFree: true,
-      price: 0,
-      isActive: true,
-      deadline: null,
-    }) as unknown as { id?: number }
-    const courseId = course?.id
-    if (!courseId) throw new Error('No se pudo crear el curso')
-
-    const topicsForContent: TopicForContent[] = []
-
-    for (const subject of plan.subjects) {
-      const createdSubject = await subjectAdapter.createSubject({
-        name: subject.name,
-        description: subject.description ?? '',
-        courseId,
-        createdBy: tokenStorage.userId || null,
-      }) as unknown as { id?: number }
-      const subjectId = createdSubject?.id
-      if (!subjectId) continue
-
-      for (const topic of subject.topics) {
-        const createdTopic = await topicAdapter.createTopic({
-          name: topic.title,
-          description: topic.description ?? '',
-          subjectId,
-        } as unknown as Partial<Topic>) as unknown as { id?: number }
-        const topicId = createdTopic?.id
-        if (!topicId) continue
-
-        topicsForContent.push({
-          id: topicId,
-          title: topic.title,
-          description: topic.description ?? '',
-          contentDescription: topic.contentDescription,
-          subjectName: subject.name,
-        })
-
-        for (const task of topic.tasks ?? []) {
-          await taskAdapter.createTask({
-            title: task.title,
-            description: task.description ?? '',
-            topicId,
-            dueDate: weekToIso(task.dueWeek),
-          } as Partial<Task>)
-        }
-      }
-    }
-    createdCourseId.value = courseId
-
-    // Generate educational Word documents for each topic in the background (non-blocking)
-    if (topicsForContent.length > 0) {
-      generateCourseDocuments(courseId, plan.title, topicsForContent)
-    }
+    const data = await api.post<{ courseId: number; topicsCreated: number; tasksCreated: number; topicDocs: number; taskDocs: number }>(
+      '/llm/confirm-course',
+      { plan: coursePlan.value },
+    )
+    createdCourseId.value = data.courseId
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
   } finally {
     isCreatingCourse.value = false
-  }
-}
-
-async function generateCourseDocuments(courseId: number, courseTitle: string, topics: TopicForContent[]) {
-  try {
-    await api.post('/llm/generate-course-content', { courseId, courseTitle, topics })
-  } catch {
-    // Non-blocking: course is already created; content generation failure is not fatal
-    console.warn('[ChatBot] Content generation failed — course structure is intact')
   }
 }
 
