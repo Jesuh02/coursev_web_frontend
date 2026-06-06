@@ -24,20 +24,29 @@
     <div ref="messagesContainer" class="messages-container">
       <div v-if="!messages.length" class="welcome-state">
         <template v-if="isCourseMode">
-          <div class="cw-icon">🎓</div>
-          <h3 class="cw-title">Crea un curso con IA</h3>
-          <p class="cw-desc">Describe la temática, nivel y duración. La IA genera el plan completo, o comparte tu propia estructura y la ajustamos juntos.</p>
-          <div class="cw-chips">
-            <button v-for="q in courseQuickPrompts" :key="q" class="cw-chip" @click="sendQuickPrompt(q)">{{ q }}</button>
+          <div class="cw-hero">
+            <div class="cw-hero-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+            <h3 class="cw-title">Crea tu curso con IA</h3>
+            <p class="cw-desc">Describe la temática, nivel y duración. La IA genera el plan completo. O comparte tu propia estructura y la ajustamos juntos.</p>
           </div>
-          <p class="cw-or">o escribe tu propia planificación detallada</p>
+          <div class="cw-chips">
+            <button v-for="q in courseQuickPrompts" :key="q" class="cw-chip" @click="sendQuickPrompt(q)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              {{ q }}
+            </button>
+          </div>
+          <p class="cw-or">o describe libremente lo que necesitas</p>
         </template>
         <template v-else>
-          <div class="welcome-icon">🤖</div>
-          <h3 class="welcome-title">Hola, soy tu asistente IA</h3>
-          <p class="welcome-desc">Puedo ayudarte con tus cursos, tareas y preguntas académicas</p>
+          <div class="welcome-avatar">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 1 0 5 5A5 5 0 0 0 12 2zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1"/></svg>
+          </div>
+          <h3 class="welcome-title">Asistente IA</h3>
+          <p class="welcome-desc">Hazme preguntas sobre tus cursos, tareas y materias, o pídeme que cree un curso completo.</p>
           <button class="cw-hint-btn" @click="sendQuickPrompt('Créame un curso de Programación Web, nivel básico, 8 semanas')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             Crear un curso con IA
           </button>
         </template>
@@ -59,6 +68,7 @@
         :creating="isCreatingCourse"
         :created-id="createdCourseId"
         :error="courseCreateError"
+        :version="planVersion"
         @confirm="createCourseFromPlan"
         @view="viewCreatedCourse"
       />
@@ -77,10 +87,15 @@
     </button>
 
     <div v-if="isCourseMode" class="course-mode-banner">
-      <span class="cm-dot" />
-      <span class="cm-text">{{ coursePlan ? 'Plan listo · ajusta por chat o confirma para crear' : 'Modo curso · describe la temática o pega tu propia planificación' }}</span>
+      <div class="cm-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </div>
+      <span class="cm-text">
+        <span v-if="coursePlan">Plan listo · ajusta por chat o confirma para crear</span>
+        <span v-else>Modo curso · describe la temática o pega tu planificación</span>
+      </span>
       <button class="cm-close" @click="toggleCourseMode" title="Salir del modo curso">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
 
@@ -303,6 +318,8 @@ function clearChat() {
   messages.value = []
   sessionId.value = crypto.randomUUID()
   coursePlan.value = null
+  planVersion.value = 0
+  isCourseMode.value = false
   createdCourseId.value = null
   courseCreateError.value = ''
 }
@@ -314,6 +331,7 @@ function toggleVoice() {
 // ── Crear curso con IA ────────────────────────────────────────────
 const isCourseMode = ref(false)
 const coursePlan = ref<CoursePlan | null>(null)
+const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
@@ -359,6 +377,7 @@ async function requestCoursePlan(text: string) {
   isTyping.value = true
   createdCourseId.value = null
   courseCreateError.value = ''
+  const isUpdate = !!coursePlan.value
   try {
     const prompt = buildPlannerPrompt(text)
     const data = await api.post<LLMApiResponse>('/llm/process', {
@@ -370,9 +389,13 @@ async function requestCoursePlan(text: string) {
     const parsed = extractPlan(rawAnswer)
     if (parsed) {
       coursePlan.value = parsed
+      planVersion.value += 1
+      const msg = isUpdate
+        ? 'Plan actualizado con tus cambios. Sigue ajustando o confirma para crear el curso.'
+        : 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste por chat, o confirmarlo para crearlo de inmediato.'
       messages.value.push({
         id: crypto.randomUUID(),
-        content: 'Aquí tienes el plan. Pídeme los ajustes que quieras o pulsa "Confirmar y crear".',
+        content: msg,
         role: 'assistant',
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
@@ -636,12 +659,37 @@ onUnmounted(() => {
   justify-content: center;
   flex: 1;
   text-align: center;
-  padding: 40px;
+  padding: 32px 24px;
 }
 
-.welcome-icon { font-size: 48px; margin-bottom: 16px; }
-.welcome-title { font-size: 20px; font-weight: 600; color: #fff; }
-.welcome-desc { font-size: 14px; color: #8E8E93; margin-top: 6px; max-width: 280px; }
+.welcome-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8E8E93;
+  margin-bottom: 16px;
+}
+
+.welcome-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #F5F5F7;
+  letter-spacing: -0.5px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+}
+
+.welcome-desc {
+  font-size: 14px;
+  color: #636366;
+  margin-top: 6px;
+  max-width: 280px;
+  line-height: 1.55;
+}
 
 .typing-indicator {
   display: flex;
@@ -734,45 +782,45 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: rgba(191, 90, 242, 0.1);
-  border-top: 1px solid rgba(191, 90, 242, 0.18);
+  padding: 9px 16px;
+  background: rgba(191, 90, 242, 0.07);
+  border-top: 1px solid rgba(191, 90, 242, 0.14);
   flex-shrink: 0;
 }
 
-.cm-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #BF5AF2;
+.cm-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: rgba(191, 90, 242, 0.15);
+  color: #BF5AF2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 0 0 rgba(191, 90, 242, 0.5);
-  animation: cm-pulse 1.8s ease-out infinite;
-}
-@keyframes cm-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(191, 90, 242, 0.45); }
-  100% { box-shadow: 0 0 0 7px rgba(191, 90, 242, 0); }
 }
 
 .cm-text {
   flex: 1;
-  font-size: 12px;
-  color: #D9B8F5;
+  font-size: 11.5px;
+  color: #C7A0E8;
   line-height: 1.3;
+  letter-spacing: 0.1px;
 }
 
 .cm-close {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #BF5AF2;
-  background: rgba(191, 90, 242, 0.12);
+  color: #8E6AB2;
+  background: rgba(191, 90, 242, 0.1);
   flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
-.cm-close:hover { background: rgba(191, 90, 242, 0.22); }
+.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
 
 /* ── Sign Language ── */
 .sl-btn {
@@ -912,53 +960,81 @@ onUnmounted(() => {
 .sl-ctrl-insert:hover:not(:disabled) { background: rgba(48,209,88,0.2); }
 
 /* ── Course welcome ── */
-.cw-icon { font-size: 44px; margin-bottom: 10px; }
+.cw-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.cw-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(191,90,242,0.2) 0%, rgba(110,64,201,0.12) 100%);
+  border: 1px solid rgba(191, 90, 242, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BF5AF2;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(191, 90, 242, 0.15);
+}
+
 .cw-title {
   font-size: 22px;
   font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.4px;
+  color: #F5F5F7;
+  letter-spacing: -0.5px;
   text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  margin-bottom: 8px;
 }
+
 .cw-desc {
   font-size: 14px;
   color: #636366;
-  margin-top: 6px;
   max-width: 300px;
-  line-height: 1.5;
+  line-height: 1.55;
   text-align: center;
 }
+
 .cw-chips {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   max-width: 320px;
-  margin-top: 18px;
 }
+
 .cw-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-align: left;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
-  color: #C7C7CC;
-  font-size: 13.5px;
+  color: #AEAEB2;
+  font-size: 13px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   line-height: 1.4;
 }
+.cw-chip svg { color: #48484A; flex-shrink: 0; transition: color 0.15s; }
 .cw-chip:hover {
-  background: rgba(191, 90, 242, 0.08);
-  border-color: rgba(191, 90, 242, 0.18);
-  color: #fff;
+  background: rgba(191, 90, 242, 0.07);
+  border-color: rgba(191, 90, 242, 0.16);
+  color: #E5E5EA;
 }
+.cw-chip:hover svg { color: #BF5AF2; }
+
 .cw-or {
   font-size: 12px;
   color: #3A3A3C;
-  margin-top: 10px;
+  margin-top: 12px;
   text-align: center;
 }
 
@@ -966,20 +1042,22 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-top: 20px;
-  padding: 11px 18px;
+  margin-top: 22px;
+  padding: 12px 20px;
   border-radius: 100px;
   background: rgba(191, 90, 242, 0.08);
-  border: 1px solid rgba(191, 90, 242, 0.18);
+  border: 1px solid rgba(191, 90, 242, 0.16);
   color: #BF5AF2;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  letter-spacing: -0.1px;
 }
 .cw-hint-btn:hover {
-  background: rgba(191, 90, 242, 0.14);
-  border-color: rgba(191, 90, 242, 0.28);
+  background: rgba(191, 90, 242, 0.13);
+  border-color: rgba(191, 90, 242, 0.25);
+  box-shadow: 0 4px 14px rgba(191, 90, 242, 0.18);
 }
 </style>
