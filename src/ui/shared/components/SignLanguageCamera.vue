@@ -140,7 +140,7 @@ interface FrameResponse {
 
 interface ClipRecognition {
   text: string
-  kind: 'word' | 'phrase' | 'letter' | 'number' | 'unknown'
+  kind: 'word' | 'phrase' | 'letter' | 'number' | 'sentence' | 'unknown'
   confidence: number
   alternatives: string[]
   handedness: 'left' | 'right' | 'both' | 'none'
@@ -215,18 +215,18 @@ let simulationMode = false
 // MÁS PERMISIVOS para que vocales/letras/números vuelvan a detectarse y para
 // no perder señas dinámicas cortas como "sí", "no", "ok".
 const SAMPLE_INTERVAL_MS = 80
-const STILL_HOLD_MS = 650          // quietud sostenida antes de probar deletreo (antes 1200 → bloqueaba vocales)
-const MOTION_THRESHOLD = 5         // diff medio (0-255) para considerar "movimiento" (un poco menos sensible para que mano quieta cuente como quieta)
-const CLIP_MIN_FRAMES = 5          // antes 8 → señas cortas como "sí", "no", "ok" no llegaban al VLM
-const CLIP_MAX_FRAMES = 14         // clips más largos → mejor discriminación entre señas
-const CLIP_BUFFER_MAX = 22         // buffer rodante un poco mayor que CLIP_MAX_FRAMES
-const CLIP_MIN_DURATION_MS = 450   // un clip dinámico breve (sí/no/ok) tiene ~500 ms
-const CLIP_MAX_DURATION_MS = 2800  // y como mucho 2.8 s para frases largas (¿cómo estás?, buenos días)
-const CLIP_COOLDOWN_MS = 700       // espera tras un /clip antes de mandar otro (antes 1000)
-const CLIP_MIN_CONFIDENCE = 0.55   // confianza mínima del VLM para empujar al draft (el server filtra igual)
+const STILL_HOLD_MS = 500          // antes 650 → ahora 500: detecta vocales y letras más rápido
+const MOTION_THRESHOLD = 5         // diff medio (0-255) para considerar "movimiento"
+const CLIP_MIN_FRAMES = 5          // señas cortas como "sí", "no", "ok"
+const CLIP_MAX_FRAMES = 10         // antes 14 → menos frames = menor latencia VLM (5-10s→3-5s)
+const CLIP_BUFFER_MAX = 16         // buffer rodante ajustado a CLIP_MAX_FRAMES
+const CLIP_MIN_DURATION_MS = 450   // un clip dinámico breve tiene ~500 ms
+const CLIP_MAX_DURATION_MS = 2800  // frases largas (¿cómo estás?, buenos días)
+const CLIP_COOLDOWN_MS = 700       // espera tras un /clip antes de mandar otro
+const CLIP_MIN_CONFIDENCE = 0.68   // antes 0.55 → ahora 0.68: evita que VLM con baja confianza ensucie el draft
 const SAME_LETTER_COOLDOWN_MS = 900
-const FRAME_COOLDOWN_MS = 450      // espera entre llamadas /frame (antes 600)
-const MOTION_MEMORY_MS = 1200      // ventana en la que un /clip todavía 'gana' sobre /frame (antes 2500 → bloqueaba el deletreo demasiado tiempo)
+const FRAME_COOLDOWN_MS = 350      // antes 450 → 350: comprobaciones de alfabeto más frecuentes
+const MOTION_MEMORY_MS = 1200      // ventana en la que un /clip todavía 'gana' sobre /frame
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
@@ -411,8 +411,10 @@ async function tick() {
     !moving &&
     noRecentMotion &&
     consecutiveStill * SAMPLE_INTERVAL_MS >= STILL_HOLD_MS &&
-    now - lastFrameSentAt > FRAME_COOLDOWN_MS &&
-    now - lastClipSentAt > CLIP_COOLDOWN_MS
+    now - lastFrameSentAt > FRAME_COOLDOWN_MS
+    // NOTA: se eliminó "now - lastClipSentAt > CLIP_COOLDOWN_MS" porque es
+    // redundante con noRecentMotion (1200 ms) y retrasaba innecesariamente
+    // la detección de vocales/letras justo después de enviar un clip.
 
   if (stillEnough && jpeg) {
     lastFrameSentAt = now

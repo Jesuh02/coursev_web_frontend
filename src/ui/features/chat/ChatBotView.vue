@@ -23,9 +23,20 @@
 
     <div ref="messagesContainer" class="messages-container">
       <div v-if="!messages.length" class="welcome-state">
-        <div class="welcome-icon">🤖</div>
-        <h3 class="welcome-title">Hola, soy tu asistente IA</h3>
-        <p class="welcome-desc">Puedo ayudarte con tus cursos, tareas y preguntas académicas</p>
+        <template v-if="isCourseMode">
+          <div class="cw-icon">🎓</div>
+          <h3 class="cw-title">Crea un curso con IA</h3>
+          <p class="cw-desc">Describe la temática, nivel y duración. La IA genera el plan completo, o comparte tu propia estructura y la ajustamos juntos.</p>
+          <div class="cw-chips">
+            <button v-for="q in courseQuickPrompts" :key="q" class="cw-chip" @click="sendQuickPrompt(q)">{{ q }}</button>
+          </div>
+          <p class="cw-or">o escribe tu propia planificación detallada</p>
+        </template>
+        <template v-else>
+          <div class="welcome-icon">🤖</div>
+          <h3 class="welcome-title">Hola, soy tu asistente IA</h3>
+          <p class="welcome-desc">Puedo ayudarte con tus cursos, tareas y preguntas académicas</p>
+        </template>
       </div>
 
       <ChatBubble
@@ -36,6 +47,16 @@
         :calification-value="msg.calificationValue"
         :calification-added="msg.calificationAdded"
         @add-grade="addGrade(msg)"
+      />
+
+      <CoursePlanCard
+        v-if="coursePlan"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        @confirm="createCourseFromPlan"
+        @view="viewCreatedCourse"
       />
 
       <div v-if="isTyping" class="typing-indicator">
@@ -51,7 +72,18 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
     </button>
 
+    <div v-if="isCourseMode" class="course-mode-banner">
+      <span class="cm-dot" />
+      <span class="cm-text">Modo crear curso · describe el curso que quieres y ajústalo a tu gusto</span>
+      <button class="cm-close" @click="toggleCourseMode" title="Salir del modo curso">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
     <div class="input-area">
+      <button class="sl-btn" :class="{ 'sl-btn--active': isCourseMode }" @click="toggleCourseMode" title="Crear curso con IA">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isCourseMode ? '#BF5AF2' : '#8E8E93'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </button>
       <button class="sl-btn" :class="{ 'sl-btn--active': isSignLangMode }" @click="openSignLang" title="Lenguaje de señas">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isSignLangMode ? '#BF5AF2' : '#8E8E93'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
       </button>
@@ -61,7 +93,7 @@
       <input
         v-model="inputText"
         class="message-input"
-        placeholder="Escribe un mensaje..."
+        :placeholder="isCourseMode ? 'Ej: Crea un curso de Álgebra Lineal...' : 'Escribe un mensaje...'"
         @keydown.enter="sendMessage"
       />
       <button class="send-btn" :disabled="!inputText.trim()" @click="sendMessage">
@@ -107,10 +139,12 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
+import { useRoute, useRouter } from 'vue-router'
+import { chatAdapter, submissionAdapter, courseAdapter, subjectAdapter, topicAdapter, taskAdapter, tokenStorage } from '@/infrastructure/api'
+import type { Topic, Task } from '@/domain/models'
 import { api } from '@/infrastructure/api/httpClient'
 import ChatBubble from './components/ChatBubble.vue'
+import CoursePlanCard, { type CoursePlan } from './components/CoursePlanCard.vue'
 
 interface LocalMessage {
   id: string
@@ -131,6 +165,7 @@ interface LLMApiResponse {
 }
 
 const route = useRoute()
+const router = useRouter()
 const submissionId = computed(() =>
   route.query.submissionId ? Number(route.query.submissionId) : null
 )
@@ -146,6 +181,18 @@ const isRecording = ref(false)
 const showScrollBtn = ref(false)
 const isGrading = ref(false)
 const sessionId = ref(crypto.randomUUID())
+
+const courseQuickPrompts = [
+  'Álgebra Lineal para ingeniería, nivel intermedio, 8 semanas',
+  'Python básico para principiantes, 6 semanas',
+  'Historia del Arte, nivel básico, 4 semanas',
+  'Inglés B1-B2, enfoque en conversación, 12 semanas',
+]
+
+function sendQuickPrompt(text: string) {
+  inputText.value = text
+  sendMessage()
+}
 
 function scrollToBottom() {
   nextTick(() => {
@@ -167,6 +214,11 @@ async function sendMessage() {
   messages.value.push(userMsg)
   inputText.value = ''
   scrollToBottom()
+
+  if (isCourseMode.value) {
+    await requestCoursePlan(text)
+    return
+  }
 
   isTyping.value = true
   try {
@@ -221,10 +273,202 @@ async function addGrade(msg: LocalMessage) {
 function clearChat() {
   messages.value = []
   sessionId.value = crypto.randomUUID()
+  coursePlan.value = null
+  createdCourseId.value = null
+  courseCreateError.value = ''
 }
 
 function toggleVoice() {
   isRecording.value = !isRecording.value
+}
+
+// ── Crear curso con IA ────────────────────────────────────────────
+const isCourseMode = ref(false)
+const coursePlan = ref<CoursePlan | null>(null)
+const isCreatingCourse = ref(false)
+const createdCourseId = ref<number | null>(null)
+const courseCreateError = ref('')
+
+function toggleCourseMode() {
+  isCourseMode.value = !isCourseMode.value
+}
+
+/** Extrae el primer objeto JSON válido de una respuesta de texto del modelo. */
+function extractPlan(raw: string): CoursePlan | null {
+  if (!raw) return null
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  const candidate = fenced ? fenced[1] : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+  try {
+    const obj = JSON.parse(candidate)
+    if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
+      return {
+        title: obj.title,
+        description: obj.description ?? '',
+        category: obj.category ?? '',
+        level: obj.level ?? '',
+        durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
+        subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
+          name: String(s.name ?? ''),
+          description: String(s.description ?? ''),
+          topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
+            title: String(t.title ?? t.name ?? ''),
+            description: String(t.description ?? ''),
+            tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
+              title: String(k.title ?? ''),
+              description: String(k.description ?? ''),
+              dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
+            })),
+          })),
+        })),
+      }
+    }
+  } catch { /* no es JSON válido */ }
+  return null
+}
+
+async function requestCoursePlan(text: string) {
+  isTyping.value = true
+  createdCourseId.value = null
+  courseCreateError.value = ''
+  try {
+    const prompt = buildPlannerPrompt(text)
+    const data = await api.post<LLMApiResponse>('/llm/process', {
+      prompt,
+      sessionId: sessionId.value,
+      fastMode: true,
+    })
+    const rawAnswer = data.respuesta_texto || data.response || ''
+    const parsed = extractPlan(rawAnswer)
+    if (parsed) {
+      coursePlan.value = parsed
+      messages.value.push({
+        id: crypto.randomUUID(),
+        content: 'Aquí tienes el plan. Pídeme los ajustes que quieras o pulsa "Confirmar y crear".',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+        sessionId: sessionId.value,
+      })
+    } else {
+      messages.value.push({
+        id: crypto.randomUUID(),
+        content: rawAnswer || 'No pude generar el plan. Intenta describir el curso con más detalle.',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+        sessionId: sessionId.value,
+      })
+    }
+  } catch {
+    messages.value.push({
+      id: crypto.randomUUID(),
+      content: 'Error al generar el plan del curso.',
+      role: 'assistant',
+      createdAt: new Date().toISOString(),
+    })
+  }
+  isTyping.value = false
+  scrollToBottom()
+}
+
+function buildPlannerPrompt(userText: string): string {
+  const current = coursePlan.value
+    ? `\n\nPLAN ACTUAL (modifícalo según la petición, conserva lo que no se mencione):\n${JSON.stringify(coursePlan.value)}`
+    : ''
+  return [
+    'Actúa como un planificador experto de cursos académicos.',
+    'El usuario puede estar haciendo una de estas cosas:',
+    '  a) Describir un tema para que la IA genere el plan completo.',
+    '  b) Compartir su propia planificación estructurada: conviértela al JSON conservando su estructura.',
+    '  c) Corregir o ajustar el plan actual: aplica solo los cambios pedidos y conserva el resto.',
+    `Petición del usuario: "${userText}"`,
+    current,
+    '',
+    'Responde ÚNICAMENTE con un objeto JSON válido (sin texto fuera del JSON, sin markdown) con esta estructura exacta:',
+    '{',
+    '  "title": string,',
+    '  "description": string,',
+    '  "category": string,',
+    '  "level": string,',
+    '  "durationWeeks": number,',
+    '  "subjects": [',
+    '    { "name": string, "description": string,',
+    '      "topics": [',
+    '        { "title": string, "description": string,',
+    '          "tasks": [ { "title": string, "description": string, "dueWeek": number } ]',
+    '        }',
+    '      ]',
+    '    }',
+    '  ]',
+    '}',
+    'Todo el contenido debe estar en español. Genera un plan completo y coherente; si el usuario no dio detalles, propón una estructura razonable.',
+  ].join('\n')
+}
+
+/** Convierte un número de semana relativo en una fecha ISO de entrega. */
+function weekToIso(week?: number | null): string | null {
+  if (!week || week < 1) return null
+  const d = new Date()
+  d.setDate(d.getDate() + week * 7)
+  return d.toISOString()
+}
+
+async function createCourseFromPlan() {
+  if (!coursePlan.value || isCreatingCourse.value) return
+  isCreatingCourse.value = true
+  courseCreateError.value = ''
+  try {
+    const plan = coursePlan.value
+    const course = await courseAdapter.createCourse({
+      title: plan.title,
+      description: plan.description ?? '',
+      category: plan.category || 'General',
+      creatorUsername: tokenStorage.username ?? '',
+      isFree: true,
+      price: 0,
+      isActive: true,
+      deadline: null,
+    }) as unknown as { id?: number }
+    const courseId = course?.id
+    if (!courseId) throw new Error('No se pudo crear el curso')
+
+    for (const subject of plan.subjects) {
+      const createdSubject = await subjectAdapter.createSubject({
+        name: subject.name,
+        description: subject.description ?? '',
+        courseId,
+        createdBy: tokenStorage.userId || null,
+      }) as unknown as { id?: number }
+      const subjectId = createdSubject?.id
+      if (!subjectId) continue
+
+      for (const topic of subject.topics) {
+        const createdTopic = await topicAdapter.createTopic({
+          name: topic.title,
+          description: topic.description ?? '',
+          subjectId,
+        } as unknown as Partial<Topic>) as unknown as { id?: number }
+        const topicId = createdTopic?.id
+        if (!topicId) continue
+
+        for (const task of topic.tasks ?? []) {
+          await taskAdapter.createTask({
+            title: task.title,
+            description: task.description ?? '',
+            topicId,
+            dueDate: weekToIso(task.dueWeek),
+          } as Partial<Task>)
+        }
+      }
+    }
+    createdCourseId.value = courseId
+  } catch (e) {
+    courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
+  } finally {
+    isCreatingCourse.value = false
+  }
+}
+
+function viewCreatedCourse(id: number) {
+  router.push({ path: `/subjects/${id}` })
 }
 
 // ── Lenguaje de Señas ─────────────────────────────────────────────
@@ -456,6 +700,51 @@ onUnmounted(() => {
 
 .send-btn:disabled { opacity: 0.4; }
 
+/* ── Course mode banner ── */
+.course-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(191, 90, 242, 0.1);
+  border-top: 1px solid rgba(191, 90, 242, 0.18);
+  flex-shrink: 0;
+}
+
+.cm-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #BF5AF2;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(191, 90, 242, 0.5);
+  animation: cm-pulse 1.8s ease-out infinite;
+}
+@keyframes cm-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(191, 90, 242, 0.45); }
+  100% { box-shadow: 0 0 0 7px rgba(191, 90, 242, 0); }
+}
+
+.cm-text {
+  flex: 1;
+  font-size: 12px;
+  color: #D9B8F5;
+  line-height: 1.3;
+}
+
+.cm-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BF5AF2;
+  background: rgba(191, 90, 242, 0.12);
+  flex-shrink: 0;
+}
+.cm-close:hover { background: rgba(191, 90, 242, 0.22); }
+
 /* ── Sign Language ── */
 .sl-btn {
   width: 36px;
@@ -592,4 +881,55 @@ onUnmounted(() => {
   border: 1px solid rgba(48,209,88,0.25);
 }
 .sl-ctrl-insert:hover:not(:disabled) { background: rgba(48,209,88,0.2); }
+
+/* ── Course welcome ── */
+.cw-icon { font-size: 44px; margin-bottom: 10px; }
+.cw-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.4px;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+}
+.cw-desc {
+  font-size: 14px;
+  color: #636366;
+  margin-top: 6px;
+  max-width: 300px;
+  line-height: 1.5;
+  text-align: center;
+}
+.cw-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 18px;
+}
+.cw-chip {
+  text-align: left;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  color: #C7C7CC;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  line-height: 1.4;
+}
+.cw-chip:hover {
+  background: rgba(191, 90, 242, 0.08);
+  border-color: rgba(191, 90, 242, 0.18);
+  color: #fff;
+}
+.cw-or {
+  font-size: 12px;
+  color: #3A3A3C;
+  margin-top: 10px;
+  text-align: center;
+}
 </style>
