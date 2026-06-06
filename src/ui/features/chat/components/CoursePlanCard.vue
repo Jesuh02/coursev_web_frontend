@@ -67,8 +67,10 @@
               <span class="topic-idx">{{ ti + 1 }}</span>
               <span class="topic-name">{{ topic.title }}</span>
               <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }}</span>
-            </div>
-            <div v-if="topic.tasks?.length" class="task-list">
+            </div>            <p v-if="topic.contentDescription" class="topic-content-desc">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#6E40C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              {{ topic.contentDescription }}
+            </p>            <div v-if="topic.tasks?.length" class="task-list">
               <div v-for="(task, ki) in topic.tasks" :key="ki" class="task-row">
                 <span class="task-dot" />
                 <span class="task-name">{{ task.title }}</span>
@@ -95,6 +97,10 @@
     <template v-else>
       <p v-if="error" class="plan-error">{{ error }}</p>
       <div class="plan-footer">
+        <button class="plan-reject" :disabled="creating" @click="$emit('reject')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Rechazar
+        </button>
         <p class="plan-footer-note">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#48484A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Pide ajustes por chat
@@ -116,10 +122,12 @@ export interface PlanTask {
   title: string
   description?: string
   dueWeek?: number | null
+  contentDescription?: string
 }
 export interface PlanTopic {
   title: string
   description?: string
+  contentDescription?: string
   tasks: PlanTask[]
 }
 export interface PlanSubject {
@@ -144,7 +152,7 @@ const props = defineProps<{
   version?: number
 }>()
 
-defineEmits<{ confirm: []; view: [id: number] }>()
+defineEmits<{ confirm: []; reject: []; view: [id: number] }>()
 
 const expanded = ref<Set<number>>(new Set([0]))
 function toggle(i: number) {
@@ -415,6 +423,21 @@ const taskCount = computed(() =>
 
 .topic-name { flex: 1; font-size: 13px; color: #C7C7CC; font-weight: 500; }
 
+.topic-content-desc {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11px;
+  color: #6E40C9;
+  line-height: 1.45;
+  padding: 4px 8px;
+  background: rgba(110, 64, 201, 0.07);
+  border-radius: 8px;
+  border: 1px solid rgba(110, 64, 201, 0.12);
+  margin-top: 2px;
+}
+.topic-content-desc svg { flex-shrink: 0; margin-top: 1px; }
+
 .topic-task-badge {
   font-size: 10px;
   font-weight: 600;
@@ -460,7 +483,7 @@ const taskCount = computed(() =>
 .plan-footer {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 14px 16px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   margin-top: 12px;
@@ -475,6 +498,25 @@ const taskCount = computed(() =>
   gap: 5px;
   line-height: 1.4;
 }
+
+.plan-reject {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 14px;
+  border-radius: 100px;
+  background: rgba(255, 69, 58, 0.08);
+  color: #FF453A;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 69, 58, 0.18);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.plan-reject:hover:not(:disabled) { background: rgba(255, 69, 58, 0.14); border-color: rgba(255, 69, 58, 0.3); }
+.plan-reject:disabled { opacity: 0.35; cursor: default; }
 
 .plan-confirm {
   display: flex;

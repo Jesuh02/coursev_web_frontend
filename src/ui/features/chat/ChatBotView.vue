@@ -70,6 +70,7 @@
         :error="courseCreateError"
         :version="planVersion"
         @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
         @view="viewCreatedCourse"
       />
 
@@ -442,6 +443,19 @@ interface TopicForContent {
   title: string
   description?: string
   subjectName: string
+}
+
+function rejectCoursePlan() {
+  coursePlan.value = null
+  createdCourseId.value = null
+  courseCreateError.value = ''
+  isCourseMode.value = false
+  messages.value.push({
+    id: Date.now(),
+    role: 'assistant',
+    content: 'Plan cancelado. Puedes pedirme otro curso cuando quieras. 😊',
+    ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  })
 }
 
 async function createCourseFromPlan() {
