@@ -451,9 +451,10 @@ async function createCourseFromPlan() {
   isCreatingCourse.value = true
   courseCreateError.value = ''
   try {
-    const data = await api.post<{ courseId: number; topicsCreated: number; tasksCreated: number; topicDocs: number; taskDocs: number }>(
+    const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number; docsInProgress?: boolean }>(
       '/llm/confirm-course',
       { plan: coursePlan.value },
+      90_000,  // 90 s — only DB inserts need to complete; docs run in background
     )
     createdCourseId.value = data.courseId
   } catch (e) {
