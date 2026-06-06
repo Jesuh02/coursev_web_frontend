@@ -267,7 +267,8 @@ async function sendMessage() {
 
   isTyping.value = true
   try {
-    await chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value })
+    // Persist user message — non-blocking, failure must not break chat
+    chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value }).catch(() => {})
 
     const data = await api.post<LLMApiResponse>('/llm/process', {
       prompt: text,
@@ -291,7 +292,8 @@ async function sendMessage() {
     }
     messages.value.push(assistantMsg)
 
-    await chatAdapter.upsertMessage({ content: assistantMsg.content, role: 'assistant', sessionId: sessionId.value })
+    // Persist assistant message — non-blocking, failure must not break chat
+    chatAdapter.upsertMessage({ content: assistantMsg.content, role: 'assistant', sessionId: sessionId.value }).catch(() => {})
   } catch {
     messages.value.push({
       id: crypto.randomUUID(),
