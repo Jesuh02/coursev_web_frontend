@@ -36,6 +36,10 @@
           <div class="welcome-icon">🤖</div>
           <h3 class="welcome-title">Hola, soy tu asistente IA</h3>
           <p class="welcome-desc">Puedo ayudarte con tus cursos, tareas y preguntas académicas</p>
+          <button class="cw-hint-btn" @click="sendQuickPrompt('Créame un curso de Programación Web, nivel básico, 8 semanas')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            Crear un curso con IA
+          </button>
         </template>
       </div>
 
@@ -74,7 +78,7 @@
 
     <div v-if="isCourseMode" class="course-mode-banner">
       <span class="cm-dot" />
-      <span class="cm-text">Modo crear curso · describe el curso que quieres y ajústalo a tu gusto</span>
+      <span class="cm-text">{{ coursePlan ? 'Plan listo · ajusta por chat o confirma para crear' : 'Modo curso · describe la temática o pega tu propia planificación' }}</span>
       <button class="cm-close" @click="toggleCourseMode" title="Salir del modo curso">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -200,6 +204,26 @@ function scrollToBottom() {
   })
 }
 
+/** Detects if the message is a course creation request (without explicit course mode). */
+function detectCourseIntent(text: string): boolean {
+  const n = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return [
+    // Imperative: "créame un curso de X", "crea un curso sobre X"
+    /\b(crea(me)?|cr[eé]ame|haz(me)?|dis[eé][nñ]a(me)?|planifica(me)?|genera(me)?|elabora(me)?|prepara(me)?|construye(me)?|desarrolla(me)?|arma(me)?|monta(me)?)\b.{0,50}\bcurso\b/,
+    // Desire: "quiero/necesito/quisiera un curso de X"
+    /\b(quiero|necesito|deseo|quisiera|podrias|puedes|me\s+gustar[ií]a)\b.{0,40}\b(un\s+)?curso\b/,
+    // Noun first: "curso de X" / "un curso sobre X"
+    /\b(un\s+)?curso\s+(de|sobre|para|acerca\s+de)\b/,
+    // Syllable variant: "cúrsame", "cursame"
+    /\bcurs[aá](me)?\b/,
+  ].some(p => p.test(n))
+}
+
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text) return
@@ -214,6 +238,11 @@ async function sendMessage() {
   messages.value.push(userMsg)
   inputText.value = ''
   scrollToBottom()
+
+  // Auto-detect course creation intent even when course mode is off
+  if (!isCourseMode.value && detectCourseIntent(text)) {
+    isCourseMode.value = true
+  }
 
   if (isCourseMode.value) {
     await requestCoursePlan(text)
@@ -931,5 +960,26 @@ onUnmounted(() => {
   color: #3A3A3C;
   margin-top: 10px;
   text-align: center;
+}
+
+.cw-hint-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 20px;
+  padding: 11px 18px;
+  border-radius: 100px;
+  background: rgba(191, 90, 242, 0.08);
+  border: 1px solid rgba(191, 90, 242, 0.18);
+  color: #BF5AF2;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cw-hint-btn:hover {
+  background: rgba(191, 90, 242, 0.14);
+  border-color: rgba(191, 90, 242, 0.28);
 }
 </style>
