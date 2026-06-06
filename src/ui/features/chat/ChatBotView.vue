@@ -383,6 +383,7 @@ async function requestCoursePlan(text: string) {
     const data = await api.post<LLMApiResponse>('/llm/process', {
       prompt,
       sessionId: sessionId.value,
+      courseMode: true,
       fastMode: true,
     })
     const rawAnswer = data.respuesta_texto || data.response || ''
@@ -425,34 +426,7 @@ function buildPlannerPrompt(userText: string): string {
   const current = coursePlan.value
     ? `\n\nPLAN ACTUAL (modifícalo según la petición, conserva lo que no se mencione):\n${JSON.stringify(coursePlan.value)}`
     : ''
-  return [
-    'Actúa como un planificador experto de cursos académicos.',
-    'El usuario puede estar haciendo una de estas cosas:',
-    '  a) Describir un tema para que la IA genere el plan completo.',
-    '  b) Compartir su propia planificación estructurada: conviértela al JSON conservando su estructura.',
-    '  c) Corregir o ajustar el plan actual: aplica solo los cambios pedidos y conserva el resto.',
-    `Petición del usuario: "${userText}"`,
-    current,
-    '',
-    'Responde ÚNICAMENTE con un objeto JSON válido (sin texto fuera del JSON, sin markdown) con esta estructura exacta:',
-    '{',
-    '  "title": string,',
-    '  "description": string,',
-    '  "category": string,',
-    '  "level": string,',
-    '  "durationWeeks": number,',
-    '  "subjects": [',
-    '    { "name": string, "description": string,',
-    '      "topics": [',
-    '        { "title": string, "description": string,',
-    '          "tasks": [ { "title": string, "description": string, "dueWeek": number } ]',
-    '        }',
-    '      ]',
-    '    }',
-    '  ]',
-    '}',
-    'Todo el contenido debe estar en español. Genera un plan completo y coherente; si el usuario no dio detalles, propón una estructura razonable.',
-  ].join('\n')
+  return `Petición: "${userText}"${current}`
 }
 
 /** Convierte un número de semana relativo en una fecha ISO de entrega. */
