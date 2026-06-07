@@ -62,24 +62,11 @@
           :calification-added="msg.calificationAdded"
           @add-grade="addGrade(msg)"
         />
-        <!-- Inline plan card (rendered in-place at its position in the chat flow) -->
-        <CoursePlanCard
-          v-else-if="coursePlan"
-          :plan="coursePlan"
-          :creating="isCreatingCourse"
-          :created-id="createdCourseId"
-          :error="courseCreateError"
-          :version="planVersion"
-          @confirm="createCourseFromPlan"
-          @reject="rejectCoursePlan"
-          @view="viewCreatedCourse"
-        />
       </template>
 
-      <!-- Fallback plan card: guarantees the card shows whenever a plan exists, even if
-           the inline isPlanCard marker was lost (e.g. after a reload) -->
+      <!-- Plan card: renders below all messages whenever a plan is active -->
       <CoursePlanCard
-        v-if="coursePlan && !hasInlinePlanCard"
+        v-if="coursePlan"
         :plan="coursePlan"
         :creating="isCreatingCourse"
         :created-id="createdCourseId"
