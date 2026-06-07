@@ -185,6 +185,12 @@ const taskCount = computed(() =>
 <style scoped>
 .plan-card {
   align-self: stretch;
+  /* The card is a direct child of the chat's flex-column scroll container. Without
+     flex-shrink:0 the flex algorithm compresses the tall card to fit the viewport and
+     `overflow: hidden` clips it to a single line. Refuse to shrink so it always renders
+     at full content height and the scroll container handles overflow instead. */
+  flex-shrink: 0;
+  width: 100%;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 22px;
