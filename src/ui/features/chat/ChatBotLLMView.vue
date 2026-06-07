@@ -194,7 +194,7 @@
 
         <!-- ── Inline plan card (rendered in-place at its position in the chat flow) ── -->
         <CoursePlanCard
-          v-else-if="coursePlan"
+          v-if="msg.isPlanCard && coursePlan"
           :plan="coursePlan"
           :creating="isCreatingCourse"
           :created-id="createdCourseId"
