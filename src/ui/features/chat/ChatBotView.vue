@@ -822,7 +822,7 @@ onMounted(async () => {
   // ── Restore session ID ─────────────────────────────────────────
   const storedSession = localStorage.getItem('chatbot_session_id')
   if (storedSession) {
-    sessionId.value = storedSession
+    sessionId.value = storedSession as `${string}-${string}-${string}-${string}-${string}`
   } else {
     localStorage.setItem('chatbot_session_id', sessionId.value)
   }
@@ -847,9 +847,9 @@ onMounted(async () => {
         content: m.content,
         createdAt: m.createdAt,
         sessionId: m.sessionId,
-        hasCalification: (m as Record<string, unknown>).hasCalification as boolean ?? false,
-        calificationValue: (m as Record<string, unknown>).calificationValue as number | null ?? null,
-        calificationAdded: (m as Record<string, unknown>).calificationAdded as boolean ?? false,
+        hasCalification: (m as unknown as Record<string, unknown>).hasCalification as boolean ?? false,
+        calificationValue: (m as unknown as Record<string, unknown>).calificationValue as number | null ?? null,
+        calificationAdded: (m as unknown as Record<string, unknown>).calificationAdded as boolean ?? false,
       }))
       // Re-append the plan card marker at the bottom if a plan is active
       if (coursePlan.value) {
