@@ -243,7 +243,7 @@
         <span v-if="coursePlan">Plan listo · ajusta por chat o confirma para crearlo</span>
         <span v-else>Modo curso · describe la temática o pega tu planificación</span>
       </span>
-      <button class="cm-close" @click="isCourseMode = false; coursePlan = null" title="Salir del modo curso">
+      <button class="cm-close" @click="isCourseMode = false; coursePlan = null; clearPersistedPlan()" title="Salir del modo curso">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -659,6 +659,42 @@ const courseCreateError = ref('')
 let recognition: any = null
 let voiceBaseText = ''
 
+// Plan persistence: the CoursePlanCard lives only in memory while the announcement
+// text message gets saved to the backend. Without persisting the plan itself, a page
+// reload restores the "Aquí está tu plan de curso" text but loses the card. Keep the
+// plan in localStorage (keyed per account) so the card reappears after reload.
+const planStorageKey = computed(() => `chatbot_llm_plan_${tokenStorage.userId ?? 'anon'}`)
+
+function persistPlan() {
+  try {
+    if (coursePlan.value) {
+      localStorage.setItem(
+        planStorageKey.value,
+        JSON.stringify({ plan: coursePlan.value, version: planVersion.value }),
+      )
+    } else {
+      localStorage.removeItem(planStorageKey.value)
+    }
+  } catch { /* storage unavailable — non-fatal */ }
+}
+
+function clearPersistedPlan() {
+  try { localStorage.removeItem(planStorageKey.value) } catch { /* non-fatal */ }
+}
+
+function restorePersistedPlan() {
+  try {
+    const raw = localStorage.getItem(planStorageKey.value)
+    if (!raw) return
+    const saved = JSON.parse(raw) as { plan?: CoursePlan; version?: number }
+    if (saved?.plan && typeof saved.plan.title === 'string' && Array.isArray(saved.plan.subjects)) {
+      coursePlan.value = saved.plan
+      planVersion.value = typeof saved.version === 'number' ? saved.version : 1
+      isCourseMode.value = true
+    }
+  } catch { /* corrupt entry — ignore */ }
+}
+
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
 const filteredOverlayItems = computed(() => {
@@ -676,6 +712,8 @@ const filteredOverlayItems = computed(() => {
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
   await loadHistoryFromBackend()
+  // Re-hydrate the in-progress course plan so its card reappears after a reload.
+  restorePersistedPlan()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
@@ -1295,6 +1333,8 @@ async function requestCoursePlan(text: string) {
         createdAt: new Date().toISOString(),
         isPlanCard: true,
       })
+      // Persist so the card survives a page reload (only the text message is saved to DB)
+      persistPlan()
       saveMessageToBackend(msg.content, false, {})
     } else {
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
@@ -1347,6 +1387,8 @@ async function createCourseFromPlan() {
       90_000,
     )
     createdCourseId.value = data.courseId
+    // Course committed to the DB — drop the persisted draft so it won't reappear on reload
+    clearPersistedPlan()
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
   } finally {
@@ -1359,6 +1401,7 @@ function rejectCoursePlan() {
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
+  clearPersistedPlan()
   const msg: ChatMsg = {
     id: crypto.randomUUID(),
     role: 'assistant',
@@ -1838,6 +1881,7 @@ function clearChat() {
   isCourseMode.value = false
   createdCourseId.value = null
   courseCreateError.value = ''
+  clearPersistedPlan()
 }
 
 // ─── Message actions ───────────────────────────────────────────────────────
