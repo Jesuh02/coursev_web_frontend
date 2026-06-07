@@ -62,19 +62,20 @@
           :calification-added="msg.calificationAdded"
           @add-grade="addGrade(msg)"
         />
-        <!-- Inline plan card (rendered in natural message flow) -->
-        <CoursePlanCard
-          v-else-if="coursePlan && isCourseMode"
-          :plan="coursePlan"
-          :creating="isCreatingCourse"
-          :created-id="createdCourseId"
-          :error="courseCreateError"
-          :version="planVersion"
-          @confirm="createCourseFromPlan"
-          @reject="rejectCoursePlan"
-          @view="viewCreatedCourse"
-        />
       </template>
+
+      <!-- Inline plan card (rendered once at the end of the message flow) -->
+      <CoursePlanCard
+        v-if="coursePlan && isCourseMode"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
 
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
