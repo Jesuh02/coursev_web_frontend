@@ -191,11 +191,24 @@
           Calificación aplicada
         </div>
         </template><!-- end regular message -->
+
+        <!-- Plan card rendered inline at the isPlanCard marker position -->
+        <CoursePlanCard
+          v-if="msg.isPlanCard && coursePlan"
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
       </template>
 
-      <!-- Plan card: renders below all messages whenever a plan is active -->
+      <!-- Fallback: show card if coursePlan is active but no inline marker exists -->
       <CoursePlanCard
-        v-if="coursePlan"
+        v-if="coursePlan && !hasInlinePlanCard"
         :plan="coursePlan"
         :creating="isCreatingCourse"
         :created-id="createdCourseId"
@@ -853,13 +866,15 @@ async function saveMessageToBackend(
 
 function scrollToBottom() {
   nextTick(() => {
-    requestAnimationFrame(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTo({
-          top: messagesContainer.value.scrollHeight,
-          behavior: 'instant',
-        })
-      }
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTo({
+            top: messagesContainer.value.scrollHeight,
+            behavior: 'instant',
+          })
+        }
+      })
     })
   })
 }
