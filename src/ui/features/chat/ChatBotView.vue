@@ -53,23 +53,9 @@
       </div>
 
       <template v-for="msg in messages" :key="msg.id">
-        <!-- Embedded course plan card -->
-        <template v-if="msg.isPlanCard">
-          <CoursePlanCard
-            v-if="coursePlan"
-            :plan="coursePlan"
-            :creating="isCreatingCourse"
-            :created-id="createdCourseId"
-            :error="courseCreateError"
-            :version="planVersion"
-            @confirm="createCourseFromPlan"
-            @reject="rejectCoursePlan"
-            @view="viewCreatedCourse"
-          />
-        </template>
-        <!-- Regular message bubble -->
+        <!-- Regular message bubble (skip legacy isPlanCard placeholders) -->
         <ChatBubble
-          v-else
+          v-if="!msg.isPlanCard"
           :message="msg"
           :has-calification="msg.hasCalification"
           :calification-value="msg.calificationValue"
@@ -77,6 +63,19 @@
           @add-grade="addGrade(msg)"
         />
       </template>
+
+      <!-- Course plan card (rendered reactively outside the message loop) -->
+      <CoursePlanCard
+        v-if="coursePlan && isCourseMode"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
 
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
@@ -459,15 +458,7 @@ async function requestCoursePlan(text: string) {
         sessionId: sessionId.value,
       })
       // Embed plan card as a message only on first creation (updates read coursePlan reactively)
-      if (!isUpdate) {
-        messages.value.push({
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: '',
-          createdAt: new Date().toISOString(),
-          isPlanCard: true,
-        })
-      }
+      // NOTE: Plan card is now rendered outside the message loop; no need to push a fake message.
     } else {
       // extractPlan failed. Never surface raw JSON / tool-call text to the user: if the
       // answer looks like a (malformed) plan or tool call, show a friendly retry message
@@ -514,8 +505,6 @@ function rejectCoursePlan() {
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
-  // Remove the embedded plan card message from the chat
-  messages.value = messages.value.filter(m => !m.isPlanCard)
   messages.value.push({
     id: crypto.randomUUID(),
     role: 'assistant',

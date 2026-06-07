@@ -109,22 +109,8 @@
 
       <!-- Message bubbles -->
       <template v-for="msg in messages" :key="msg.id">
-        <!-- ── Embedded course plan card ── -->
-        <template v-if="msg.isPlanCard">
-          <CoursePlanCard
-            v-if="coursePlan"
-            :plan="coursePlan"
-            :creating="isCreatingCourse"
-            :created-id="createdCourseId"
-            :error="courseCreateError"
-            :version="planVersion"
-            @confirm="createCourseFromPlan"
-            @reject="rejectCoursePlan"
-            @view="viewCreatedCourse"
-          />
-        </template>
-        <!-- ── Regular message bubble ── -->
-        <template v-else>
+        <!-- ── Regular message bubble (skip legacy isPlanCard placeholders) ── -->
+        <template v-if="!msg.isPlanCard">
         <div class="msg-row" :class="msg.role === 'user' ? 'msg-row--user' : 'msg-row--bot'">
 
           <!-- Bot avatar dot -->
@@ -204,8 +190,21 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Calificación aplicada
         </div>
-        </template><!-- end v-else regular message -->
+        </template><!-- end regular message -->
       </template>
+
+      <!-- ── Course plan card (rendered reactively outside the message loop) ── -->
+      <CoursePlanCard
+        v-if="coursePlan && isCourseMode"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
 
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
@@ -1218,17 +1217,6 @@ async function requestCoursePlan(text: string) {
       }
       messages.value.push(msg)
       saveMessageToBackend(msg.content, false, {})
-      // Embed the plan card as a message so it scrolls naturally with the chat.
-      // Only insert once — on updates the existing card re-reads coursePlan reactively.
-      if (!isUpdate) {
-        messages.value.push({
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: '',
-          createdAt: new Date().toISOString(),
-          isPlanCard: true,
-        })
-      }
     } else {
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
       const msg: ChatMsg = {
@@ -1292,8 +1280,6 @@ function rejectCoursePlan() {
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
-  // Remove the embedded plan card message from the chat
-  messages.value = messages.value.filter(m => !m.isPlanCard)
   const msg: ChatMsg = {
     id: crypto.randomUUID(),
     role: 'assistant',
