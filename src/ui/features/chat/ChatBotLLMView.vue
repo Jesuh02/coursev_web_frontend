@@ -191,20 +191,20 @@
           Calificación aplicada
         </div>
         </template><!-- end regular message -->
-      </template>
 
-      <!-- ── Inline plan card (rendered once at the end of the message flow) ── -->
-      <CoursePlanCard
-        v-if="coursePlan && isCourseMode"
-        :plan="coursePlan"
-        :creating="isCreatingCourse"
-        :created-id="createdCourseId"
-        :error="courseCreateError"
-        :version="planVersion"
-        @confirm="createCourseFromPlan"
-        @reject="rejectCoursePlan"
-        @view="viewCreatedCourse"
-      />
+        <!-- ── Inline plan card (rendered in-place at its position in the chat flow) ── -->
+        <CoursePlanCard
+          v-else-if="coursePlan"
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
+      </template>
 
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
@@ -691,6 +691,18 @@ function restorePersistedPlan() {
       coursePlan.value = saved.plan
       planVersion.value = typeof saved.version === 'number' ? saved.version : 1
       isCourseMode.value = true
+      // The card lives inline at an isPlanCard marker in the message flow. History loaded
+      // from the backend only restores the announcement text, so re-inject the marker
+      // (deduped) to make the restored plan card reappear after a reload.
+      if (!messages.value.some(m => m.isPlanCard)) {
+        messages.value.push({
+          id: `plan-card-v${planVersion.value}`,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+          isPlanCard: true,
+        })
+      }
     }
   } catch { /* corrupt entry — ignore */ }
 }
