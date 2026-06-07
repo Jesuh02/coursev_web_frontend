@@ -191,20 +191,19 @@
           Calificación aplicada
         </div>
         </template><!-- end regular message -->
+        <!-- ── Inline plan card (rendered in natural message flow) ── -->
+        <CoursePlanCard
+          v-else-if="coursePlan && isCourseMode"
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
       </template>
-
-      <!-- ── Course plan card (rendered reactively outside the message loop) ── -->
-      <CoursePlanCard
-        v-if="coursePlan && isCourseMode"
-        :plan="coursePlan"
-        :creating="isCreatingCourse"
-        :created-id="createdCourseId"
-        :error="courseCreateError"
-        :version="planVersion"
-        @confirm="createCourseFromPlan"
-        @reject="rejectCoursePlan"
-        @view="viewCreatedCourse"
-      />
 
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
@@ -799,9 +798,14 @@ async function saveMessageToBackend(
 
 function scrollToBottom() {
   nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
+    requestAnimationFrame(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTo({
+          top: messagesContainer.value.scrollHeight,
+          behavior: 'instant',
+        })
+      }
+    })
   })
 }
 
@@ -1137,41 +1141,54 @@ function detectCourseIntent(text: string): boolean {
   ].some(p => p.test(n))
 }
 
+/** Minimal JSON repair for common LLM-generated JSON errors. */
+function repairJson(str: string): string {
+  return str
+    // Remove trailing commas before } or ]
+    .replace(/,([\s\n]*[}\]])/g, '$1')
+    // Remove bare key-value pairs at the start of an array (e.g. ["key": value, {)
+    .replace(/\[([\s\n]*"[^"]+"\s*:[^[{\]\}\n]+,?[\s\n]*)(?=\{)/g, '[')
+    // Add missing commas between } and {
+    .replace(/}([\s\n]*)\{/g, '},$1{')
+}
+
 /** Extracts the first valid course plan JSON from a raw LLM response. */
 function extractPlan(raw: string): CoursePlan | null {
   if (!raw) return null
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const candidate = fenced ? fenced[1] : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
-  try {
-    const parsed = JSON.parse(candidate)
-    const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan)
-      ? parsed.arguments.plan
-      : parsed
-    if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
-      return {
-        title: obj.title,
-        description: obj.description ?? '',
-        category: obj.category ?? '',
-        level: obj.level ?? '',
-        durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
-        subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
-          name: String(s.name ?? ''),
-          description: String(s.description ?? ''),
-          topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
-            title: String(t.title ?? t.name ?? ''),
-            description: String(t.description ?? ''),
-            contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
-            tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
-              title: String(k.title ?? ''),
-              description: String(k.description ?? ''),
-              dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
-              contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
+  for (const attempt of [candidate, repairJson(candidate)]) {
+    try {
+      const parsed = JSON.parse(attempt)
+      const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan)
+        ? parsed.arguments.plan
+        : parsed
+      if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
+        return {
+          title: obj.title,
+          description: obj.description ?? '',
+          category: obj.category ?? '',
+          level: obj.level ?? '',
+          durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
+          subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
+            name: String(s.name ?? ''),
+            description: String(s.description ?? ''),
+            topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
+              title: String(t.title ?? t.name ?? ''),
+              description: String(t.description ?? ''),
+              contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
+              tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
+                title: String(k.title ?? ''),
+                description: String(k.description ?? ''),
+                dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
+                contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
+              })),
             })),
           })),
-        })),
+        }
       }
-    }
-  } catch { /* not valid JSON */ }
+    } catch { /* try next attempt */ }
+  }
   return null
 }
 
@@ -1207,6 +1224,8 @@ async function requestCoursePlan(text: string) {
     if (parsed) {
       coursePlan.value = parsed
       planVersion.value += 1
+      // Remove any existing plan-card slot so the updated card always appears at the bottom
+      messages.value = messages.value.filter(m => !m.isPlanCard)
       const msg: ChatMsg = {
         id: crypto.randomUUID(),
         content: isUpdate
@@ -1216,6 +1235,14 @@ async function requestCoursePlan(text: string) {
         createdAt: new Date().toISOString(),
       }
       messages.value.push(msg)
+      // Push an inline plan-card marker so the card renders in the natural message flow
+      messages.value.push({
+        id: `plan-card-v${planVersion.value}`,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        isPlanCard: true,
+      })
       saveMessageToBackend(msg.content, false, {})
     } else {
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)

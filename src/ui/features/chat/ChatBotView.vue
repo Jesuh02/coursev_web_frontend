@@ -53,7 +53,7 @@
       </div>
 
       <template v-for="msg in messages" :key="msg.id">
-        <!-- Regular message bubble (skip legacy isPlanCard placeholders) -->
+        <!-- Regular message bubble -->
         <ChatBubble
           v-if="!msg.isPlanCard"
           :message="msg"
@@ -62,20 +62,19 @@
           :calification-added="msg.calificationAdded"
           @add-grade="addGrade(msg)"
         />
+        <!-- Inline plan card (rendered in natural message flow) -->
+        <CoursePlanCard
+          v-else-if="coursePlan && isCourseMode"
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
       </template>
-
-      <!-- Course plan card (rendered reactively outside the message loop) -->
-      <CoursePlanCard
-        v-if="coursePlan && isCourseMode"
-        :plan="coursePlan"
-        :creating="isCreatingCourse"
-        :created-id="createdCourseId"
-        :error="courseCreateError"
-        :version="planVersion"
-        @confirm="createCourseFromPlan"
-        @reject="rejectCoursePlan"
-        @view="viewCreatedCourse"
-      />
 
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
@@ -220,7 +219,9 @@ function sendQuickPrompt(text: string) {
 
 function scrollToBottom() {
   nextTick(() => {
-    messagesContainer.value?.scrollTo({ top: messagesContainer.value.scrollHeight, behavior: 'smooth' })
+    requestAnimationFrame(() => {
+      messagesContainer.value?.scrollTo({ top: messagesContainer.value.scrollHeight, behavior: 'instant' })
+    })
   })
 }
 
@@ -305,12 +306,21 @@ async function sendMessage() {
       isCourseMode.value = true
       coursePlan.value = autoPlan
       planVersion.value += 1
+      // Remove old plan-card slot so updated card stays at bottom
+      messages.value = messages.value.filter(m => !m.isPlanCard)
       messages.value.push({
         id: crypto.randomUUID(),
         role: 'assistant',
         content: 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste por chat, o confirmarlo para crearlo de inmediato.',
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
+      })
+      messages.value.push({
+        id: `plan-card-v${planVersion.value}`,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        isPlanCard: true,
       })
       isTyping.value = false
       scrollToBottom()
@@ -392,40 +402,50 @@ function toggleCourseMode() {
   isCourseMode.value = !isCourseMode.value
 }
 
+/** Minimal JSON repair for common LLM-generated JSON errors. */
+function repairJson(str: string): string {
+  return str
+    .replace(/,([\s\n]*[}\]])/g, '$1')
+    .replace(/\[([\s\n]*"[^"]+"\s*:[^[{\]\}\n]+,?[\s\n]*)(?=\{)/g, '[')
+    .replace(/}([\s\n]*)\{/g, '},$1{')
+}
+
 /** Extrae el primer objeto JSON válido de una respuesta de texto del modelo. */
 function extractPlan(raw: string): CoursePlan | null {
   if (!raw) return null
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const candidate = fenced ? fenced[1] : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
-  try {
-    const parsed = JSON.parse(candidate)
-    // Handle LLM inline tool-call wrapper: {"tool": "create_course_structure", "arguments": {"plan": {...}}}
-    const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan) ? parsed.arguments.plan : parsed
-    if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
-      return {
-        title: obj.title,
-        description: obj.description ?? '',
-        category: obj.category ?? '',
-        level: obj.level ?? '',
-        durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
-        subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
-          name: String(s.name ?? ''),
-          description: String(s.description ?? ''),
-          topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
-            title: String(t.title ?? t.name ?? ''),
-            description: String(t.description ?? ''),
-            contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
-            tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
-              title: String(k.title ?? ''),
-              description: String(k.description ?? ''),
-              dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
-              contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
+  for (const attempt of [candidate, repairJson(candidate)]) {
+    try {
+      const parsed = JSON.parse(attempt)
+      // Handle LLM inline tool-call wrapper: {"tool": "create_course_structure", "arguments": {"plan": {...}}}
+      const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan) ? parsed.arguments.plan : parsed
+      if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
+        return {
+          title: obj.title,
+          description: obj.description ?? '',
+          category: obj.category ?? '',
+          level: obj.level ?? '',
+          durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
+          subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
+            name: String(s.name ?? ''),
+            description: String(s.description ?? ''),
+            topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
+              title: String(t.title ?? t.name ?? ''),
+              description: String(t.description ?? ''),
+              contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
+              tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
+                title: String(k.title ?? ''),
+                description: String(k.description ?? ''),
+                dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
+                contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
+              })),
             })),
           })),
-        })),
+        }
       }
-    }
-  } catch { /* no es JSON válido */ }
+    } catch { /* try next attempt */ }
+  }
   return null
 }
 
@@ -450,6 +470,8 @@ async function requestCoursePlan(text: string) {
       const msg = isUpdate
         ? 'Plan actualizado con tus cambios. Sigue ajustando o confirma para crear el curso.'
         : 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste por chat, o confirmarlo para crearlo de inmediato.'
+      // Remove old plan-card slot so updated card stays at the bottom
+      messages.value = messages.value.filter(m => !m.isPlanCard)
       messages.value.push({
         id: crypto.randomUUID(),
         content: msg,
@@ -457,8 +479,13 @@ async function requestCoursePlan(text: string) {
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
       })
-      // Embed plan card as a message only on first creation (updates read coursePlan reactively)
-      // NOTE: Plan card is now rendered outside the message loop; no need to push a fake message.
+      messages.value.push({
+        id: `plan-card-v${planVersion.value}`,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        isPlanCard: true,
+      })
     } else {
       // extractPlan failed. Never surface raw JSON / tool-call text to the user: if the
       // answer looks like a (malformed) plan or tool call, show a friendly retry message
