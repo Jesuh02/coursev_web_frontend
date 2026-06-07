@@ -173,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { chatAdapter, submissionAdapter, tokenStorage } from '@/infrastructure/api'
 import { api, HttpError } from '@/infrastructure/api/httpClient'
@@ -399,6 +399,12 @@ function clearChat() {
   isCourseMode.value = false
   createdCourseId.value = null
   courseCreateError.value = ''
+  // Clear persisted state so the new session starts clean
+  localStorage.removeItem('chatbot_session_id')
+  localStorage.removeItem('chatbot_course_plan')
+  localStorage.removeItem('chatbot_plan_version')
+  localStorage.removeItem('chatbot_course_mode')
+  localStorage.setItem('chatbot_session_id', sessionId.value)
 }
 
 function toggleVoice() {
@@ -808,6 +814,74 @@ function slInsert() {
   inputText.value += sep + slAccumulated.value.trim()
   closeSignLang()
 }
+
+onMounted(async () => {
+  // Grading sessions (submissionId in URL) are ephemeral — skip persistence
+  if (submissionId.value != null) return
+
+  // ── Restore session ID ─────────────────────────────────────────
+  const storedSession = localStorage.getItem('chatbot_session_id')
+  if (storedSession) {
+    sessionId.value = storedSession
+  } else {
+    localStorage.setItem('chatbot_session_id', sessionId.value)
+  }
+
+  // ── Restore course plan / mode ──────────────────────────────────
+  try {
+    const storedPlan = localStorage.getItem('chatbot_course_plan')
+    if (storedPlan) {
+      coursePlan.value = JSON.parse(storedPlan)
+      planVersion.value = Number(localStorage.getItem('chatbot_plan_version') || '1')
+      isCourseMode.value = localStorage.getItem('chatbot_course_mode') === 'true'
+    }
+  } catch { /* ignore malformed stored value */ }
+
+  // ── Reload messages from backend ────────────────────────────────
+  try {
+    const backendMessages = await chatAdapter.getMessagesBySession(sessionId.value)
+    if (backendMessages.length) {
+      messages.value = backendMessages.map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt,
+        sessionId: m.sessionId,
+        hasCalification: (m as Record<string, unknown>).hasCalification as boolean ?? false,
+        calificationValue: (m as Record<string, unknown>).calificationValue as number | null ?? null,
+        calificationAdded: (m as Record<string, unknown>).calificationAdded as boolean ?? false,
+      }))
+      // Re-append the plan card marker at the bottom if a plan is active
+      if (coursePlan.value) {
+        messages.value.push({
+          id: 'plan-card-restored',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+          isPlanCard: true,
+        })
+      }
+      scrollToBottom()
+    }
+  } catch { /* backend unavailable — start empty */ }
+})
+
+// ── Persist course plan & mode to localStorage on change ──────────
+watch(coursePlan, (plan) => {
+  if (submissionId.value != null) return
+  if (plan) {
+    localStorage.setItem('chatbot_course_plan', JSON.stringify(plan))
+    localStorage.setItem('chatbot_plan_version', String(planVersion.value))
+  } else {
+    localStorage.removeItem('chatbot_course_plan')
+    localStorage.removeItem('chatbot_plan_version')
+  }
+}, { deep: true })
+
+watch(isCourseMode, (val) => {
+  if (submissionId.value != null) return
+  localStorage.setItem('chatbot_course_mode', String(val))
+})
 
 onUnmounted(() => {
   closeSignLang()
