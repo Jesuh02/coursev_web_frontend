@@ -191,17 +191,18 @@
       </template>
 
       <!-- Course Plan Card -->
-      <CoursePlanCard
-        v-if="coursePlan"
-        :plan="coursePlan"
-        :creating="isCreatingCourse"
-        :created-id="createdCourseId"
-        :error="courseCreateError"
-        :version="planVersion"
-        @confirm="createCourseFromPlan"
-        @reject="rejectCoursePlan"
-        @view="viewCreatedCourse"
-      />
+      <div v-if="coursePlan" ref="planCardRef" style="scroll-margin-top: 12px">
+        <CoursePlanCard
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
+      </div>
 
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
@@ -652,6 +653,7 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
+const planCardRef = ref<HTMLElement | null>(null)
 
 let recognition: any = null
 let voiceBaseText = ''
@@ -1116,6 +1118,17 @@ function clearPendingImage() {
   if (imageInputRef.value) imageInputRef.value.value = ''
 }
 
+// Scroll to the CoursePlanCard whenever it appears or updates
+watch(coursePlan, (newPlan) => {
+  if (newPlan) {
+    nextTick(() => {
+      nextTick(() => {
+        planCardRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    })
+  }
+})
+
 // ─── Course plan helpers ─────────────────────────────────────────────────────
 
 /** Detects if the message is a course creation request. */
@@ -1298,8 +1311,14 @@ async function sendMessage() {
   if (!text || isTyping.value || isSending.value) return
 
   // ── Course creation intercept ──────────────────────────────────────────────
+  // When the user explicitly creates a NEW course (course mode was off), reset
+  // any existing plan so isUpdate = false and the message says "Aquí está tu plan".
   if (!isCourseMode.value && detectCourseIntent(text)) {
     isCourseMode.value = true
+    coursePlan.value = null
+    planVersion.value = 0
+    createdCourseId.value = null
+    courseCreateError.value = ''
   }
   if (isCourseMode.value) {
     isSending.value = true

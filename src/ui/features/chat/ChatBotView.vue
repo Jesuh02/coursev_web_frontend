@@ -62,17 +62,18 @@
         @add-grade="addGrade(msg)"
       />
 
-      <CoursePlanCard
-        v-if="coursePlan"
-        :plan="coursePlan"
-        :creating="isCreatingCourse"
-        :created-id="createdCourseId"
-        :error="courseCreateError"
-        :version="planVersion"
-        @confirm="createCourseFromPlan"
-        @reject="rejectCoursePlan"
-        @view="viewCreatedCourse"
-      />
+      <div v-if="coursePlan" ref="planCardRef" style="scroll-margin-top: 12px">
+        <CoursePlanCard
+          :plan="coursePlan"
+          :creating="isCreatingCourse"
+          :created-id="createdCourseId"
+          :error="courseCreateError"
+          :version="planVersion"
+          @confirm="createCourseFromPlan"
+          @reject="rejectCoursePlan"
+          @view="viewCreatedCourse"
+        />
+      </div>
 
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
@@ -158,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
 import { api, HttpError } from '@/infrastructure/api/httpClient'
@@ -255,9 +256,15 @@ async function sendMessage() {
   inputText.value = ''
   scrollToBottom()
 
-  // Auto-detect course creation intent even when course mode is off
+  // Auto-detect course creation intent even when course mode is off.
+  // When the user triggers a BRAND-NEW course request, reset any stale plan
+  // so isUpdate = false inside requestCoursePlan (shows "Aquí está tu plan").
   if (!isCourseMode.value && detectCourseIntent(text)) {
     isCourseMode.value = true
+    coursePlan.value = null
+    planVersion.value = 0
+    createdCourseId.value = null
+    courseCreateError.value = ''
   }
 
   if (isCourseMode.value) {
@@ -377,6 +384,18 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
+const planCardRef = ref<HTMLElement | null>(null)
+
+// Scroll to the plan card whenever it appears or updates
+watch(coursePlan, (newPlan) => {
+  if (newPlan) {
+    nextTick(() => {
+      nextTick(() => {
+        planCardRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    })
+  }
+})
 
 function toggleCourseMode() {
   isCourseMode.value = !isCourseMode.value
