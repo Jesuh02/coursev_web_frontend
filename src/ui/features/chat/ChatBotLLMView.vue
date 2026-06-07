@@ -1218,26 +1218,120 @@ function repairJson(str: string): string {
   return s + '}'.repeat(Math.max(0, curly)) + ']'.repeat(Math.max(0, square))
 }
 
-/** Last-resort: extract a minimal valid plan from hopelessly broken JSON using regex. */
+/**
+ * Reconstructs a plan from hopelessly broken JSON that `repairJson` couldn't fix.
+ * Fallback LLMs emit the right `"key": value` tokens but with the object/array nesting
+ * jumbled. The tokens stay intact and ordered, so we rebuild the subject → topic → task
+ * hierarchy positionally — recovering topics and tasks, not just the title + subject names.
+ */
 function tryExtractPlanPartial(raw: string): CoursePlan | null {
-  const titleM = raw.match(/"title"\s*:\s*"([^"]+)"/)
+  const titleM = raw.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/)
   if (!titleM) return null
-  const descM  = raw.match(/"description"\s*:\s*"([^"]*)"/)
-  const catM   = raw.match(/"category"\s*:\s*"([^"]*)"/)
-  const levelM = raw.match(/"level"\s*:\s*"([^"]*)"/)
-  const weekM  = raw.match(/"durationWeeks"\s*:\s*(\d+)/)
-  const subjects: CoursePlan['subjects'] = []
-  const nameRe = /"name"\s*:\s*"([^"]+)"/g
+  const firstField = (key: string) => {
+    const mm = raw.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`))
+    return mm ? mm[1] : ''
+  }
+  const weekM = raw.match(/"durationWeeks"\s*:\s*(\d+)/)
+
+  type Tok = { type: 'name' | 'title' | 'description' | 'contentDescription' | 'dueWeek'; value: string | number }
+  const tokens: Tok[] = []
+  const re = /"(name|title|description|contentDescription|dueWeek)"\s*:\s*(?:"((?:[^"\\]|\\.)*)"|(-?\d+))/g
   let m: RegExpExecArray | null
-  while ((m = nameRe.exec(raw)) !== null) subjects.push({ name: m[1], description: '', topics: [] })
-  if (!subjects.length) return null
+  while ((m = re.exec(raw)) !== null) {
+    tokens.push({
+      type: m[1] as Tok['type'],
+      value: m[2] !== undefined ? m[2] : Number(m[3]),
+    })
+  }
+
+  const firstNameIdx = tokens.findIndex(t => t.type === 'name')
+  if (firstNameIdx === -1) return null
+  const body = tokens.slice(firstNameIdx)
+
+  const isTaskTitle = (i: number) => {
+    for (let j = i + 1; j < body.length; j++) {
+      const t = body[j]
+      if (t.type === 'title' || t.type === 'name') return false
+      if (t.type === 'dueWeek') return true
+    }
+    return false
+  }
+
+  interface RTask { title: string; description: string; dueWeek: number | null; contentDescription: string }
+  interface RTopic { title: string; description: string; contentDescription: string; tasks: RTask[] }
+  interface RSubject { name: string; description: string; topics: RTopic[] }
+  const subjects: RSubject[] = []
+  let curSubject: RSubject | null = null
+  let curTopic: RTopic | null = null
+  let curTask: RTask | null = null
+  let lastOpened: { description: string } | null = null
+
+  const ensureSubject = (): RSubject => {
+    if (!curSubject) { curSubject = { name: '', description: '', topics: [] }; subjects.push(curSubject) }
+    return curSubject
+  }
+  const ensureTopic = (): RTopic => {
+    ensureSubject()
+    if (!curTopic) { curTopic = { title: '', description: '', contentDescription: '', tasks: [] }; curSubject!.topics.push(curTopic) }
+    return curTopic
+  }
+
+  for (let i = 0; i < body.length; i++) {
+    const tok = body[i]
+    if (tok.type === 'name') {
+      curSubject = { name: String(tok.value), description: '', topics: [] }
+      subjects.push(curSubject)
+      curTopic = null; curTask = null; lastOpened = curSubject
+    } else if (tok.type === 'title') {
+      if (isTaskTitle(i)) {
+        ensureTopic()
+        curTask = { title: String(tok.value), description: '', dueWeek: null, contentDescription: '' }
+        curTopic!.tasks.push(curTask)
+        lastOpened = curTask
+      } else {
+        ensureSubject()
+        curTopic = { title: String(tok.value), description: '', contentDescription: '', tasks: [] }
+        curSubject!.topics.push(curTopic)
+        curTask = null; lastOpened = curTopic
+      }
+    } else if (tok.type === 'description') {
+      if (lastOpened && !lastOpened.description) lastOpened.description = String(tok.value)
+    } else if (tok.type === 'contentDescription') {
+      const target = curTask || curTopic
+      if (target && !target.contentDescription) target.contentDescription = String(tok.value)
+    } else if (tok.type === 'dueWeek') {
+      if (curTask && curTask.dueWeek == null) curTask.dueWeek = Number(tok.value)
+    }
+  }
+
+  const cleanSubjects: CoursePlan['subjects'] = subjects
+    .filter(s => s.name || s.topics.length)
+    .map((s, si) => ({
+      name: s.name || `Módulo ${si + 1}`,
+      description: s.description,
+      topics: s.topics
+        .filter(t => t.title || t.tasks.length)
+        .map((t, ti) => ({
+          title: t.title || `Tema ${ti + 1}`,
+          description: t.description,
+          contentDescription: t.contentDescription || undefined,
+          tasks: t.tasks.map(k => ({
+            title: k.title,
+            description: k.description,
+            dueWeek: k.dueWeek,
+            contentDescription: k.contentDescription || undefined,
+          })),
+        })),
+    }))
+  if (!cleanSubjects.length) return null
+
   return {
     title: titleM[1],
-    description: descM?.[1] ?? '',
-    category: catM?.[1] ?? '',
-    level: levelM?.[1] ?? '',
+    description: firstField('description'),
+    category: firstField('category'),
+    level: firstField('level'),
     durationWeeks: weekM ? Number(weekM[1]) : undefined,
-    subjects,
+    subjects: cleanSubjects,
   }
 }
 
