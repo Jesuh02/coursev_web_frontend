@@ -1142,15 +1142,65 @@ function detectCourseIntent(text: string): boolean {
   ].some(p => p.test(n))
 }
 
-/** Minimal JSON repair for common LLM-generated JSON errors. */
+/** Aggressive JSON repair for broken LLM output (handles stray props, double braces, imbalanced brackets). */
 function repairJson(str: string): string {
-  return str
+  let s = str
+  for (let round = 0; round < 10; round++) {
+    const prev = s
     // Remove trailing commas before } or ]
-    .replace(/,([\s\n]*[}\]])/g, '$1')
-    // Remove bare key-value pairs at the start of an array (e.g. ["key": value, {)
-    .replace(/\[([\s\n]*"[^"]+"\s*:[^[{\]\}\n]+,?[\s\n]*)(?=\{)/g, '[')
+    s = s.replace(/,([\s\n]*[}\]])/g, '$1')
+    // Remove stray "key": value pairs after } and before ] or }
+    s = s.replace(/}(\s*)"[^"]*"\s*:\s*(?:"(?:[^"\\]|\\.)*"|[^,[\]{}"']+?),?(\s*[}\]])/g, '}$2')
+    // Remove stray "key": value pairs at the start of arrays (before first {)
+    s = s.replace(/\[(\s*)"[^"]*"\s*:\s*(?:"(?:[^"\\]|\\.)*"|[^,[\]{}"']+?),?(\s*\{)/g, '[$1$2')
+    // Merge orphaned empty objects into the following property: {}  "key":  →  {"key":
+    s = s.replace(/\{\s*\}(\s*)"([^"]+)"(\s*):/g, '{"$2"$3:')
+    // Collapse double open braces {{ → {
+    s = s.replace(/\{\s*\{/g, '{')
     // Add missing commas between } and {
-    .replace(/}([\s\n]*)\{/g, '},$1{')
+    s = s.replace(/}(\s*)\{/g, '},$1{')
+    // Remove isolated empty objects in arrays
+    s = s.replace(/,(\s*)\{\s*\}(\s*),/g, ',')
+    s = s.replace(/\[(\s*)\{\s*\}(\s*),/g, '[$1')
+    s = s.replace(/,(\s*)\{\s*\}(\s*)\]/g, '$1]')
+    if (s === prev) break
+  }
+  // Balance unclosed braces/brackets (string-aware)
+  let curly = 0, square = 0, inStr = false, esc = false
+  for (const ch of s) {
+    if (esc) { esc = false; continue }
+    if (ch === '\\' && inStr) { esc = true; continue }
+    if (ch === '"') { inStr = !inStr; continue }
+    if (inStr) continue
+    if (ch === '{') curly++
+    else if (ch === '}') { if (curly > 0) curly-- }
+    else if (ch === '[') square++
+    else if (ch === ']') { if (square > 0) square-- }
+  }
+  return s + '}'.repeat(Math.max(0, curly)) + ']'.repeat(Math.max(0, square))
+}
+
+/** Last-resort: extract a minimal valid plan from hopelessly broken JSON using regex. */
+function tryExtractPlanPartial(raw: string): CoursePlan | null {
+  const titleM = raw.match(/"title"\s*:\s*"([^"]+)"/)
+  if (!titleM) return null
+  const descM  = raw.match(/"description"\s*:\s*"([^"]*)"/)
+  const catM   = raw.match(/"category"\s*:\s*"([^"]*)"/)
+  const levelM = raw.match(/"level"\s*:\s*"([^"]*)"/)
+  const weekM  = raw.match(/"durationWeeks"\s*:\s*(\d+)/)
+  const subjects: CoursePlan['subjects'] = []
+  const nameRe = /"name"\s*:\s*"([^"]+)"/g
+  let m: RegExpExecArray | null
+  while ((m = nameRe.exec(raw)) !== null) subjects.push({ name: m[1], description: '', topics: [] })
+  if (!subjects.length) return null
+  return {
+    title: titleM[1],
+    description: descM?.[1] ?? '',
+    category: catM?.[1] ?? '',
+    level: levelM?.[1] ?? '',
+    durationWeeks: weekM ? Number(weekM[1]) : undefined,
+    subjects,
+  }
 }
 
 /** Extracts the first valid course plan JSON from a raw LLM response. */
@@ -1190,7 +1240,8 @@ function extractPlan(raw: string): CoursePlan | null {
       }
     } catch { /* try next attempt */ }
   }
-  return null
+  // Last resort: partial extraction so the card always appears with at least title + subjects
+  return tryExtractPlanPartial(raw)
 }
 
 function buildPlannerPrompt(userText: string): string {
@@ -2112,7 +2163,6 @@ function renderMarkdown(text: string): string {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  scroll-behavior: smooth;
 }
 .messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-track { background: transparent; }

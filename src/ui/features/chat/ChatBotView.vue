@@ -403,12 +403,57 @@ function toggleCourseMode() {
   isCourseMode.value = !isCourseMode.value
 }
 
-/** Minimal JSON repair for common LLM-generated JSON errors. */
+/** Aggressive JSON repair for broken LLM output (handles stray props, double braces, imbalanced brackets). */
 function repairJson(str: string): string {
-  return str
-    .replace(/,([\s\n]*[}\]])/g, '$1')
-    .replace(/\[([\s\n]*"[^"]+"\s*:[^[{\]\}\n]+,?[\s\n]*)(?=\{)/g, '[')
-    .replace(/}([\s\n]*)\{/g, '},$1{')
+  let s = str
+  for (let round = 0; round < 10; round++) {
+    const prev = s
+    s = s.replace(/,([\s\n]*[}\]])/g, '$1')
+    s = s.replace(/}(\s*)"[^"]*"\s*:\s*(?:"(?:[^"\\]|\\.)*"|[^,[\]{}"']+?),?(\s*[}\]])/g, '}$2')
+    s = s.replace(/\[(\s*)"[^"]*"\s*:\s*(?:"(?:[^"\\]|\\.)*"|[^,[\]{}"']+?),?(\s*\{)/g, '[$1$2')
+    s = s.replace(/\{\s*\}(\s*)"([^"]+)"(\s*):/g, '{"$2"$3:')
+    s = s.replace(/\{\s*\{/g, '{')
+    s = s.replace(/}(\s*)\{/g, '},$1{')
+    s = s.replace(/,(\s*)\{\s*\}(\s*),/g, ',')
+    s = s.replace(/\[(\s*)\{\s*\}(\s*),/g, '[$1')
+    s = s.replace(/,(\s*)\{\s*\}(\s*)\]/g, '$1]')
+    if (s === prev) break
+  }
+  let curly = 0, square = 0, inStr = false, esc = false
+  for (const ch of s) {
+    if (esc) { esc = false; continue }
+    if (ch === '\\' && inStr) { esc = true; continue }
+    if (ch === '"') { inStr = !inStr; continue }
+    if (inStr) continue
+    if (ch === '{') curly++
+    else if (ch === '}') { if (curly > 0) curly-- }
+    else if (ch === '[') square++
+    else if (ch === ']') { if (square > 0) square-- }
+  }
+  return s + '}'.repeat(Math.max(0, curly)) + ']'.repeat(Math.max(0, square))
+}
+
+/** Last-resort: extract a minimal valid plan from hopelessly broken JSON using regex. */
+function tryExtractPlanPartial(raw: string): CoursePlan | null {
+  const titleM = raw.match(/"title"\s*:\s*"([^"]+)"/)
+  if (!titleM) return null
+  const descM  = raw.match(/"description"\s*:\s*"([^"]*)"/)
+  const catM   = raw.match(/"category"\s*:\s*"([^"]*)"/)
+  const levelM = raw.match(/"level"\s*:\s*"([^"]*)"/)
+  const weekM  = raw.match(/"durationWeeks"\s*:\s*(\d+)/)
+  const subjects: CoursePlan['subjects'] = []
+  const nameRe = /"name"\s*:\s*"([^"]+)"/g
+  let m: RegExpExecArray | null
+  while ((m = nameRe.exec(raw)) !== null) subjects.push({ name: m[1], description: '', topics: [] })
+  if (!subjects.length) return null
+  return {
+    title: titleM[1],
+    description: descM?.[1] ?? '',
+    category: catM?.[1] ?? '',
+    level: levelM?.[1] ?? '',
+    durationWeeks: weekM ? Number(weekM[1]) : undefined,
+    subjects,
+  }
 }
 
 /** Extrae el primer objeto JSON válido de una respuesta de texto del modelo. */
@@ -447,7 +492,8 @@ function extractPlan(raw: string): CoursePlan | null {
       }
     } catch { /* try next attempt */ }
   }
-  return null
+  // Last resort: partial extraction so the card always appears with at least title + subjects
+  return tryExtractPlanPartial(raw)
 }
 
 async function requestCoursePlan(text: string) {
