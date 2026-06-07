@@ -190,6 +190,19 @@
         </div>
       </template>
 
+      <!-- Course Plan Card -->
+      <CoursePlanCard
+        v-if="coursePlan"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
+
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
         <div class="msg-bot-avatar">
@@ -215,6 +228,24 @@
         </svg>
       </button>
     </Transition>
+
+    <!-- ── Course mode banner ── -->
+    <div v-if="isCourseMode" class="course-mode-banner">
+      <div class="cm-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+      </div>
+      <span class="cm-text">
+        <span v-if="coursePlan">Plan listo · ajusta por chat o confirma para crearlo</span>
+        <span v-else>Modo curso · describe la temática o pega tu planificación</span>
+      </span>
+      <button class="cm-close" @click="isCourseMode = false; coursePlan = null" title="Salir del modo curso">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
 
     <!-- ── Input bar ── -->
     <div class="input-bar">
@@ -492,6 +523,7 @@ import type { Course, TaskSubmission, Task } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import { useChatSocket, type ChatSocketMessage } from '@/composables/useChatSocket'
+import CoursePlanCard, { type CoursePlan } from './components/CoursePlanCard.vue'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -612,6 +644,14 @@ const exportingExcel = ref(false)
 const copiedMsgId = ref<string | null>(null)
 const likedMsgId = ref<string | null>(null)
 const dislikedMsgId = ref<string | null>(null)
+
+// ─── Course plan mode ────────────────────────────────────────────────────────
+const isCourseMode = ref(false)
+const coursePlan = ref<CoursePlan | null>(null)
+const planVersion = ref(0)
+const isCreatingCourse = ref(false)
+const createdCourseId = ref<number | null>(null)
+const courseCreateError = ref('')
 
 let recognition: any = null
 let voiceBaseText = ''
@@ -1076,11 +1116,208 @@ function clearPendingImage() {
   if (imageInputRef.value) imageInputRef.value.value = ''
 }
 
+// ─── Course plan helpers ─────────────────────────────────────────────────────
+
+/** Detects if the message is a course creation request. */
+function detectCourseIntent(text: string): boolean {
+  const n = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return [
+    /\b(crea(me)?|cr[eé]ame|haz(me)?|dis[eé][nñ]a(me)?|planifica(me)?|genera(me)?|elabora(me)?|prepara(me)?|construye(me)?|desarrolla(me)?|arma(me)?|monta(me)?)\b.{0,50}\bcurso\b/,
+    /\b(quiero|necesito|deseo|quisiera|podrias|puedes|me\s+gustar[ií]a)\b.{0,40}\b(un\s+)?curso\b/,
+    /\b(un\s+)?curso\s+(de|sobre|para|acerca\s+de)\b/,
+    /\bcurs[aá](me)?\b/,
+  ].some(p => p.test(n))
+}
+
+/** Extracts the first valid course plan JSON from a raw LLM response. */
+function extractPlan(raw: string): CoursePlan | null {
+  if (!raw) return null
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  const candidate = fenced ? fenced[1] : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+  try {
+    const parsed = JSON.parse(candidate)
+    const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan)
+      ? parsed.arguments.plan
+      : parsed
+    if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
+      return {
+        title: obj.title,
+        description: obj.description ?? '',
+        category: obj.category ?? '',
+        level: obj.level ?? '',
+        durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
+        subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
+          name: String(s.name ?? ''),
+          description: String(s.description ?? ''),
+          topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
+            title: String(t.title ?? t.name ?? ''),
+            description: String(t.description ?? ''),
+            contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
+            tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
+              title: String(k.title ?? ''),
+              description: String(k.description ?? ''),
+              dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
+              contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
+            })),
+          })),
+        })),
+      }
+    }
+  } catch { /* not valid JSON */ }
+  return null
+}
+
+function buildPlannerPrompt(userText: string): string {
+  const current = coursePlan.value
+    ? `\n\nPLAN ACTUAL (modifícalo según la petición, conserva lo que no se mencione):\n${JSON.stringify(coursePlan.value)}`
+    : ''
+  return `Petición: "${userText}"${current}`
+}
+
+async function requestCoursePlan(text: string) {
+  createdCourseId.value = null
+  courseCreateError.value = ''
+  const isUpdate = !!coursePlan.value
+  isTyping.value = true
+  isSending.value = true
+  try {
+    const prompt = buildPlannerPrompt(text)
+    const data = await api.postSlow<{ respuesta_texto?: string; response?: string }>(
+      '/llm/process',
+      {
+        prompt,
+        sessionId: sessionId.value,
+        userId: tokenStorage.userId,
+        username: tokenStorage.username,
+        courseMode: true,
+        fastMode: true,
+      },
+      300_000,
+    )
+    const rawAnswer = data.respuesta_texto ?? data.response ?? ''
+    const parsed = extractPlan(rawAnswer)
+    if (parsed) {
+      coursePlan.value = parsed
+      planVersion.value += 1
+      const msg: ChatMsg = {
+        id: crypto.randomUUID(),
+        content: isUpdate
+          ? 'Plan actualizado con tus cambios. Sigue ajustando o confirma para crear el curso.'
+          : 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste, o confirmarlo para crearlo de inmediato.',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+      }
+      messages.value.push(msg)
+      saveMessageToBackend(msg.content, false, {})
+    } else {
+      const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
+      const msg: ChatMsg = {
+        id: crypto.randomUUID(),
+        content: looksLikeJson || !rawAnswer
+          ? 'No pude generar el plan correctamente. Intenta describir el curso con más detalle (tema, nivel y duración).'
+          : rawAnswer,
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+      }
+      messages.value.push(msg)
+      saveMessageToBackend(msg.content, false, {})
+    }
+  } catch (e) {
+    if (e instanceof HttpError && e.statusCode === 401) {
+      messages.value.push({
+        id: crypto.randomUUID(),
+        content: '⚠️ Tu sesión ha expirado. Redirigiendo al inicio de sesión...',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+      })
+      setTimeout(() => authStore.logout(), 2000)
+      return
+    }
+    const timedOut = e instanceof DOMException && e.name === 'AbortError'
+    messages.value.push({
+      id: crypto.randomUUID(),
+      content: timedOut
+        ? 'La generación del plan está tardando. Intenta de nuevo.'
+        : 'Error al generar el plan del curso.',
+      role: 'assistant',
+      createdAt: new Date().toISOString(),
+    })
+  } finally {
+    isTyping.value = false
+    isSending.value = false
+    scrollToBottom()
+  }
+}
+
+async function createCourseFromPlan() {
+  if (!coursePlan.value || isCreatingCourse.value) return
+  isCreatingCourse.value = true
+  courseCreateError.value = ''
+  try {
+    const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number }>(
+      '/llm/confirm-course',
+      { plan: coursePlan.value },
+      90_000,
+    )
+    createdCourseId.value = data.courseId
+  } catch (e) {
+    courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
+  } finally {
+    isCreatingCourse.value = false
+  }
+}
+
+function rejectCoursePlan() {
+  coursePlan.value = null
+  createdCourseId.value = null
+  courseCreateError.value = ''
+  isCourseMode.value = false
+  const msg: ChatMsg = {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    content: 'Plan cancelado. Puedes pedirme otro curso cuando quieras.',
+    createdAt: new Date().toISOString(),
+  }
+  messages.value.push(msg)
+  saveMessageToBackend(msg.content, false, {})
+}
+
+function viewCreatedCourse(id: number) {
+  router.push({ path: `/subjects/${id}` })
+}
+
 // ─── Send message ─────────────────────────────────────────────────────────────
 
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isTyping.value || isSending.value) return
+
+  // ── Course creation intercept ──────────────────────────────────────────────
+  if (!isCourseMode.value && detectCourseIntent(text)) {
+    isCourseMode.value = true
+  }
+  if (isCourseMode.value) {
+    isSending.value = true
+    const userMsg: ChatMsg = {
+      id: crypto.randomUUID(),
+      content: text,
+      role: 'user',
+      createdAt: new Date().toISOString(),
+    }
+    messages.value.push(userMsg)
+    await saveMessageToBackend(userMsg.content, true, {})
+    inputText.value = ''
+    autoResizeTextarea()
+    scrollToBottom()
+    await requestCoursePlan(text)
+    return
+  }
+
   isSending.value = true
 
   if (isRecording.value) {
@@ -1152,25 +1389,43 @@ async function sendMessage() {
       nota?: number | null
     }>('/llm/process', payload, 300_000)
 
-    const botMsg: ChatMsg = {
-      id: crypto.randomUUID(),
-      content: data.respuesta_texto ?? data.response ?? 'Sin respuesta',
-      role: 'assistant',
-      createdAt: new Date().toISOString(),
-      esCalificacion: data.esCalificacion === true,
-      nota: data.nota ?? null,
-      calificationAdded: false,
-      excelUrl: (data as any).excelUrl ?? null,
-      submissionId: ctx?.submissionId ?? null,
-      feedback: (data as any).feedback ?? null,
+    // Safety net: if LLM leaks a course plan JSON (e.g. tool-call format), intercept it
+    // and show the CoursePlanCard confirm/reject UI instead of raw JSON.
+    const rawAnswer = data.respuesta_texto ?? data.response ?? ''
+    const autoPlan = !ctx ? extractPlan(rawAnswer) : null
+    if (autoPlan) {
+      isCourseMode.value = true
+      coursePlan.value = autoPlan
+      planVersion.value += 1
+      const planMsg: ChatMsg = {
+        id: crypto.randomUUID(),
+        content: 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste, o confirmarlo para crearlo de inmediato.',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+      }
+      messages.value.push(planMsg)
+      saveMessageToBackend(planMsg.content, false, {})
+    } else {
+      const botMsg: ChatMsg = {
+        id: crypto.randomUUID(),
+        content: rawAnswer || 'Sin respuesta',
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+        esCalificacion: data.esCalificacion === true,
+        nota: data.nota ?? null,
+        calificationAdded: false,
+        excelUrl: (data as any).excelUrl ?? null,
+        submissionId: ctx?.submissionId ?? null,
+        feedback: (data as any).feedback ?? null,
+      }
+      messages.value.push(botMsg)
+      saveMessageToBackend(botMsg.content, false, {
+        has_calification: botMsg.esCalificacion,
+        calification_value: botMsg.nota != null ? String(botMsg.nota) : null,
+        excel_url: botMsg.excelUrl ?? null,
+        submission_id: ctx?.submissionId ?? null,
+      })
     }
-    messages.value.push(botMsg)
-    saveMessageToBackend(botMsg.content, false, {
-      has_calification: botMsg.esCalificacion,
-      calification_value: botMsg.nota != null ? String(botMsg.nota) : null,
-      excel_url: botMsg.excelUrl ?? null,
-      submission_id: ctx?.submissionId ?? null,
-    })
   } catch (e) {
     if (e instanceof HttpError && e.statusCode === 401) {
       const sessionMsg: ChatMsg = {
@@ -1490,6 +1745,11 @@ function loadGradedContext(g: GradedEntry) {
 function clearChat() {
   messages.value = []
   selectedTask.value = null
+  coursePlan.value = null
+  planVersion.value = 0
+  isCourseMode.value = false
+  createdCourseId.value = null
+  courseCreateError.value = ''
 }
 
 // ─── Message actions ───────────────────────────────────────────────────────
@@ -1597,6 +1857,48 @@ function renderMarkdown(text: string): string {
 *,
 *::before,
 *::after { box-sizing: border-box; }
+
+/* ─── Course mode banner ─────────────────────────── */
+.course-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: rgba(191, 90, 242, 0.07);
+  border-top: 1px solid rgba(191, 90, 242, 0.14);
+  flex-shrink: 0;
+}
+.cm-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: rgba(191, 90, 242, 0.15);
+  color: #BF5AF2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cm-text {
+  flex: 1;
+  font-size: 11.5px;
+  color: #C7A0E8;
+  line-height: 1.3;
+  letter-spacing: 0.1px;
+}
+.cm-close {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8E6AB2;
+  background: rgba(191, 90, 242, 0.1);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
 
 /* ─── Root ──────────────────────────────────────── */
 .chat-root {
