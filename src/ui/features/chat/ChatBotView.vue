@@ -283,8 +283,14 @@ async function sendMessage() {
     // The backend auto-detects course-creation requests and replies with a structured
     // plan (isCoursePlan). Render the accept/reject CoursePlanCard instead of a raw
     // text bubble, and switch to course mode so follow-up edits keep the plan context.
+    //
+    // Safety net: ALWAYS try to extract a plan from the answer — never gate it on the
+    // isCoursePlan flag alone. If a `create_course_structure` tool-call JSON (or a bare
+    // course plan) ever leaks into the text body, extractPlan unwraps it and we render the
+    // confirm/reject card instead of dumping raw JSON. extractPlan only matches objects
+    // with a `title` string + `subjects` array, so normal answers are never misdetected.
     const rawAnswer = data.respuesta_texto || data.response || ''
-    const autoPlan = data.isCoursePlan ? extractPlan(rawAnswer) : null
+    const autoPlan = extractPlan(rawAnswer)
     if (autoPlan) {
       isCourseMode.value = true
       coursePlan.value = autoPlan
@@ -310,6 +316,11 @@ async function sendMessage() {
       hasCalification: data.esCalificacion === true,
       calificationValue: data.nota ?? null,
       calificationAdded: false,
+    }
+    // Guard: if a malformed create_course_structure tool call ever slips through
+    // (valid plans are already handled above by extractPlan), never show the raw JSON.
+    if (/"tool"\s*:\s*"create_course_structure"/.test(assistantMsg.content)) {
+      assistantMsg.content = 'Para crear un curso, vuelve a describir la temática (tema, nivel y duración) y te mostraré un plan que podrás revisar y confirmar.'
     }
     messages.value.push(assistantMsg)
 
@@ -433,9 +444,15 @@ async function requestCoursePlan(text: string) {
         sessionId: sessionId.value,
       })
     } else {
+      // extractPlan failed. Never surface raw JSON / tool-call text to the user: if the
+      // answer looks like a (malformed) plan or tool call, show a friendly retry message
+      // instead of dumping the JSON into the chat.
+      const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
       messages.value.push({
         id: crypto.randomUUID(),
-        content: rawAnswer || 'No pude generar el plan. Intenta describir el curso con más detalle.',
+        content: looksLikeJson || !rawAnswer
+          ? 'No pude generar el plan correctamente. Intenta describir el curso con más detalle (tema, nivel y duración).'
+          : rawAnswer,
         role: 'assistant',
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
