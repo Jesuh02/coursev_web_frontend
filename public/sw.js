@@ -1,4 +1,4 @@
-const C='coursev-v3',A=['/','index.html','/manifest.json','/descarga.png','/icon-192.png','/icon-512.png','/default-avatar.png','/default-course.png']
+const C='coursev-v4',A=['/','index.html','/manifest.json','/descarga.png','/icon-192.png','/icon-512.png','/default-avatar.png','/default-course.png']
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)));self.skipWaiting()})
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()})
 self.addEventListener('fetch',e=>{
