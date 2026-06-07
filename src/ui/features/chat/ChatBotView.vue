@@ -161,7 +161,7 @@
 import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
-import { api } from '@/infrastructure/api/httpClient'
+import { api, HttpError } from '@/infrastructure/api/httpClient'
 import ChatBubble from './components/ChatBubble.vue'
 import CoursePlanCard, { type CoursePlan } from './components/CoursePlanCard.vue'
 
@@ -327,6 +327,10 @@ async function sendMessage() {
     // Persist assistant message — non-blocking, failure must not break chat
     chatAdapter.upsertMessage({ content: assistantMsg.content, role: 'assistant', sessionId: sessionId.value }).catch(() => {})
   } catch (e) {
+    if (e instanceof HttpError && e.statusCode === 401) {
+      router.replace({ name: 'login' })
+      return
+    }
     const timedOut = e instanceof DOMException && e.name === 'AbortError'
     messages.value.push({
       id: crypto.randomUUID(),
@@ -459,6 +463,10 @@ async function requestCoursePlan(text: string) {
       })
     }
   } catch (e) {
+    if (e instanceof HttpError && e.statusCode === 401) {
+      router.replace({ name: 'login' })
+      return
+    }
     const timedOut = e instanceof DOMException && e.name === 'AbortError'
     messages.value.push({
       id: crypto.randomUUID(),
