@@ -175,7 +175,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
+import { chatAdapter, submissionAdapter, tokenStorage } from '@/infrastructure/api'
 import { api, HttpError } from '@/infrastructure/api/httpClient'
 import ChatBubble from './components/ChatBubble.vue'
 import CoursePlanCard, { type CoursePlan } from './components/CoursePlanCard.vue'
@@ -699,14 +699,43 @@ function rejectCoursePlan() {
   })
 }
 
+/** Strips subjects/topics/tasks with blank required fields before submitting to avoid VALIDATION_ERROR. */
+function sanitizePlanForSubmit(plan: CoursePlan): CoursePlan | null {
+  const subjects = (plan.subjects ?? [])
+    .map(s => ({
+      ...s,
+      name: (s.name ?? '').trim(),
+      topics: (s.topics ?? [])
+        .map(t => ({
+          ...t,
+          title: (t.title ?? '').trim(),
+          tasks: (t.tasks ?? []).filter(k => (k.title ?? '').trim().length > 0),
+        }))
+        .filter(t => t.title.length > 0),
+    }))
+    .filter(s => s.name.length > 0)
+  if (!subjects.length) return null
+  return { ...plan, subjects }
+}
+
 async function createCourseFromPlan() {
   if (!coursePlan.value || isCreatingCourse.value) return
   isCreatingCourse.value = true
   courseCreateError.value = ''
   try {
+    const sanitized = sanitizePlanForSubmit(coursePlan.value)
+    if (!sanitized) {
+      courseCreateError.value = 'El plan no tiene materias válidas. Pide ajustes por chat.'
+      isCreatingCourse.value = false
+      return
+    }
     const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number; docsInProgress?: boolean }>(
       '/llm/confirm-course',
-      { plan: coursePlan.value },
+      {
+        plan: sanitized,
+        userId: tokenStorage.userId || undefined,
+        username: tokenStorage.username || undefined,
+      },
       90_000,  // 90 s — only DB inserts need to complete; docs run in background
     )
     createdCourseId.value = data.courseId
