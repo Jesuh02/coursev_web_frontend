@@ -181,6 +181,7 @@ interface LLMApiResponse {
   response?: string
   esCalificacion?: boolean
   nota?: number | null
+  isCoursePlan?: boolean
 }
 
 const route = useRoute()
@@ -269,7 +270,7 @@ async function sendMessage() {
     // Persist user message — non-blocking, failure must not break chat
     chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value }).catch(() => {})
 
-    const data = await api.post<LLMApiResponse>('/llm/process', {
+    const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt: text,
       ...(submissionId.value != null && { submissionId: submissionId.value }),
       ...(courseId.value != null && { courseId: courseId.value }),
@@ -277,7 +278,28 @@ async function sendMessage() {
       // Acorta el timeout del modelo primario (Qwen) a 10s y delega en DeepSeek
       // como fallback rapido si Qwen demora demasiado en responder.
       fastMode: true,
-    })
+    }, 300_000)
+
+    // The backend auto-detects course-creation requests and replies with a structured
+    // plan (isCoursePlan). Render the accept/reject CoursePlanCard instead of a raw
+    // text bubble, and switch to course mode so follow-up edits keep the plan context.
+    const rawAnswer = data.respuesta_texto || data.response || ''
+    const autoPlan = data.isCoursePlan ? extractPlan(rawAnswer) : null
+    if (autoPlan) {
+      isCourseMode.value = true
+      coursePlan.value = autoPlan
+      planVersion.value += 1
+      messages.value.push({
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste por chat, o confirmarlo para crearlo de inmediato.',
+        createdAt: new Date().toISOString(),
+        sessionId: sessionId.value,
+      })
+      isTyping.value = false
+      scrollToBottom()
+      return
+    }
 
     const assistantMsg: LocalMessage = {
       id: crypto.randomUUID(),
@@ -293,10 +315,13 @@ async function sendMessage() {
 
     // Persist assistant message — non-blocking, failure must not break chat
     chatAdapter.upsertMessage({ content: assistantMsg.content, role: 'assistant', sessionId: sessionId.value }).catch(() => {})
-  } catch {
+  } catch (e) {
+    const timedOut = e instanceof DOMException && e.name === 'AbortError'
     messages.value.push({
       id: crypto.randomUUID(),
-      content: 'Error al procesar el mensaje.',
+      content: timedOut
+        ? 'La respuesta está tardando más de lo normal. Intenta de nuevo en un momento.'
+        : 'Error al procesar el mensaje.',
       role: 'assistant',
       createdAt: new Date().toISOString(),
     })
@@ -348,7 +373,9 @@ function extractPlan(raw: string): CoursePlan | null {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const candidate = fenced ? fenced[1] : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
   try {
-    const obj = JSON.parse(candidate)
+    const parsed = JSON.parse(candidate)
+    // Handle LLM inline tool-call wrapper: {"tool": "create_course_structure", "arguments": {"plan": {...}}}
+    const obj = (parsed?.tool === 'create_course_structure' && parsed?.arguments?.plan) ? parsed.arguments.plan : parsed
     if (obj && typeof obj.title === 'string' && Array.isArray(obj.subjects)) {
       return {
         title: obj.title,
@@ -384,12 +411,12 @@ async function requestCoursePlan(text: string) {
   const isUpdate = !!coursePlan.value
   try {
     const prompt = buildPlannerPrompt(text)
-    const data = await api.post<LLMApiResponse>('/llm/process', {
+    const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt,
       sessionId: sessionId.value,
       courseMode: true,
       fastMode: true,
-    })
+    }, 300_000)
     const rawAnswer = data.respuesta_texto || data.response || ''
     const parsed = extractPlan(rawAnswer)
     if (parsed) {
@@ -414,10 +441,13 @@ async function requestCoursePlan(text: string) {
         sessionId: sessionId.value,
       })
     }
-  } catch {
+  } catch (e) {
+    const timedOut = e instanceof DOMException && e.name === 'AbortError'
     messages.value.push({
       id: crypto.randomUUID(),
-      content: 'Error al generar el plan del curso.',
+      content: timedOut
+        ? 'La generación del plan está tardando más de lo normal. Intenta de nuevo.'
+        : 'Error al generar el plan del curso.',
       role: 'assistant',
       createdAt: new Date().toISOString(),
     })

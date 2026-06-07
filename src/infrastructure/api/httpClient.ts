@@ -276,8 +276,8 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   getRaw: <T>(path: string) => request<T>(path, undefined, false, true),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  /** POST with extended timeout for slow LLM endpoints. @param timeoutMs defaults to 120 s. */
-  postSlow: <T>(path: string, body: unknown, timeoutMs = 120_000) => {
+  /** POST with extended timeout for slow LLM endpoints. @param timeoutMs defaults to 300 s (5 min). */
+  postSlow: <T>(path: string, body: unknown, timeoutMs = 300_000) => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     return request<T>(path, { method: 'POST', body: JSON.stringify(body), signal: controller.signal })

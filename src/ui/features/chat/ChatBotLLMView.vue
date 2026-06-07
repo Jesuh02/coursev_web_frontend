@@ -1150,7 +1150,7 @@ async function sendMessage() {
       response?: string
       esCalificacion?: boolean
       nota?: number | null
-    }>('/llm/process', payload)
+    }>('/llm/process', payload, 300_000)
 
     const botMsg: ChatMsg = {
       id: crypto.randomUUID(),
