@@ -36,7 +36,7 @@
     <!-- Stats -->
     <div class="plan-stats">
       <div class="plan-stat">
-        <span class="stat-n">{{ plan.subjects.length }}</span>
+        <span class="stat-n">{{ subjectList.length }}</span>
         <span class="stat-l">materias</span>
       </div>
       <div class="stat-sep" />
@@ -53,7 +53,7 @@
 
     <!-- Tree -->
     <div class="plan-tree">
-      <div v-for="(subject, si) in plan.subjects" :key="si" class="subject-block">
+      <div v-for="(subject, si) in subjectList" :key="si" class="subject-block">
         <button class="subject-row" @click="toggle(si)">
           <span class="subject-num">{{ si + 1 }}</span>
           <span class="subject-label">{{ subject.name }}</span>
@@ -162,11 +162,20 @@ function toggle(i: number) {
 
 const showUpdated = computed(() => (props.version ?? 0) > 1)
 
+// Defensive: never assume `subjects` is an array. A malformed plan must still render the
+// card frame (title + buttons) instead of throwing during render, which would make the
+// whole component disappear while sibling UI (the "Plan listo" banner) survives.
+const subjectList = computed(() =>
+  Array.isArray(props.plan?.subjects)
+    ? props.plan.subjects.filter((s): s is PlanSubject => !!s && typeof s === 'object')
+    : []
+)
+
 const topicCount = computed(() =>
-  props.plan.subjects.reduce((n, s) => n + (s.topics?.length ?? 0), 0)
+  subjectList.value.reduce((n, s) => n + (s.topics?.length ?? 0), 0)
 )
 const taskCount = computed(() =>
-  props.plan.subjects.reduce(
+  subjectList.value.reduce(
     (n, s) => n + (s.topics?.reduce((t, tp) => t + (tp.tasks?.length ?? 0), 0) ?? 0),
     0
   )
