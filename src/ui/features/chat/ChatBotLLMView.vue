@@ -206,6 +206,20 @@
         />
       </template>
 
+      <!-- Fallback plan card: guarantees the card shows whenever a plan exists, even if
+           the inline isPlanCard marker was lost (e.g. after a reload or the auto-plan path) -->
+      <CoursePlanCard
+        v-if="coursePlan && !hasInlinePlanCard"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
+
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
         <div class="msg-bot-avatar">
@@ -718,6 +732,10 @@ const filteredOverlayItems = computed(() => {
       (item.subtitle ?? '').toLowerCase().includes(q),
   )
 })
+
+// True when an inline plan-card marker exists in the message flow. Used to avoid
+// double-rendering the fallback card below the messages.
+const hasInlinePlanCard = computed(() => messages.value.some(m => m.isPlanCard))
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -1634,6 +1652,8 @@ async function sendMessage() {
       isCourseMode.value = true
       coursePlan.value = autoPlan
       planVersion.value += 1
+      // Drop any stale plan-card marker so the updated card stays at the bottom
+      messages.value = messages.value.filter(m => !m.isPlanCard)
       const planMsg: ChatMsg = {
         id: crypto.randomUUID(),
         content: 'Aquí está tu plan de curso. Puedes pedirme cualquier ajuste, o confirmarlo para crearlo de inmediato.',
@@ -1641,6 +1661,16 @@ async function sendMessage() {
         createdAt: new Date().toISOString(),
       }
       messages.value.push(planMsg)
+      // Inline plan-card marker so the card renders in the natural message flow
+      messages.value.push({
+        id: `plan-card-v${planVersion.value}`,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        isPlanCard: true,
+      })
+      // Persist so the card survives a page reload (only the text message is saved to DB)
+      persistPlan()
       saveMessageToBackend(planMsg.content, false, {})
     } else {
       const botMsg: ChatMsg = {

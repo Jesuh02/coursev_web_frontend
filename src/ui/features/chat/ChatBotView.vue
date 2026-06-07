@@ -76,6 +76,20 @@
         />
       </template>
 
+      <!-- Fallback plan card: guarantees the card shows whenever a plan exists, even if
+           the inline isPlanCard marker was lost (e.g. after a reload) -->
+      <CoursePlanCard
+        v-if="coursePlan && !hasInlinePlanCard"
+        :plan="coursePlan"
+        :creating="isCreatingCourse"
+        :created-id="createdCourseId"
+        :error="courseCreateError"
+        :version="planVersion"
+        @confirm="createCourseFromPlan"
+        @reject="rejectCoursePlan"
+        @view="viewCreatedCourse"
+      />
+
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
       </div>
@@ -397,6 +411,10 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
+
+// True when an inline plan-card marker exists in the message flow. Used to avoid
+// double-rendering the fallback card below the messages.
+const hasInlinePlanCard = computed(() => messages.value.some(m => m.isPlanCard))
 
 function toggleCourseMode() {
   isCourseMode.value = !isCourseMode.value
