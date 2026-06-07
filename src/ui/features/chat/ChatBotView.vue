@@ -52,28 +52,31 @@
         </template>
       </div>
 
-      <ChatBubble
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-        :has-calification="msg.hasCalification"
-        :calification-value="msg.calificationValue"
-        :calification-added="msg.calificationAdded"
-        @add-grade="addGrade(msg)"
-      />
-
-      <div v-if="coursePlan" ref="planCardRef" style="scroll-margin-top: 12px">
-        <CoursePlanCard
-          :plan="coursePlan"
-          :creating="isCreatingCourse"
-          :created-id="createdCourseId"
-          :error="courseCreateError"
-          :version="planVersion"
-          @confirm="createCourseFromPlan"
-          @reject="rejectCoursePlan"
-          @view="viewCreatedCourse"
+      <template v-for="msg in messages" :key="msg.id">
+        <!-- Embedded course plan card -->
+        <template v-if="msg.isPlanCard">
+          <CoursePlanCard
+            v-if="coursePlan"
+            :plan="coursePlan"
+            :creating="isCreatingCourse"
+            :created-id="createdCourseId"
+            :error="courseCreateError"
+            :version="planVersion"
+            @confirm="createCourseFromPlan"
+            @reject="rejectCoursePlan"
+            @view="viewCreatedCourse"
+          />
+        </template>
+        <!-- Regular message bubble -->
+        <ChatBubble
+          v-else
+          :message="msg"
+          :has-calification="msg.hasCalification"
+          :calification-value="msg.calificationValue"
+          :calification-added="msg.calificationAdded"
+          @add-grade="addGrade(msg)"
         />
-      </div>
+      </template>
 
       <div v-if="isTyping" class="typing-indicator">
         <span /><span /><span />
@@ -159,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted, watch } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { chatAdapter, submissionAdapter } from '@/infrastructure/api'
 import { api, HttpError } from '@/infrastructure/api/httpClient'
@@ -175,6 +178,7 @@ interface LocalMessage {
   hasCalification?: boolean
   calificationValue?: number | null
   calificationAdded?: boolean
+  isPlanCard?: boolean
 }
 
 interface LLMApiResponse {
@@ -384,18 +388,6 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
-const planCardRef = ref<HTMLElement | null>(null)
-
-// Scroll to the plan card whenever it appears or updates
-watch(coursePlan, (newPlan) => {
-  if (newPlan) {
-    nextTick(() => {
-      nextTick(() => {
-        planCardRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-    })
-  }
-})
 
 function toggleCourseMode() {
   isCourseMode.value = !isCourseMode.value
@@ -466,6 +458,16 @@ async function requestCoursePlan(text: string) {
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
       })
+      // Embed plan card as a message only on first creation (updates read coursePlan reactively)
+      if (!isUpdate) {
+        messages.value.push({
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+          isPlanCard: true,
+        })
+      }
     } else {
       // extractPlan failed. Never surface raw JSON / tool-call text to the user: if the
       // answer looks like a (malformed) plan or tool call, show a friendly retry message
@@ -512,6 +514,8 @@ function rejectCoursePlan() {
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
+  // Remove the embedded plan card message from the chat
+  messages.value = messages.value.filter(m => !m.isPlanCard)
   messages.value.push({
     id: crypto.randomUUID(),
     role: 'assistant',

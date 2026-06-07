@@ -109,6 +109,22 @@
 
       <!-- Message bubbles -->
       <template v-for="msg in messages" :key="msg.id">
+        <!-- ── Embedded course plan card ── -->
+        <template v-if="msg.isPlanCard">
+          <CoursePlanCard
+            v-if="coursePlan"
+            :plan="coursePlan"
+            :creating="isCreatingCourse"
+            :created-id="createdCourseId"
+            :error="courseCreateError"
+            :version="planVersion"
+            @confirm="createCourseFromPlan"
+            @reject="rejectCoursePlan"
+            @view="viewCreatedCourse"
+          />
+        </template>
+        <!-- ── Regular message bubble ── -->
+        <template v-else>
         <div class="msg-row" :class="msg.role === 'user' ? 'msg-row--user' : 'msg-row--bot'">
 
           <!-- Bot avatar dot -->
@@ -188,21 +204,8 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Calificación aplicada
         </div>
+        </template><!-- end v-else regular message -->
       </template>
-
-      <!-- Course Plan Card -->
-      <div v-if="coursePlan" ref="planCardRef" style="scroll-margin-top: 12px">
-        <CoursePlanCard
-          :plan="coursePlan"
-          :creating="isCreatingCourse"
-          :created-id="createdCourseId"
-          :error="courseCreateError"
-          :version="planVersion"
-          @confirm="createCourseFromPlan"
-          @reject="rejectCoursePlan"
-          @view="viewCreatedCourse"
-        />
-      </div>
 
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
@@ -518,7 +521,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { api, tokenStorage, chatAdapter, submissionAdapter, courseAdapter, taskAdapter, HttpError } from '@/infrastructure/api'
 import type { Course, TaskSubmission, Task } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
@@ -539,6 +542,7 @@ interface ChatMsg {
   excelUrl?: string | null
   submissionId?: number | null
   feedback?: string | null
+  isPlanCard?: boolean
 }
 
 interface SelectedTaskCtx {
@@ -653,8 +657,6 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
-const planCardRef = ref<HTMLElement | null>(null)
-
 let recognition: any = null
 let voiceBaseText = ''
 
@@ -1118,17 +1120,6 @@ function clearPendingImage() {
   if (imageInputRef.value) imageInputRef.value.value = ''
 }
 
-// Scroll to the CoursePlanCard whenever it appears or updates
-watch(coursePlan, (newPlan) => {
-  if (newPlan) {
-    nextTick(() => {
-      nextTick(() => {
-        planCardRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-    })
-  }
-})
-
 // ─── Course plan helpers ─────────────────────────────────────────────────────
 
 /** Detects if the message is a course creation request. */
@@ -1227,6 +1218,17 @@ async function requestCoursePlan(text: string) {
       }
       messages.value.push(msg)
       saveMessageToBackend(msg.content, false, {})
+      // Embed the plan card as a message so it scrolls naturally with the chat.
+      // Only insert once — on updates the existing card re-reads coursePlan reactively.
+      if (!isUpdate) {
+        messages.value.push({
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+          isPlanCard: true,
+        })
+      }
     } else {
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
       const msg: ChatMsg = {
@@ -1290,6 +1292,8 @@ function rejectCoursePlan() {
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
+  // Remove the embedded plan card message from the chat
+  messages.value = messages.value.filter(m => !m.isPlanCard)
   const msg: ChatMsg = {
     id: crypto.randomUUID(),
     role: 'assistant',
