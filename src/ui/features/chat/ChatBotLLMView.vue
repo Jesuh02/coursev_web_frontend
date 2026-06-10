@@ -1713,6 +1713,7 @@ async function createCourseFromPlan() {
         plan: sanitized,
         userId: tokenStorage.userId || undefined,
         username: tokenStorage.username || undefined,
+        sessionId: sessionId.value,
         generateThumbnails: true,
         generateDocuments: true,
       },
