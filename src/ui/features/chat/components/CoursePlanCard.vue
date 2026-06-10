@@ -186,7 +186,7 @@ const taskCount = computed(() =>
 /* ─── Apple Design System tokens ─────────────────────────────────────────── */
 /* --color-ink: #1d1d1f  --color-snow: #ffffff  --color-cloud: #f5f5f7       */
 /* --color-graphite: #707070  --color-silver: #d6d6d6  --color-steel: #474747 */
-/* --color-signal-blue: #0071e3  --color-glaucus-blue: #0066cc               */
+/* --color-white: #ffffff  --color-zinc: #3f3f46  --color-zinc-soft: #71717a */
 
 .plan-card {
   align-self: stretch;
@@ -194,26 +194,26 @@ const taskCount = computed(() =>
      flex-shrink:0 prevents the flex algorithm from compressing the tall card. */
   flex-shrink: 0;
   width: 100%;
-  background: linear-gradient(180deg, #061a3a 0%, #082451 54%, #04142f 100%);
-  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: linear-gradient(180deg, #3f3f46 0%, #2f3035 54%, #242529 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 22px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
   font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  box-shadow: 0 18px 44px rgba(2, 8, 23, 0.28);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .plan-card--updated {
-  border-color: rgba(56, 189, 248, 0.72);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14), 0 18px 44px rgba(2, 8, 23, 0.28);
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08), 0 18px 44px rgba(0, 0, 0, 0.28);
 }
 
-/* ─── Top accent bar — Signal Blue ───────────────────────────────────────── */
+/* ─── Top accent bar — Gray ──────────────────────────────────────────────── */
 .plan-accent {
   height: 3px;
-  background: linear-gradient(90deg, #38bdf8, #2563eb);
+  background: linear-gradient(90deg, #d4d4d8, #71717a);
   flex-shrink: 0;
 }
 
@@ -229,12 +229,12 @@ const taskCount = computed(() =>
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.26);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #7dd3fc;
+  color: #ffffff;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -253,7 +253,7 @@ const taskCount = computed(() =>
   font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: #93c5fd;
+  color: #e4e4e7;
 }
 
 .plan-updated-badge {
@@ -263,9 +263,9 @@ const taskCount = computed(() =>
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0;
-  color: #dbeafe;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(147, 197, 253, 0.24);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   padding: 2px 8px;
   border-radius: 980px;
   text-transform: none;
@@ -275,7 +275,7 @@ const taskCount = computed(() =>
   font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 21px;
   font-weight: 600;
-  color: #f8fbff;
+  color: #ffffff;
   line-height: 1.14;
   letter-spacing: 0;
   white-space: nowrap;
@@ -286,7 +286,7 @@ const taskCount = computed(() =>
 /* ─── Description ─────────────────────────────────────────────────────────── */
 .plan-desc {
   font-size: 14px;
-  color: #bfdbfe;
+  color: #f4f4f5;
   line-height: 1.47;
   letter-spacing: 0;
   padding: 8px 20px 0;
@@ -306,27 +306,27 @@ const taskCount = computed(() =>
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #e0f2fe;
+  color: #ffffff;
   padding: 4px 12px;
   border-radius: 980px;
-  background: rgba(15, 23, 42, 0.38);
-  border: 1px solid rgba(147, 197, 253, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   letter-spacing: 0;
 }
 .plan-tag--level {
-  color: #7dd3fc;
-  background: rgba(14, 165, 233, 0.14);
-  border-color: rgba(125, 211, 252, 0.26);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 /* ─── Stats ───────────────────────────────────────────────────────────────── */
 .plan-stats {
   display: flex;
   align-items: center;
-  background: rgba(3, 12, 31, 0.58);
+  background: rgba(0, 0, 0, 0.22);
   border-radius: 16px;
   margin: 14px 20px 0;
-  border: 1px solid rgba(147, 197, 253, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   padding: 14px 0;
 }
 
@@ -342,14 +342,14 @@ const taskCount = computed(() =>
   font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 24px;
   font-weight: 600;
-  color: #e0f2fe;
+  color: #ffffff;
   letter-spacing: 0;
   line-height: 1;
 }
 
 .stat-l {
   font-size: 11px;
-  color: #93c5fd;
+  color: #d4d4d8;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -357,7 +357,7 @@ const taskCount = computed(() =>
 .stat-sep {
   width: 1px;
   height: 28px;
-  background: rgba(147, 197, 253, 0.18);
+  background: rgba(255, 255, 255, 0.16);
   flex-shrink: 0;
 }
 
@@ -371,14 +371,14 @@ const taskCount = computed(() =>
 
 .subject-block {
   border-radius: 14px;
-  border: 1px solid rgba(147, 197, 253, 0.17);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   overflow: hidden;
-  background: rgba(8, 31, 68, 0.72);
+  background: rgba(255, 255, 255, 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .subject-block:hover {
-  border-color: rgba(56, 189, 248, 0.46);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.09);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .subject-row {
@@ -393,14 +393,14 @@ const taskCount = computed(() =>
   text-align: left;
   transition: background 0.15s;
 }
-.subject-row:hover { background: rgba(125, 211, 252, 0.06); }
+.subject-row:hover { background: rgba(255, 255, 255, 0.08); }
 
 .subject-num {
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: rgba(56, 189, 248, 0.16);
-  color: #7dd3fc;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -413,7 +413,7 @@ const taskCount = computed(() =>
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #f8fbff;
+  color: #ffffff;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -423,13 +423,13 @@ const taskCount = computed(() =>
 
 .subject-topic-count {
   font-size: 12px;
-  color: #bfdbfe;
+  color: #e4e4e7;
   flex-shrink: 0;
 }
 
 .subject-chevron {
   flex-shrink: 0;
-  color: #93c5fd;
+  color: #e4e4e7;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .subject-chevron--open { transform: rotate(180deg); }
@@ -439,12 +439,12 @@ const taskCount = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-top: 1px solid rgba(147, 197, 253, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .subject-desc {
   font-size: 13px;
-  color: #b6c8ea;
+  color: #e4e4e7;
   line-height: 1.45;
 }
 
@@ -455,7 +455,7 @@ const taskCount = computed(() =>
 .topic-idx {
   font-size: 11px;
   font-weight: 600;
-  color: #60a5fa;
+  color: #d4d4d8;
   width: 16px;
   text-align: right;
   flex-shrink: 0;
@@ -464,7 +464,7 @@ const taskCount = computed(() =>
 .topic-name {
   flex: 1;
   font-size: 13px;
-  color: #dbeafe;
+  color: #ffffff;
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -474,12 +474,12 @@ const taskCount = computed(() =>
   align-items: flex-start;
   gap: 5px;
   font-size: 12px;
-  color: #7dd3fc;
+  color: #f4f4f5;
   line-height: 1.45;
   padding: 5px 10px;
-  background: rgba(14, 165, 233, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  border: 1px solid rgba(125, 211, 252, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   margin-top: 2px;
 }
 .topic-content-desc svg { flex-shrink: 0; margin-top: 1px; }
@@ -487,11 +487,11 @@ const taskCount = computed(() =>
 .topic-task-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #dbeafe;
-  background: rgba(15, 23, 42, 0.38);
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.22);
   padding: 1px 7px;
   border-radius: 980px;
-  border: 1px solid rgba(147, 197, 253, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
 }
 
@@ -512,20 +512,20 @@ const taskCount = computed(() =>
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #38bdf8;
+  background: #ffffff;
   opacity: 0.5;
   flex-shrink: 0;
 }
 
-.task-name { flex: 1; font-size: 12px; color: #c7d2fe; }
+.task-name { flex: 1; font-size: 12px; color: #f4f4f5; }
 
 .task-week {
   font-size: 11px;
-  color: #dbeafe;
-  background: rgba(15, 23, 42, 0.38);
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.22);
   padding: 1px 6px;
   border-radius: 980px;
-  border: 1px solid rgba(147, 197, 253, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
@@ -534,14 +534,14 @@ const taskCount = computed(() =>
   align-items: center;
   gap: 8px;
   padding: 14px 20px 20px;
-  border-top: 1px solid rgba(147, 197, 253, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
   margin-top: 14px;
 }
 
 .plan-footer-note {
   flex: 1;
   font-size: 12px;
-  color: #bfdbfe;
+  color: #e4e4e7;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -555,11 +555,11 @@ const taskCount = computed(() =>
   gap: 5px;
   padding: 8px 15px;
   border-radius: 980px;
-  background: rgba(15, 23, 42, 0.44);
-  color: #dbeafe;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid rgba(147, 197, 253, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   cursor: pointer;
   flex-shrink: 0;
   font-family: inherit;
@@ -567,23 +567,23 @@ const taskCount = computed(() =>
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 .plan-reject:hover:not(:disabled) {
-  background: rgba(30, 41, 59, 0.72);
-  border-color: rgba(191, 219, 254, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 .plan-reject:active:not(:disabled) {
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(0, 0, 0, 0.28);
   transform: scale(0.98);
 }
 .plan-reject:disabled { opacity: 0.35; cursor: default; }
 
-/* Primary CTA button — Signal Blue pill */
+/* Primary CTA button — Gray pill */
 .plan-confirm {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 9px 20px;
   border-radius: 980px;
-  background: #2563eb;
+  background: #52525b;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
@@ -594,9 +594,9 @@ const taskCount = computed(() =>
   letter-spacing: 0;
   transition: background 0.2s ease, transform 0.12s ease;
 }
-.plan-confirm:hover:not(:disabled) { background: #1d4ed8; }
+.plan-confirm:hover:not(:disabled) { background: #71717a; }
 .plan-confirm:active:not(:disabled) {
-  background: #1d4ed8;
+  background: #3f3f46;
   transform: scale(0.97);
 }
 .plan-confirm:disabled { opacity: 0.35; cursor: default; }
@@ -628,8 +628,8 @@ const taskCount = computed(() =>
   align-items: center;
   gap: 12px;
   padding: 14px 20px 20px;
-  border-top: 1px solid rgba(52, 211, 153, 0.2);
-  background: rgba(5, 150, 105, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
   margin-top: 14px;
 }
 
@@ -637,7 +637,7 @@ const taskCount = computed(() =>
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #34c759;
+  background: #71717a;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -649,19 +649,19 @@ const taskCount = computed(() =>
 .done-title {
   font-size: 14px;
   font-weight: 600;
-  color: #ecfdf5;
+  color: #ffffff;
   letter-spacing: 0;
 }
 .done-sub {
   font-size: 12px;
-  color: #a7f3d0;
+  color: #d4d4d8;
   margin-top: 1px;
 }
 
 .done-btn {
   padding: 9px 18px;
   border-radius: 980px;
-  background: #2563eb;
+  background: #52525b;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
@@ -671,5 +671,5 @@ const taskCount = computed(() =>
   letter-spacing: 0;
   transition: background 0.2s ease;
 }
-.done-btn:hover { background: #1d4ed8; }
+.done-btn:hover { background: #71717a; }
 </style>
