@@ -655,24 +655,94 @@ function normalizeCourseDraft(draft: CourseCreationDraft | undefined): CourseCre
   }
 }
 
+function normalizeIntentText(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCreationDraft | undefined): CourseCreationDraft {
+  const merged = normalizeCourseDraft(current)
+  const incomingDraft = normalizeCourseDraft(incoming)
+  const shouldReplace = (currentValue?: string, incomingValue?: string) => {
+    if (!incomingValue?.trim()) return false
+    if (!currentValue?.trim()) return true
+    const currentNorm = normalizeIntentText(currentValue)
+    const incomingNorm = normalizeIntentText(incomingValue)
+    if (currentNorm === incomingNorm) return false
+    if (currentNorm.includes(incomingNorm) && incomingNorm.length < currentNorm.length) return false
+    if (currentNorm.split(' ').length > incomingNorm.split(' ').length && incomingNorm.length < currentNorm.length) return false
+    return true
+  }
+  for (const key of ['topic', 'area', 'objective', 'level', 'studentProfile', 'lastAskedField'] as const) {
+    if (key === 'area' && !merged.area && merged.topic && incomingDraft.area) {
+      const topicNorm = normalizeIntentText(merged.topic)
+      const areaNorm = normalizeIntentText(incomingDraft.area)
+      if (topicNorm.includes(areaNorm) && areaNorm.length < topicNorm.length) continue
+    }
+    if (shouldReplace(merged[key] as string | undefined, incomingDraft[key] as string | undefined)) {
+      ;(merged as any)[key] = incomingDraft[key]
+    }
+  }
+  for (const key of ['durationWeeks', 'hoursPerWeek'] as const) {
+    const value = incomingDraft[key]
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      merged[key] = value
+    }
+  }
+  return normalizeCourseDraft(merged)
+}
+
+function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft): CourseCreationDraft {
+  const merged = normalizeCourseDraft(draft)
+  const raw = text.trim()
+  const n = normalizeIntentText(raw)
+  const answersKnownField = Boolean(merged.lastAskedField && merged.lastAskedField !== 'topic')
+  const areaMatch = n.match(/\b(?:area|especialidad|enfoque)\s+(?:de|en|sobre)\s+(.+?)(?=,|\.|$|\s+(?:objetivo|duracion|nivel)\b)/)
+  if (areaMatch) {
+    merged.area = areaMatch[1].trim()
+    if (!merged.topic) merged.topic = merged.area
+  }
+  if (!merged.topic && !answersKnownField) {
+    const topicMatch = n.match(/\b(?:curso\s+)?(?:de|sobre|para|acerca de|en el area de|del area de)\s+(.+?)(?=,|\.|$)/)
+    merged.topic = (topicMatch?.[1] || n).trim()
+  }
+  const duration = n.match(/(\d{1,2})\s*(?:semanas?|weeks?)/)
+  if (duration) merged.durationWeeks = Number(duration[1])
+  if (/\b(avanzado|advanced|experto|profundo|profunda|profundidad|complejo|complejos)\b|buenas practicas/.test(n)) merged.level = 'advanced'
+  else if (/\b(intermedio|intermediate|medio)\b/.test(n)) merged.level = 'intermediate'
+  else if (/\b(principiante|basico|basic|beginner|inicial)\b/.test(n)) merged.level = 'beginner'
+
+  if (merged.lastAskedField === 'objective' && raw) merged.objective = raw
+  if (merged.lastAskedField === 'durationWeeks' && duration) merged.durationWeeks = Number(duration[1])
+  if (merged.lastAskedField === 'level' && merged.level) merged.level = merged.level
+  if (merged.lastAskedField === 'topic' && raw) merged.topic = n
+  return normalizeCourseDraft(merged)
+}
+
 async function requestCoursePlan(text: string) {
   isTyping.value = true
   createdCourseId.value = null
   courseCreateError.value = ''
   const isUpdate = !!coursePlan.value
   try {
-    const prompt = buildPlannerPrompt(text)
+    const prompt = coursePlan.value ? buildPlannerPrompt(text) : text
+    const localDraft = mergeCourseDraftFromUserText(text, courseDraft.value)
+    courseDraft.value = localDraft
     chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value }).catch(() => {})
     const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt,
       sessionId: sessionId.value,
       courseMode: true,
       fastMode: true,
-      courseDraft: normalizeCourseDraft(courseDraft.value),
+      courseDraft: localDraft,
       conversationHistory: buildCourseConversationHistory(),
     }, 300_000)
     if (data.courseDraft) {
-      courseDraft.value = normalizeCourseDraft(data.courseDraft)
+      courseDraft.value = mergeCourseDraftValues(localDraft, data.courseDraft)
     }
     const rawAnswer = data.respuesta_texto || data.response || ''
     const parsed = extractPlan(rawAnswer)

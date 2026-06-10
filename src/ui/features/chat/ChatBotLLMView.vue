@@ -747,6 +747,11 @@ function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCr
     return true
   }
   for (const key of ['topic', 'area', 'objective', 'level', 'studentProfile', 'lastAskedField'] as const) {
+    if (key === 'area' && !merged.area && merged.topic && incomingDraft.area) {
+      const topicNorm = normalizeIntentText(merged.topic)
+      const areaNorm = normalizeIntentText(incomingDraft.area)
+      if (topicNorm.includes(areaNorm) && areaNorm.length < topicNorm.length) continue
+    }
     if (shouldReplace(merged[key] as string | undefined, incomingDraft[key] as string | undefined)) {
       ;(merged as any)[key] = incomingDraft[key]
     }
@@ -763,12 +768,13 @@ function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCr
 function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft): CourseCreationDraft {
   const merged = normalizeCourseDraft(draft)
   const n = normalizeIntentText(text)
+  const answersKnownField = Boolean(merged.lastAskedField && merged.lastAskedField !== 'topic')
   const areaMatch = n.match(/\b(?:area|especialidad|enfoque)\s+(?:de|en|sobre)\s+(.+?)(?=,|\.|$|\s+(?:objetivo|duracion|nivel)\b)/)
   if (areaMatch) {
     merged.area = areaMatch[1].trim()
     if (!merged.topic) merged.topic = merged.area
   }
-  if (!merged.topic) {
+  if (!merged.topic && !answersKnownField) {
     const topicMatch = n.match(/\bcurso\s+(?:de|sobre|para|acerca de|en el area de|del area de)\s+(.+?)(?=,|\.|$)/)
     if (topicMatch) merged.topic = topicMatch[1].trim()
   }
@@ -781,6 +787,7 @@ function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft):
   if (merged.lastAskedField === 'objective' && text.trim()) merged.objective = text.trim()
   if (merged.lastAskedField === 'durationWeeks' && duration) merged.durationWeeks = Number(duration[1])
   if (merged.lastAskedField === 'level' && merged.level) merged.level = merged.level
+  if (merged.lastAskedField === 'topic' && text.trim()) merged.topic = n
   return normalizeCourseDraft(merged)
 }
 
