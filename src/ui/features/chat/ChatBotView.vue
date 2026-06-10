@@ -203,10 +203,11 @@ interface LLMApiResponse {
   nextCourseQuestion?: string
 }
 
-type CourseDraftField = 'topic' | 'objective' | 'level' | 'durationWeeks' | 'hoursPerWeek' | 'studentProfile'
+type CourseDraftField = 'topic' | 'area' | 'objective' | 'level' | 'durationWeeks' | 'hoursPerWeek' | 'studentProfile'
 
 interface CourseCreationDraft {
   topic?: string
+  area?: string
   objective?: string
   level?: string
   durationWeeks?: number | null
@@ -644,6 +645,7 @@ function normalizeCourseDraft(draft: CourseCreationDraft | undefined): CourseCre
   if (!draft) return {}
   return {
     topic: draft.topic?.trim() || undefined,
+    area: draft.area?.trim() || undefined,
     objective: draft.objective?.trim() || undefined,
     level: draft.level?.trim() || undefined,
     durationWeeks: draft.durationWeeks ?? null,

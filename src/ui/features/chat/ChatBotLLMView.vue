@@ -256,7 +256,7 @@
         <span v-if="coursePlan">Plan listo · ajusta por chat o confirma para crearlo</span>
         <span v-else>Modo curso · describe la temática o pega tu planificación</span>
       </span>
-      <button class="cm-close" @click="isCourseMode = false; coursePlan = null; clearPersistedPlan()" title="Salir del modo curso">
+      <button class="cm-close" @click="isCourseMode = false; coursePlan = null; clearPersistedPlan(); clearPersistedCourseDraft()" title="Salir del modo curso">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -557,6 +557,19 @@ interface ChatMsg {
   isPlanCard?: boolean
 }
 
+type CourseDraftField = 'topic' | 'area' | 'objective' | 'level' | 'durationWeeks' | 'hoursPerWeek' | 'studentProfile'
+
+interface CourseCreationDraft {
+  topic?: string
+  area?: string
+  objective?: string
+  level?: string
+  durationWeeks?: number | null
+  hoursPerWeek?: number | null
+  studentProfile?: string
+  lastAskedField?: CourseDraftField | null
+}
+
 interface SelectedTaskCtx {
   submissionId: number
   taskId: number
@@ -669,6 +682,7 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
+const courseDraft = ref<CourseCreationDraft>({})
 let recognition: any = null
 let voiceBaseText = ''
 
@@ -677,6 +691,7 @@ let voiceBaseText = ''
 // reload restores the "Aquí está tu plan de curso" text but loses the card. Keep the
 // plan in localStorage (keyed per account) so the card reappears after reload.
 const planStorageKey = computed(() => `chatbot_llm_plan_${tokenStorage.userId ?? 'anon'}`)
+const courseDraftStorageKey = computed(() => `chatbot_llm_course_draft_${tokenStorage.userId ?? 'anon'}`)
 
 function persistPlan() {
   try {
@@ -693,6 +708,116 @@ function persistPlan() {
 
 function clearPersistedPlan() {
   try { localStorage.removeItem(planStorageKey.value) } catch { /* non-fatal */ }
+}
+
+function normalizeCourseDraft(draft: CourseCreationDraft | undefined): CourseCreationDraft {
+  if (!draft) return {}
+  return {
+    topic: draft.topic?.trim() || undefined,
+    area: draft.area?.trim() || undefined,
+    objective: draft.objective?.trim() || undefined,
+    level: draft.level?.trim() || undefined,
+    durationWeeks: draft.durationWeeks ?? null,
+    hoursPerWeek: draft.hoursPerWeek ?? null,
+    studentProfile: draft.studentProfile?.trim() || undefined,
+    lastAskedField: draft.lastAskedField ?? null,
+  }
+}
+
+function normalizeIntentText(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCreationDraft | undefined): CourseCreationDraft {
+  const merged = normalizeCourseDraft(current)
+  const incomingDraft = normalizeCourseDraft(incoming)
+  const shouldReplace = (currentValue?: string, incomingValue?: string) => {
+    if (!incomingValue?.trim()) return false
+    if (!currentValue?.trim()) return true
+    const currentNorm = normalizeIntentText(currentValue)
+    const incomingNorm = normalizeIntentText(incomingValue)
+    if (currentNorm === incomingNorm) return false
+    if (currentNorm.includes(incomingNorm) && incomingNorm.length < currentNorm.length) return false
+    if (currentNorm.split(' ').length > incomingNorm.split(' ').length && incomingNorm.length < currentNorm.length) return false
+    return true
+  }
+  for (const key of ['topic', 'area', 'objective', 'level', 'studentProfile', 'lastAskedField'] as const) {
+    if (shouldReplace(merged[key] as string | undefined, incomingDraft[key] as string | undefined)) {
+      ;(merged as any)[key] = incomingDraft[key]
+    }
+  }
+  for (const key of ['durationWeeks', 'hoursPerWeek'] as const) {
+    const value = incomingDraft[key]
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      merged[key] = value
+    }
+  }
+  return normalizeCourseDraft(merged)
+}
+
+function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft): CourseCreationDraft {
+  const merged = normalizeCourseDraft(draft)
+  const n = normalizeIntentText(text)
+  const areaMatch = n.match(/\b(?:area|especialidad|enfoque)\s+(?:de|en|sobre)\s+(.+?)(?=,|\.|$|\s+(?:objetivo|duracion|nivel)\b)/)
+  if (areaMatch) {
+    merged.area = areaMatch[1].trim()
+    if (!merged.topic) merged.topic = merged.area
+  }
+  if (!merged.topic) {
+    const topicMatch = n.match(/\bcurso\s+(?:de|sobre|para|acerca de|en el area de|del area de)\s+(.+?)(?=,|\.|$)/)
+    if (topicMatch) merged.topic = topicMatch[1].trim()
+  }
+  const duration = n.match(/(\d{1,2})\s*(?:semanas?|weeks?)/)
+  if (duration) merged.durationWeeks = Number(duration[1])
+  if (/\b(avanzado|advanced|experto|profundo|profunda|profundidad|complejo|complejos)\b|buenas practicas/.test(n)) merged.level = 'advanced'
+  else if (/\b(intermedio|intermediate|medio)\b/.test(n)) merged.level = 'intermediate'
+  else if (/\b(principiante|basico|basic|beginner|inicial)\b/.test(n)) merged.level = 'beginner'
+
+  if (merged.lastAskedField === 'objective' && text.trim()) merged.objective = text.trim()
+  if (merged.lastAskedField === 'durationWeeks' && duration) merged.durationWeeks = Number(duration[1])
+  if (merged.lastAskedField === 'level' && merged.level) merged.level = merged.level
+  return normalizeCourseDraft(merged)
+}
+
+function persistCourseDraft() {
+  try {
+    const normalized = normalizeCourseDraft(courseDraft.value)
+    const hasDraft = Object.values(normalized).some(value => value !== undefined && value !== null && value !== '')
+    if (hasDraft) {
+      localStorage.setItem(courseDraftStorageKey.value, JSON.stringify(normalized))
+    } else {
+      localStorage.removeItem(courseDraftStorageKey.value)
+    }
+  } catch { /* storage unavailable — non-fatal */ }
+}
+
+function clearPersistedCourseDraft() {
+  courseDraft.value = {}
+  try { localStorage.removeItem(courseDraftStorageKey.value) } catch { /* non-fatal */ }
+}
+
+function restorePersistedCourseDraft() {
+  try {
+    const raw = localStorage.getItem(courseDraftStorageKey.value)
+    if (!raw) return
+    const restored = normalizeCourseDraft(JSON.parse(raw))
+    courseDraft.value = restored
+    if (Object.values(restored).some(value => value !== undefined && value !== null && value !== '')) {
+      isCourseMode.value = true
+    }
+  } catch { /* corrupt entry — ignore */ }
+}
+
+function buildCourseConversationHistory() {
+  return messages.value
+    .filter(m => !m.isPlanCard && (m.role === 'user' || m.role === 'assistant') && m.content.trim())
+    .slice(-12)
+    .map(m => ({ role: m.role, content: m.content }))
 }
 
 function restorePersistedPlan() {
@@ -743,6 +868,7 @@ onMounted(async () => {
   await loadHistoryFromBackend()
   // Re-hydrate the in-progress course plan so its card reappears after a reload.
   restorePersistedPlan()
+  if (!coursePlan.value) restorePersistedCourseDraft()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
@@ -1421,8 +1547,18 @@ async function requestCoursePlan(text: string) {
   isTyping.value = true
   isSending.value = true
   try {
-    const prompt = buildPlannerPrompt(text)
-    const data = await api.postSlow<{ respuesta_texto?: string; response?: string }>(
+    const prompt = coursePlan.value ? buildPlannerPrompt(text) : text
+    const localDraft = mergeCourseDraftFromUserText(text, courseDraft.value)
+    courseDraft.value = localDraft
+    persistCourseDraft()
+    const data = await api.postSlow<{
+      respuesta_texto?: string
+      response?: string
+      courseDraft?: CourseCreationDraft
+      missingCourseFields?: CourseDraftField[]
+      nextCourseQuestion?: string
+      isCoursePlan?: boolean
+    }>(
       '/llm/process',
       {
         prompt,
@@ -1431,13 +1567,20 @@ async function requestCoursePlan(text: string) {
         username: tokenStorage.username,
         courseMode: true,
         fastMode: true,
+        courseDraft: localDraft,
+        conversationHistory: buildCourseConversationHistory(),
       },
       300_000,
     )
+    if (data.courseDraft) {
+      courseDraft.value = mergeCourseDraftValues(localDraft, data.courseDraft)
+      persistCourseDraft()
+    }
     const rawAnswer = data.respuesta_texto ?? data.response ?? ''
     const parsed = extractPlan(rawAnswer)
     if (parsed) {
       coursePlan.value = parsed
+      clearPersistedCourseDraft()
       planVersion.value += 1
       // Remove any existing plan-card slot so the updated card always appears at the bottom
       messages.value = messages.value.filter(m => !m.isPlanCard)
@@ -1463,11 +1606,12 @@ async function requestCoursePlan(text: string) {
       saveMessageToBackend(msg.content, false, {})
     } else {
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
+      const assistantContent = data.nextCourseQuestion || (looksLikeJson || !rawAnswer
+        ? 'No pude generar el plan correctamente. Intenta describir el curso con mas detalle (tema, objetivo, duracion y nivel).'
+        : rawAnswer)
       const msg: ChatMsg = {
         id: crypto.randomUUID(),
-        content: looksLikeJson || !rawAnswer
-          ? 'No pude generar el plan correctamente. Intenta describir el curso con más detalle (tema, nivel y duración).'
-          : rawAnswer,
+        content: assistantContent,
         role: 'assistant',
         createdAt: new Date().toISOString(),
       }
@@ -1565,6 +1709,7 @@ async function createCourseFromPlan() {
     saveMessageToBackend(msg.content, false, {})
     // Course committed to the DB — drop the persisted draft so it won't reappear on reload
     clearPersistedPlan()
+    clearPersistedCourseDraft()
     scrollToBottom()
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
@@ -1579,6 +1724,7 @@ function rejectCoursePlan() {
   courseCreateError.value = ''
   isCourseMode.value = false
   clearPersistedPlan()
+  clearPersistedCourseDraft()
   const msg: ChatMsg = {
     id: crypto.randomUUID(),
     role: 'assistant',
@@ -1605,6 +1751,7 @@ async function sendMessage() {
   if (!isCourseMode.value && detectCourseIntent(text)) {
     isCourseMode.value = true
     coursePlan.value = null
+    clearPersistedCourseDraft()
     planVersion.value = 0
     createdCourseId.value = null
     courseCreateError.value = ''
@@ -2071,6 +2218,7 @@ function clearChat() {
   createdCourseId.value = null
   courseCreateError.value = ''
   clearPersistedPlan()
+  clearPersistedCourseDraft()
 }
 
 // ─── Message actions ───────────────────────────────────────────────────────
