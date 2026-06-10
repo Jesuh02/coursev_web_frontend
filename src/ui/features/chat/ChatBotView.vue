@@ -198,6 +198,21 @@ interface LLMApiResponse {
   esCalificacion?: boolean
   nota?: number | null
   isCoursePlan?: boolean
+  courseDraft?: CourseCreationDraft
+  missingCourseFields?: CourseDraftField[]
+  nextCourseQuestion?: string
+}
+
+type CourseDraftField = 'topic' | 'objective' | 'level' | 'durationWeeks' | 'hoursPerWeek' | 'studentProfile'
+
+interface CourseCreationDraft {
+  topic?: string
+  objective?: string
+  level?: string
+  durationWeeks?: number | null
+  hoursPerWeek?: number | null
+  studentProfile?: string
+  lastAskedField?: CourseDraftField | null
 }
 
 const route = useRoute()
@@ -281,6 +296,7 @@ async function sendMessage() {
   if (!isCourseMode.value && detectCourseIntent(text)) {
     isCourseMode.value = true
     coursePlan.value = null
+    courseDraft.value = {}
     planVersion.value = 0
     createdCourseId.value = null
     courseCreateError.value = ''
@@ -395,6 +411,7 @@ function clearChat() {
   messages.value = []
   sessionId.value = crypto.randomUUID()
   coursePlan.value = null
+  courseDraft.value = {}
   planVersion.value = 0
   isCourseMode.value = false
   createdCourseId.value = null
@@ -402,6 +419,7 @@ function clearChat() {
   // Clear persisted state so the new session starts clean
   localStorage.removeItem('chatbot_session_id')
   localStorage.removeItem('chatbot_course_plan')
+  localStorage.removeItem('chatbot_course_draft')
   localStorage.removeItem('chatbot_plan_version')
   localStorage.removeItem('chatbot_course_mode')
   localStorage.setItem('chatbot_session_id', sessionId.value)
@@ -418,6 +436,7 @@ const planVersion = ref(0)
 const isCreatingCourse = ref(false)
 const createdCourseId = ref<number | null>(null)
 const courseCreateError = ref('')
+const courseDraft = ref<CourseCreationDraft>({})
 
 // True when an inline plan-card marker exists in the message flow. Used to avoid
 // double-rendering the fallback card below the messages.
@@ -614,6 +633,26 @@ function extractPlan(raw: string): CoursePlan | null {
   return tryExtractPlanPartial(raw)
 }
 
+function buildCourseConversationHistory() {
+  return messages.value
+    .filter(m => !m.isPlanCard && (m.role === 'user' || m.role === 'assistant') && m.content.trim())
+    .slice(-12)
+    .map(m => ({ role: m.role, content: m.content }))
+}
+
+function normalizeCourseDraft(draft: CourseCreationDraft | undefined): CourseCreationDraft {
+  if (!draft) return {}
+  return {
+    topic: draft.topic?.trim() || undefined,
+    objective: draft.objective?.trim() || undefined,
+    level: draft.level?.trim() || undefined,
+    durationWeeks: draft.durationWeeks ?? null,
+    hoursPerWeek: draft.hoursPerWeek ?? null,
+    studentProfile: draft.studentProfile?.trim() || undefined,
+    lastAskedField: draft.lastAskedField ?? null,
+  }
+}
+
 async function requestCoursePlan(text: string) {
   isTyping.value = true
   createdCourseId.value = null
@@ -621,12 +660,18 @@ async function requestCoursePlan(text: string) {
   const isUpdate = !!coursePlan.value
   try {
     const prompt = buildPlannerPrompt(text)
+    chatAdapter.upsertMessage({ content: text, role: 'user', sessionId: sessionId.value }).catch(() => {})
     const data = await api.postSlow<LLMApiResponse>('/llm/process', {
       prompt,
       sessionId: sessionId.value,
       courseMode: true,
       fastMode: true,
+      courseDraft: normalizeCourseDraft(courseDraft.value),
+      conversationHistory: buildCourseConversationHistory(),
     }, 300_000)
+    if (data.courseDraft) {
+      courseDraft.value = normalizeCourseDraft(data.courseDraft)
+    }
     const rawAnswer = data.respuesta_texto || data.response || ''
     const parsed = extractPlan(rawAnswer)
     if (parsed) {
@@ -644,6 +689,7 @@ async function requestCoursePlan(text: string) {
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
       })
+      chatAdapter.upsertMessage({ content: msg, role: 'assistant', sessionId: sessionId.value }).catch(() => {})
       messages.value.push({
         id: `plan-card-v${planVersion.value}`,
         role: 'assistant',
@@ -656,15 +702,17 @@ async function requestCoursePlan(text: string) {
       // answer looks like a (malformed) plan or tool call, show a friendly retry message
       // instead of dumping the JSON into the chat.
       const looksLikeJson = /\{[\s\S]*"(title|tool|subjects)"[\s\S]*\}/.test(rawAnswer)
+      const assistantContent = data.nextCourseQuestion || (looksLikeJson || !rawAnswer
+        ? 'No pude generar el plan correctamente. Intenta describir el curso con mas detalle (tema, nivel y duracion).'
+        : rawAnswer)
       messages.value.push({
         id: crypto.randomUUID(),
-        content: looksLikeJson || !rawAnswer
-          ? 'No pude generar el plan correctamente. Intenta describir el curso con más detalle (tema, nivel y duración).'
-          : rawAnswer,
+        content: assistantContent,
         role: 'assistant',
         createdAt: new Date().toISOString(),
         sessionId: sessionId.value,
       })
+      chatAdapter.upsertMessage({ content: assistantContent, role: 'assistant', sessionId: sessionId.value }).catch(() => {})
     }
   } catch (e) {
     if (e instanceof HttpError && e.statusCode === 401) {
@@ -694,6 +742,7 @@ function buildPlannerPrompt(userText: string): string {
 
 function rejectCoursePlan() {
   coursePlan.value = null
+  courseDraft.value = {}
   createdCourseId.value = null
   courseCreateError.value = ''
   isCourseMode.value = false
@@ -835,6 +884,10 @@ onMounted(async () => {
       planVersion.value = Number(localStorage.getItem('chatbot_plan_version') || '1')
       isCourseMode.value = localStorage.getItem('chatbot_course_mode') === 'true'
     }
+    const storedDraft = localStorage.getItem('chatbot_course_draft')
+    if (storedDraft) {
+      courseDraft.value = normalizeCourseDraft(JSON.parse(storedDraft))
+    }
   } catch { /* ignore malformed stored value */ }
 
   // ── Reload messages from backend ────────────────────────────────
@@ -875,6 +928,17 @@ watch(coursePlan, (plan) => {
   } else {
     localStorage.removeItem('chatbot_course_plan')
     localStorage.removeItem('chatbot_plan_version')
+  }
+}, { deep: true })
+
+watch(courseDraft, (draft) => {
+  if (submissionId.value != null) return
+  const normalized = normalizeCourseDraft(draft)
+  const hasDraft = Object.values(normalized).some(value => value !== undefined && value !== null && value !== '')
+  if (hasDraft) {
+    localStorage.setItem('chatbot_course_draft', JSON.stringify(normalized))
+  } else {
+    localStorage.removeItem('chatbot_course_draft')
   }
 }, { deep: true })
 
