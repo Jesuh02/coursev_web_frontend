@@ -1531,18 +1531,41 @@ async function createCourseFromPlan() {
       isCreatingCourse.value = false
       return
     }
-    const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number }>(
+    const data = await api.postSlow<{
+      courseId: number
+      topicsCreated: number
+      tasksCreated: number
+      thumbnailsInProgress?: boolean
+      docsInProgress?: boolean
+    }>(
       '/llm/confirm-course',
       {
         plan: sanitized,
         userId: tokenStorage.userId || undefined,
         username: tokenStorage.username || undefined,
+        generateThumbnails: true,
+        generateDocuments: true,
       },
       90_000,
     )
     createdCourseId.value = data.courseId
+    const resourceStatus = [
+      data.thumbnailsInProgress ? 'miniaturas del curso y materias' : '',
+      data.docsInProgress ? 'documentos Word/PDF para temas y tareas' : '',
+    ].filter(Boolean).join(' y ')
+    const msg: ChatMsg = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: resourceStatus
+        ? `Curso creado. Estoy generando en segundo plano ${resourceStatus} y guardando los archivos en Cloudflare R2.`
+        : 'Curso creado. No se pudo iniciar la generacion automatica de miniaturas o documentos; revisa la configuracion de R2/OpenRouter.',
+      createdAt: new Date().toISOString(),
+    }
+    messages.value.push(msg)
+    saveMessageToBackend(msg.content, false, {})
     // Course committed to the DB — drop the persisted draft so it won't reappear on reload
     clearPersistedPlan()
+    scrollToBottom()
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
   } finally {
