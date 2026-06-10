@@ -58,7 +58,7 @@
           <span class="subject-num">{{ si + 1 }}</span>
           <span class="subject-label">{{ subject.name }}</span>
           <span v-if="subject.topics?.length" class="subject-topic-count">{{ subject.topics.length }} temas</span>
-          <svg class="subject-chevron" :class="{ 'subject-chevron--open': expanded.has(si) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#707070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="subject-chevron" :class="{ 'subject-chevron--open': expanded.has(si) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div v-show="expanded.has(si)" class="subject-body">
           <p v-if="subject.description" class="subject-desc">{{ subject.description }}</p>
@@ -68,7 +68,7 @@
               <span class="topic-name">{{ topic.title }}</span>
               <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }}</span>
             </div>            <p v-if="topic.contentDescription" class="topic-content-desc">
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               {{ topic.contentDescription }}
             </p>            <div v-if="topic.tasks?.length" class="task-list">
               <div v-for="(task, ki) in topic.tasks" :key="ki" class="task-row">
@@ -102,7 +102,7 @@
           Rechazar
         </button>
         <p class="plan-footer-note">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#707070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Pide ajustes por chat
         </p>
         <button class="plan-confirm" :disabled="creating" @click="$emit('confirm')">
@@ -194,25 +194,26 @@ const taskCount = computed(() =>
      flex-shrink:0 prevents the flex algorithm from compressing the tall card. */
   flex-shrink: 0;
   width: 100%;
-  background: #ffffff;
-  border: 1px solid #d6d6d6;
-  border-radius: 28px;
+  background: linear-gradient(180deg, #061a3a 0%, #082451 54%, #04142f 100%);
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 22px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
   font-family: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 18px 44px rgba(2, 8, 23, 0.28);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .plan-card--updated {
-  border-color: #0071e3;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
+  border-color: rgba(56, 189, 248, 0.72);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14), 0 18px 44px rgba(2, 8, 23, 0.28);
 }
 
 /* ─── Top accent bar — Signal Blue ───────────────────────────────────────── */
 .plan-accent {
   height: 3px;
-  background: #0071e3;
+  background: linear-gradient(90deg, #38bdf8, #2563eb);
   flex-shrink: 0;
 }
 
@@ -228,12 +229,12 @@ const taskCount = computed(() =>
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(0, 113, 227, 0.08);
-  border: 1px solid rgba(0, 113, 227, 0.15);
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(125, 211, 252, 0.26);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0071e3;
+  color: #7dd3fc;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -250,9 +251,9 @@ const taskCount = computed(() =>
 .plan-eyebrow {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: #707070;
+  color: #93c5fd;
 }
 
 .plan-updated-badge {
@@ -261,10 +262,10 @@ const taskCount = computed(() =>
   gap: 4px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.2px;
-  color: #0071e3;
-  background: rgba(0, 113, 227, 0.08);
-  border: 1px solid rgba(0, 113, 227, 0.2);
+  letter-spacing: 0;
+  color: #dbeafe;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(147, 197, 253, 0.24);
   padding: 2px 8px;
   border-radius: 980px;
   text-transform: none;
@@ -274,9 +275,9 @@ const taskCount = computed(() =>
   font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 21px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #f8fbff;
   line-height: 1.14;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -285,9 +286,9 @@ const taskCount = computed(() =>
 /* ─── Description ─────────────────────────────────────────────────────────── */
 .plan-desc {
   font-size: 14px;
-  color: #707070;
+  color: #bfdbfe;
   line-height: 1.47;
-  letter-spacing: -0.19px;
+  letter-spacing: 0;
   padding: 8px 20px 0;
 }
 
@@ -305,27 +306,27 @@ const taskCount = computed(() =>
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: #e0f2fe;
   padding: 4px 12px;
   border-radius: 980px;
-  background: #f5f5f7;
-  border: 1px solid #d6d6d6;
-  letter-spacing: -0.1px;
+  background: rgba(15, 23, 42, 0.38);
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  letter-spacing: 0;
 }
 .plan-tag--level {
-  color: #0071e3;
-  background: rgba(0, 113, 227, 0.06);
-  border-color: rgba(0, 113, 227, 0.2);
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.14);
+  border-color: rgba(125, 211, 252, 0.26);
 }
 
 /* ─── Stats ───────────────────────────────────────────────────────────────── */
 .plan-stats {
   display: flex;
   align-items: center;
-  background: #f5f5f7;
-  border-radius: 18px;
+  background: rgba(3, 12, 31, 0.58);
+  border-radius: 16px;
   margin: 14px 20px 0;
-  border: 1px solid #d6d6d6;
+  border: 1px solid rgba(147, 197, 253, 0.16);
   padding: 14px 0;
 }
 
@@ -341,22 +342,22 @@ const taskCount = computed(() =>
   font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 24px;
   font-weight: 600;
-  color: #1d1d1f;
-  letter-spacing: -0.009em;
+  color: #e0f2fe;
+  letter-spacing: 0;
   line-height: 1;
 }
 
 .stat-l {
   font-size: 11px;
-  color: #707070;
+  color: #93c5fd;
   font-weight: 400;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
 }
 
 .stat-sep {
   width: 1px;
   height: 28px;
-  background: #d6d6d6;
+  background: rgba(147, 197, 253, 0.18);
   flex-shrink: 0;
 }
 
@@ -370,14 +371,14 @@ const taskCount = computed(() =>
 
 .subject-block {
   border-radius: 14px;
-  border: 1px solid #d6d6d6;
+  border: 1px solid rgba(147, 197, 253, 0.17);
   overflow: hidden;
-  background: #ffffff;
+  background: rgba(8, 31, 68, 0.72);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .subject-block:hover {
-  border-color: #0066cc;
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.07);
+  border-color: rgba(56, 189, 248, 0.46);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.09);
 }
 
 .subject-row {
@@ -392,14 +393,14 @@ const taskCount = computed(() =>
   text-align: left;
   transition: background 0.15s;
 }
-.subject-row:hover { background: rgba(0, 0, 0, 0.02); }
+.subject-row:hover { background: rgba(125, 211, 252, 0.06); }
 
 .subject-num {
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: rgba(0, 113, 227, 0.1);
-  color: #0071e3;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -412,22 +413,23 @@ const taskCount = computed(() =>
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: #f8fbff;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.19px;
+  letter-spacing: 0;
 }
 
 .subject-topic-count {
   font-size: 12px;
-  color: #707070;
+  color: #bfdbfe;
   flex-shrink: 0;
 }
 
 .subject-chevron {
   flex-shrink: 0;
+  color: #93c5fd;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .subject-chevron--open { transform: rotate(180deg); }
@@ -437,12 +439,12 @@ const taskCount = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-top: 1px solid #f5f5f7;
+  border-top: 1px solid rgba(147, 197, 253, 0.12);
 }
 
 .subject-desc {
   font-size: 13px;
-  color: #707070;
+  color: #b6c8ea;
   line-height: 1.45;
 }
 
@@ -453,7 +455,7 @@ const taskCount = computed(() =>
 .topic-idx {
   font-size: 11px;
   font-weight: 600;
-  color: #d6d6d6;
+  color: #60a5fa;
   width: 16px;
   text-align: right;
   flex-shrink: 0;
@@ -462,9 +464,9 @@ const taskCount = computed(() =>
 .topic-name {
   flex: 1;
   font-size: 13px;
-  color: #474747;
+  color: #dbeafe;
   font-weight: 500;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
 }
 
 .topic-content-desc {
@@ -472,12 +474,12 @@ const taskCount = computed(() =>
   align-items: flex-start;
   gap: 5px;
   font-size: 12px;
-  color: #0066cc;
+  color: #7dd3fc;
   line-height: 1.45;
   padding: 5px 10px;
-  background: rgba(0, 102, 204, 0.05);
+  background: rgba(14, 165, 233, 0.1);
   border-radius: 10px;
-  border: 1px solid rgba(0, 102, 204, 0.12);
+  border: 1px solid rgba(125, 211, 252, 0.18);
   margin-top: 2px;
 }
 .topic-content-desc svg { flex-shrink: 0; margin-top: 1px; }
@@ -485,11 +487,11 @@ const taskCount = computed(() =>
 .topic-task-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #707070;
-  background: #f5f5f7;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.38);
   padding: 1px 7px;
   border-radius: 980px;
-  border: 1px solid #d6d6d6;
+  border: 1px solid rgba(147, 197, 253, 0.16);
   flex-shrink: 0;
 }
 
@@ -510,20 +512,20 @@ const taskCount = computed(() =>
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #0071e3;
+  background: #38bdf8;
   opacity: 0.5;
   flex-shrink: 0;
 }
 
-.task-name { flex: 1; font-size: 12px; color: #707070; }
+.task-name { flex: 1; font-size: 12px; color: #c7d2fe; }
 
 .task-week {
   font-size: 11px;
-  color: #707070;
-  background: #f5f5f7;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.38);
   padding: 1px 6px;
   border-radius: 980px;
-  border: 1px solid #d6d6d6;
+  border: 1px solid rgba(147, 197, 253, 0.16);
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
@@ -532,14 +534,14 @@ const taskCount = computed(() =>
   align-items: center;
   gap: 8px;
   padding: 14px 20px 20px;
-  border-top: 1px solid #f5f5f7;
+  border-top: 1px solid rgba(147, 197, 253, 0.14);
   margin-top: 14px;
 }
 
 .plan-footer-note {
   flex: 1;
   font-size: 12px;
-  color: #707070;
+  color: #bfdbfe;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -553,23 +555,23 @@ const taskCount = computed(() =>
   gap: 5px;
   padding: 8px 15px;
   border-radius: 980px;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: rgba(15, 23, 42, 0.44);
+  color: #dbeafe;
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid #d6d6d6;
+  border: 1px solid rgba(147, 197, 253, 0.2);
   cursor: pointer;
   flex-shrink: 0;
   font-family: inherit;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 .plan-reject:hover:not(:disabled) {
-  background: #e8e8ed;
-  border-color: #aeaeb2;
+  background: rgba(30, 41, 59, 0.72);
+  border-color: rgba(191, 219, 254, 0.34);
 }
 .plan-reject:active:not(:disabled) {
-  background: #dcdce0;
+  background: rgba(15, 23, 42, 0.82);
   transform: scale(0.98);
 }
 .plan-reject:disabled { opacity: 0.35; cursor: default; }
@@ -581,7 +583,7 @@ const taskCount = computed(() =>
   gap: 6px;
   padding: 9px 20px;
   border-radius: 980px;
-  background: #0071e3;
+  background: #2563eb;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
@@ -589,12 +591,12 @@ const taskCount = computed(() =>
   cursor: pointer;
   flex-shrink: 0;
   font-family: inherit;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   transition: background 0.2s ease, transform 0.12s ease;
 }
-.plan-confirm:hover:not(:disabled) { background: #0077ed; }
+.plan-confirm:hover:not(:disabled) { background: #1d4ed8; }
 .plan-confirm:active:not(:disabled) {
-  background: #006edb;
+  background: #1d4ed8;
   transform: scale(0.97);
 }
 .plan-confirm:disabled { opacity: 0.35; cursor: default; }
@@ -612,12 +614,12 @@ const taskCount = computed(() =>
 /* ─── Error ───────────────────────────────────────────────────────────────── */
 .plan-error {
   font-size: 13px;
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.05);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
   padding: 10px 14px;
   margin: 0 20px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 59, 48, 0.15);
+  border: 1px solid rgba(252, 165, 165, 0.2);
 }
 
 /* ─── Done state ──────────────────────────────────────────────────────────── */
@@ -626,8 +628,8 @@ const taskCount = computed(() =>
   align-items: center;
   gap: 12px;
   padding: 14px 20px 20px;
-  border-top: 1px solid rgba(52, 199, 89, 0.15);
-  background: rgba(52, 199, 89, 0.04);
+  border-top: 1px solid rgba(52, 211, 153, 0.2);
+  background: rgba(5, 150, 105, 0.1);
   margin-top: 14px;
 }
 
@@ -647,27 +649,27 @@ const taskCount = computed(() =>
 .done-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1d1d1f;
-  letter-spacing: -0.19px;
+  color: #ecfdf5;
+  letter-spacing: 0;
 }
 .done-sub {
   font-size: 12px;
-  color: #707070;
+  color: #a7f3d0;
   margin-top: 1px;
 }
 
 .done-btn {
   padding: 9px 18px;
   border-radius: 980px;
-  background: #0071e3;
+  background: #2563eb;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   transition: background 0.2s ease;
 }
-.done-btn:hover { background: #0077ed; }
+.done-btn:hover { background: #1d4ed8; }
 </style>
