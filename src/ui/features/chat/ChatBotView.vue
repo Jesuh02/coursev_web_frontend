@@ -664,6 +664,19 @@ function normalizeIntentText(text: string) {
     .trim()
 }
 
+function inferCourseAreaFromDraft(draft: CourseCreationDraft): string | undefined {
+  const n = normalizeIntentText(draft.objective || '')
+  const knownFocus = n.match(/\b(machine learning|aprendizaje automatico|deep learning|inteligencia artificial|ia|ciencia de datos|data science)(?:\s+(?:con|usando|en)\s+python)?\b/)
+  if (knownFocus) return knownFocus[0].trim()
+  const pythonFocus = n.match(/\b([a-z0-9 ]{3,60}?\s+(?:con|usando|en)\s+python)\b/)
+  if (pythonFocus) {
+    return pythonFocus[1]
+      .replace(/^(que\s+)?(mis\s+)?estudiantes\s+(tengan|aprendan|dominen)\s+(un\s+)?(conocimiento\s+)?(profundo\s+)?(de\s+)?/, '')
+      .trim()
+  }
+  return undefined
+}
+
 function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCreationDraft | undefined): CourseCreationDraft {
   const merged = normalizeCourseDraft(current)
   const incomingDraft = normalizeCourseDraft(incoming)
@@ -693,6 +706,9 @@ function mergeCourseDraftValues(current: CourseCreationDraft, incoming: CourseCr
       merged[key] = value
     }
   }
+  if (!merged.area && (merged.objective || merged.durationWeeks || merged.level)) {
+    merged.area = inferCourseAreaFromDraft(merged) || merged.topic
+  }
   return normalizeCourseDraft(merged)
 }
 
@@ -720,6 +736,9 @@ function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft):
   if (merged.lastAskedField === 'durationWeeks' && duration) merged.durationWeeks = Number(duration[1])
   if (merged.lastAskedField === 'level' && merged.level) merged.level = merged.level
   if (merged.lastAskedField === 'topic' && raw) merged.topic = n
+  if (!merged.area && (merged.objective || merged.durationWeeks || merged.level)) {
+    merged.area = inferCourseAreaFromDraft(merged) || merged.topic
+  }
   return normalizeCourseDraft(merged)
 }
 
