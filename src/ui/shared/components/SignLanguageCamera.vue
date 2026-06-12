@@ -211,12 +211,13 @@ const serviceNotice = ref<string | null>(null)
 // El frontend solo transmite frames. El backend mantiene la máquina de estados:
 // mano quieta 1 s => letra/vocal/número; movimiento => palabra/frase/oración.
 let simulationMode = false
-const SAMPLE_INTERVAL_MS = 220
+const SAMPLE_INTERVAL_MS = 100
 const STILL_HOLD_MS = 1000
-// El backend mantiene estado temporal por sesion. Si enviamos varios frames en
-// paralelo, pueden procesarse fuera de orden y alterar el detector de movimiento.
-const AUTO_FRAME_MAX_IN_FLIGHT = 1
-const AUTO_FRAME_JPEG_QUALITY = 0.62
+// Dejamos varias solicitudes en vuelo para que el backend siga recibiendo
+// frames de tracking aunque una inferencia ONNX/VLM tarde mas.
+const AUTO_FRAME_MAX_IN_FLIGHT = 4
+const AUTO_FRAME_JPEG_QUALITY = 0.58
+const AUTO_FRAME_MAX_DIMENSION = 512
 const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
 const AUTO_FRAME_MIN_PHRASE_CONFIDENCE = 0.6
 const SAME_LETTER_COOLDOWN_MS = 900
@@ -227,6 +228,8 @@ let sampleTimer: ReturnType<typeof setInterval> | null = null
 let autoFrameInFlight = 0
 let lastServerEventCount = -1
 let streamRevision = 0
+let frameSeq = 0
+let lastAppliedStatusSeq = 0
 let lastConfirmedLetter: string | null = null
 let lastConfirmedLetterAt = 0
 let lastSimulationAt = 0
@@ -298,6 +301,7 @@ async function startCamera() {
 function stopCamera() {
   streamRevision++
   autoFrameInFlight = 0
+  lastAppliedStatusSeq = 0
   isInferring.value = false
   captureMode.value = 'idle'
   captureStillMs.value = 0
@@ -322,8 +326,12 @@ function captureJpegBase64(quality = 0.7): string | null {
   const v = videoEl.value
   const c = canvasEl.value
   if (!v || !c || v.readyState < 2) return null
-  c.width = v.videoWidth
-  c.height = v.videoHeight
+  const sourceWidth = v.videoWidth
+  const sourceHeight = v.videoHeight
+  if (!sourceWidth || !sourceHeight) return null
+  const scale = Math.min(1, AUTO_FRAME_MAX_DIMENSION / Math.max(sourceWidth, sourceHeight))
+  c.width = Math.max(1, Math.round(sourceWidth * scale))
+  c.height = Math.max(1, Math.round(sourceHeight * scale))
   const ctx = c.getContext('2d')
   if (!ctx) return null
   ctx.drawImage(v, 0, 0, c.width, c.height)
@@ -344,11 +352,12 @@ async function tick() {
   }
 
   if (autoFrameInFlight >= AUTO_FRAME_MAX_IN_FLIGHT) return
+  const capturedAtMs = Date.now()
   const jpeg = captureJpegBase64(AUTO_FRAME_JPEG_QUALITY)
-  if (jpeg) void sendAutoFrame(jpeg, streamRevision)
+  if (jpeg) void sendAutoFrame(jpeg, streamRevision, capturedAtMs, ++frameSeq)
 }
 
-async function sendAutoFrame(base64: string, revision: number) {
+async function sendAutoFrame(base64: string, revision: number, capturedAtMs: number, seq: number) {
   autoFrameInFlight++
   isInferring.value = true
   try {
@@ -360,10 +369,12 @@ async function sendAutoFrame(base64: string, revision: number) {
         minPhraseConfidence: AUTO_FRAME_MIN_PHRASE_CONFIDENCE,
         stillDurationMs: STILL_HOLD_MS,
         allowVlmLetterFallback: true,
+        capturedAtMs,
+        frameSeq: seq,
         _t: Date.now(),
       },
     )
-    if (revision === streamRevision) applyAutoFrameResponse(data)
+    if (revision === streamRevision) applyAutoFrameResponse(data, seq)
   } catch (err) {
     if (revision !== streamRevision) return
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
@@ -381,10 +392,13 @@ async function sendAutoFrame(base64: string, revision: number) {
   }
 }
 
-function applyAutoFrameResponse(data: AutoFrameResponse | null) {
+function applyAutoFrameResponse(data: AutoFrameResponse | null, seq: number) {
   if (!data) return
-  captureMode.value = data.capture?.mode || data.state
-  captureStillMs.value = Math.max(0, Number(data.capture?.stillMs) || 0)
+  if (seq >= lastAppliedStatusSeq) {
+    captureMode.value = data.capture?.mode || data.state
+    captureStillMs.value = Math.max(0, Number(data.capture?.stillMs) || 0)
+    lastAppliedStatusSeq = seq
+  }
   if (data.warning?.code === 'VLM_NOT_CONFIGURED') {
     serviceNotice.value = 'Para palabras, oraciones y numeros configura OPENROUTER_API_KEY en el backend.'
   } else if (data.event) {
@@ -488,6 +502,7 @@ function clearText() {
   captureStillMs.value = 0
   streamRevision++
   lastServerEventCount = -1
+  lastAppliedStatusSeq = 0
   autoFrameInFlight = 0
   isInferring.value = false
   lastConfirmedLetter = null
