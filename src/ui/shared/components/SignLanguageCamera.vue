@@ -25,6 +25,9 @@
           <span v-if="isInferring" class="sl-status-badge sl-status-badge--inferring">
             Detectando…
           </span>
+          <span v-if="captureStatusLabel" class="sl-status-badge sl-status-badge--capture">
+            {{ captureStatusLabel }}
+          </span>
         </div>
 
         <!-- Flip camera button -->
@@ -76,6 +79,7 @@
             </span>
           </div>
         </transition>
+        <p v-if="serviceNotice" class="sl-service-notice">{{ serviceNotice }}</p>
       </div>
 
       <!-- Controls -->
@@ -121,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { api, HttpError } from '@/infrastructure/api'
 
 interface Detection {
@@ -163,6 +167,18 @@ interface AutoFrameResponse {
   state: 'idle' | 'moving' | 'settling' | 'still'
   draft: string
   eventCount: number
+  capture?: {
+    mode?: 'idle' | 'moving' | 'settling' | 'still' | 'sentence' | 'processing'
+    stillMs?: number
+    motionMs?: number
+    motionPeak?: number
+    motion?: number
+    inflight?: boolean
+  }
+  warning?: {
+    code?: string
+    message?: string
+  } | null
 }
 
 interface ComposeResponse {
@@ -188,6 +204,9 @@ const currentDetection = ref<Detection | null>(null)
 const composedText = ref('')
 const facingMode = ref<'user' | 'environment'>('user')
 const lastRecognition = ref<ClipRecognition | null>(null)
+const captureMode = ref<NonNullable<AutoFrameResponse['capture']>['mode']>('idle')
+const captureStillMs = ref(0)
+const serviceNotice = ref<string | null>(null)
 
 // El frontend solo transmite frames. El backend mantiene la máquina de estados:
 // mano quieta 1 s => letra/vocal/número; movimiento => palabra/frase/oración.
@@ -209,6 +228,19 @@ let streamRevision = 0
 let lastConfirmedLetter: string | null = null
 let lastConfirmedLetterAt = 0
 let lastSimulationAt = 0
+
+const captureStatusLabel = computed(() => {
+  if (!isStreaming.value) return ''
+  if (captureMode.value === 'processing') return 'Procesando'
+  if (captureMode.value === 'sentence') return 'Oracion'
+  if (captureMode.value === 'moving') return 'Movimiento'
+  if (captureMode.value === 'settling') return 'Pausa'
+  if (captureMode.value === 'still') {
+    const pct = Math.min(100, Math.round((captureStillMs.value / STILL_HOLD_MS) * 100))
+    return pct >= 100 ? 'Quieto 1 s' : `Quieto ${pct}%`
+  }
+  return ''
+})
 
 // ── Lifecycle ──
 onMounted(async () => {
@@ -265,6 +297,8 @@ function stopCamera() {
   streamRevision++
   autoFrameInFlight = 0
   isInferring.value = false
+  captureMode.value = 'idle'
+  captureStillMs.value = 0
   if (sampleTimer) {
     clearInterval(sampleTimer)
     sampleTimer = null
@@ -331,8 +365,9 @@ async function sendAutoFrame(base64: string, revision: number) {
   } catch (err) {
     if (revision !== streamRevision) return
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
-      console.warn('[SignLanguage] Backend sin modelo local; activando simulacion.')
-      simulationMode = true
+      errorMsg.value = 'El modelo local de letras no esta configurado en el backend.'
+    } else if (err instanceof HttpError && err.errorCode === 'VLM_NOT_CONFIGURED') {
+      serviceNotice.value = 'Para palabras, oraciones y numeros configura OPENROUTER_API_KEY en el backend.'
     } else if (err instanceof HttpError && err.errorCode === 'SIGN_LANGUAGE_DISABLED') {
       errorMsg.value = 'El reconocimiento de lengua de señas esta deshabilitado.'
     } else {
@@ -346,6 +381,13 @@ async function sendAutoFrame(base64: string, revision: number) {
 
 function applyAutoFrameResponse(data: AutoFrameResponse | null) {
   if (!data) return
+  captureMode.value = data.capture?.mode || data.state
+  captureStillMs.value = Math.max(0, Number(data.capture?.stillMs) || 0)
+  if (data.warning?.code === 'VLM_NOT_CONFIGURED') {
+    serviceNotice.value = 'Para palabras, oraciones y numeros configura OPENROUTER_API_KEY en el backend.'
+  } else if (data.event) {
+    serviceNotice.value = null
+  }
   if (typeof data.draft === 'string' && data.eventCount >= lastServerEventCount) {
     composedText.value = data.draft
     lastServerEventCount = data.eventCount
@@ -438,7 +480,10 @@ function clearText() {
   composedText.value = ''
   composedPhrase.value = null
   composeError.value = null
+  serviceNotice.value = null
   lastRecognition.value = null
+  captureMode.value = 'idle'
+  captureStillMs.value = 0
   streamRevision++
   lastServerEventCount = -1
   autoFrameInFlight = 0
@@ -629,6 +674,7 @@ function close() {
 }
 .sl-status-badge--live { color: #FF3B30; }
 .sl-status-badge--inferring { background: rgba(0,212,255,0.25); color: #00D4FF; }
+.sl-status-badge--capture { background: rgba(255,212,121,0.18); color: #FFD479; }
 
 .sl-detection {
   position: absolute;
@@ -725,6 +771,17 @@ function close() {
 .sl-chip--intent { color: #7BD0FF; border-color: rgba(123,208,255,0.25); }
 .sl-chip--motion { color: #B8FF7B; border-color: rgba(184,255,123,0.25); }
 .sl-chip--conf { color: rgba(255,255,255,0.6); }
+
+.sl-service-notice {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 212, 121, 0.1);
+  border: 1px solid rgba(255, 212, 121, 0.18);
+  color: #FFD479;
+  font-size: 11px;
+  line-height: 1.35;
+}
 
 /* Controls */
 .sl-controls {
