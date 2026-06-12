@@ -108,10 +108,10 @@
 
       <!-- Hint -->
       <p class="sl-hint">
-        Detecta el <strong>alfabeto</strong> manteniendo la seña quieta ~1 s y
-        también <strong>palabras y frases dinámicas</strong> (hola, gracias,
-        ¿cómo estás?, buenos días) cuando hay movimiento. Reconoce <strong>ambas
-        manos</strong> y la <strong>intención</strong> del gesto (pregunta,
+        Detecta <strong>vocales, letras y números</strong> manteniendo la seña
+        quieta 1 s, y también <strong>palabras, frases y oraciones</strong>
+        cuando hay movimiento. Reconoce <strong>ambas manos</strong> y la
+        <strong>intención</strong> del gesto (pregunta,
         exclamación, negación). Al pulsar "Usar texto", la IA limpia tildes y
         puntuación en español.
       </p>
@@ -127,15 +127,6 @@ import { api, HttpError } from '@/infrastructure/api'
 interface Detection {
   label: string
   confidence: number
-}
-
-interface FrameResponse {
-  detection: Detection | null
-  alternatives?: Detection[]
-  draft: string
-  eventCount: number
-  pushed: boolean
-  model: string
 }
 
 interface ClipRecognition {
@@ -158,9 +149,18 @@ interface ClipRecognition {
   model: string
 }
 
-interface ClipResponse {
-  recognition: ClipRecognition | null
+type AutoRecognition = Partial<ClipRecognition> & {
+  source?: string
+  text?: string
+  kind?: ClipRecognition['kind']
+  confidence?: number
+}
+
+interface AutoFrameResponse {
+  event: AutoRecognition | null
   pushed: boolean
+  motion: number
+  state: 'idle' | 'moving' | 'settling' | 'still'
   draft: string
   eventCount: number
 }
@@ -188,63 +188,27 @@ const currentDetection = ref<Detection | null>(null)
 const composedText = ref('')
 const facingMode = ref<'user' | 'environment'>('user')
 const lastRecognition = ref<ClipRecognition | null>(null)
-const isRecognizingClip = ref(false)
 
-// ── Pipeline híbrida (alfabeto estático + VLM dinámico) ──
-//
-// El backend expone dos pipelines complementarias:
-//   • /sign-language/session/:id/frame  → clasificador ONNX local (A-Z) para
-//     señas ESTÁTICAS (deletreo).
-//   • /sign-language/session/:id/clip   → VLM (Qwen2.5-VL / Gemini-Flash) que
-//     interpreta un CLIP de frames y reconoce palabras/frases ("hola", "¿cómo
-//     estás?", "gracias"), AMBAS manos y la INTENCIÓN del movimiento.
-//
-// El frontend decide a cuál llamar usando un detector de movimiento sencillo
-// (frame-difference sobre una versión muy reducida del video):
-//   • Si la mano está quieta ≥ ~700 ms → /frame (deletreo).
-//   • Si detecta movimiento sostenido y luego se detiene (o llena el buffer)
-//     → /clip con los últimos ~6 frames (palabra/frase + intención).
-//
-// La sesión vive en el servidor: el draft acumulado (letras + palabras
-// intercaladas) se devuelve en cada respuesta y reemplaza `composedText`.
+// El frontend solo transmite frames. El backend mantiene la máquina de estados:
+// mano quieta 1 s => letra/vocal/número; movimiento => palabra/frase/oración.
 let simulationMode = false
-// ~12.5 fps de muestreo. Más frames por segundo = más evidencia micro-temporal
-// para que el VLM distinga señas similares (la diferencia entre
-// "hola" / "maravilloso" / "ocupado" / "fine" está en la VIBRACIÓN y
-// ALTERNANCIA del movimiento, que se pierde con pocos frames). Y tiempos
-// MÁS PERMISIVOS para que vocales/letras/números vuelvan a detectarse y para
-// no perder señas dinámicas cortas como "sí", "no", "ok".
-const SAMPLE_INTERVAL_MS = 80
-const STILL_HOLD_MS = 500          // antes 650 → ahora 500: detecta vocales y letras más rápido
-const MOTION_THRESHOLD = 5         // diff medio (0-255) para considerar "movimiento"
-const CLIP_MIN_FRAMES = 5          // señas cortas como "sí", "no", "ok"
-const CLIP_MAX_FRAMES = 10         // antes 14 → menos frames = menor latencia VLM (5-10s→3-5s)
-const CLIP_BUFFER_MAX = 16         // buffer rodante ajustado a CLIP_MAX_FRAMES
-const CLIP_MIN_DURATION_MS = 450   // un clip dinámico breve tiene ~500 ms
-const CLIP_MAX_DURATION_MS = 2800  // frases largas (¿cómo estás?, buenos días)
-const CLIP_COOLDOWN_MS = 700       // espera tras un /clip antes de mandar otro
-const CLIP_MIN_CONFIDENCE = 0.68   // antes 0.55 → ahora 0.68: evita que VLM con baja confianza ensucie el draft
+const SAMPLE_INTERVAL_MS = 220
+const STILL_HOLD_MS = 1000
+const AUTO_FRAME_MAX_IN_FLIGHT = 3
+const AUTO_FRAME_JPEG_QUALITY = 0.62
+const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
+const AUTO_FRAME_MIN_PHRASE_CONFIDENCE = 0.6
 const SAME_LETTER_COOLDOWN_MS = 900
-const FRAME_COOLDOWN_MS = 350      // antes 450 → 350: comprobaciones de alfabeto más frecuentes
-const MOTION_MEMORY_MS = 1200      // ventana en la que un /clip todavía 'gana' sobre /frame
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
 let sampleTimer: ReturnType<typeof setInterval> | null = null
-let frameBuffer: string[] = []          // base64 (sin prefijo) en orden cronológico
-let frameStartedAt = 0                  // timestamp del primer frame en motion
-let prevGrayscale: Uint8ClampedArray | null = null
-let consecutiveMotion = 0               // muestras seguidas con movimiento
-let consecutiveStill = 0                // muestras seguidas sin movimiento
-let recentMotionSamples = 0             // muestras con movimiento desde el último envío
-let lastMotionAt = 0                    // timestamp del último frame con movimiento
-let lastFrameSentAt = 0
-let lastClipSentAt = 0
+let autoFrameInFlight = 0
+let lastServerEventCount = -1
+let streamRevision = 0
 let lastConfirmedLetter: string | null = null
 let lastConfirmedLetterAt = 0
-const diffCanvas = document.createElement('canvas')
-diffCanvas.width = 64
-diffCanvas.height = 48
+let lastSimulationAt = 0
 
 // ── Lifecycle ──
 onMounted(async () => {
@@ -280,6 +244,7 @@ async function flipCamera() {
 
 async function startCamera() {
   try {
+    streamRevision++
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: facingMode.value, width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false,
@@ -297,6 +262,9 @@ async function startCamera() {
 }
 
 function stopCamera() {
+  streamRevision++
+  autoFrameInFlight = 0
+  isInferring.value = false
   if (sampleTimer) {
     clearInterval(sampleTimer)
     sampleTimer = null
@@ -310,6 +278,7 @@ function stopCamera() {
 
 // ── Bucle de captura + decisión ──
 function startInferenceLoop() {
+  if (sampleTimer) clearInterval(sampleTimer)
   sampleTimer = setInterval(tick, SAMPLE_INTERVAL_MS)
 }
 
@@ -325,164 +294,101 @@ function captureJpegBase64(quality = 0.7): string | null {
   return c.toDataURL('image/jpeg', quality).split(',')[1]
 }
 
-/**
- * Devuelve la diferencia media (0-255) entre el frame actual y el anterior,
- * usando una copia muy reducida en escala de grises. Sirve como detector de
- * movimiento barato para decidir entre /frame (estático) y /clip (dinámico).
- */
-function computeMotion(): number {
-  const v = videoEl.value
-  if (!v || v.readyState < 2) return 0
-  const ctx = diffCanvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) return 0
-  ctx.drawImage(v, 0, 0, diffCanvas.width, diffCanvas.height)
-  const { data } = ctx.getImageData(0, 0, diffCanvas.width, diffCanvas.height)
-  const gray = new Uint8ClampedArray(diffCanvas.width * diffCanvas.height)
-  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
-    gray[j] = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0
-  }
-  let diff = 0
-  if (prevGrayscale && prevGrayscale.length === gray.length) {
-    for (let k = 0; k < gray.length; k++) diff += Math.abs(gray[k] - prevGrayscale[k])
-    diff /= gray.length
-  }
-  prevGrayscale = gray
-  return diff
-}
-
 async function tick() {
   if (!isStreaming.value) return
 
-  // Siempre calcular movimiento y llenar buffer, independientemente de qué
-  // pipeline esté en vuelo. Así no perdemos frames mientras el VLM procesa.
-  const motion = computeMotion()
-  const moving = motion > MOTION_THRESHOLD
   const now = Date.now()
-
-  const jpeg = captureJpegBase64(0.65)
-  if (jpeg) {
-    if (frameBuffer.length === 0) frameStartedAt = now
-    frameBuffer.push(jpeg)
-    if (frameBuffer.length > CLIP_BUFFER_MAX) frameBuffer.shift()
-  }
-
-  if (moving) {
-    consecutiveMotion++
-    consecutiveStill = 0
-    recentMotionSamples++
-    lastMotionAt = now
-  } else {
-    consecutiveStill++
-    consecutiveMotion = 0
-  }
-
-  // — Caso A: clip listo → enviar al VLM, pero SOLO si el VLM no está ya
-  //   procesando otro clip. El clasificador de letras (/frame) puede correr
-  //   en paralelo con el VLM — son pipelines independientes.
-  const clipDuration = now - frameStartedAt
-  const clipReady =
-    frameBuffer.length >= CLIP_MIN_FRAMES &&
-    recentMotionSamples >= 3 &&
-    clipDuration >= CLIP_MIN_DURATION_MS &&
-    (
-      consecutiveStill >= 3 ||
-      frameBuffer.length >= CLIP_MAX_FRAMES ||
-      clipDuration >= CLIP_MAX_DURATION_MS
-    )
-
-  if (clipReady && !isRecognizingClip.value && now - lastClipSentAt > CLIP_COOLDOWN_MS) {
-    const framesToSend = frameBuffer.slice(-CLIP_MAX_FRAMES)
-    frameBuffer = []
-    recentMotionSamples = 0
-    lastClipSentAt = now
-    void sendClipToVLM(framesToSend)
+  if (simulationMode) {
+    if (now - lastSimulationAt > STILL_HOLD_MS) {
+      lastSimulationAt = now
+      const sim = simulateDetection()
+      if (sim) applyLetter(sim)
+    }
     return
   }
 
-  // — Caso B: mano quieta → clasificador de alfabeto (/frame).
-  //   Solo bloqueamos si /frame YA está en vuelo (isInferring). El VLM
-  //   corriendo en paralelo NO impide la detección de letras y vocales.
-  //   (Antes `isRecognizingClip` también bloqueaba, lo que dejaba 6-10 s
-  //    sin ninguna detección durante cada llamada al VLM.)
-  if (isInferring.value) return
-
-  const noRecentMotion = now - lastMotionAt > MOTION_MEMORY_MS
-  const stillEnough =
-    !moving &&
-    noRecentMotion &&
-    consecutiveStill * SAMPLE_INTERVAL_MS >= STILL_HOLD_MS &&
-    now - lastFrameSentAt > FRAME_COOLDOWN_MS
-    // NOTA: se eliminó "now - lastClipSentAt > CLIP_COOLDOWN_MS" porque es
-    // redundante con noRecentMotion (1200 ms) y retrasaba innecesariamente
-    // la detección de vocales/letras justo después de enviar un clip.
-
-  if (stillEnough && jpeg) {
-    lastFrameSentAt = now
-    void sendFrameToAlphabet(jpeg)
-  }
+  if (autoFrameInFlight >= AUTO_FRAME_MAX_IN_FLIGHT) return
+  const jpeg = captureJpegBase64(AUTO_FRAME_JPEG_QUALITY)
+  if (jpeg) void sendAutoFrame(jpeg, streamRevision)
 }
 
-async function sendFrameToAlphabet(base64: string) {
-  if (simulationMode) {
-    const sim = simulateDetection()
-    if (sim) applyLetter(sim)
-    return
-  }
+async function sendAutoFrame(base64: string, revision: number) {
+  autoFrameInFlight++
   isInferring.value = true
   try {
-    const data = await api.post<FrameResponse>(
-      `/sign-language/session/${encodeURIComponent(sessionId)}/frame`,
-      // _t: nonce de tiempo para que cada request tenga hash único y no sea
-      // bloqueado por el IdempotencyGuard aunque el frame base64 sea idéntico
-      // (ocurre cuando la mano está quieta sosteniendo una letra/vocal).
-      { imageBase64: base64, minConfidence: 0.5, _t: Date.now() },
+    const data = await api.post<AutoFrameResponse>(
+      `/sign-language/session/${encodeURIComponent(sessionId)}/auto-frame`,
+      {
+        imageBase64: base64,
+        minLetterConfidence: AUTO_FRAME_MIN_LETTER_CONFIDENCE,
+        minPhraseConfidence: AUTO_FRAME_MIN_PHRASE_CONFIDENCE,
+        stillDurationMs: STILL_HOLD_MS,
+        allowVlmLetterFallback: true,
+        _t: Date.now(),
+      },
     )
-    if (data?.detection) {
-      currentDetection.value = data.detection
-      setTimeout(() => { if (currentDetection.value === data.detection) currentDetection.value = null }, 600)
-    }
-    if (typeof data?.draft === 'string') composedText.value = data.draft
+    if (revision === streamRevision) applyAutoFrameResponse(data)
   } catch (err) {
+    if (revision !== streamRevision) return
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
-      console.warn('[SignLanguage] Backend sin HF_API_TOKEN → modo simulación')
+      console.warn('[SignLanguage] Backend sin modelo local; activando simulacion.')
       simulationMode = true
+    } else if (err instanceof HttpError && err.errorCode === 'SIGN_LANGUAGE_DISABLED') {
+      errorMsg.value = 'El reconocimiento de lengua de señas esta deshabilitado.'
     } else {
-      console.warn('[SignLanguage] /frame falló:', err)
+      console.warn('[SignLanguage] /auto-frame fallo:', err)
     }
   } finally {
-    isInferring.value = false
+    if (revision === streamRevision) autoFrameInFlight = Math.max(0, autoFrameInFlight - 1)
+    isInferring.value = autoFrameInFlight > 0
   }
 }
 
-async function sendClipToVLM(frames: string[]) {
-  if (simulationMode || !frames.length) return
-  isRecognizingClip.value = true
-  try {
-    const data = await api.post<ClipResponse>(
-      `/sign-language/session/${encodeURIComponent(sessionId)}/clip`,
-      { frames, minConfidence: CLIP_MIN_CONFIDENCE },
-    )
-    if (data?.recognition) {
-      lastRecognition.value = data.recognition
-      // Si fue una letra o un número (deletreo), mostrarla como detección visual.
-      if ((data.recognition.kind === 'letter' || data.recognition.kind === 'number') && data.recognition.text) {
-        currentDetection.value = {
-          label: data.recognition.text.toUpperCase(),
-          confidence: data.recognition.confidence,
-        }
-        setTimeout(() => { currentDetection.value = null }, 700)
-      }
+function applyAutoFrameResponse(data: AutoFrameResponse | null) {
+  if (!data) return
+  if (typeof data.draft === 'string' && data.eventCount >= lastServerEventCount) {
+    composedText.value = data.draft
+    lastServerEventCount = data.eventCount
+  }
+  if (!data.event) return
+
+  const recognition = normalizeAutoRecognition(data.event)
+  if (!recognition.text || recognition.kind === 'unknown') return
+
+  lastRecognition.value = recognition
+  if (recognition.kind === 'letter' || recognition.kind === 'number') {
+    const detection = {
+      label: recognition.text.toLocaleUpperCase('es'),
+      confidence: recognition.confidence,
     }
-    if (typeof data?.draft === 'string') composedText.value = data.draft
-  } catch (err) {
-    if (err instanceof HttpError && (err.errorCode === 'VLM_NOT_CONFIGURED' || err.statusCode === 503)) {
-      // VLM no disponible: el sistema sigue funcionando con solo el alfabeto.
-      console.warn('[SignLanguage] VLM no disponible, manteniendo solo deletreo.')
-    } else {
-      console.warn('[SignLanguage] /clip falló:', err)
-    }
-  } finally {
-    isRecognizingClip.value = false
+    currentDetection.value = detection
+    setTimeout(() => {
+      if (currentDetection.value === detection) currentDetection.value = null
+    }, 700)
+  }
+}
+
+function normalizeAutoRecognition(event: AutoRecognition): ClipRecognition {
+  return {
+    text: String(event.text || ''),
+    kind: event.kind || 'unknown',
+    confidence: Number(event.confidence) || 0,
+    alternatives: Array.isArray(event.alternatives)
+      ? event.alternatives.filter((x): x is string => typeof x === 'string')
+      : [],
+    handedness: event.handedness || 'none',
+    motion: {
+      trajectory: event.motion?.trajectory || '',
+      direction: event.motion?.direction ?? null,
+      repeated: Boolean(event.motion?.repeated),
+      contact: event.motion?.contact || 'none',
+    },
+    nonManual: {
+      facial: event.nonManual?.facial || null,
+      intent: event.nonManual?.intent || 'unknown',
+    },
+    reasoning: event.reasoning || '',
+    model: event.model || '',
   }
 }
 
@@ -533,11 +439,10 @@ function clearText() {
   composedPhrase.value = null
   composeError.value = null
   lastRecognition.value = null
-  frameBuffer = []
-  recentMotionSamples = 0
-  consecutiveMotion = 0
-  consecutiveStill = 0
-  lastMotionAt = 0
+  streamRevision++
+  lastServerEventCount = -1
+  autoFrameInFlight = 0
+  isInferring.value = false
   lastConfirmedLetter = null
   // reiniciar sesión en el servidor también
   if (!simulationMode) {
