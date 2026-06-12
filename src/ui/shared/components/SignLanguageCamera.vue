@@ -213,7 +213,9 @@ const serviceNotice = ref<string | null>(null)
 let simulationMode = false
 const SAMPLE_INTERVAL_MS = 220
 const STILL_HOLD_MS = 1000
-const AUTO_FRAME_MAX_IN_FLIGHT = 3
+// El backend mantiene estado temporal por sesion. Si enviamos varios frames en
+// paralelo, pueden procesarse fuera de orden y alterar el detector de movimiento.
+const AUTO_FRAME_MAX_IN_FLIGHT = 1
 const AUTO_FRAME_JPEG_QUALITY = 0.62
 const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
 const AUTO_FRAME_MIN_PHRASE_CONFIDENCE = 0.6
