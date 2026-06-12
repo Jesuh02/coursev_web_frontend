@@ -882,6 +882,8 @@ async function createCourseFromPlan() {
         userId: tokenStorage.userId || undefined,
         username: tokenStorage.username || undefined,
         sessionId: sessionId.value,
+        generateThumbnails: true,
+        generateDocuments: true,
       },
       90_000,  // 90 s — only DB inserts need to complete; docs run in background
     )
