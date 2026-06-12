@@ -160,6 +160,13 @@ type AutoRecognition = Partial<ClipRecognition> & {
   confidence?: number
 }
 
+type QueuedAutoFrame = {
+  base64: string
+  revision: number
+  capturedAtMs: number
+  seq: number
+}
+
 interface AutoFrameResponse {
   event: AutoRecognition | null
   pushed: boolean
@@ -174,6 +181,7 @@ interface AutoFrameResponse {
     motionPeak?: number
     motion?: number
     inflight?: boolean
+    queue?: number
   }
   warning?: {
     code?: string
@@ -216,6 +224,7 @@ const STILL_HOLD_MS = 1000
 // Dejamos varias solicitudes en vuelo para que el backend siga recibiendo
 // frames de tracking aunque una inferencia ONNX/VLM tarde mas.
 const AUTO_FRAME_MAX_IN_FLIGHT = 4
+const AUTO_FRAME_MAX_QUEUE = 12
 const AUTO_FRAME_JPEG_QUALITY = 0.58
 const AUTO_FRAME_MAX_DIMENSION = 512
 const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
@@ -226,6 +235,7 @@ const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).sl
 let stream: MediaStream | null = null
 let sampleTimer: ReturnType<typeof setInterval> | null = null
 let autoFrameInFlight = 0
+let autoFrameQueue: QueuedAutoFrame[] = []
 let lastServerEventCount = -1
 let streamRevision = 0
 let frameSeq = 0
@@ -301,6 +311,7 @@ async function startCamera() {
 function stopCamera() {
   streamRevision++
   autoFrameInFlight = 0
+  autoFrameQueue = []
   lastAppliedStatusSeq = 0
   isInferring.value = false
   captureMode.value = 'idle'
@@ -351,32 +362,49 @@ async function tick() {
     return
   }
 
-  if (autoFrameInFlight >= AUTO_FRAME_MAX_IN_FLIGHT) return
   const capturedAtMs = Date.now()
   const jpeg = captureJpegBase64(AUTO_FRAME_JPEG_QUALITY)
-  if (jpeg) void sendAutoFrame(jpeg, streamRevision, capturedAtMs, ++frameSeq)
+  if (jpeg) enqueueAutoFrame({
+    base64: jpeg,
+    revision: streamRevision,
+    capturedAtMs,
+    seq: ++frameSeq,
+  })
 }
 
-async function sendAutoFrame(base64: string, revision: number, capturedAtMs: number, seq: number) {
+function enqueueAutoFrame(frame: QueuedAutoFrame) {
+  autoFrameQueue.push(frame)
+  while (autoFrameQueue.length > AUTO_FRAME_MAX_QUEUE) autoFrameQueue.shift()
+  dispatchAutoFrames()
+}
+
+function dispatchAutoFrames() {
+  while (autoFrameInFlight < AUTO_FRAME_MAX_IN_FLIGHT && autoFrameQueue.length > 0) {
+    const frame = autoFrameQueue.shift()
+    if (frame) void sendAutoFrame(frame)
+  }
+}
+
+async function sendAutoFrame(frame: QueuedAutoFrame) {
   autoFrameInFlight++
   isInferring.value = true
   try {
     const data = await api.post<AutoFrameResponse>(
       `/sign-language/session/${encodeURIComponent(sessionId)}/auto-frame`,
       {
-        imageBase64: base64,
+        imageBase64: frame.base64,
         minLetterConfidence: AUTO_FRAME_MIN_LETTER_CONFIDENCE,
         minPhraseConfidence: AUTO_FRAME_MIN_PHRASE_CONFIDENCE,
         stillDurationMs: STILL_HOLD_MS,
         allowVlmLetterFallback: true,
-        capturedAtMs,
-        frameSeq: seq,
+        capturedAtMs: frame.capturedAtMs,
+        frameSeq: frame.seq,
         _t: Date.now(),
       },
     )
-    if (revision === streamRevision) applyAutoFrameResponse(data, seq)
+    if (frame.revision === streamRevision) applyAutoFrameResponse(data, frame.seq)
   } catch (err) {
-    if (revision !== streamRevision) return
+    if (frame.revision !== streamRevision) return
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
       errorMsg.value = 'El modelo local de letras no esta configurado en el backend.'
     } else if (err instanceof HttpError && err.errorCode === 'VLM_NOT_CONFIGURED') {
@@ -387,8 +415,9 @@ async function sendAutoFrame(base64: string, revision: number, capturedAtMs: num
       console.warn('[SignLanguage] /auto-frame fallo:', err)
     }
   } finally {
-    if (revision === streamRevision) autoFrameInFlight = Math.max(0, autoFrameInFlight - 1)
-    isInferring.value = autoFrameInFlight > 0
+    if (frame.revision === streamRevision) autoFrameInFlight = Math.max(0, autoFrameInFlight - 1)
+    isInferring.value = autoFrameInFlight > 0 || autoFrameQueue.length > 0
+    if (frame.revision === streamRevision) dispatchAutoFrames()
   }
 }
 
@@ -504,6 +533,7 @@ function clearText() {
   lastServerEventCount = -1
   lastAppliedStatusSeq = 0
   autoFrameInFlight = 0
+  autoFrameQueue = []
   isInferring.value = false
   lastConfirmedLetter = null
   // reiniciar sesión en el servidor también

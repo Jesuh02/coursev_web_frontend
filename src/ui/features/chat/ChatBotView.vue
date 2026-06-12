@@ -875,7 +875,7 @@ async function createCourseFromPlan() {
       isCreatingCourse.value = false
       return
     }
-    const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number; docsInProgress?: boolean }>(
+    const data = await api.postSlow<{ courseId: number; topicsCreated: number; tasksCreated: number; thumbnailsInProgress?: boolean; docsInProgress?: boolean }>(
       '/llm/confirm-course',
       {
         plan: sanitized,
@@ -886,6 +886,19 @@ async function createCourseFromPlan() {
       90_000,  // 90 s — only DB inserts need to complete; docs run in background
     )
     createdCourseId.value = data.courseId
+    if (data.thumbnailsInProgress || data.docsInProgress) {
+      const pending = [
+        data.thumbnailsInProgress ? 'miniaturas de las materias' : '',
+        data.docsInProgress ? 'documentos Word/PDF' : '',
+      ].filter(Boolean).join(' y ')
+      messages.value.push({
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Curso creado. Estamos generando ${pending} en segundo plano; apareceran automaticamente cuando finalicen.`,
+        createdAt: new Date().toISOString(),
+        sessionId: sessionId.value,
+      })
+    }
   } catch (e) {
     courseCreateError.value = e instanceof Error ? e.message : 'Error al crear el curso'
   } finally {

@@ -28,3 +28,4 @@ dist-ssr
 .env.production
 tsc_b_errors.txt
 institucionesdb.json
+.codex_tmp/sign-video/test.mp4
