@@ -631,6 +631,9 @@ function extractPlan(raw: string): CoursePlan | null {
               title: String(t.title ?? t.name ?? ''),
               description: String(t.description ?? ''),
               estimatedWeeks: typeof t.estimatedWeeks === 'number' ? t.estimatedWeeks : undefined,
+              estimatedHours: typeof t.estimatedHours === 'number' ? t.estimatedHours : undefined,
+              competency: t.competency ? String(t.competency) : undefined,
+              learningOutcome: t.learningOutcome ? String(t.learningOutcome) : undefined,
               contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
               tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
                 title: String(k.title ?? ''),

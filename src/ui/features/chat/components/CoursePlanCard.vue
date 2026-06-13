@@ -74,8 +74,14 @@
               <span class="topic-idx">{{ ti + 1 }}</span>
               <span class="topic-name">{{ topic.title }}</span>
               <span v-if="topic.estimatedWeeks" class="topic-week-badge">{{ topic.estimatedWeeks }} sem</span>
+              <span v-if="topic.estimatedHours" class="topic-hour-badge">{{ topic.estimatedHours }} h</span>
               <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }} ev.</span>
-            </div>            <p v-if="topic.contentDescription" class="topic-content-desc">
+            </div>
+            <div v-if="topic.competency || topic.learningOutcome" class="topic-learning-meta">
+              <p v-if="topic.competency"><strong>Competencia:</strong> {{ topic.competency }}</p>
+              <p v-if="topic.learningOutcome"><strong>Resultado:</strong> {{ topic.learningOutcome }}</p>
+            </div>
+            <p v-if="topic.contentDescription" class="topic-content-desc">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               {{ topic.contentDescription }}
             </p>            <div v-if="topic.tasks?.length" class="task-list">
@@ -138,6 +144,9 @@ export interface PlanTopic {
   title: string
   description?: string
   estimatedWeeks?: number
+  estimatedHours?: number
+  competency?: string
+  learningOutcome?: string
   contentDescription?: string
   tasks: PlanTask[]
 }
@@ -572,6 +581,27 @@ const workloadSummary = computed(() => {
 }
 .topic-content-desc svg { flex-shrink: 0; margin-top: 1px; }
 
+.topic-learning-meta {
+  display: grid;
+  gap: 3px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.topic-learning-meta p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e4e4e7;
+}
+
+.topic-learning-meta strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .topic-task-badge {
   font-size: 11px;
   font-weight: 600;
@@ -580,6 +610,16 @@ const workloadSummary = computed(() => {
   padding: 1px 7px;
   border-radius: 980px;
   border: 1px solid rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+}
+
+.topic-hour-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 1px 7px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 
