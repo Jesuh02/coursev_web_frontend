@@ -856,6 +856,7 @@ function buildPlannerPrompt(userText: string): string {
     'Mantén el diseño por competencias: competencias -> resultados -> contenidos -> evidencias.',
     'No conviertas el ajuste en una cuota uniforme de materias, temas o tareas.',
     'Las tareas deben ser evidencias o hitos relevantes; usa actividades formativas dentro del contenido cuando no requieran entrega.',
+    'En cada tema, conserva o mejora contentDescription para que el Word/PDF sea 100% explicativo: lenguaje sencillo, definiciones claras, ejemplos paso a paso, errores comunes y actividades para aprender.',
     current,
   ].join('\n')
 }
@@ -920,7 +921,7 @@ async function createCourseFromPlan() {
     if (data.thumbnailsInProgress || data.docsInProgress) {
       const pending = [
         data.thumbnailsInProgress ? 'miniaturas de las materias' : '',
-        data.docsInProgress ? 'documentos Word/PDF' : '',
+        data.docsInProgress ? 'materiales explicativos Word/PDF de temas y tareas' : '',
       ].filter(Boolean).join(' y ')
       messages.value.push({
         id: crypto.randomUUID(),
