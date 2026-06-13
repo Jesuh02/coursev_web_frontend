@@ -75,6 +75,7 @@ const routes: RouteRecordRaw[] = [
   // Chat
   { path: '/chatbot', name: 'chatbot', component: () => import('@/ui/features/chat/ChatBotLLMView.vue'), meta: { hideNav: true } },
   { path: '/chat', name: 'chat', component: () => import('@/ui/features/chat/ChatBotView.vue'), meta: { hideNav: true } },
+  { path: '/coursev-ai-onboarding', name: 'coursevAiOnboarding', component: () => import('@/ui/features/chat/CourseAiOnboardingView.vue'), meta: { hideNav: true } },
 
   // Reinforcement
   { path: '/reinforcement/:courseId', name: 'reinforcementLearning', component: () => import('@/ui/features/reinforcement/ReinforcementLearningView.vue'), props: true, meta: { hideNav: true } },
@@ -118,7 +119,7 @@ const router = createRouter({
   routes,
 })
 
-const PUBLIC_ROUTES = new Set(['login', 'register', 'splash'])
+const PUBLIC_ROUTES = new Set(['login', 'register', 'splash', 'coursevAiOnboarding'])
 
 // Guard: redirect unauthenticated users to /login for any non-public route
 router.beforeEach((to, _from, next) => {

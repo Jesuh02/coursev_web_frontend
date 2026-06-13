@@ -2,17 +2,7 @@
   <div class="login-page">
     <!-- ═══ PANEL IZQUIERDO: Branding + Features (solo desktop) ═══ -->
     <div class="hero-panel">
-      <div class="hero-animation" aria-hidden="true">
-        <LottieAnimation
-          class="hero-lottie"
-          path="/animations/coursev-ai-lab.json"
-          preserve-aspect-ratio="xMidYMid slice"
-          :speed="0.92"
-        />
-        <div class="hero-logo-asset">
-          <img src="/icon-512.png" alt="" />
-        </div>
-      </div>
+      <div ref="splineContainer" class="spline-bg"></div>
       <div class="hero-overlay"></div>
 
       <div class="hero-content">
@@ -79,15 +69,6 @@
           <div class="avatar-circle">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </div>
-        </div>
-
-        <div class="mobile-lottie-showcase mobile-only" aria-hidden="true">
-          <LottieAnimation
-            path="/animations/coursev-ai-lab.json"
-            preserve-aspect-ratio="xMidYMid slice"
-            :speed="0.88"
-          />
-          <img class="mobile-showcase-logo" src="/icon-192.png" alt="" />
         </div>
 
         <!-- Título desktop dentro del formulario -->
@@ -197,7 +178,6 @@ import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
 import TenantSelectionDialog from './components/TenantSelectionDialog.vue'
-import LottieAnimation from '@/ui/shared/components/LottieAnimation.vue'
 
 declare global {
   interface GoogleCredentialResponse {
@@ -247,6 +227,7 @@ const error = ref('')
 const showForgotPassword = ref(false)
 const googleButtonHost = ref<HTMLElement | null>(null)
 const googleButtonEnabled = ref(false)
+const splineContainer = ref<HTMLDivElement | null>(null)
 
 // Estado para desambiguación por cédula y selección de institución
 const showCedula = ref(false)
@@ -367,6 +348,8 @@ function handleResize() {
 }
 
 onMounted(async () => {
+  loadSplineViewer()
+
   // Si ya hay una sesión activa, redirigir sin mostrar el login (igual que LoginFragment.kt)
   if (authStore.isAuthenticated) {
     await authStore.fetchProfile()
@@ -608,6 +591,36 @@ function particleStyle(i: number) {
   }
 }
 
+function loadSplineViewer() {
+  if (!splineContainer.value) return
+  if (!document.getElementById('spline-viewer-script')) {
+    const script = document.createElement('script')
+    script.id = 'spline-viewer-script'
+    script.type = 'module'
+    script.src = 'https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js'
+    document.head.appendChild(script)
+  }
+  const viewer = document.createElement('spline-viewer')
+  viewer.setAttribute('url', 'https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode')
+  splineContainer.value.appendChild(viewer)
+  hideSplineWatermark(viewer)
+}
+
+function hideSplineWatermark(viewer: HTMLElement) {
+  function inject() {
+    const shadow = viewer.shadowRoot
+    if (!shadow || shadow.querySelector('[data-hide-logo]')) return
+    const style = document.createElement('style')
+    style.setAttribute('data-hide-logo', '')
+    style.textContent = '#logo { display: none !important; }'
+    shadow.appendChild(style)
+  }
+  inject()
+  const observer = new MutationObserver(() => inject())
+  observer.observe(viewer, { childList: true, subtree: true })
+  setTimeout(() => observer.disconnect(), 10000)
+}
+
 </script>
 
 <style scoped>
@@ -766,33 +779,6 @@ function particleStyle(i: number) {
 }
 
 /* ── Desktop form header ── */
-.mobile-lottie-showcase {
-  position: relative;
-  height: 220px;
-  margin: 0 16px 18px;
-  overflow: hidden;
-  border-radius: 22px;
-  background: #05060d;
-  border: 1px solid rgba(139, 92, 246, 0.18);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
-}
-
-.mobile-lottie-showcase :deep(svg) {
-  transform: scale(1.18);
-  transform-origin: center;
-}
-
-.mobile-showcase-logo {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.26);
-}
-
 .desktop-form-header {
   text-align: center;
   padding: 40px 24px 8px;
@@ -1114,11 +1100,6 @@ function particleStyle(i: number) {
     margin-bottom: 10px;
   }
 
-  .mobile-lottie-showcase {
-    height: 190px;
-    margin-inline: 12px;
-  }
-
   .login-card {
     margin: 0 12px 16px;
     padding: 20px 16px;
@@ -1156,44 +1137,21 @@ function particleStyle(i: number) {
     min-height: 0;
   }
 
-  .hero-animation {
+  .spline-bg {
     position: absolute;
     inset: 0;
     z-index: 0;
     overflow: hidden;
-    background: #05060d;
   }
 
-  .hero-lottie {
-    position: absolute;
-    inset: -4%;
-    width: 108%;
-    height: 108%;
-    opacity: 0.94;
-    filter: saturate(1.08) contrast(1.04);
-  }
-
-  .hero-logo-asset {
-    position: absolute;
-    right: 52px;
-    top: 54px;
-    width: 88px;
-    height: 88px;
-    padding: 8px;
-    border-radius: 24px;
-    background: rgba(5, 6, 13, 0.62);
-    border: 1px solid rgba(244, 114, 182, 0.22);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), 0 0 38px rgba(191, 90, 242, 0.18);
-    backdrop-filter: blur(14px);
-    animation: feature-enter 0.6s 0.45s ease both;
-  }
-
-  .hero-logo-asset img {
+  .spline-bg :deep(spline-viewer) {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: cover;
-    border-radius: 18px;
+  }
+
+  .spline-bg :deep(spline-viewer #logo) {
+    display: none !important;
   }
 
   .hero-overlay {
