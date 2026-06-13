@@ -33,22 +33,27 @@
       </span>
     </div>
 
-    <!-- Stats -->
-    <div class="plan-stats">
-      <div class="plan-stat">
-        <span class="stat-n">{{ subjectList.length }}</span>
-        <span class="stat-l">materias</span>
+    <!-- Curriculum focus -->
+    <div v-if="competencyList.length || outcomeList.length || workloadSummary" class="plan-curriculum">
+      <div v-if="competencyList.length" class="curriculum-block">
+        <span class="curriculum-label">Competencias</span>
+        <ul class="curriculum-list">
+          <li v-for="item in competencyList" :key="item">{{ item }}</li>
+        </ul>
       </div>
-      <div class="stat-sep" />
-      <div class="plan-stat">
-        <span class="stat-n">{{ topicCount }}</span>
-        <span class="stat-l">temas</span>
+      <div v-if="outcomeList.length" class="curriculum-block">
+        <span class="curriculum-label">Resultados</span>
+        <ul class="curriculum-list">
+          <li v-for="item in outcomeList" :key="item">{{ item }}</li>
+        </ul>
       </div>
-      <div class="stat-sep" />
-      <div class="plan-stat">
-        <span class="stat-n">{{ taskCount }}</span>
-        <span class="stat-l">tareas</span>
-      </div>
+      <div v-if="workloadSummary" class="workload-chip">{{ workloadSummary }}</div>
+    </div>
+
+    <div class="plan-structure">
+      <span>{{ subjectList.length }} modulos</span>
+      <span>{{ topicCount }} bloques de aprendizaje</span>
+      <span>{{ taskCount }} evidencias</span>
     </div>
 
     <!-- Tree -->
@@ -57,22 +62,26 @@
         <button class="subject-row" @click="toggle(si)">
           <span class="subject-num">{{ si + 1 }}</span>
           <span class="subject-label">{{ subject.name }}</span>
-          <span v-if="subject.topics?.length" class="subject-topic-count">{{ subject.topics.length }} temas</span>
+          <span v-if="subject.topics?.length" class="subject-topic-count">{{ subject.topics.length }} bloques</span>
           <svg class="subject-chevron" :class="{ 'subject-chevron--open': expanded.has(si) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div v-show="expanded.has(si)" class="subject-body">
           <p v-if="subject.description" class="subject-desc">{{ subject.description }}</p>
+          <p v-if="subject.competency" class="subject-competency">Competencia: {{ subject.competency }}</p>
+          <p v-if="subject.integration" class="subject-integration">{{ subject.integration }}</p>
           <div v-for="(topic, ti) in subject.topics" :key="ti" class="topic-item">
             <div class="topic-line">
               <span class="topic-idx">{{ ti + 1 }}</span>
               <span class="topic-name">{{ topic.title }}</span>
-              <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }}</span>
+              <span v-if="topic.estimatedWeeks" class="topic-week-badge">{{ topic.estimatedWeeks }} sem</span>
+              <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }} ev.</span>
             </div>            <p v-if="topic.contentDescription" class="topic-content-desc">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               {{ topic.contentDescription }}
             </p>            <div v-if="topic.tasks?.length" class="task-list">
               <div v-for="(task, ki) in topic.tasks" :key="ki" class="task-row">
                 <span class="task-dot" />
+                <span v-if="task.type" class="task-type">{{ taskTypeLabel(task.type) }}</span>
                 <span class="task-name">{{ task.title }}</span>
                 <span v-if="task.dueWeek" class="task-week">S{{ task.dueWeek }}</span>
               </div>
@@ -120,6 +129,7 @@ import { ref, computed } from 'vue'
 
 export interface PlanTask {
   title: string
+  type?: string
   description?: string
   dueWeek?: number | null
   contentDescription?: string
@@ -127,13 +137,23 @@ export interface PlanTask {
 export interface PlanTopic {
   title: string
   description?: string
+  estimatedWeeks?: number
   contentDescription?: string
   tasks: PlanTask[]
 }
 export interface PlanSubject {
   name: string
   description?: string
+  competency?: string
+  learningOutcomes?: string[]
+  integration?: string
   topics: PlanTopic[]
+}
+export interface CourseWorkload {
+  totalHours?: number
+  guidedHours?: number
+  independentHours?: number
+  projectHours?: number
 }
 export interface CoursePlan {
   title: string
@@ -141,6 +161,9 @@ export interface CoursePlan {
   category?: string
   level?: string
   durationWeeks?: number
+  competencies?: string[]
+  learningOutcomes?: string[]
+  workload?: CourseWorkload
   subjects: PlanSubject[]
 }
 
@@ -158,6 +181,14 @@ const expanded = ref<Set<number>>(new Set([0]))
 function toggle(i: number) {
   expanded.value.has(i) ? expanded.value.delete(i) : expanded.value.add(i)
   expanded.value = new Set(expanded.value)
+}
+
+function taskTypeLabel(type: string) {
+  const normalized = type.toLowerCase()
+  if (normalized === 'project') return 'proyecto'
+  if (normalized === 'assessment') return 'evaluacion'
+  if (normalized === 'milestone') return 'hito'
+  return 'formativa'
 }
 
 const showUpdated = computed(() => (props.version ?? 0) > 1)
@@ -180,6 +211,26 @@ const taskCount = computed(() =>
     0
   )
 )
+const competencyList = computed(() =>
+  (props.plan.competencies ?? [])
+    .map(item => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+)
+const outcomeList = computed(() =>
+  (props.plan.learningOutcomes ?? [])
+    .map(item => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+)
+const workloadSummary = computed(() => {
+  const workload = props.plan.workload
+  if (!workload?.totalHours) return ''
+  const parts = [`${workload.totalHours} h academicas`]
+  if (workload.projectHours) parts.push(`${workload.projectHours} h proyecto`)
+  if (workload.independentHours) parts.push(`${workload.independentHours} h autonomas`)
+  return parts.join(' - ')
+})
 </script>
 
 <style scoped>
@@ -319,46 +370,68 @@ const taskCount = computed(() =>
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-/* ─── Stats ───────────────────────────────────────────────────────────────── */
-.plan-stats {
-  display: flex;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.22);
-  border-radius: 16px;
-  margin: 14px 20px 0;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  padding: 14px 0;
-}
-
-.plan-stat {
-  flex: 1;
+/* ─── Curriculum focus ────────────────────────────────────────────────────── */
+.plan-curriculum {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 12px;
+  margin: 14px 20px 0;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
 }
 
-.stat-n {
-  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 24px;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: 0;
-  line-height: 1;
+.curriculum-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
-.stat-l {
+.curriculum-label {
   font-size: 11px;
-  color: #d4d4d8;
-  font-weight: 400;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
   letter-spacing: 0;
 }
 
-.stat-sep {
-  width: 1px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.16);
-  flex-shrink: 0;
+.curriculum-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.curriculum-list li {
+  font-size: 12.5px;
+  color: #f4f4f5;
+  line-height: 1.4;
+}
+
+.workload-chip,
+.plan-structure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: #e4e4e7;
+}
+
+.workload-chip {
+  padding-top: 2px;
+}
+
+.plan-structure {
+  margin: 10px 20px 0;
+}
+
+.plan-structure span {
+  padding: 4px 10px;
+  border-radius: 980px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.13);
 }
 
 /* ─── Subject tree ────────────────────────────────────────────────────────── */
@@ -448,6 +521,21 @@ const taskCount = computed(() =>
   line-height: 1.45;
 }
 
+.subject-competency,
+.subject-integration {
+  font-size: 12px;
+  color: #f4f4f5;
+  line-height: 1.45;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.subject-integration {
+  color: #d4d4d8;
+}
+
 .topic-item { display: flex; flex-direction: column; gap: 5px; }
 
 .topic-line { display: flex; align-items: center; gap: 8px; }
@@ -495,6 +583,17 @@ const taskCount = computed(() =>
   flex-shrink: 0;
 }
 
+.topic-week-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 7px;
+  border-radius: 980px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
 .task-list {
   display: flex;
   flex-direction: column;
@@ -514,6 +613,17 @@ const taskCount = computed(() =>
   border-radius: 50%;
   background: #ffffff;
   opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.task-type {
+  font-size: 10px;
+  color: #ffffff;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 980px;
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
 }
 

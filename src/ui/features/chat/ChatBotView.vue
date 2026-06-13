@@ -29,7 +29,7 @@
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             </div>
             <h3 class="cw-title">Crea tu curso con IA</h3>
-            <p class="cw-desc">Describe la temática, nivel y duración. La IA genera el plan completo. O comparte tu propia estructura y la ajustamos juntos.</p>
+            <p class="cw-desc">Describe la temática, nivel y duración. La IA diseña competencias, resultados, contenidos y evidencias. O comparte tu estructura y la ajustamos juntos.</p>
           </div>
           <div class="cw-chips">
             <button v-for="q in courseQuickPrompts" :key="q" class="cw-chip" @click="sendQuickPrompt(q)">
@@ -590,6 +590,8 @@ function tryExtractPlanPartial(raw: string): CoursePlan | null {
     category: firstField('category'),
     level: firstField('level'),
     durationWeeks: weekM ? Number(weekM[1]) : undefined,
+    competencies: [],
+    learningOutcomes: [],
     subjects: cleanSubjects,
   }
 }
@@ -611,15 +613,23 @@ function extractPlan(raw: string): CoursePlan | null {
           category: obj.category ?? '',
           level: obj.level ?? '',
           durationWeeks: typeof obj.durationWeeks === 'number' ? obj.durationWeeks : undefined,
+          competencies: Array.isArray(obj.competencies) ? obj.competencies.map((x: unknown) => String(x ?? '')).filter(Boolean) : undefined,
+          learningOutcomes: Array.isArray(obj.learningOutcomes) ? obj.learningOutcomes.map((x: unknown) => String(x ?? '')).filter(Boolean) : undefined,
+          workload: obj.workload && typeof obj.workload === 'object' ? obj.workload as CoursePlan['workload'] : undefined,
           subjects: (obj.subjects ?? []).map((s: Record<string, unknown>) => ({
             name: String(s.name ?? ''),
             description: String(s.description ?? ''),
+            competency: s.competency ? String(s.competency) : undefined,
+            learningOutcomes: Array.isArray(s.learningOutcomes) ? s.learningOutcomes.map((x: unknown) => String(x ?? '')).filter(Boolean) : undefined,
+            integration: s.integration ? String(s.integration) : undefined,
             topics: (Array.isArray(s.topics) ? s.topics : []).map((t: Record<string, unknown>) => ({
               title: String(t.title ?? t.name ?? ''),
               description: String(t.description ?? ''),
+              estimatedWeeks: typeof t.estimatedWeeks === 'number' ? t.estimatedWeeks : undefined,
               contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
               tasks: (Array.isArray(t.tasks) ? t.tasks : []).map((k: Record<string, unknown>) => ({
                 title: String(k.title ?? ''),
+                type: k.type ? String(k.type) : undefined,
                 description: String(k.description ?? ''),
                 dueWeek: typeof k.dueWeek === 'number' ? k.dueWeek : null,
                 contentDescription: k.contentDescription ? String(k.contentDescription) : undefined,
@@ -828,7 +838,13 @@ function buildPlannerPrompt(userText: string): string {
   const current = coursePlan.value
     ? `\n\nPLAN ACTUAL (modifícalo según la petición, conserva lo que no se mencione):\n${JSON.stringify(coursePlan.value)}`
     : ''
-  return `Petición: "${userText}"${current}`
+  return [
+    `Petición: "${userText}"`,
+    'Mantén el diseño por competencias: competencias -> resultados -> contenidos -> evidencias.',
+    'No conviertas el ajuste en una cuota uniforme de materias, temas o tareas.',
+    'Las tareas deben ser evidencias o hitos relevantes; usa actividades formativas dentro del contenido cuando no requieran entrega.',
+    current,
+  ].join('\n')
 }
 
 function rejectCoursePlan() {
