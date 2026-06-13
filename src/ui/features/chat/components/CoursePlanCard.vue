@@ -82,6 +82,7 @@
             <div v-if="topic.competency || topic.learningOutcome" class="topic-learning-meta">
               <p v-if="topic.competency"><strong>Competencia:</strong> {{ topic.competency }}</p>
               <p v-if="topic.learningOutcome"><strong>Resultado:</strong> {{ topic.learningOutcome }}</p>
+              <p v-if="topic.prerequisites?.length"><strong>Prerequisitos:</strong> {{ topic.prerequisites.join(' · ') }}</p>
             </div>
             <p v-if="topic.contentDescription" class="topic-content-desc">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -151,6 +152,7 @@ export interface PlanTopic {
   practicalHours?: number
   competency?: string
   learningOutcome?: string
+  prerequisites?: string[]
   contentDescription?: string
   tasks: PlanTask[]
 }
