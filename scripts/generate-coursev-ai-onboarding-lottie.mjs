@@ -3,18 +3,38 @@ import { writeFileSync } from 'node:fs'
 const FPS = 60
 const W = 1920
 const H = 1080
-const OP = 1080
+const OP = 1320
 const OUT = 'public/animations/coursev-ai-onboarding.json'
 
 let ind = 1
-const visual = []
+const layers = []
 
 const fonts = {
   list: [
-    { fName: 'Inter-Regular', fFamily: 'Arial', fStyle: 'Regular', ascent: 78 },
-    { fName: 'Inter-SemiBold', fFamily: 'Arial', fStyle: 'Semi Bold', ascent: 78 },
-    { fName: 'Inter-Bold', fFamily: 'Arial', fStyle: 'Bold', ascent: 78 },
+    { fName: 'CourseV-Regular', fFamily: 'Arial', fStyle: 'Regular', ascent: 78 },
+    { fName: 'CourseV-SemiBold', fFamily: 'Arial', fStyle: 'Semi Bold', ascent: 78 },
+    { fName: 'CourseV-Bold', fFamily: 'Arial', fStyle: 'Bold', ascent: 78 },
   ],
+}
+
+const palette = {
+  bg: '#03050b',
+  appBlack: '#000000',
+  header: '#0d0d0d',
+  assistant: '#1c1c1e',
+  input: '#1c1c1e',
+  line: '#24242a',
+  text: '#f5f5f7',
+  muted: '#8e8e93',
+  faint: '#636366',
+  purple: '#6200ee',
+  purpleLight: '#bf5af2',
+  green: '#10a37f',
+  greenBright: '#30d158',
+  cyan: '#22d3ee',
+  amber: '#fbbf24',
+  red: '#ff453a',
+  card: '#101725',
 }
 
 function c(hex, alpha = 1) {
@@ -31,7 +51,7 @@ function ease(inX = 0.42, inY = 1, outX = 0.16, outY = 0) {
   return { i: { x: [inX], y: [inY] }, o: { x: [outX], y: [outY] } }
 }
 
-function k(t, s, e = ease()) {
+function key(t, s, e = ease()) {
   return { t, s: Array.isArray(s) ? s : [s], ...e }
 }
 
@@ -40,10 +60,35 @@ function hold(t, s) {
 }
 
 function prop(value) {
-  if (Array.isArray(value) && value[0] && typeof value[0] === 'object' && 't' in value[0]) {
+  if (Array.isArray(value) && value.length && typeof value[0] === 'object' && 't' in value[0]) {
     return { a: 1, k: value }
   }
   return { a: 0, k: value }
+}
+
+function fadeIn(start, end, peak = 100, outStart = null, outEnd = null) {
+  const keys = start === 0
+    ? [key(0, 0), key(end, peak)]
+    : [key(0, 0), key(start, 0), key(end, peak)]
+  if (outStart != null && outEnd != null) {
+    keys.push(key(outStart, peak), key(outEnd, 0), key(OP, 0))
+  } else {
+    keys.push(key(OP, peak))
+  }
+  return keys
+}
+
+function fadeWindow(start, end, outStart, outEnd, peak = 100) {
+  return fadeIn(start, end, peak, outStart, outEnd)
+}
+
+function move(from, to, start, end) {
+  return [
+    key(0, [...from, 0]),
+    key(start, [...from, 0]),
+    key(end, [...to, 0]),
+    key(OP, [...to, 0]),
+  ]
 }
 
 function tr() {
@@ -97,11 +142,34 @@ function stroke(hex, width = 1, opacity = 100) {
   }
 }
 
-function trim(startFrame, endFrame) {
+function gradient(name, colors, opacity = 100) {
+  return {
+    ty: 'gf',
+    nm: name,
+    t: 1,
+    o: { a: 0, k: opacity },
+    r: 1,
+    g: {
+      p: colors.length,
+      k: {
+        a: 0,
+        k: colors.flatMap((entry, idx) => {
+          const stop = colors.length === 1 ? 0 : idx / (colors.length - 1)
+          const rgb = c(entry).slice(0, 3)
+          return [stop, ...rgb]
+        }),
+      },
+    },
+    s: { a: 0, k: [-220, -120] },
+    e: { a: 0, k: [220, 120] },
+  }
+}
+
+function trim(start, end) {
   return {
     ty: 'tm',
     s: { a: 0, k: 0 },
-    e: { a: 1, k: [k(startFrame, 0), k(endFrame, 100), k(OP, 100)] },
+    e: { a: 1, k: [key(0, 0), key(start, 0), key(end, 100), key(OP, 100)] },
     o: { a: 0, k: 0 },
     m: 1,
   }
@@ -112,7 +180,7 @@ function group(name, items) {
 }
 
 function shapeLayer(name, shapes, opts = {}) {
-  visual.push({
+  layers.push({
     ty: 4,
     nm: name,
     ind: ind++,
@@ -136,11 +204,15 @@ function doc(text, size, color, opts = {}) {
     sz: [opts.w ?? 520, opts.h ?? 120],
     ps: [0, 0],
     s: size,
-    f: opts.weight === 'bold' ? 'Inter-Bold' : opts.weight === 'semibold' ? 'Inter-SemiBold' : 'Inter-Regular',
+    f: opts.weight === 'bold'
+      ? 'CourseV-Bold'
+      : opts.weight === 'semibold'
+        ? 'CourseV-SemiBold'
+        : 'CourseV-Regular',
     t: text,
     j: opts.align ?? 0,
     tr: 0,
-    lh: opts.lh ?? Math.round(size * 1.22),
+    lh: opts.lh ?? Math.round(size * 1.24),
     ls: 0,
     fc: c(color).slice(0, 3),
   }
@@ -148,10 +220,10 @@ function doc(text, size, color, opts = {}) {
 
 function textLayer(name, text, x, y, size, color, opts = {}) {
   const documents = opts.docs
-    ? opts.docs.map(d => ({ t: d.frame, s: doc(d.text, size, color, opts) }))
-    : [{ s: doc(text, size, color, opts), t: 0 }]
+    ? opts.docs.map(item => ({ t: item.frame, s: doc(item.text, size, color, opts) }))
+    : [{ t: 0, s: doc(text, size, color, opts) }]
 
-  visual.push({
+  layers.push({
     ty: 5,
     nm: name,
     ind: ind++,
@@ -175,7 +247,16 @@ function textLayer(name, text, x, y, size, color, opts = {}) {
   })
 }
 
-function wrapText(text, max = 36) {
+function typeDocs(text, start, step = 2) {
+  const docs = []
+  for (let i = 0; i <= text.length; i += 1) {
+    docs.push({ frame: Math.round(start + i * step), text: text.slice(0, i) })
+  }
+  docs.push({ frame: Math.round(start + text.length * step + 24), text })
+  return docs
+}
+
+function wrap(text, max = 38) {
   const words = text.split(' ')
   const lines = []
   let line = ''
@@ -189,519 +270,766 @@ function wrapText(text, max = 36) {
     }
   }
   if (line) lines.push(line)
-  return lines.join('\n')
+  return lines.join('\r')
 }
 
-function typingDocs(text, startFrame, stepFrames) {
-  const docs = []
-  for (let i = 0; i <= text.length; i += 1) {
-    docs.push({ frame: startFrame + i * stepFrames, text: text.slice(0, i) })
-  }
-  docs.push({ frame: startFrame + text.length * stepFrames + 24, text })
-  return docs
+function checkShape(size = 1) {
+  const s = size
+  return path([[-12 * s, 1 * s], [-4 * s, 9 * s], [14 * s, -12 * s]], false)
 }
 
-function fadeIn(start, end, peak = 100, outStart = null, outEnd = null) {
-  const keys = [k(0, 0), k(start, 0), k(end, peak)]
-  if (outStart != null && outEnd != null) keys.push(k(outStart, peak), k(outEnd, 0), k(OP, 0))
-  else keys.push(k(OP, peak))
-  return keys
+function sendPlaneShape() {
+  return path([[-10, -10], [16, 0], [-10, 10], [-4, 0]], true)
 }
 
-function fly(fromX, fromY, toX, toY, start, end) {
-  return [k(0, [fromX, fromY, 0]), k(start, [fromX, fromY, 0]), k(end, [toX, toY, 0]), k(OP, [toX, toY, 0])]
-}
-
-function card(name, x, y, w, h, title, subtitle, accent, start, from = [1520, y + 80]) {
-  const p = fly(from[0], from[1], x, y, start, start + 28)
-  shapeLayer(`${name}-shadow`, [group('shadow', [rc(10, 14, w, h, 22), fill('#000000', 24)])], {
-    p,
-    o: fadeIn(start, start + 20, 100),
+function cursor(name, points, start, end, outStart = null, outEnd = null) {
+  const frames = [key(0, [...points[0], 0])]
+  points.forEach(([x, y], i) => {
+    const t = start + i * ((end - start) / Math.max(points.length - 1, 1))
+    frames.push(key(Math.round(t), [x, y, 0]))
   })
-  shapeLayer(`${name}-panel`, [
-    group('panel', [
-      rc(0, 0, w, h, 22),
-      fill('#101725', 96),
-      stroke('#30384d', 1.2, 100),
+  frames.push(key(OP, [...points.at(-1), 0]))
+
+  shapeLayer(name, [
+    group('pointer', [
+      path([[0, 0], [28, 12], [14, 19], [8, 35]], true),
+      fill('#ffffff', 100),
+      stroke('#050816', 1.6, 80),
     ]),
-    group('accent', [rc(-w / 2 + 8, 0, 6, h - 28, 5), fill(accent, 100)]),
-    group('status', [el(w / 2 - 32, -h / 2 + 32, 16, 16), fill('#34d399', 100)]),
-  ], { p, o: fadeIn(start, start + 20, 100) })
-  textLayer(`${name}-title`, title, x - w / 2 + 26, y - h / 2 + 28, 24, '#f8fafc', {
-    w: w - 76,
-    h: 34,
-    weight: 'semibold',
-    p: fly(from[0] - w / 2 + 26, from[1] - h / 2 + 28, x - w / 2 + 26, y - h / 2 + 28, start, start + 28),
-    o: fadeIn(start + 8, start + 24, 100),
-  })
-  textLayer(`${name}-sub`, subtitle, x - w / 2 + 26, y - h / 2 + 62, 18, '#9ca3af', {
-    w: w - 52,
-    h: 52,
-    lh: 24,
-    p: fly(from[0] - w / 2 + 26, from[1] - h / 2 + 62, x - w / 2 + 26, y - h / 2 + 62, start, start + 28),
-    o: fadeIn(start + 12, start + 28, 100),
+  ], {
+    p: frames,
+    o: fadeIn(start - 8, start, 100, outStart, outEnd),
   })
 }
 
-function fileCard(name, x, y, label, accent, start, from = [1240, 690]) {
-  const p = fly(from[0], from[1], x, y, start, start + 24)
-  shapeLayer(`${name}-file`, [
-    group('paper', [rc(0, 0, 118, 150, 16), fill('#f8fafc', 100), stroke('#ffffff', 1, 40)]),
-    group('fold', [path([[31, -75], [59, -47], [31, -47]], true), fill('#dbeafe', 100)]),
-    group('accent', [rc(0, 44, 88, 24, 12), fill(accent, 100)]),
-    group('line1', [rc(-8, -26, 64, 6, 3), fill('#334155', 65)]),
-    group('line2', [rc(-3, -10, 76, 6, 3), fill('#64748b', 60)]),
-    group('line3', [rc(-12, 6, 58, 6, 3), fill('#94a3b8', 70)]),
-  ], { p, o: fadeIn(start, start + 18, 100) })
-  textLayer(`${name}-label`, label, x - 39, y + 39, 18, '#0f172a', {
-    w: 78,
-    h: 24,
-    align: 1,
-    weight: 'bold',
-    p: fly(from[0] - 39, from[1] + 39, x - 39, y + 39, start, start + 24),
-    o: fadeIn(start + 8, start + 20, 100),
-  })
-}
-
-function dotPulse(name, x, y, size, color, offset = 0) {
-  shapeLayer(name, [group('dot', [el(0, 0, size, size), fill(color, 78)])], {
-    p: [
-      k(0, [x, y, 0]),
-      k(540, [x + 16, y - 12, 0]),
-      k(OP, [x - 8, y + 10, 0]),
-    ],
+function clickRing(name, x, y, frame, color = palette.purpleLight, size = 58) {
+  shapeLayer(name, [group('ring', [el(0, 0, size, size), fill('#000000', 0), stroke(color, 3, 90)])], {
+    p: [x, y, 0],
     s: [
-      k(0, [80, 80, 100]),
-      k(120 + offset, [80, 80, 100]),
-      k(160 + offset, [132, 132, 100]),
-      k(210 + offset, [80, 80, 100]),
-      k(OP, [80, 80, 100]),
+      key(0, [35, 35, 100]),
+      key(frame, [35, 35, 100]),
+      key(frame + 18, [145, 145, 100]),
+      key(frame + 36, [165, 165, 100]),
+      key(OP, [165, 165, 100]),
     ],
-    o: [
-      k(0, 20),
-      k(130 + offset, 65),
-      k(220 + offset, 24),
-      k(720 + offset, 70),
-      k(OP, 24),
-    ],
-  })
-}
-
-function connection(name, a, b, color, start, opacity = 65) {
-  shapeLayer(name, [group('connection', [path([a, b], false), stroke(color, 2, opacity), trim(start, start + 34)])], {
-    o: fadeIn(start, start + 18, 100, 1010, 1060),
+    o: [key(0, 0), key(frame, 100), key(frame + 36, 0), key(OP, 0)],
   })
 }
 
 function addBackground() {
-  shapeLayer('background-base', [group('bg', [rc(W / 2, H / 2, W, H, 0), fill('#03050b', 100)])])
-  shapeLayer('background-vignette', [
-    group('purple-halo', [el(360, 150, 860, 430), fill('#7c3aed', 10)]),
-    group('cyan-halo', [el(1510, 600, 680, 460), fill('#22d3ee', 8)]),
-    group('green-halo', [el(1090, 930, 540, 260), fill('#34d399', 6)]),
+  shapeLayer('background-base', [
+    group('base', [rc(W / 2, H / 2, W, H, 0), fill(palette.bg, 100)]),
   ])
-  for (let i = 0; i < 10; i += 1) {
-    const y = 130 + i * 84
-    shapeLayer(`grid-line-h-${i}`, [group('line', [path([[130, y], [1790, y]], false), stroke('#1f2937', 1, i % 3 === 0 ? 28 : 16)])])
-  }
+  shapeLayer('background-glow', [
+    group('purple-glow', [el(390, 120, 850, 420), fill(palette.purpleLight, 11)]),
+    group('green-glow', [el(1550, 820, 700, 380), fill(palette.greenBright, 8)]),
+    group('cyan-glow', [el(1420, 260, 620, 320), fill(palette.cyan, 8)]),
+  ])
   for (let i = 0; i < 12; i += 1) {
-    const x = 160 + i * 145
-    shapeLayer(`grid-line-v-${i}`, [group('line', [path([[x, 92], [x, 1006]], false), stroke('#111827', 1, 20)])])
+    const y = 120 + i * 78
+    shapeLayer(`grid-h-${i}`, [group('grid', [path([[110, y], [1810, y]], false), stroke('#1f2937', 1, i % 3 === 0 ? 26 : 13)])])
   }
-  dotPulse('ambient-dot-1', 220, 168, 9, '#a855f7', 0)
-  dotPulse('ambient-dot-2', 1710, 206, 11, '#22d3ee', 40)
-  dotPulse('ambient-dot-3', 1538, 890, 8, '#34d399', 80)
-  dotPulse('ambient-dot-4', 860, 130, 7, '#f472b6', 110)
-  dotPulse('ambient-dot-5', 125, 770, 10, '#fbbf24', 140)
-}
-
-function addChatInterface() {
-  const cx = 520
-  const cy = 540
-  const w = 660
-  const h = 850
-  const baseP = [
-    k(0, [cx - 18, cy + 22, 0]),
-    k(120, [cx, cy, 0]),
-    k(540, [cx + 6, cy - 4, 0]),
-    k(OP, [cx - 2, cy + 4, 0]),
-  ]
-
-  shapeLayer('chat-screen-shadow', [group('shadow', [rc(20, 26, w + 8, h + 8, 36), fill('#000000', 36)])], {
-    p: baseP,
-    s: [k(0, [94, 94, 100]), k(120, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(0, 45, 100),
-  })
-  shapeLayer('chat-screen-body', [
-    group('body', [rc(0, 0, w, h, 34), fill('#071016', 100), stroke('#26323f', 1.4, 100)]),
-    group('messages-bg', [rc(0, 36, w - 42, h - 180, 24), fill('#0b141a', 100)]),
-    group('header', [rc(0, -h / 2 + 52, w - 42, 78, 24), fill('#1f2c34', 100)]),
-    group('input-bar', [rc(0, h / 2 - 52, w - 42, 74, 24), fill('#1f2c34', 100)]),
-    group('input-wrap', [rc(-42, h / 2 - 52, w - 150, 46, 23), fill('#2a3942', 100)]),
-    group('send-btn', [el(w / 2 - 74, h / 2 - 52, 44, 44), fill('#2a3942', 100)]),
-  ], { p: baseP, s: [k(0, [94, 94, 100]), k(120, [100, 100, 100]), k(OP, [100, 100, 100])], o: fadeIn(0, 45, 100) })
-
-  shapeLayer('chat-avatar', [
-    group('avatar', [el(0, 0, 42, 42), fill('#2a3942', 100), stroke('#e5e7eb', 1.5, 32)]),
-    group('status', [el(14, 14, 10, 10), fill('#25d366', 100)]),
-    group('person-a', [el(0, -6, 12, 12), stroke('#ffffff', 1.7, 90)]),
-    group('person-b', [path([[-12, 12], [-6, 4], [6, 4], [12, 12]], false), stroke('#ffffff', 1.7, 90)]),
-  ], { p: [k(0, [248, 166, 0]), k(120, [262, 152, 0]), k(OP, [260, 156, 0])], o: fadeIn(0, 60, 100) })
-  textLayer('chat-title', 'Asistente LLM', 298, 138, 24, '#e9edef', {
-    w: 230,
-    h: 34,
-    weight: 'semibold',
-    p: [k(0, [284, 152, 0]), k(120, [298, 138, 0]), k(OP, [296, 142, 0])],
-    o: fadeIn(0, 60, 100),
-  })
-  textLayer('chat-subtitle', 'DeepSeek · en línea', 298, 170, 16, '#8696a0', {
-    w: 260,
-    h: 28,
-    p: [k(0, [284, 184, 0]), k(120, [298, 170, 0]), k(OP, [296, 174, 0])],
-    o: fadeIn(0, 60, 100),
-  })
-  textLayer('empty-state-title', '¿En qué puedo ayudarte?', 365, 468, 24, '#e9edef', {
-    w: 340,
-    h: 40,
-    align: 1,
-    weight: 'semibold',
-    o: [k(0, 0), k(50, 88), k(128, 88), k(162, 0), k(OP, 0)],
-  })
-  for (let i = 0; i < 4; i += 1) {
-    const x = 309 + (i % 2) * 170
-    const y = 526 + Math.floor(i / 2) * 42
-    shapeLayer(`quick-chip-${i}`, [group('chip', [rc(x, y, 142, 30, 15), fill('#ffffff', 6), stroke('#ffffff', 1, 9)])], {
-      o: [k(0, 0), k(70 + i * 6, 100), k(128, 100), k(162, 0), k(OP, 0)],
-    })
+  for (let i = 0; i < 14; i += 1) {
+    const x = 110 + i * 130
+    shapeLayer(`grid-v-${i}`, [group('grid', [path([[x, 70], [x, 1010]], false), stroke('#111827', 1, 18)])])
   }
-  textLayer('input-placeholder', 'Escribe un mensaje o # para tareas...', 245, 884, 19, '#8696a0', {
-    w: 430,
-    h: 28,
-    o: [k(0, 0), k(60, 100), k(128, 100), k(146, 0), k(OP, 0)],
-  })
-  shapeLayer('input-focus-glow', [
-    group('glow', [rc(477, 884, 492, 56, 28), fill('#00a884', 8)]),
-    group('border', [rc(477, 884, 492, 56, 28), fill('#000000', 0), stroke('#00d68f', 2, 76)]),
-  ], { o: fadeIn(118, 142, 100, 304, 332) })
-
-  const prompt = 'Crear un curso avanzado de Machine Learning usando Python de 32 semanas'
-  textLayer('typing-prompt', '', 245, 861, 19, '#e9edef', {
-    w: 440,
-    h: 62,
-    lh: 25,
-    docs: typingDocs(prompt, 142, 2),
-    o: [k(0, 0), k(132, 0), k(146, 100), k(304, 100), k(320, 0), k(OP, 0)],
-  })
-
-  shapeLayer('send-button-active', [
-    group('halo', [el(0, 0, 72, 72), fill('#00a884', 16)]),
-    group('button', [el(0, 0, 46, 46), fill('#00a884', 100)]),
-    group('plane', [path([[-10, -10], [14, 0], [-10, 10], [-4, 0]], true), fill('#ffffff', 96)]),
-  ], {
-    p: [k(0, [776, 884, 0]), k(OP, [776, 884, 0])],
-    s: [k(0, [86, 86, 100]), k(270, [86, 86, 100]), k(290, [112, 112, 100]), k(310, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(266, 284, 100, 318, 340),
-  })
-
-  shapeLayer('cursor', [
-    group('pointer', [path([[0, 0], [26, 11], [13, 18], [8, 33]], true), fill('#ffffff', 100), stroke('#0b1220', 1.4, 75)]),
-  ], {
-    p: [
-      k(0, [720, 820, 0]),
-      k(88, [720, 820, 0]),
-      k(126, [476, 884, 0]),
-      k(278, [476, 884, 0]),
-      k(304, [776, 884, 0]),
-      k(330, [776, 884, 0]),
-      k(370, [830, 820, 0]),
-      k(420, [880, 760, 0]),
-      k(OP, [880, 760, 0]),
-    ],
-    o: fadeIn(84, 96, 100, 360, 390),
-  })
-  shapeLayer('click-ring-input', [group('ring', [el(0, 0, 42, 42), fill('#000000', 0), stroke('#00d68f', 2, 86)])], {
-    p: [476, 884, 0],
-    s: [k(0, [40, 40, 100]), k(124, [40, 40, 100]), k(146, [135, 135, 100]), k(164, [155, 155, 100]), k(OP, [155, 155, 100])],
-    o: [k(0, 0), k(124, 100), k(164, 0), k(OP, 0)],
-  })
-  shapeLayer('click-ring-send', [group('ring', [el(0, 0, 46, 46), fill('#000000', 0), stroke('#00d68f', 2, 92)])], {
-    p: [776, 884, 0],
-    s: [k(0, [40, 40, 100]), k(302, [40, 40, 100]), k(326, [150, 150, 100]), k(350, [170, 170, 100]), k(OP, [170, 170, 100])],
-    o: [k(0, 0), k(302, 100), k(350, 0), k(OP, 0)],
-  })
-
-  shapeLayer('user-message-bubble', [
-    group('bubble', [rc(0, 0, 432, 96, 18), fill('#005c4b', 100), stroke('#0ca678', 1, 42)]),
-  ], {
-    p: [k(0, [630, 282, 0]), k(315, [630, 282, 0]), k(344, [548, 314, 0]), k(OP, [548, 314, 0])],
-    o: fadeIn(315, 344, 100),
-  })
-  textLayer('user-message-text', prompt, 358, 284, 18, '#e9edef', {
-    w: 380,
-    h: 72,
-    lh: 24,
-    p: [k(0, [440, 252, 0]), k(315, [440, 252, 0]), k(344, [358, 284, 0]), k(OP, [358, 284, 0])],
-    o: fadeIn(322, 350, 100),
-  })
-  shapeLayer('assistant-avatar-small', [
-    group('avatar', [el(0, 0, 30, 30), fill('#2a3942', 100), stroke('#ffffff', 1, 28)]),
-  ], { p: [216, 404, 0], o: fadeIn(334, 354, 100) })
-  shapeLayer('typing-bubble', [group('bubble', [rc(0, 0, 92, 44, 18), fill('#1f2c34', 100)])], {
-    p: [286, 404, 0],
-    o: fadeIn(334, 354, 100, 430, 448),
-  })
-  for (let i = 0; i < 3; i += 1) {
-    shapeLayer(`typing-dot-${i}`, [group('dot', [el(0, 0, 9, 9), fill(['#8696a0', '#a855f7', '#22d3ee'][i], 100)])], {
-      p: [260 + i * 26, 404, 0],
-      s: [
-        k(0, [70, 70, 100]),
-        k(348 + i * 8, [70, 70, 100]),
-        k(362 + i * 8, [120, 120, 100]),
-        k(388 + i * 8, [70, 70, 100]),
-        k(OP, [70, 70, 100]),
-      ],
-      o: fadeIn(334, 354, 100, 430, 448),
-    })
-  }
-  shapeLayer('thinking-veil', [group('veil', [rc(520, 540, 600, 682, 24), fill('#03050b', 28)])], {
-    o: fadeIn(344, 378, 100, 456, 490),
-  })
-  shapeLayer('assistant-reply-bubble', [group('bubble', [rc(0, 0, 332, 60, 18), fill('#1f2c34', 100), stroke('#334155', 1, 80)])], {
-    p: [k(0, [296, 434, 0]), k(432, [296, 434, 0]), k(458, [366, 468, 0]), k(OP, [366, 468, 0])],
-    o: fadeIn(432, 458, 100),
-  })
-  textLayer('assistant-reply-text', 'Aquí está tu plan de curso', 228, 456, 20, '#e9edef', {
-    w: 296,
-    h: 34,
-    weight: 'semibold',
-    p: [k(0, [158, 422, 0]), k(432, [158, 422, 0]), k(458, [228, 456, 0]), k(OP, [228, 456, 0])],
-    o: fadeIn(438, 462, 100),
-  })
-
-  const autoText = 'Curso creado. Estoy generando miniaturas, documentos Word/PDF y guardando archivos en Cloudflare R2.'
-  shapeLayer('automation-bubble-glow', [group('glow', [rc(0, 0, 488, 126, 24), fill('#34d399', 12)])], {
-    p: [k(0, [376, 606, 0]), k(610, [376, 606, 0]), k(650, [430, 608, 0]), k(OP, [430, 608, 0])],
-    s: [k(0, [88, 88, 100]), k(650, [106, 106, 100]), k(706, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(610, 646, 100, 1016, 1060),
-  })
-  shapeLayer('automation-bubble', [group('bubble', [rc(0, 0, 470, 112, 22), fill('#14211d', 100), stroke('#34d399', 1.6, 75)])], {
-    p: [k(0, [344, 606, 0]), k(610, [344, 606, 0]), k(650, [430, 608, 0]), k(OP, [430, 608, 0])],
-    o: fadeIn(610, 646, 100, 1016, 1060),
-  })
-  textLayer('automation-text', autoText, 222, 568, 18, '#d1fae5', {
-    w: 418,
-    h: 92,
-    lh: 24,
-    weight: 'semibold',
-    p: [k(0, [136, 566, 0]), k(610, [136, 566, 0]), k(650, [222, 568, 0]), k(OP, [222, 568, 0])],
-    o: fadeIn(622, 654, 100, 1016, 1060),
-  })
-}
-
-function addThinkingNetwork() {
-  const nodes = [
-    [960, 330], [1048, 388], [922, 446], [1112, 492], [1008, 548], [1165, 370],
-  ]
-  connection('neural-line-1', nodes[0], nodes[1], '#a855f7', 354)
-  connection('neural-line-2', nodes[1], nodes[3], '#22d3ee', 365)
-  connection('neural-line-3', nodes[2], nodes[4], '#34d399', 374)
-  connection('neural-line-4', nodes[0], nodes[2], '#a855f7', 382)
-  connection('neural-line-5', nodes[1], nodes[5], '#f472b6', 390)
-  connection('neural-line-6', nodes[3], nodes[4], '#22d3ee', 402)
-  nodes.forEach(([x, y], i) => {
-    shapeLayer(`neural-node-${i}`, [
-      group('halo', [el(0, 0, 54, 54), fill(['#a855f7', '#22d3ee', '#34d399', '#f472b6'][i % 4], 12)]),
-      group('dot', [el(0, 0, 15, 15), fill(['#a855f7', '#22d3ee', '#34d399', '#f472b6'][i % 4], 95)]),
+  for (let i = 0; i < 18; i += 1) {
+    const x = 150 + ((i * 139) % 1640)
+    const y = 110 + ((i * 83) % 850)
+    const color = [palette.purpleLight, palette.cyan, palette.greenBright, palette.amber][i % 4]
+    shapeLayer(`ambient-node-${i}`, [
+      group('node', [el(0, 0, 6 + (i % 3) * 2, 6 + (i % 3) * 2), fill(color, 65)]),
     ], {
-      p: [x, y, 0],
-      s: [k(0, [60, 60, 100]), k(360 + i * 8, [60, 60, 100]), k(386 + i * 8, [120, 120, 100]), k(430 + i * 8, [90, 90, 100]), k(OP, [90, 90, 100])],
-      o: fadeIn(342 + i * 8, 362 + i * 8, 100, 520, 560),
-    })
-  })
-  for (let i = 0; i < 12; i += 1) {
-    const x = 830 + (i % 4) * 116
-    const y = 300 + Math.floor(i / 4) * 82
-    shapeLayer(`reasoning-particle-${i}`, [group('particle', [el(0, 0, 6, 6), fill(i % 2 ? '#22d3ee' : '#a855f7', 80)])], {
-      p: [k(0, [x, y, 0]), k(352 + i * 5, [x, y, 0]), k(450 + i * 4, [x + 42, y - 46, 0]), k(OP, [x + 42, y - 46, 0])],
-      o: fadeIn(350 + i * 4, 366 + i * 4, 100, 492, 535),
+      p: [key(0, [x, y, 0]), key(620, [x + (i % 2 ? 18 : -16), y + (i % 3 ? -12 : 14), 0]), key(OP, [x, y, 0])],
+      o: [key(0, 22), key(140 + i * 13, 65), key(260 + i * 11, 28), key(900, 65), key(OP, 28)],
     })
   }
 }
 
-function addCourseGeneration() {
-  shapeLayer('course-board-shadow', [group('shadow', [rc(18, 22, 780, 740, 32), fill('#000000', 28)])], {
-    p: [1284, 556, 0],
-    o: fadeIn(420, 470, 100),
+const chat = {
+  x: 500,
+  y: 540,
+  w: 620,
+  h: 900,
+}
+
+function addChatFrame() {
+  const { x, y, w, h } = chat
+  shapeLayer('chat-device-shadow', [group('shadow', [rc(22, 28, w + 12, h + 12, 42), fill('#000000', 42)])], {
+    p: [key(0, [x - 28, y + 28, 0]), key(70, [x, y, 0]), key(OP, [x, y, 0])],
+    s: [key(0, [96, 96, 100]), key(70, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(0, 46, 100),
   })
-  shapeLayer('course-board', [
-    group('panel', [rc(0, 0, 780, 740, 32), fill('#080d18', 96), stroke('#334155', 1.3, 80)]),
-    group('topbar', [rc(0, -338, 708, 58, 20), fill('#101725', 100)]),
-    group('top-dot-a', [el(-326, -338, 12, 12), fill('#f472b6', 100)]),
-    group('top-dot-b', [el(-302, -338, 12, 12), fill('#fbbf24', 100)]),
-    group('top-dot-c', [el(-278, -338, 12, 12), fill('#34d399', 100)]),
-  ], { p: [1284, 556, 0], o: fadeIn(420, 470, 100) })
-  textLayer('course-board-title', 'Machine Learning con Python', 1000, 200, 30, '#f8fafc', {
-    w: 520,
+  shapeLayer('chat-device-body', [
+    group('body', [rc(0, 0, w, h, 38), fill(palette.appBlack, 100), stroke('#24242a', 1.5, 100)]),
+    group('header', [rc(0, -h / 2 + 52, w, 104, 38), fill(palette.header, 100)]),
+    group('divider', [rc(0, -h / 2 + 104, w, 2, 0), fill('#ffffff', 8)]),
+    group('input-area', [rc(0, h / 2 - 52, w, 104, 38), fill(palette.header, 100), stroke('#ffffff', 1, 5)]),
+    group('input', [rc(-28, h / 2 - 52, w - 192, 52, 26), fill(palette.input, 100)]),
+    group('send', [el(w / 2 - 54, h / 2 - 52, 44, 44), fill(palette.purple, 100)]),
+    group('mic', [el(-w / 2 + 108, h / 2 - 52, 36, 36), fill('#111111', 100), stroke('#333333', 1, 80)]),
+    group('course-mode-icon', [el(-w / 2 + 58, h / 2 - 52, 36, 36), fill('#111111', 100), stroke('#333333', 1, 80)]),
+  ], {
+    p: [key(0, [x - 28, y + 28, 0]), key(70, [x, y, 0]), key(OP, [x, y, 0])],
+    s: [key(0, [96, 96, 100]), key(70, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(0, 46, 100),
+  })
+
+  shapeLayer('chat-header-icons', [
+    group('back', [path([[-8, 0], [2, -10], [-8, 0], [2, 10]], false), stroke('#ffffff', 2.4, 96)]),
+    group('avatar', [el(62, 0, 42, 42), fill('#1c1c1e', 100), stroke(palette.green, 1.6, 90)]),
+    group('avatar-i', [path([[62, -5], [62, 7]], false), stroke(palette.green, 2.1, 100)]),
+    group('status', [el(77, 16, 10, 10), fill(palette.green, 100), stroke(palette.header, 2, 100)]),
+    group('trash-top', [path([[494, -12], [536, -12]], false), stroke('#666666', 2.2, 100)]),
+    group('trash-body', [path([[502, -8], [506, 18], [526, 18], [530, -8]], false), stroke('#666666', 2.2, 100)]),
+  ], {
+    p: [key(0, [220, 154, 0]), key(70, [230, 142, 0]), key(OP, [230, 142, 0])],
+    o: fadeIn(18, 58, 100),
+  })
+  textLayer('bot-name', 'Asistente IA', 314, 126, 23, palette.text, {
+    w: 240,
+    h: 34,
+    weight: 'semibold',
+    o: fadeIn(20, 62, 100),
+  })
+  textLayer('bot-model', 'DeepSeek-V3.2-Speciale', 314, 156, 16, '#666666', {
+    w: 280,
+    h: 24,
+    o: fadeIn(20, 62, 100),
+  })
+  shapeLayer('send-plane-icon', [
+    group('plane', [sendPlaneShape(), fill('#ffffff', 96)]),
+  ], {
+    p: [756, 938, 0],
+    o: fadeIn(38, 70, 100),
+  })
+  shapeLayer('course-cap-icon', [
+    group('cap', [path([[-13, -2], [0, -9], [13, -2], [0, 5]], true), stroke(palette.muted, 1.7, 100)]),
+    group('base', [path([[-8, 4], [-8, 10], [8, 10], [8, 4]], false), stroke(palette.muted, 1.7, 100)]),
+  ], { p: [248, 938, 0], o: fadeIn(38, 70, 100) })
+}
+
+function addWelcomeState() {
+  shapeLayer('welcome-avatar', [
+    group('box', [rc(0, 0, 72, 72, 22), gradient('avatar-grad', ['#1c1c1e', '#2c2c2e'], 100), stroke('#ffffff', 1, 8)]),
+    group('person-head', [el(0, -10, 18, 18), stroke('#8e8e93', 2, 100)]),
+    group('person-body', [path([[-18, 20], [-8, 8], [8, 8], [18, 20]], false), stroke('#8e8e93', 2, 100)]),
+  ], {
+    p: [500, 444, 0],
+    o: fadeWindow(54, 86, 160, 196, 100),
+  })
+  textLayer('welcome-title', 'Asistente IA', 380, 504, 28, palette.text, {
+    w: 240,
+    h: 40,
+    weight: 'bold',
+    align: 1,
+    o: fadeWindow(64, 96, 160, 196, 100),
+  })
+  textLayer('welcome-desc', 'Haz preguntas sobre tus cursos, tareas y materias.', 338, 548, 18, palette.faint, {
+    w: 324,
+    h: 52,
+    align: 1,
+    lh: 24,
+    o: fadeWindow(74, 106, 160, 196, 100),
+  })
+}
+
+function addTaskPanel() {
+  shapeLayer('task-panel-shadow', [group('shadow', [rc(18, 24, 760, 670, 28), fill('#000000', 28)])], {
+    p: [1322, 540, 0],
+    o: fadeWindow(70, 112, 772, 826, 100),
+  })
+  shapeLayer('task-panel', [
+    group('panel', [rc(0, 0, 760, 670, 28), fill('#090f1a', 96), stroke('#334155', 1.2, 84)]),
+    group('topbar', [rc(0, -286, 690, 66, 20), fill('#111827', 100)]),
+    group('dot1', [el(-314, -286, 13, 13), fill(palette.red, 100)]),
+    group('dot2', [el(-290, -286, 13, 13), fill(palette.amber, 100)]),
+    group('dot3', [el(-266, -286, 13, 13), fill(palette.greenBright, 100)]),
+  ], {
+    p: [1322, 540, 0],
+    o: fadeWindow(70, 112, 772, 826, 100),
+  })
+  textLayer('task-panel-title', 'Lista de tareas', 1012, 204, 30, palette.text, {
+    w: 310,
     h: 44,
     weight: 'bold',
-    o: fadeIn(442, 476, 100),
+    o: fadeWindow(84, 120, 770, 818, 100),
   })
-  textLayer('course-board-meta', '32 semanas · módulos, evidencias y materiales', 1000, 244, 19, '#9ca3af', {
-    w: 560,
-    h: 30,
-    o: fadeIn(452, 484, 100),
-  })
-
-  card('module-card-1', 1110, 360, 360, 116, 'Módulo 01', 'Fundamentos de Python, datos y álgebra aplicada', '#a855f7', 462)
-  card('module-card-2', 1474, 360, 360, 116, 'Módulo 02', 'Modelos supervisados, métricas y validación', '#22d3ee', 492)
-  card('module-card-3', 1110, 510, 360, 116, 'Bloques semanales', 'Semana 1-8 · Semana 9-16 · Semana 17-24', '#34d399', 522)
-  card('module-card-4', 1474, 510, 360, 116, 'Evidencias', 'Proyectos, notebooks, rúbricas y entregables', '#fbbf24', 552)
-  card('module-card-5', 1292, 666, 724, 118, 'Plan inteligente', 'Competencias, resultados de aprendizaje y estructura por tareas', '#f472b6', 582, [1292, 870])
-
-  connection('course-link-1', [1110, 420], [1110, 452], '#a855f7', 612, 55)
-  connection('course-link-2', [1474, 420], [1474, 452], '#22d3ee', 626, 55)
-  connection('course-link-3', [1160, 570], [1240, 620], '#34d399', 638, 55)
-  connection('course-link-4', [1440, 570], [1360, 620], '#fbbf24', 650, 55)
-}
-
-function addAutomationScene() {
-  fileCard('docx-card', 1006, 820, 'DOCX', '#2563eb', 674)
-  fileCard('pdf-card', 1160, 820, 'PDF', '#ef4444', 696)
-  fileCard('rubric-card', 1316, 820, 'RUB', '#a855f7', 718)
-
-  shapeLayer('thumbnail-grid', [
-    group('thumb-a', [rc(-132, -54, 150, 92, 18), fill('#111827', 100), stroke('#a855f7', 1, 70)]),
-    group('thumb-a-glow', [rc(-132, -54, 112, 48, 14), fill('#a855f7', 18)]),
-    group('thumb-b', [rc(48, -54, 150, 92, 18), fill('#111827', 100), stroke('#22d3ee', 1, 70)]),
-    group('thumb-b-glow', [rc(48, -54, 112, 48, 14), fill('#22d3ee', 18)]),
-    group('thumb-c', [rc(-132, 62, 150, 92, 18), fill('#111827', 100), stroke('#34d399', 1, 70)]),
-    group('thumb-c-glow', [rc(-132, 62, 112, 48, 14), fill('#34d399', 18)]),
-    group('thumb-d', [rc(48, 62, 150, 92, 18), fill('#111827', 100), stroke('#f472b6', 1, 70)]),
-    group('thumb-d-glow', [rc(48, 62, 112, 48, 14), fill('#f472b6', 18)]),
-  ], {
-    p: [1572, 782, 0],
-    s: [k(0, [82, 82, 100]), k(710, [82, 82, 100]), k(754, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(710, 748, 100),
-  })
-  textLayer('thumbnail-label', 'Miniaturas del curso', 1430, 760, 22, '#f8fafc', {
-    w: 310,
+  textLayer('task-panel-meta', 'Curso: Backend con Node.js', 1012, 248, 20, '#9ca3af', {
+    w: 380,
     h: 32,
-    weight: 'semibold',
-    o: fadeIn(730, 762, 100),
+    o: fadeWindow(94, 130, 770, 818, 100),
   })
 
-  shapeLayer('cloudflare-r2', [
-    group('cloud-glow', [el(0, 0, 260, 136), fill('#f97316', 10)]),
-    group('cloud-a', [el(-44, 8, 92, 64), fill('#1f2937', 100), stroke('#f97316', 1.3, 72)]),
-    group('cloud-b', [el(18, -18, 108, 84), fill('#1f2937', 100), stroke('#f97316', 1.3, 72)]),
-    group('cloud-c', [el(78, 12, 82, 60), fill('#1f2937', 100), stroke('#f97316', 1.3, 72)]),
-    group('cloud-base', [rc(28, 32, 204, 54, 27), fill('#1f2937', 100), stroke('#f97316', 1.3, 72)]),
-  ], {
-    p: [1628, 226, 0],
-    s: [k(0, [74, 74, 100]), k(756, [74, 74, 100]), k(806, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(756, 806, 100),
-  })
-  textLayer('cloudflare-title', 'Cloudflare R2', 1534, 274, 21, '#fed7aa', {
-    w: 260,
-    h: 32,
-    weight: 'bold',
-    align: 1,
-    o: fadeIn(782, 820, 100),
-  })
-  shapeLayer('storage-bar', [
-    group('track', [rc(0, 0, 300, 16, 8), fill('#111827', 100), stroke('#334155', 1, 70)]),
-    group('fill-1', [rc(-110, 0, 78, 10, 5), fill('#f97316', 94)]),
-    group('fill-2', [rc(-32, 0, 72, 10, 5), fill('#22d3ee', 94)]),
-    group('fill-3', [rc(58, 0, 96, 10, 5), fill('#34d399', 94)]),
-  ], {
-    p: [1628, 334, 0],
-    s: [k(0, [40, 100, 100]), k(800, [40, 100, 100]), k(880, [72, 100, 100]), k(958, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(798, 832, 100),
-  })
-  textLayer('storage-percent', '0%', 1592, 362, 19, '#bbf7d0', {
-    w: 80,
-    h: 28,
-    align: 1,
-    weight: 'bold',
-    docs: [
-      { frame: 800, text: '12%' },
-      { frame: 848, text: '42%' },
-      { frame: 902, text: '78%' },
-      { frame: 958, text: '100%' },
-    ],
-    o: fadeIn(800, 832, 100),
-  })
-
-  const flightPaths = [
-    ['file-flight-docx', [1006, 820], [1466, 308], '#2563eb', 810],
-    ['file-flight-pdf', [1160, 820], [1518, 318], '#ef4444', 830],
-    ['file-flight-thumb', [1572, 782], [1600, 322], '#22d3ee', 850],
-    ['file-flight-rubric', [1316, 820], [1564, 330], '#a855f7', 870],
+  const rows = [
+    ['Ensayo: Arquitectura web', 'Pendiente', palette.amber],
+    ['Proyecto: API REST', 'Entregado', palette.cyan],
+    ['Quiz: Autenticacion JWT', 'Pendiente', palette.amber],
+    ['Practica: Deploy en Railway', 'Entregado', palette.cyan],
   ]
-  flightPaths.forEach(([name, from, to, color, start]) => {
-    shapeLayer(name, [group('packet', [el(0, 0, 14, 14), fill(color, 100)])], {
-      p: [k(0, [...from, 0]), k(start, [...from, 0]), k(start + 70, [...to, 0]), k(OP, [...to, 0])],
-      o: [k(0, 0), k(start, 0), k(start + 10, 100), k(start + 70, 100), k(start + 92, 0), k(OP, 0)],
-      s: [k(0, [88, 88, 100]), k(start + 42, [130, 130, 100]), k(start + 92, [70, 70, 100]), k(OP, [70, 70, 100])],
+  rows.forEach(([title, status, color], i) => {
+    const y = 338 + i * 92
+    const isSelected = i === 1
+    shapeLayer(`task-row-${i}`, [
+      group('row', [rc(0, 0, 668, 70, 16), fill(isSelected ? '#111827' : '#0f172a', 100), stroke(isSelected ? palette.cyan : '#263244', isSelected ? 1.8 : 1, isSelected ? 92 : 58)]),
+      group('icon', [rc(-298, 0, 38, 38, 11), fill(color, 18), stroke(color, 1, 72)]),
+      group('paper', [path([[-304, -10], [-292, -10], [-286, -4], [-286, 12], [-304, 12]], false), stroke(color, 1.7, 100)]),
+      group('status-dot', [el(284, 0, 12, 12), fill(color, 100)]),
+    ], {
+      p: [1322, y, 0],
+      s: isSelected
+        ? [key(0, [100, 100, 100]), key(160, [100, 100, 100]), key(186, [104, 104, 100]), key(224, [100, 100, 100]), key(OP, [100, 100, 100])]
+        : [100, 100, 100],
+      o: fadeWindow(108 + i * 12, 144 + i * 12, 770, 818, 100),
     })
-    shapeLayer(`${name}-trail`, [group('trail', [path([from, to], false), stroke(color, 2, 40), trim(start, start + 58)])], {
-      o: fadeIn(start, start + 10, 100, start + 84, start + 112),
+    textLayer(`task-title-${i}`, title, 1065, y - 23, 22, palette.text, {
+      w: 420,
+      h: 32,
+      weight: isSelected ? 'semibold' : 'regular',
+      o: fadeWindow(116 + i * 12, 152 + i * 12, 770, 818, 100),
     })
+    textLayer(`task-status-${i}`, status, 1065, y + 9, 16, '#9ca3af', {
+      w: 260,
+      h: 24,
+      o: fadeWindow(122 + i * 12, 158 + i * 12, 770, 818, 100),
+    })
+  })
+
+  shapeLayer('selected-task-glow', [
+    group('glow', [rc(0, 0, 684, 86, 22), fill(palette.cyan, 8), stroke(palette.cyan, 2.2, 88)]),
+  ], {
+    p: [1322, 430, 0],
+    s: [key(0, [94, 94, 100]), key(170, [94, 94, 100]), key(210, [106, 106, 100]), key(254, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeWindow(170, 202, 690, 746, 100),
+  })
+
+  shapeLayer('grade-chip-bg', [
+    group('chip', [rc(0, 0, 142, 40, 20), fill('#052e26', 100), stroke(palette.greenBright, 1.6, 100)]),
+    group('check', [checkShape(0.72), stroke(palette.greenBright, 4, 100)]),
+  ], {
+    p: [1600, 433, 0],
+    s: [key(0, [80, 80, 100]), key(690, [80, 80, 100]), key(724, [112, 112, 100]), key(752, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeWindow(684, 716, 772, 818, 100),
+  })
+  textLayer('grade-chip', '9.2 / 10', 1540, 418, 20, '#d1fae5', {
+    w: 120,
+    h: 30,
+    weight: 'bold',
+    align: 1,
+    o: fadeWindow(690, 722, 772, 818, 100),
   })
 }
 
-function addCompletion() {
-  shapeLayer('completion-focus-scrim', [
-    group('scrim', [rc(0, 0, 690, 390, 34), fill('#030712', 86), stroke('#1f8f6b', 1.5, 65)]),
+function addGradingChat() {
+  const prompt = 'Califica la tarea API REST de Sofia con la rubrica del curso.'
+  textLayer('grading-input-placeholder', 'Escribe un mensaje...', 328, 928, 19, '#666666', {
+    w: 350,
+    h: 28,
+    o: fadeWindow(70, 96, 198, 222, 100),
+  })
+  shapeLayer('grading-input-focus', [
+    group('glow', [rc(0, 0, 390, 58, 28), fill(palette.purpleLight, 9)]),
+    group('line', [rc(0, 0, 390, 58, 28), fill('#000000', 0), stroke(palette.purpleLight, 2.2, 80)]),
   ], {
-    p: [1286, 570, 0],
-    o: fadeIn(952, 992, 100),
+    p: [502, 938, 0],
+    o: fadeWindow(198, 220, 356, 382, 100),
   })
-  shapeLayer('completion-glow', [group('glow', [el(0, 0, 490, 260), fill('#34d399', 10)])], {
-    p: [1286, 526, 0],
-    s: [k(0, [70, 70, 100]), k(960, [70, 70, 100]), k(1018, [118, 118, 100]), k(OP, [104, 104, 100])],
-    o: fadeIn(958, 1002, 100),
+  textLayer('grading-input-type', '', 328, 912, 18, palette.text, {
+    w: 350,
+    h: 62,
+    lh: 23,
+    docs: typeDocs(prompt, 220, 2),
+    o: fadeWindow(214, 228, 356, 386, 100),
   })
-  shapeLayer('success-badge', [
-    group('halo', [el(0, 0, 154, 154), fill('#34d399', 14)]),
-    group('badge', [el(0, 0, 96, 96), fill('#052e26', 100), stroke('#34d399', 2.4, 100)]),
-    group('check', [path([[-22, 2], [-8, 18], [26, -20]], false), stroke('#34d399', 7, 100)]),
+  cursor('cursor-grade-flow', [[1440, 414], [1322, 430], [502, 938], [756, 938], [756, 938], [558, 566]], 132, 680, 714, 752)
+  clickRing('click-task-row', 1322, 430, 170, palette.cyan, 64)
+  clickRing('click-input-grade', 502, 938, 204, palette.purpleLight, 60)
+  clickRing('click-send-grade', 756, 938, 362, palette.purpleLight, 56)
+
+  shapeLayer('grading-user-bubble', [
+    group('bubble', [rc(0, 0, 382, 82, 18), fill(palette.purple, 100)]),
   ], {
-    p: [1286, 448, 0],
-    s: [k(0, [74, 74, 100]), k(956, [74, 74, 100]), k(1010, [122, 122, 100]), k(1040, [100, 100, 100]), k(OP, [100, 100, 100])],
-    o: fadeIn(956, 1000, 100),
+    p: [key(0, [642, 290, 0]), key(374, [642, 290, 0]), key(410, [556, 308, 0]), key(OP, [556, 308, 0])],
+    o: fadeWindow(374, 410, 766, 810, 100),
   })
-  textLayer('complete-title', 'Curso completo', 1144, 536, 40, '#f8fafc', {
+  textLayer('grading-user-text', wrap(prompt, 32), 390, 288, 18, '#ffffff', {
+    w: 330,
+    h: 64,
+    lh: 23,
+    o: fadeWindow(386, 414, 766, 810, 100),
+    p: [key(0, [476, 270, 0]), key(374, [476, 270, 0]), key(410, [390, 288, 0]), key(OP, [390, 288, 0])],
+  })
+  textLayer('grading-user-time', '10:24', 646, 344, 13, '#ffffff', {
+    w: 55,
+    h: 18,
+    align: 2,
+    o: [key(0, 0), key(386, 0), key(414, 62), key(766, 62), key(810, 0), key(OP, 0)],
+  })
+
+  shapeLayer('assistant-small-avatar-grade', [
+    group('avatar', [el(0, 0, 30, 30), fill('#1c1c1e', 100), stroke(palette.green, 1.3, 80)]),
+  ], { p: [222, 420, 0], o: fadeWindow(410, 438, 766, 810, 100) })
+  shapeLayer('typing-bubble-grade', [group('bubble', [rc(0, 0, 104, 46, 18), fill(palette.assistant, 100)])], {
+    p: [302, 420, 0],
+    o: fadeWindow(414, 440, 526, 550, 100),
+  })
+  for (let i = 0; i < 3; i += 1) {
+    shapeLayer(`typing-grade-dot-${i}`, [group('dot', [el(0, 0, 8, 8), fill([palette.muted, palette.purpleLight, palette.greenBright][i], 100)])], {
+      p: [268 + i * 28, 420, 0],
+      s: [
+        key(0, [70, 70, 100]),
+        key(430 + i * 8, [70, 70, 100]),
+        key(448 + i * 8, [126, 126, 100]),
+        key(486 + i * 8, [70, 70, 100]),
+        key(OP, [70, 70, 100]),
+      ],
+      o: fadeWindow(414, 440, 526, 550, 100),
+    })
+  }
+
+  const reply = 'Calificacion sugerida: 9.2/10. Cumple endpoints, validacion y persistencia; mejora manejo de errores.'
+  shapeLayer('grade-reply-bubble', [
+    group('bubble', [rc(0, 0, 420, 112, 18), fill(palette.assistant, 100), stroke('#2c2c2e', 1, 100)]),
+  ], {
+    p: [key(0, [290, 462, 0]), key(530, [290, 462, 0]), key(566, [412, 476, 0]), key(OP, [412, 476, 0])],
+    o: fadeWindow(530, 566, 766, 810, 100),
+  })
+  textLayer('grade-reply-text', wrap(reply, 39), 224, 432, 18, '#ffffff', {
+    w: 370,
+    h: 90,
+    lh: 23,
+    o: fadeWindow(544, 572, 766, 810, 100),
+    p: [key(0, [102, 418, 0]), key(530, [102, 418, 0]), key(566, [224, 432, 0]), key(OP, [224, 432, 0])],
+  })
+  shapeLayer('grade-button-before', [
+    group('btn', [rc(0, 0, 346, 46, 23), fill(palette.green, 100)]),
+  ], {
+    p: [key(0, [416, 556, 0]), key(584, [416, 556, 0]), key(618, [434, 566, 0]), key(680, [434, 566, 0]), key(704, [434, 566, 0]), key(OP, [434, 566, 0])],
+    s: [key(0, [96, 96, 100]), key(584, [96, 96, 100]), key(618, [100, 100, 100]), key(666, [100, 100, 100]), key(684, [92, 92, 100]), key(OP, [92, 92, 100])],
+    o: [key(0, 0), key(584, 0), key(618, 100), key(680, 100), key(704, 0), key(OP, 0)],
+  })
+  textLayer('grade-button-before-text', 'Agregar calificacion (9.2/10)', 282, 550, 17, '#ffffff', {
+    w: 308,
+    h: 26,
+    weight: 'semibold',
+    align: 1,
+    o: [key(0, 0), key(590, 0), key(622, 100), key(680, 100), key(704, 0), key(OP, 0)],
+  })
+  clickRing('click-grade-button', 558, 566, 668, palette.greenBright, 58)
+
+  shapeLayer('grade-button-after', [
+    group('btn', [rc(0, 0, 318, 42, 21), fill('#063c31', 100), stroke(palette.greenBright, 1.3, 100)]),
+    group('check', [checkShape(0.62), stroke(palette.greenBright, 3.4, 100)]),
+  ], {
+    p: [434, 566, 0],
+    s: [key(0, [84, 84, 100]), key(686, [84, 84, 100]), key(724, [108, 108, 100]), key(752, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeWindow(686, 724, 766, 810, 100),
+  })
+  textLayer('grade-button-after-text', 'Calificacion agregada', 328, 560, 16, '#d1fae5', {
+    w: 260,
+    h: 24,
+    weight: 'semibold',
+    align: 1,
+    o: fadeWindow(694, 724, 766, 810, 100),
+  })
+}
+
+function addReasoningNetwork() {
+  const nodes = [
+    [940, 360], [1046, 314], [1124, 418], [1010, 508], [1172, 552], [918, 568],
+  ]
+  const links = [
+    [0, 1, palette.purpleLight],
+    [1, 2, palette.cyan],
+    [2, 4, palette.greenBright],
+    [0, 3, palette.purpleLight],
+    [3, 5, palette.amber],
+    [3, 4, palette.cyan],
+  ]
+  links.forEach(([a, b, color], i) => {
+    shapeLayer(`grade-ai-link-${i}`, [
+      group('line', [path([nodes[a], nodes[b]], false), stroke(color, 2.2, 42), trim(430 + i * 10, 462 + i * 10)]),
+    ], {
+      o: fadeWindow(430 + i * 10, 456 + i * 10, 566, 606, 100),
+    })
+  })
+  nodes.forEach(([x, y], i) => {
+    const color = [palette.purpleLight, palette.cyan, palette.greenBright, palette.amber][i % 4]
+    shapeLayer(`grade-ai-node-${i}`, [
+      group('halo', [el(0, 0, 52, 52), fill(color, 12)]),
+      group('dot', [el(0, 0, 14, 14), fill(color, 96)]),
+    ], {
+      p: [x, y, 0],
+      s: [key(0, [64, 64, 100]), key(430 + i * 8, [64, 64, 100]), key(460 + i * 8, [125, 125, 100]), key(512 + i * 8, [90, 90, 100]), key(OP, [90, 90, 100])],
+      o: fadeWindow(418 + i * 6, 442 + i * 6, 570, 612, 100),
+    })
+  })
+  for (let i = 0; i < 8; i += 1) {
+    shapeLayer(`grade-packet-${i}`, [group('packet', [el(0, 0, 9, 9), fill(i % 2 ? palette.cyan : palette.greenBright, 100)])], {
+      p: [key(0, [1180, 430, 0]), key(520 + i * 10, [1180, 430, 0]), key(612 + i * 8, [760, 545, 0]), key(OP, [760, 545, 0])],
+      o: [key(0, 0), key(520 + i * 10, 0), key(532 + i * 10, 100), key(612 + i * 8, 100), key(638 + i * 8, 0), key(OP, 0)],
+    })
+  }
+}
+
+function addCourseModeBanner() {
+  shapeLayer('course-banner', [
+    group('banner', [rc(0, 0, chat.w, 46, 0), fill('#1a0f23', 100), stroke(palette.purpleLight, 1, 18)]),
+    group('icon', [rc(-278, 0, 24, 24, 8), fill(palette.purpleLight, 18)]),
+    group('cap', [path([[-286, 0], [-278, -5], [-270, 0], [-278, 5]], true), stroke(palette.purpleLight, 1.4, 100)]),
+  ], {
+    p: [chat.x, chat.y + chat.h / 2 - 120, 0],
+    o: fadeIn(846, 878, 100),
+  })
+  textLayer('course-banner-text', 'Modo curso - describe la tematica o pega tu planificacion', 260, 820, 16, '#c7a0e8', {
+    w: 480,
+    h: 24,
+    o: fadeIn(856, 882, 100),
+  })
+}
+
+function addCourseChat() {
+  const prompt = 'Creame un curso de programacion web full stack, nivel basico, 8 semanas.'
+  shapeLayer('course-input-focus', [
+    group('glow', [rc(0, 0, 390, 58, 28), fill(palette.purpleLight, 10)]),
+    group('line', [rc(0, 0, 390, 58, 28), fill('#000000', 0), stroke(palette.purpleLight, 2.2, 82)]),
+  ], { p: [502, 938, 0], o: fadeWindow(812, 832, 946, 970, 100) })
+  textLayer('course-input-text', '', 328, 912, 18, palette.text, {
+    w: 350,
+    h: 62,
+    lh: 23,
+    docs: typeDocs(prompt, 834, 1.65),
+    o: fadeWindow(824, 842, 946, 972, 100),
+  })
+  cursor('cursor-course-flow', [[252, 938], [502, 938], [756, 938], [620, 906], [622, 860]], 796, 1128, 1160, 1198)
+  clickRing('click-course-mode', 248, 938, 806, palette.purpleLight, 58)
+  clickRing('click-course-input', 502, 938, 824, palette.purpleLight, 58)
+  clickRing('click-course-send', 756, 938, 954, palette.purpleLight, 58)
+
+  shapeLayer('course-user-bubble', [
+    group('bubble', [rc(0, 0, 390, 86, 18), fill(palette.purple, 100)]),
+  ], {
+    p: [key(0, [644, 300, 0]), key(964, [644, 300, 0]), key(996, [556, 302, 0]), key(OP, [556, 302, 0])],
+    o: fadeIn(964, 996, 100),
+  })
+  textLayer('course-user-text', wrap(prompt, 34), 386, 278, 18, '#ffffff', {
+    w: 338,
+    h: 66,
+    lh: 23,
+    o: fadeIn(974, 1002, 100),
+    p: [key(0, [474, 276, 0]), key(964, [474, 276, 0]), key(996, [386, 278, 0]), key(OP, [386, 278, 0])],
+  })
+  shapeLayer('typing-bubble-course', [group('bubble', [rc(0, 0, 104, 46, 18), fill(palette.assistant, 100)])], {
+    p: [302, 410, 0],
+    o: fadeWindow(1000, 1024, 1070, 1094, 100),
+  })
+  for (let i = 0; i < 3; i += 1) {
+    shapeLayer(`typing-course-dot-${i}`, [group('dot', [el(0, 0, 8, 8), fill([palette.muted, palette.purpleLight, palette.cyan][i], 100)])], {
+      p: [268 + i * 28, 410, 0],
+      s: [
+        key(0, [70, 70, 100]),
+        key(1016 + i * 8, [70, 70, 100]),
+        key(1034 + i * 8, [126, 126, 100]),
+        key(1068 + i * 8, [70, 70, 100]),
+        key(OP, [70, 70, 100]),
+      ],
+      o: fadeWindow(1000, 1024, 1070, 1094, 100),
+    })
+  }
+  shapeLayer('course-assistant-bubble', [
+    group('bubble', [rc(0, 0, 350, 52, 18), fill(palette.assistant, 100), stroke('#2c2c2e', 1, 100)]),
+  ], {
+    p: [key(0, [324, 414, 0]), key(1080, [324, 414, 0]), key(1110, [394, 428, 0]), key(OP, [394, 428, 0])],
+    o: fadeIn(1080, 1110, 100),
+  })
+  textLayer('course-assistant-text', 'Aqui esta tu plan de curso.', 250, 413, 18, '#ffffff', {
     w: 300,
-    h: 56,
+    h: 28,
+    weight: 'semibold',
+    o: fadeIn(1088, 1116, 100),
+    p: [key(0, [180, 399, 0]), key(1080, [180, 399, 0]), key(1110, [250, 413, 0]), key(OP, [250, 413, 0])],
+  })
+}
+
+function addCoursePlanCard() {
+  shapeLayer('plan-card-shadow', [group('shadow', [rc(14, 18, 548, 382, 24), fill('#000000', 34)])], {
+    p: [key(0, [506, 724, 0]), key(1084, [506, 724, 0]), key(1120, [500, 698, 0]), key(OP, [500, 698, 0])],
+    o: fadeIn(1084, 1120, 100),
+  })
+  shapeLayer('plan-card-base', [
+    group('base', [rc(0, 0, 548, 382, 22), gradient('plan-grad', ['#3f3f46', '#2f3035', '#242529'], 100), stroke('#ffffff', 1, 16)]),
+    group('accent', [rc(0, -190, 548, 4, 2), gradient('accent', ['#d4d4d8', '#71717a'], 100)]),
+    group('icon', [rc(-232, -144, 46, 46, 12), fill('#ffffff', 10), stroke('#ffffff', 1, 16)]),
+    group('cap', [path([[-242, -144], [-232, -150], [-222, -144], [-232, -138]], true), stroke('#ffffff', 1.6, 100)]),
+  ], {
+    p: [key(0, [506, 724, 0]), key(1084, [506, 724, 0]), key(1120, [500, 698, 0]), key(OP, [500, 698, 0])],
+    s: [key(0, [92, 92, 100]), key(1084, [92, 92, 100]), key(1128, [100, 100, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(1084, 1120, 100),
+  })
+  textLayer('plan-eyebrow', 'PROPUESTA DE CURSO', 300, 542, 14, '#e4e4e7', {
+    w: 220,
+    h: 20,
+    weight: 'bold',
+    o: fadeIn(1100, 1126, 100),
+  })
+  textLayer('plan-title', 'Programacion Web Full Stack', 300, 568, 24, '#ffffff', {
+    w: 420,
+    h: 34,
+    weight: 'semibold',
+    o: fadeIn(1104, 1130, 100),
+  })
+  textLayer('plan-desc', wrap('Curso practico para crear interfaces, APIs, bases de datos y despliegues reales.', 48), 236, 612, 16, '#f4f4f5', {
+    w: 470,
+    h: 52,
+    lh: 22,
+    o: fadeIn(1112, 1138, 100),
+  })
+  const tags = [
+    ['Desarrollo', 306, 678, 116],
+    ['Basico', 426, 678, 82],
+    ['8 semanas', 528, 678, 112],
+  ]
+  tags.forEach(([label, x, y, w], i) => {
+    shapeLayer(`plan-tag-bg-${i}`, [group('tag', [rc(0, 0, w, 28, 14), fill('#ffffff', 10), stroke('#ffffff', 1, 14)])], {
+      p: [x, y, 0],
+      o: fadeIn(1120 + i * 6, 1142 + i * 6, 100),
+    })
+    textLayer(`plan-tag-text-${i}`, label, x - w / 2 + 10, y - 9, 13, '#ffffff', {
+      w: w - 20,
+      h: 18,
+      align: 1,
+      o: fadeIn(1122 + i * 6, 1144 + i * 6, 100),
+    })
+  })
+
+  const modules = [
+    ['1', 'Frontend moderno', 'HTML, CSS, Vue y componentes'],
+    ['2', 'Backend y APIs', 'Node.js, autenticacion y datos'],
+    ['3', 'Proyecto final', 'Deploy, rubrica y evidencias'],
+  ]
+  modules.forEach(([num, title, sub], i) => {
+    const y = 720 + i * 44
+    shapeLayer(`plan-module-${i}`, [
+      group('row', [rc(0, 0, 474, 40, 12), fill('#ffffff', 8), stroke('#ffffff', 1, 12)]),
+      group('num', [rc(-214, 0, 24, 24, 8), fill('#ffffff', 14)]),
+    ], {
+      p: [500, y, 0],
+      o: fadeIn(1136 + i * 8, 1156 + i * 8, 100),
+    })
+    textLayer(`plan-module-num-${i}`, num, 278, y - 8, 12, '#ffffff', {
+      w: 20,
+      h: 18,
+      weight: 'bold',
+      align: 1,
+      o: fadeIn(1138 + i * 8, 1158 + i * 8, 100),
+    })
+    textLayer(`plan-module-title-${i}`, title, 320, y - 14, 15, '#ffffff', {
+      w: 190,
+      h: 20,
+      weight: 'semibold',
+      o: fadeIn(1140 + i * 8, 1160 + i * 8, 100),
+    })
+    textLayer(`plan-module-sub-${i}`, sub, 320, y + 5, 12, '#d4d4d8', {
+      w: 300,
+      h: 18,
+      o: fadeIn(1142 + i * 8, 1162 + i * 8, 100),
+    })
+  })
+
+  shapeLayer('plan-confirm-before', [
+    group('btn', [rc(0, 0, 178, 38, 19), fill('#52525b', 100)]),
+    group('check', [checkShape(0.48), stroke('#ffffff', 2.8, 100)]),
+  ], {
+    p: [622, 860, 0],
+    o: [key(0, 0), key(1116, 0), key(1130, 100), key(1138, 100), key(1162, 0), key(OP, 0)],
+  })
+  textLayer('plan-confirm-text', 'Confirmar y crear', 566, 849, 14, '#ffffff', {
+    w: 120,
+    h: 20,
+    weight: 'semibold',
+    align: 1,
+    o: [key(0, 0), key(1116, 0), key(1130, 100), key(1138, 100), key(1162, 0), key(OP, 0)],
+  })
+  clickRing('click-confirm-course', 622, 860, 1132, '#ffffff', 56)
+  shapeLayer('plan-confirm-loading', [
+    group('btn', [rc(0, 0, 152, 38, 19), fill('#52525b', 100)]),
+    group('spinner-track', [el(-54, 0, 16, 16), stroke('#ffffff', 2, 32)]),
+    group('spinner-head', [path([[-54, -8], [-46, -4]], false), stroke('#ffffff', 2.4, 100)]),
+  ], {
+    p: [622, 860, 0],
+    r: [key(0, 0), key(1160, 0), key(1210, 180), key(OP, 720)],
+    o: fadeWindow(1138, 1162, 1222, 1244, 100),
+  })
+  textLayer('plan-confirm-loading-text', 'Creando...', 590, 849, 14, '#ffffff', {
+    w: 100,
+    h: 20,
+    weight: 'semibold',
+    align: 1,
+    o: fadeWindow(1142, 1164, 1222, 1244, 100),
+  })
+  shapeLayer('plan-created-state', [
+    group('done', [rc(0, 0, 490, 54, 16), fill('#ffffff', 8), stroke('#ffffff', 1, 14)]),
+    group('check-bg', [el(-206, 0, 30, 30), fill('#71717a', 100)]),
+    group('check', [checkShape(0.48), stroke('#ffffff', 2.8, 100)]),
+    group('view', [rc(185, 0, 98, 34, 17), fill('#52525b', 100)]),
+  ], {
+    p: [500, 860, 0],
+    s: [key(0, [88, 88, 100]), key(1218, [88, 88, 100]), key(1242, [104, 104, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(1218, 1242, 100),
+  })
+  textLayer('plan-created-title', 'Curso creado', 322, 843, 15, '#ffffff', {
+    w: 130,
+    h: 20,
+    weight: 'semibold',
+    o: fadeIn(1222, 1244, 100),
+  })
+  textLayer('plan-created-sub', 'Listo para comenzar', 322, 862, 12, '#d4d4d8', {
+    w: 160,
+    h: 18,
+    o: fadeIn(1224, 1246, 100),
+  })
+  textLayer('plan-view-text', 'Ver curso', 652, 849, 13, '#ffffff', {
+    w: 70,
+    h: 18,
+    weight: 'semibold',
+    align: 1,
+    o: fadeIn(1228, 1248, 100),
+  })
+}
+
+function addCourseAutomationPanel() {
+  shapeLayer('automation-panel-shadow', [group('shadow', [rc(20, 24, 780, 720, 32), fill('#000000', 30)])], {
+    p: [1328, 548, 0],
+    o: fadeIn(930, 980, 100),
+  })
+  shapeLayer('automation-panel', [
+    group('panel', [rc(0, 0, 780, 720, 32), fill('#080d18', 96), stroke('#334155', 1.2, 82)]),
+    group('topbar', [rc(0, -324, 710, 58, 20), fill('#101725', 100)]),
+    group('dot-a', [el(-326, -324, 12, 12), fill(palette.purpleLight, 100)]),
+    group('dot-b', [el(-302, -324, 12, 12), fill(palette.cyan, 100)]),
+    group('dot-c', [el(-278, -324, 12, 12), fill(palette.greenBright, 100)]),
+  ], { p: [1328, 548, 0], o: fadeIn(930, 980, 100) })
+  textLayer('automation-title', 'Creacion automatica del curso', 1010, 188, 30, palette.text, {
+    w: 520,
+    h: 42,
+    weight: 'bold',
+    o: fadeIn(950, 990, 100),
+  })
+  textLayer('automation-meta', 'Competencias -> modulos -> temas -> tareas -> materiales', 1010, 230, 19, '#9ca3af', {
+    w: 620,
+    h: 30,
+    o: fadeIn(960, 998, 100),
+  })
+
+  const boxes = [
+    ['Competencias', 'Resultados medibles', 1086, 340, palette.purpleLight, 1048],
+    ['Modulos', '3 bloques principales', 1370, 340, palette.cyan, 1070],
+    ['Tareas', 'Evidencias por semana', 1086, 500, palette.amber, 1092],
+    ['Materiales', 'Docs, PDF y rubricas', 1370, 500, palette.greenBright, 1114],
+  ]
+  boxes.forEach(([title, sub, x, y, color, start]) => {
+    shapeLayer(`automation-box-${title}`, [
+      group('box', [rc(0, 0, 244, 108, 18), fill('#111827', 100), stroke(color, 1.4, 76)]),
+      group('icon-bg', [rc(-94, -24, 32, 32, 10), fill(color, 18)]),
+      group('line-a', [rc(18, -16, 112, 7, 4), fill('#ffffff', 16)]),
+      group('line-b', [rc(-8, 8, 164, 7, 4), fill('#ffffff', 10)]),
+    ], {
+      p: [key(0, [x, y + 50, 0]), key(start, [x, y + 50, 0]), key(start + 34, [x, y, 0]), key(OP, [x, y, 0])],
+      o: fadeIn(start, start + 32, 100),
+    })
+    textLayer(`automation-box-title-${title}`, title, x - 72, y - 38, 18, '#ffffff', {
+      w: 180,
+      h: 26,
+      weight: 'semibold',
+      o: fadeIn(start + 8, start + 34, 100),
+    })
+    textLayer(`automation-box-sub-${title}`, sub, x - 72, y + 22, 14, '#9ca3af', {
+      w: 180,
+      h: 22,
+      o: fadeIn(start + 12, start + 38, 100),
+    })
+  })
+
+  const linkDefs = [
+    [[1208, 340], [1248, 340], palette.purpleLight, 1110],
+    [[1086, 396], [1086, 444], palette.amber, 1122],
+    [[1370, 396], [1370, 444], palette.cyan, 1134],
+    [[1208, 500], [1248, 500], palette.greenBright, 1146],
+  ]
+  linkDefs.forEach(([a, b, color, start], i) => {
+    shapeLayer(`automation-link-${i}`, [
+      group('link', [path([a, b], false), stroke(color, 2.5, 58), trim(start, start + 34)]),
+    ], { o: fadeIn(start, start + 18, 100) })
+  })
+
+  for (let i = 0; i < 12; i += 1) {
+    const from = [780, 720]
+    const to = [1050 + (i % 4) * 112, 625 + Math.floor(i / 4) * 40]
+    const color = [palette.purpleLight, palette.cyan, palette.greenBright, palette.amber][i % 4]
+    const start = 1150 + i * 6
+    shapeLayer(`course-data-packet-${i}`, [group('packet', [el(0, 0, 10, 10), fill(color, 100)])], {
+      p: [key(0, [...from, 0]), key(start, [...from, 0]), key(start + 62, [...to, 0]), key(OP, [...to, 0])],
+      s: [key(0, [86, 86, 100]), key(start + 28, [130, 130, 100]), key(start + 78, [74, 74, 100]), key(OP, [74, 74, 100])],
+      o: [key(0, 0), key(start, 0), key(start + 8, 100), key(start + 62, 100), key(start + 86, 0), key(OP, 0)],
+    })
+  }
+
+  shapeLayer('created-course-card', [
+    group('card', [rc(0, 0, 620, 132, 22), fill('#0f172a', 100), stroke(palette.greenBright, 1.6, 86)]),
+    group('thumb', [rc(-248, 0, 92, 92, 18), gradient('thumb-grad', [palette.purpleLight, palette.cyan], 100)]),
+    group('check-bg', [el(266, -34, 42, 42), fill('#052e26', 100), stroke(palette.greenBright, 1.8, 100)]),
+    group('check', [checkShape(0.7), stroke(palette.greenBright, 4, 100)]),
+    group('bar1', [rc(12, 16, 308, 9, 5), fill('#ffffff', 12)]),
+    group('bar2', [rc(-32, 40, 220, 9, 5), fill('#ffffff', 9)]),
+  ], {
+    p: [1328, 756, 0],
+    s: [key(0, [82, 82, 100]), key(1210, [82, 82, 100]), key(1244, [110, 110, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(1210, 1242, 100),
+  })
+  textLayer('created-course-title', 'Programacion Web Full Stack', 1188, 704, 25, '#ffffff', {
+    w: 360,
+    h: 36,
+    weight: 'bold',
+    o: fadeIn(1218, 1246, 100),
+  })
+  textLayer('created-course-meta', '8 semanas - 3 modulos - 12 tareas', 1188, 742, 18, '#bbf7d0', {
+    w: 360,
+    h: 26,
+    weight: 'semibold',
+    o: fadeIn(1222, 1248, 100),
+  })
+}
+
+function addFinalSuccess() {
+  shapeLayer('final-check-glow', [
+    group('glow', [el(0, 0, 240, 240), fill(palette.greenBright, 12)]),
+    group('badge', [el(0, 0, 118, 118), fill('#052e26', 100), stroke(palette.greenBright, 2.6, 100)]),
+    group('check', [checkShape(1.7), stroke(palette.greenBright, 8, 100)]),
+  ], {
+    p: [1596, 172, 0],
+    s: [key(0, [70, 70, 100]), key(1218, [70, 70, 100]), key(1250, [126, 126, 100]), key(OP, [100, 100, 100])],
+    o: fadeIn(1218, 1248, 100),
+  })
+  textLayer('final-label', 'Tarea calificada y curso creado', 1334, 272, 26, '#ffffff', {
+    w: 520,
+    h: 38,
     weight: 'bold',
     align: 1,
-    o: fadeIn(982, 1020, 100),
-  })
-  textLayer('complete-meta', '32 semanas · documentos · miniaturas · R2 sincronizado', 1032, 594, 22, '#bbf7d0', {
-    w: 526,
-    h: 36,
-    align: 1,
-    weight: 'semibold',
-    o: fadeIn(1002, 1034, 100),
-  })
-  shapeLayer('final-organized-files', [
-    group('stack-a', [rc(-190, 104, 118, 34, 10), fill('#1e293b', 100), stroke('#2563eb', 1, 80)]),
-    group('stack-b', [rc(-54, 104, 118, 34, 10), fill('#1e293b', 100), stroke('#ef4444', 1, 80)]),
-    group('stack-c', [rc(82, 104, 118, 34, 10), fill('#1e293b', 100), stroke('#a855f7', 1, 80)]),
-    group('stack-d', [rc(218, 104, 118, 34, 10), fill('#1e293b', 100), stroke('#34d399', 1, 80)]),
-  ], {
-    p: [1222, 626, 0],
-    o: fadeIn(1008, 1036, 100),
+    o: fadeIn(1228, 1254, 100),
   })
 }
 
 addBackground()
-addChatInterface()
-addThinkingNetwork()
-addCourseGeneration()
-addAutomationScene()
-addCompletion()
+addChatFrame()
+addWelcomeState()
+addTaskPanel()
+addGradingChat()
+addReasoningNetwork()
+addCourseModeBanner()
+addCourseChat()
+addCoursePlanCard()
+addCourseAutomationPanel()
+addFinalSuccess()
 
 const animation = {
   v: '5.7.0',
@@ -710,12 +1038,16 @@ const animation = {
   op: OP,
   w: W,
   h: H,
-  nm: 'CourseV premium AI course onboarding',
+  nm: 'CourseV ChatBotView task grading and course creation showcase',
   ddd: 0,
   assets: [],
   fonts,
-  layers: visual.reverse(),
+  slots: {
+    bgColor: { p: { k: c(palette.bg) } },
+    accentColor: { p: { k: c(palette.purpleLight) } },
+  },
+  layers: layers.reverse(),
 }
 
 writeFileSync(OUT, JSON.stringify(animation))
-console.log(`Wrote ${OUT} (${animation.layers.length} layers, ${OP / FPS}s)`)
+console.log(`Wrote ${OUT} (${animation.layers.length} layers, ${(OP / FPS).toFixed(1)}s)`)
