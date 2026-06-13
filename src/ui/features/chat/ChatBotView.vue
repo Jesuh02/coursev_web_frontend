@@ -279,6 +279,11 @@ function detectCourseIntent(text: string): boolean {
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text) return
+  const hasCourseIntent = detectCourseIntent(text)
+  const startsNewCourseRequest = hasCourseIntent && (
+    !isCourseMode.value ||
+    (!coursePlan.value && !courseDraft.value.lastAskedField)
+  )
 
   const userMsg: LocalMessage = {
     id: crypto.randomUUID(),
@@ -294,7 +299,7 @@ async function sendMessage() {
   // Auto-detect course creation intent even when course mode is off.
   // When the user triggers a BRAND-NEW course request, reset any stale plan
   // so isUpdate = false inside requestCoursePlan (shows "Aquí está tu plan").
-  if (!isCourseMode.value && detectCourseIntent(text)) {
+  if (startsNewCourseRequest) {
     isCourseMode.value = true
     coursePlan.value = null
     courseDraft.value = {}
@@ -733,7 +738,7 @@ function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft):
     if (!merged.topic) merged.topic = merged.area
   }
   if (!merged.topic && !answersKnownField) {
-    const topicMatch = n.match(/\b(?:curso\s+)?(?:de|sobre|para|acerca de|en el area de|del area de)\s+(.+?)(?=,|\.|$)/)
+    const topicMatch = n.match(/\b(?:curso\s+)?(?:(?:basico|principiante|intermedio|avanzado|advanced|intermediate|beginner)\s+)?(?:de|sobre|para|acerca de|en el area de|del area de)\s+(.+?)(?=,|\.|$|\s+(?:nivel|duracion|objetivo|para que|con el fin)\b)/)
     merged.topic = (topicMatch?.[1] || n).trim()
   }
   const duration = n.match(/(\d{1,2})\s*(?:semanas?|weeks?)/)
@@ -743,7 +748,9 @@ function mergeCourseDraftFromUserText(text: string, draft: CourseCreationDraft):
   else if (/\b(principiante|basico|basic|beginner|inicial)\b/.test(n)) merged.level = 'beginner'
 
   if (merged.lastAskedField === 'objective' && raw) merged.objective = raw
-  if (merged.lastAskedField === 'durationWeeks' && duration) merged.durationWeeks = Number(duration[1])
+  if (merged.lastAskedField === 'durationWeeks' && (duration || /^\d{1,2}$/.test(n))) {
+    merged.durationWeeks = Number(duration?.[1] || n)
+  }
   if (merged.lastAskedField === 'level' && merged.level) merged.level = merged.level
   if (merged.lastAskedField === 'topic' && raw) merged.topic = n
   if (!merged.area && (merged.objective || merged.durationWeeks || merged.level)) {
