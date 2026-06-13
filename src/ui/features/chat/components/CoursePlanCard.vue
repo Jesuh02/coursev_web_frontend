@@ -75,6 +75,8 @@
               <span class="topic-name">{{ topic.title }}</span>
               <span v-if="topic.estimatedWeeks" class="topic-week-badge">{{ topic.estimatedWeeks }} sem</span>
               <span v-if="topic.estimatedHours" class="topic-hour-badge">{{ topic.estimatedHours }} h</span>
+              <span v-if="topic.independentHours !== undefined" class="topic-hour-badge">{{ topic.independentHours }} h aut.</span>
+              <span v-if="topic.practicalHours !== undefined" class="topic-hour-badge">{{ topic.practicalHours }} h prac.</span>
               <span v-if="topic.tasks?.length" class="topic-task-badge">{{ topic.tasks.length }} ev.</span>
             </div>
             <div v-if="topic.competency || topic.learningOutcome" class="topic-learning-meta">
@@ -145,6 +147,8 @@ export interface PlanTopic {
   description?: string
   estimatedWeeks?: number
   estimatedHours?: number
+  independentHours?: number
+  practicalHours?: number
   competency?: string
   learningOutcome?: string
   contentDescription?: string
@@ -162,6 +166,7 @@ export interface CourseWorkload {
   totalHours?: number
   guidedHours?: number
   independentHours?: number
+  practicalHours?: number
   projectHours?: number
 }
 export interface CoursePlan {
@@ -236,8 +241,9 @@ const workloadSummary = computed(() => {
   const workload = props.plan.workload
   if (!workload?.totalHours) return ''
   const parts = [`${workload.totalHours} h academicas`]
-  if (workload.projectHours) parts.push(`${workload.projectHours} h proyecto`)
   if (workload.independentHours) parts.push(`${workload.independentHours} h autonomas`)
+  if (workload.practicalHours) parts.push(`${workload.practicalHours} h practicas`)
+  else if (workload.projectHours) parts.push(`${workload.projectHours} h proyecto`)
   return parts.join(' - ')
 })
 </script>

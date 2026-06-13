@@ -632,6 +632,8 @@ function extractPlan(raw: string): CoursePlan | null {
               description: String(t.description ?? ''),
               estimatedWeeks: typeof t.estimatedWeeks === 'number' ? t.estimatedWeeks : undefined,
               estimatedHours: typeof t.estimatedHours === 'number' ? t.estimatedHours : undefined,
+              independentHours: typeof t.independentHours === 'number' ? t.independentHours : undefined,
+              practicalHours: typeof t.practicalHours === 'number' ? t.practicalHours : undefined,
               competency: t.competency ? String(t.competency) : undefined,
               learningOutcome: t.learningOutcome ? String(t.learningOutcome) : undefined,
               contentDescription: t.contentDescription ? String(t.contentDescription) : undefined,
