@@ -1685,9 +1685,31 @@ async function requestCoursePlan(text: string) {
   }
 }
 
+function withUniqueSubjectNames(subjects: CoursePlan['subjects']): CoursePlan['subjects'] {
+  const seen = new Map<string, number>()
+  const used = new Set<string>()
+
+  return subjects.map((subject, index) => {
+    const baseName = subject.name.trim() || `Modulo ${index + 1}`
+    const baseKey = normalizeIntentText(baseName) || `modulo ${index + 1}`
+    let count = (seen.get(baseKey) ?? 0) + 1
+    seen.set(baseKey, count)
+
+    let name = count === 1 ? baseName : `${baseName} - Parte ${count}`
+    let key = normalizeIntentText(name) || `modulo ${index + 1}`
+    while (used.has(key)) {
+      count += 1
+      name = `${baseName} - Parte ${count}`
+      key = normalizeIntentText(name) || `modulo ${index + 1}`
+    }
+    used.add(key)
+    return { ...subject, name }
+  })
+}
+
 /** Strips subjects/topics/tasks with blank required fields before submitting to avoid VALIDATION_ERROR. */
 function sanitizePlanForSubmit(plan: CoursePlan): CoursePlan | null {
-  const subjects = (plan.subjects ?? [])
+  const subjects = withUniqueSubjectNames((plan.subjects ?? [])
     .map(s => ({
       ...s,
       name: (s.name ?? '').trim(),
@@ -1699,7 +1721,7 @@ function sanitizePlanForSubmit(plan: CoursePlan): CoursePlan | null {
         }))
         .filter(t => t.title.length > 0),
     }))
-    .filter(s => s.name.length > 0)
+    .filter(s => s.name.length > 0))
   if (!subjects.length) return null
   return { ...plan, subjects }
 }
