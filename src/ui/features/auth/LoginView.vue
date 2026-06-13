@@ -1176,7 +1176,7 @@ function particleStyle(i: number) {
   .hero-logo-asset {
     position: absolute;
     right: 52px;
-    bottom: 54px;
+    top: 54px;
     width: 88px;
     height: 88px;
     padding: 8px;
