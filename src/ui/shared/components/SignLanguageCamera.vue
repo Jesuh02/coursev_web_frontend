@@ -5,7 +5,7 @@
       <header class="sl-header">
         <div class="sl-title-group">
           <span class="sl-dot" />
-          <span class="sl-title">Lengua de Señas Colombiana</span>
+          <span class="sl-title">American Sign Language (ASL)</span>
         </div>
         <button class="sl-close" @click="close" title="Cerrar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -112,12 +112,11 @@
 
       <!-- Hint -->
       <p class="sl-hint">
-        Detecta <strong>vocales, letras y números</strong> manteniendo la seña
-        quieta 1 s, y también <strong>palabras, frases y oraciones</strong>
-        cuando hay movimiento. Reconoce <strong>ambas manos</strong> y la
-        <strong>intención</strong> del gesto (pregunta,
-        exclamación, negación). Al pulsar "Usar texto", la IA limpia tildes y
-        puntuación en español.
+        Detecta <strong>letras, vocales y números ASL</strong> manteniendo la
+        seña quieta 1 s, y también <strong>palabras, frases y oraciones en
+        inglés</strong> cuando hay movimiento. Reconoce <strong>ambas manos</strong>
+        y la <strong>intención</strong> del gesto (pregunta, exclamación,
+        negación). Al pulsar "Usar texto", la IA limpia la puntuación en inglés.
       </p>
       <p v-if="composeError" class="sl-error-inline">{{ composeError }}</p>
     </div>
@@ -230,6 +229,7 @@ const AUTO_FRAME_MAX_DIMENSION = 512
 const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
 const AUTO_FRAME_MIN_PHRASE_CONFIDENCE = 0.6
 const SAME_LETTER_COOLDOWN_MS = 900
+const SIGN_LANGUAGE_PROFILE = 'asl'
 
 const sessionId = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 let stream: MediaStream | null = null
@@ -397,6 +397,7 @@ async function sendAutoFrame(frame: QueuedAutoFrame) {
         minPhraseConfidence: AUTO_FRAME_MIN_PHRASE_CONFIDENCE,
         stillDurationMs: STILL_HOLD_MS,
         allowVlmLetterFallback: true,
+        language: SIGN_LANGUAGE_PROFILE,
         capturedAtMs: frame.capturedAtMs,
         frameSeq: frame.seq,
         _t: Date.now(),
@@ -408,7 +409,7 @@ async function sendAutoFrame(frame: QueuedAutoFrame) {
     if (err instanceof HttpError && err.errorCode === 'HF_NOT_CONFIGURED') {
       errorMsg.value = 'El modelo local de letras no esta configurado en el backend.'
     } else if (err instanceof HttpError && err.errorCode === 'VLM_NOT_CONFIGURED') {
-      serviceNotice.value = 'Para palabras, oraciones y numeros configura OPENROUTER_API_KEY en el backend.'
+      serviceNotice.value = 'Para palabras, oraciones y numeros ASL configura OPENROUTER_API_KEY en el backend.'
     } else if (err instanceof HttpError && err.errorCode === 'SIGN_LANGUAGE_DISABLED') {
       errorMsg.value = 'El reconocimiento de lengua de señas esta deshabilitado.'
     } else {
@@ -429,7 +430,7 @@ function applyAutoFrameResponse(data: AutoFrameResponse | null, seq: number) {
     lastAppliedStatusSeq = seq
   }
   if (data.warning?.code === 'VLM_NOT_CONFIGURED') {
-    serviceNotice.value = 'Para palabras, oraciones y numeros configura OPENROUTER_API_KEY en el backend.'
+    serviceNotice.value = 'Para palabras, oraciones y numeros ASL configura OPENROUTER_API_KEY en el backend.'
   } else if (data.event) {
     serviceNotice.value = null
   }
@@ -559,7 +560,7 @@ async function finalizeSessionRemote(): Promise<string> {
   try {
     const data = await api.post<ComposeResponse>(
       `/sign-language/session/${encodeURIComponent(sessionId)}/finalize`,
-      { useLLM: true },
+      { useLLM: true, language: SIGN_LANGUAGE_PROFILE },
     )
     return data?.text || fallback
   } catch (err) {
@@ -568,6 +569,7 @@ async function finalizeSessionRemote(): Promise<string> {
       const data = await api.post<ComposeResponse>('/sign-language/compose', {
         rawSequence: fallback,
         useLLM: true,
+        language: SIGN_LANGUAGE_PROFILE,
       })
       return data?.text || fallback
     } catch (err2) {
