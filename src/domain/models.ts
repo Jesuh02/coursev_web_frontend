@@ -67,7 +67,10 @@ export interface Task {
   timeLimitMinutes: number | null
   periodId: number | null
   period_id: number | null
+  orderIndex: number
+  order_index?: number
   createdAt: string | null
+  created_at?: string | null
 }
 
 export interface Video {

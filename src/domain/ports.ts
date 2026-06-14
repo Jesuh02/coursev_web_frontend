@@ -81,6 +81,7 @@ export interface TaskPort {
   getTaskById(id: number): Promise<Task>
   createTask(data: Partial<Task>): Promise<Task>
   updateTask(id: number, data: Partial<Task>): Promise<Task>
+  reorderTasks(items: Array<{ id: number; orderIndex: number }>): Promise<Task[]>
   deleteTask(id: number): Promise<void>
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="course-detail">
+  <div ref="courseDetailRef" class="course-detail" :class="{ 'course-detail--drag': isDragMode }">
     <div class="hero-section">
       <div class="hero-toolbar">
         <button class="toolbar-btn" @click="$router.back()">
@@ -145,12 +145,63 @@
         </button>
       </div>
 
+      <div v-if="canShowSortButton" class="sort-toolbar">
+        <button
+          class="sort-btn"
+          :class="{ 'sort-btn--active': isDragMode }"
+          type="button"
+          @click="toggleDragMode"
+        >
+          <template v-if="!isDragMode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="9" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="9" cy="19" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="19" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </template>
+          <template v-else>
+            <span class="sort-btn__done">Listo</span>
+          </template>
+        </button>
+      </div>
+
       <div v-if="loading" class="loading-center"><div class="spinner" /></div>
 
       <template v-else-if="activeTab === 'docs'">
         <h2 v-if="topics.length" class="section-heading">Contenido del Tema</h2>
-        <div v-for="topic in topics" :key="topic.id" class="topic-block">
+        <div
+          v-for="(topic, index) in topics"
+          :key="topic.id"
+          class="topic-block topic-drag-item"
+          :class="{
+            'topic-block--drag': isDragMode,
+            'topic-block--dragging': isDragMode && draggedTopicIndex === index,
+            'topic-block--over': isDragMode && dragOverTopicIndex === index && draggedTopicIndex !== index,
+          }"
+          :data-topic-drag-index="index"
+          :draggable="isDragMode"
+          @dragstart="onTopicDragStart(index, $event)"
+          @dragenter.prevent="onTopicDragEnter(index)"
+          @dragover.prevent
+          @drop.prevent="onTopicDrop(index)"
+          @dragend="onDragEnd"
+          @touchstart="onTopicTouchStart(index)"
+          @touchend="onTouchEnd"
+        >
           <div class="topic-row">
+            <div v-if="isDragMode" class="drag-handle" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="5" r="1.6"/>
+                <circle cx="15" cy="5" r="1.6"/>
+                <circle cx="9" cy="12" r="1.6"/>
+                <circle cx="15" cy="12" r="1.6"/>
+                <circle cx="9" cy="19" r="1.6"/>
+                <circle cx="15" cy="19" r="1.6"/>
+              </svg>
+            </div>
             <div class="topic-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
@@ -158,10 +209,10 @@
               <span class="topic-name">{{ topic.title }}</span>
               <p v-if="topic.description" class="topic-subtitle" :class="{ 'topic-subtitle--expanded': expandedTopicDescriptions.has(topic.id) }" @click.stop="toggleTopicDescription(topic.id)">{{ topic.description }}</p>
             </div>
-            <button v-if="hasSubjectContentAccess" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
+            <button v-if="hasSubjectContentAccess && !isDragMode" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             </button>
-            <button v-if="hasSubjectContentAccess" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
+            <button v-if="hasSubjectContentAccess && !isDragMode" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
             <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
@@ -227,8 +278,37 @@
           <div class="topic-expanded">
             <div class="tasks-label">TAREAS DEL TEMA</div>
             <div v-if="!topicTasks[topic.id]?.length" class="empty-inline">Sin tareas</div>
-            <div v-for="task in topicTasks[topic.id]" :key="task.id" class="task-card">
+            <div
+              v-for="(task, taskIndex) in topicTasks[topic.id]"
+              :key="task.id"
+              class="task-card task-drag-item"
+              :class="{
+                'task-card--drag': isDragMode,
+                'task-card--dragging': isDragMode && draggedTask?.topicId === topic.id && draggedTask?.index === taskIndex,
+                'task-card--over': isDragMode && dragOverTask?.topicId === topic.id && dragOverTask?.index === taskIndex && draggedTask?.index !== taskIndex,
+              }"
+              :data-task-drag-topic="topic.id"
+              :data-task-drag-index="taskIndex"
+              :draggable="isDragMode"
+              @dragstart="onTaskDragStart(topic.id, taskIndex, $event)"
+              @dragenter.prevent="onTaskDragEnter(topic.id, taskIndex)"
+              @dragover.prevent
+              @drop.prevent="onTaskDrop(topic.id, taskIndex)"
+              @dragend="onDragEnd"
+              @touchstart="onTaskTouchStart(topic.id, taskIndex)"
+              @touchend="onTouchEnd"
+            >
               <div class="task-row">
+                <div v-if="isDragMode" class="drag-handle task-drag-handle" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="9" cy="5" r="1.6"/>
+                    <circle cx="15" cy="5" r="1.6"/>
+                    <circle cx="9" cy="12" r="1.6"/>
+                    <circle cx="15" cy="12" r="1.6"/>
+                    <circle cx="9" cy="19" r="1.6"/>
+                    <circle cx="15" cy="19" r="1.6"/>
+                  </svg>
+                </div>
                 <div class="task-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                 </div>
@@ -237,7 +317,7 @@
                   <span v-if="!hasSubjectContentAccess || isViewingAsStudent" class="status-badge" :class="getSubmissionStatus(task.id)">{{ getSubmissionLabel(task.id) }}</span>
                   <span v-if="hasSubjectContentAccess && !isViewingAsStudent && (pendingMap[task.id] ?? 0) > 0" class="task-pending-inline">⏳ {{ pendingMap[task.id] }} pendiente{{ pendingMap[task.id] !== 1 ? 's' : '' }}</span>
                 </div>
-                <div v-if="hasSubjectContentAccess" class="task-mgmt-btns">
+                <div v-if="hasSubjectContentAccess && !isDragMode" class="task-mgmt-btns">
                   <button
                     class="task-mgmt-btn edit"
                     @click.stop="$router.push({ path: `/course/${courseId}/task/${task.id}`, query: { edit: 'true', topicId: String(topic.id), subjectId: subjectId ? String(subjectId) : undefined } })"
@@ -264,6 +344,7 @@
                 >📎 {{ ci.fileName || ci.content }}</button>
               </div>
               <button
+                v-if="!isDragMode"
                 class="submissions-btn"
                 @click="$router.push({ path: `/task-submission/${task.id}`, query: { courseId: String(courseId), ...(canSwitchRole ? { viewAsRole: String(viewAsRole) } : {}) } })"
               >{{ isViewingAsStudent ? 'Realizar Entrega' : (hasSubjectContentAccess || authStore.isDocente) ? 'Ver Entregas de Estudiantes' : 'Realizar Entrega' }}<span v-if="hasSubjectContentAccess && (pendingMap[task.id] ?? 0) > 0" class="submissions-btn-badge">{{ pendingMap[task.id] }}</span></button>
@@ -344,7 +425,7 @@
         </template>
       </template>
 
-      <div v-if="hasSubjectContentAccess && !loading && activeTab !== 'members'" class="bottom-actions">
+      <div v-if="hasSubjectContentAccess && !loading && activeTab !== 'members' && !isDragMode" class="bottom-actions">
         <button class="action-btn theme" @click="$router.push({ path: `/course/${courseId}/topic`, query: { subjectId: String(subjectId ?? '') } })">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nuevo Tema
@@ -408,7 +489,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onDeactivated, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Course, Topic, Task, ContentItem, Progress, GuestEntry } from '@/domain/models'
 import { useCourseStore } from '@/stores/courseStore'
@@ -448,6 +529,7 @@ const loading = ref(true)
 const progressLoading = ref(false)
 const progressLoaded = ref(false)
 const studentProgress = ref<CourseProgressResponse | null>(null)
+const courseDetailRef = ref<HTMLElement | null>(null)
 
 // Fetched subject data — ensures title is always available even without query params
 const fetchedSubject = ref<{ name?: string; description?: string; thumbnailUrl?: string; createdBy?: number | null } | null>(null)
@@ -645,6 +727,34 @@ const taskContent = ref<Record<number, ContentItem[]>>({})
 const submissionMap = ref<Record<number, string>>({})
 const pendingMap = ref<Record<number, number>>({}) // taskId → ungraded count (admin/docente only)
 
+type TaskDragTarget = { topicId: number; index: number }
+type TouchDragRect = { topicId?: number; index: number; rect: DOMRect }
+
+const isDragMode = ref(false)
+const draggedTopicIndex = ref(-1)
+const dragOverTopicIndex = ref(-1)
+const draggedTask = ref<TaskDragTarget | null>(null)
+const dragOverTask = ref<TaskDragTarget | null>(null)
+
+let touchDragKind: 'topics' | 'tasks' | null = null
+let touchDragTopicId: number | null = null
+let touchItemRects: TouchDragRect[] = []
+let scrollRafId: number | null = null
+let scrollDir: 'up' | 'down' | null = null
+
+const SCROLL_ZONE = 90
+const SCROLL_STEP = 6
+
+const hasReorderableTasks = computed(() =>
+  Object.values(topicTasks.value).some(tasks => tasks.length > 1)
+)
+
+const canShowSortButton = computed(() => {
+  if (!hasSubjectContentAccess.value || loading.value || activeTab.value === 'members') return false
+  if (activeTab.value === 'docs') return topics.value.length > 1
+  return hasReorderableTasks.value
+})
+
 const totalPendingCount = computed(() =>
   Object.values(pendingMap.value).reduce((a, b) => a + b, 0)
 )
@@ -664,6 +774,249 @@ const totalTaskCount = computed(() =>
 const topicsWithTasks = computed(() =>
   topics.value.filter(t => (topicTasks.value[t.id]?.length ?? 0) > 0)
 )
+
+function readOrderIndex(item: Record<string, unknown>): number | null {
+  const raw = item.orderIndex ?? item.order_index
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
+function sortByOrderIndex<T extends Record<string, any>>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const orderA = readOrderIndex(a)
+    const orderB = readOrderIndex(b)
+    if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB
+    if (orderA !== null && orderB === null) return -1
+    if (orderA === null && orderB !== null) return 1
+
+    const dateA = new Date(a.createdAt ?? a.created_at ?? 0).getTime() || 0
+    const dateB = new Date(b.createdAt ?? b.created_at ?? 0).getTime() || 0
+    if (dateA !== dateB) return dateA - dateB
+
+    return Number(a.id ?? 0) - Number(b.id ?? 0)
+  })
+}
+
+function stampDisplayOrder<T extends Record<string, any>>(items: T[]): T[] {
+  return sortByOrderIndex(items).map((item, index) => ({
+    ...item,
+    orderIndex: index,
+    order_index: index,
+  }))
+}
+
+function resetDragState() {
+  draggedTopicIndex.value = -1
+  dragOverTopicIndex.value = -1
+  draggedTask.value = null
+  dragOverTask.value = null
+  touchDragKind = null
+  touchDragTopicId = null
+  touchItemRects = []
+  stopAutoScroll()
+}
+
+function toggleDragMode() {
+  if (!isDragMode.value && !canShowSortButton.value) return
+  isDragMode.value = !isDragMode.value
+  resetDragState()
+}
+
+function scrollStep() {
+  const container = courseDetailRef.value
+  if (!container || !scrollDir) return
+  container.scrollBy({ top: scrollDir === 'down' ? SCROLL_STEP : -SCROLL_STEP })
+  scrollRafId = requestAnimationFrame(scrollStep)
+}
+
+function startAutoScroll(dir: 'up' | 'down') {
+  if (scrollDir === dir) return
+  stopAutoScroll()
+  scrollDir = dir
+  scrollRafId = requestAnimationFrame(scrollStep)
+}
+
+function stopAutoScroll() {
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId)
+    scrollRafId = null
+  }
+  scrollDir = null
+}
+
+function updateAutoScroll(clientY: number) {
+  if (clientY < SCROLL_ZONE) {
+    startAutoScroll('up')
+  } else if (clientY > window.innerHeight - SCROLL_ZONE) {
+    startAutoScroll('down')
+  } else {
+    stopAutoScroll()
+  }
+}
+
+function cacheTopicTouchRects() {
+  const items = courseDetailRef.value?.querySelectorAll<HTMLElement>('[data-topic-drag-index]') ?? []
+  touchItemRects = Array.from(items).map(el => ({
+    index: Number(el.dataset.topicDragIndex),
+    rect: el.getBoundingClientRect(),
+  }))
+}
+
+function cacheTaskTouchRects(topicId: number) {
+  const items = courseDetailRef.value?.querySelectorAll<HTMLElement>(`[data-task-drag-topic="${topicId}"]`) ?? []
+  touchItemRects = Array.from(items).map(el => ({
+    topicId,
+    index: Number(el.dataset.taskDragIndex),
+    rect: el.getBoundingClientRect(),
+  }))
+}
+
+function onTopicDragStart(index: number, event: DragEvent) {
+  if (!isDragMode.value || activeTab.value !== 'docs') return
+  draggedTopicIndex.value = index
+  event.dataTransfer?.setData('text/plain', String(index))
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function onTopicDragEnter(index: number) {
+  if (!isDragMode.value || draggedTopicIndex.value === -1 || draggedTopicIndex.value === index) return
+  dragOverTopicIndex.value = index
+}
+
+function onTopicDrop(index: number) {
+  const from = draggedTopicIndex.value
+  resetDragState()
+  if (from === -1 || from === index) return
+  moveTopic(from, index)
+}
+
+function onTaskDragStart(topicId: number, index: number, event: DragEvent) {
+  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  draggedTask.value = { topicId, index }
+  event.dataTransfer?.setData('text/plain', `${topicId}:${index}`)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function onTaskDragEnter(topicId: number, index: number) {
+  if (!isDragMode.value || !draggedTask.value) return
+  if (draggedTask.value.topicId !== topicId || draggedTask.value.index === index) return
+  dragOverTask.value = { topicId, index }
+}
+
+function onTaskDrop(topicId: number, index: number) {
+  const from = draggedTask.value
+  resetDragState()
+  if (!from || from.topicId !== topicId || from.index === index) return
+  moveTask(topicId, from.index, index)
+}
+
+function onDragEnd() {
+  resetDragState()
+}
+
+function onTopicTouchStart(index: number) {
+  if (!isDragMode.value || activeTab.value !== 'docs') return
+  touchDragKind = 'topics'
+  draggedTopicIndex.value = index
+  cacheTopicTouchRects()
+}
+
+function onTaskTouchStart(topicId: number, index: number) {
+  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  touchDragKind = 'tasks'
+  touchDragTopicId = topicId
+  draggedTask.value = { topicId, index }
+  cacheTaskTouchRects(topicId)
+}
+
+function handleTouchMove(event: TouchEvent) {
+  if (!isDragMode.value || !touchDragKind) return
+  const touch = event.touches[0]
+  if (!touch) return
+  event.preventDefault()
+
+  if (touchDragKind === 'topics') cacheTopicTouchRects()
+  else if (touchDragTopicId !== null) cacheTaskTouchRects(touchDragTopicId)
+
+  const hit = touchItemRects.find(item => {
+    const sameTopicDrag =
+      touchDragKind === 'topics'
+        ? item.index === draggedTopicIndex.value
+        : item.topicId === draggedTask.value?.topicId && item.index === draggedTask.value?.index
+    if (sameTopicDrag) return false
+    const r = item.rect
+    return touch.clientX >= r.left && touch.clientX <= r.right && touch.clientY >= r.top && touch.clientY <= r.bottom
+  })
+
+  if (hit) {
+    if (touchDragKind === 'topics') {
+      dragOverTopicIndex.value = hit.index
+    } else if (hit.topicId !== undefined) {
+      dragOverTask.value = { topicId: hit.topicId, index: hit.index }
+    }
+  }
+
+  updateAutoScroll(touch.clientY)
+}
+
+function onTouchEnd() {
+  if (!isDragMode.value) return
+  const kind = touchDragKind
+  const fromTopic = draggedTopicIndex.value
+  const toTopic = dragOverTopicIndex.value
+  const fromTask = draggedTask.value
+  const toTask = dragOverTask.value
+  resetDragState()
+
+  if (kind === 'topics' && fromTopic !== -1 && toTopic !== -1 && fromTopic !== toTopic) {
+    moveTopic(fromTopic, toTopic)
+    return
+  }
+
+  if (kind === 'tasks' && fromTask && toTask && fromTask.topicId === toTask.topicId && fromTask.index !== toTask.index) {
+    moveTask(fromTask.topicId, fromTask.index, toTask.index)
+  }
+}
+
+function moveTopic(from: number, to: number) {
+  const next = [...topics.value]
+  const [moved] = next.splice(from, 1)
+  if (!moved) return
+  next.splice(to, 0, moved)
+  topics.value = stampDisplayOrder(next) as Topic[]
+  saveTopicOrder(topics.value)
+}
+
+function moveTask(topicId: number, from: number, to: number) {
+  const current = topicTasks.value[topicId] ?? []
+  const next = [...current]
+  const [moved] = next.splice(from, 1)
+  if (!moved) return
+  next.splice(to, 0, moved)
+  const ordered = stampDisplayOrder(next) as Task[]
+  topicTasks.value = { ...topicTasks.value, [topicId]: ordered }
+  saveTaskOrder(ordered)
+}
+
+async function saveTopicOrder(orderedTopics: Topic[]) {
+  try {
+    await Promise.all(
+      orderedTopics.map((topic, index) => topicAdapter.updateTopic(topic.id, { orderIndex: index }))
+    )
+  } catch { /* silent */ }
+}
+
+async function saveTaskOrder(orderedTasks: Task[]) {
+  try {
+    if (typeof taskAdapter.reorderTasks === 'function') {
+      await taskAdapter.reorderTasks(orderedTasks.map((task, index) => ({ id: task.id, orderIndex: index })))
+      return
+    }
+    await Promise.all(
+      orderedTasks.map((task, index) => taskAdapter.updateTask(task.id, { orderIndex: index }))
+    )
+  } catch { /* silent */ }
+}
 
 const selectedProgress = computed<Progress | null>(() => {
   const progress = studentProgress.value
@@ -908,9 +1261,10 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
   }
 
   try {
-    topics.value = subjectId.value
+    const loadedTopics = subjectId.value
       ? await topicAdapter.getTopicsBySubject(subjectId.value)
       : await topicAdapter.getTopicsByCourse(id)
+    topics.value = stampDisplayOrder(loadedTopics) as Topic[]
   } catch { /* empty */ }
 
   for (const topic of topics.value) {
@@ -942,8 +1296,9 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
   const nextTaskMap: Record<number, Task[]> = {}
   const allTasks: Task[] = []
   for (const [topicId, tasks] of taskEntries) {
-    nextTaskMap[topicId] = tasks
-    allTasks.push(...tasks)
+    const orderedTasks = stampDisplayOrder(tasks) as Task[]
+    nextTaskMap[topicId] = orderedTasks
+    allTasks.push(...orderedTasks)
   }
   topicTasks.value = nextTaskMap
 
@@ -1131,6 +1486,14 @@ notifStore.onSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
 
 onUnmounted(() => {
   notifStore.offSocketEvent('subject:access-blocked', handleAccessBlockedInDetail)
+  courseDetailRef.value?.removeEventListener('touchmove', handleTouchMove)
+  resetDragState()
+})
+
+onDeactivated(() => {
+  if (isDragMode.value) isDragMode.value = false
+  courseDetailRef.value?.removeEventListener('touchmove', handleTouchMove)
+  resetDragState()
 })
 
 // Re-verificar acceso de colaborador cuando authStore.user carga después del montaje
@@ -1180,8 +1543,21 @@ watch(viewAsRole, async (newRole) => {
   }
 })
 
+watch(isDragMode, (active) => {
+  const el = courseDetailRef.value
+  if (!el) return
+  if (active) {
+    el.addEventListener('touchmove', handleTouchMove, { passive: false })
+  } else {
+    el.removeEventListener('touchmove', handleTouchMove)
+    resetDragState()
+  }
+})
+
 // Load members when Personas tab is activated
 watch(activeTab, (tab) => {
+  if (isDragMode.value) isDragMode.value = false
+  resetDragState()
   if (tab === 'members') {
     const cid = Number(courseId.value)
     if (cid > 0) loadMembers(cid)
@@ -1687,6 +2063,67 @@ watch(activeTab, (tab) => {
   background: rgba(0,0,0,0.2); font-size: 12px; font-weight: 700; margin-left: 6px;
 }
 .tab-btn:not(.active) .tab-count { background: rgba(255,255,255,0.08); }
+
+.sort-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 14px;
+}
+
+.sort-btn {
+  height: 40px;
+  min-width: 40px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0 10px;
+  transition: background 0.2s, transform 0.15s;
+}
+.sort-btn:hover { background: rgba(255,255,255,0.14); }
+.sort-btn--active {
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  padding: 0 14px;
+}
+.sort-btn__done { font-size: 13px; font-weight: 700; }
+
+.drag-handle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(191,90,242,0.13);
+  color: #BF5AF2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topic-block--drag,
+.task-card--drag {
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+.topic-block--drag:active,
+.task-card--drag:active { cursor: grabbing; }
+.topic-block--dragging,
+.task-card--dragging {
+  opacity: 0.38;
+  transform: scale(0.985);
+}
+.topic-block--over,
+.task-card--over {
+  outline: 2px solid #BF5AF2;
+  outline-offset: 2px;
+}
+.course-detail--drag .topic-expanded,
+.course-detail--drag .task-attachments {
+  pointer-events: none;
+}
 
 .loading-center { display: flex; justify-content: center; padding: 50px 0; }
 .spinner { width: 28px; height: 28px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
