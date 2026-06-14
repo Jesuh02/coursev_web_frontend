@@ -240,6 +240,23 @@
           </div>
         </div>
 
+        <div v-if="taskGuides.length" class="task-guides-section card-enter" style="animation-delay: 0.04s">
+          <h3 class="section-title">Guías de la tarea</h3>
+          <div class="task-guides-list">
+            <a
+              v-for="item in taskGuides"
+              :key="item.id"
+              class="task-guide-link"
+              :href="getContentItemUrl(item)"
+              target="_blank"
+              rel="noopener"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+              <span>{{ getContentItemLabel(item) }}</span>
+            </a>
+          </div>
+        </div>
+
         <!-- Banner fuera de plazo -->
         <div v-if="isOverdue && status === 'not-submitted'" class="overdue-banner card-enter" style="animation-delay: 0.04s">
           <div class="overdue-icon">
@@ -490,8 +507,8 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import type { Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, buildProxyFileUrl, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
+import type { ContentItem, Task, TaskSubmission } from '@/domain/models'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, contentItemAdapter, buildProxyFileUrl, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -504,6 +521,7 @@ const viewAsRole = computed(() => Number(route.query.viewAsRole ?? 0))
 const isAdminViewingAsStudent = computed(() => authStore.isAdmin && viewAsRole.value === 1)
 
 const task = ref<Task | null>(null)
+const taskGuides = ref<ContentItem[]>([])
 const submission = ref<TaskSubmission | null>(null)
 const allSubmissions = ref<TaskSubmission[]>([])
 const loading = ref(true)
@@ -632,6 +650,14 @@ function resolveFileUrl(uri: string | null | undefined): string {
   if (!uri || uri.startsWith('file:///')) return '#'
   if (uri.startsWith('http')) return uri
   return buildProxyFileUrl(uri)
+}
+
+function getContentItemUrl(item: ContentItem): string {
+  return resolveFileUrl(item.fileUri || item.content)
+}
+
+function getContentItemLabel(item: ContentItem): string {
+  return item.fileName || item.content || `guia-${item.id}`
 }
 
 function getFileUrl(sub: TaskSubmission): string {
@@ -894,12 +920,14 @@ onMounted(async () => {
 
     const currentUserId = Number(authStore.user?.id ?? tokenStorage.userId ?? 0)
 
-    const [t, sub] = await Promise.all([
+    const [t, sub, guides] = await Promise.all([
       taskAdapter.getTaskById(taskId),
       submissionAdapter.getSubmissionByUserAndTask(taskId, currentUserId || undefined).catch(() => null),
+      contentItemAdapter.getByTask(taskId).catch(() => [] as ContentItem[]),
     ])
     task.value = t
     submission.value = sub
+    taskGuides.value = guides.filter(item => Boolean(item.fileUri || item.content))
 
     let managerAccess = authStore.isAdmin
 
@@ -1345,6 +1373,29 @@ onMounted(async () => {
 .status-grade { font-size: 14px; color: #30D158; margin-top: 2px; }
 
 .section-title { font-size: 13px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+.task-guides-section { display: flex; flex-direction: column; gap: 8px; }
+.task-guides-list { display: flex; flex-direction: column; gap: 8px; }
+.task-guide-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1C1C1E;
+  border: 1px solid rgba(0,212,255,0.16);
+  color: #E5F8FF;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
+}
+.task-guide-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .feedback-section { display: flex; flex-direction: column; gap: 8px; }
 .feedback-card {

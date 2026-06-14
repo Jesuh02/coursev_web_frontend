@@ -1758,7 +1758,7 @@ async function createCourseFromPlan() {
     createdCourseId.value = data.courseId
     const resourceStatus = [
       data.thumbnailsInProgress ? 'miniaturas del curso y materias' : '',
-      data.docsInProgress ? 'documentos Word/PDF para temas y tareas' : '',
+      data.docsInProgress ? 'documentos Word/PDF para temas y guias de desarrollo no resueltas para tareas' : '',
     ].filter(Boolean).join(' y ')
     const msg: ChatMsg = {
       id: crypto.randomUUID(),

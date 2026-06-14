@@ -943,7 +943,7 @@ async function createCourseFromPlan() {
     if (data.thumbnailsInProgress || data.docsInProgress) {
       const pending = [
         data.thumbnailsInProgress ? 'miniaturas de las materias' : '',
-        data.docsInProgress ? 'materiales explicativos Word/PDF de temas y tareas' : '',
+        data.docsInProgress ? 'materiales Word/PDF de temas y guias de desarrollo no resueltas para tareas' : '',
       ].filter(Boolean).join(' y ')
       messages.value.push({
         id: crypto.randomUUID(),
