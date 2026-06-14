@@ -190,6 +190,7 @@
           @dragend="onDragEnd"
           @touchstart="onTopicTouchStart(index)"
           @touchend="onTouchEnd"
+          @pointerdown="onTopicPointerDown(index, $event)"
         >
           <div class="topic-row">
             <div v-if="isDragMode" class="drag-handle" aria-hidden="true">
@@ -297,6 +298,7 @@
               @dragend="onDragEnd"
               @touchstart="onTaskTouchStart(topic.id, taskIndex)"
               @touchend="onTouchEnd"
+              @pointerdown="onTaskPointerDown(topic.id, taskIndex, $event)"
             >
               <div class="task-row">
                 <div v-if="isDragMode" class="drag-handle task-drag-handle" aria-hidden="true">
@@ -741,6 +743,9 @@ let touchDragTopicId: number | null = null
 let touchItemRects: TouchDragRect[] = []
 let scrollRafId: number | null = null
 let scrollDir: 'up' | 'down' | null = null
+let pointerDragActive = false
+let pointerDragKind: 'topics' | 'tasks' | null = null
+let pointerDragTopicId: number | null = null
 
 const SCROLL_ZONE = 90
 const SCROLL_STEP = 6
@@ -798,7 +803,7 @@ function sortByOrderIndex<T extends Record<string, any>>(items: T[]): T[] {
 }
 
 function stampDisplayOrder<T extends Record<string, any>>(items: T[]): T[] {
-  return sortByOrderIndex(items).map((item, index) => ({
+  return items.map((item, index) => ({
     ...item,
     orderIndex: index,
     order_index: index,
@@ -806,6 +811,7 @@ function stampDisplayOrder<T extends Record<string, any>>(items: T[]): T[] {
 }
 
 function resetDragState() {
+  removePointerDragListeners()
   draggedTopicIndex.value = -1
   dragOverTopicIndex.value = -1
   draggedTask.value = null
@@ -813,6 +819,9 @@ function resetDragState() {
   touchDragKind = null
   touchDragTopicId = null
   touchItemRects = []
+  pointerDragActive = false
+  pointerDragKind = null
+  pointerDragTopicId = null
   stopAutoScroll()
 }
 
@@ -869,6 +878,97 @@ function cacheTaskTouchRects(topicId: number) {
     index: Number(el.dataset.taskDragIndex),
     rect: el.getBoundingClientRect(),
   }))
+}
+
+function addPointerDragListeners() {
+  removePointerDragListeners()
+  window.addEventListener('pointermove', handlePointerDragMove, { passive: false })
+  window.addEventListener('pointerup', handlePointerDragEnd)
+  window.addEventListener('pointercancel', handlePointerDragEnd)
+}
+
+function removePointerDragListeners() {
+  window.removeEventListener('pointermove', handlePointerDragMove)
+  window.removeEventListener('pointerup', handlePointerDragEnd)
+  window.removeEventListener('pointercancel', handlePointerDragEnd)
+}
+
+function onTopicPointerDown(index: number, event: PointerEvent) {
+  if (!isDragMode.value || activeTab.value !== 'docs') return
+  if (event.button !== 0) return
+  event.preventDefault()
+  pointerDragActive = true
+  pointerDragKind = 'topics'
+  draggedTopicIndex.value = index
+  dragOverTopicIndex.value = -1
+  cacheTopicTouchRects()
+  addPointerDragListeners()
+}
+
+function onTaskPointerDown(topicId: number, index: number, event: PointerEvent) {
+  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  if (event.button !== 0) return
+  event.preventDefault()
+  pointerDragActive = true
+  pointerDragKind = 'tasks'
+  pointerDragTopicId = topicId
+  draggedTask.value = { topicId, index }
+  dragOverTask.value = null
+  cacheTaskTouchRects(topicId)
+  addPointerDragListeners()
+}
+
+function handlePointerDragMove(event: PointerEvent) {
+  if (!pointerDragActive || !pointerDragKind) return
+  event.preventDefault()
+
+  if (pointerDragKind === 'topics') cacheTopicTouchRects()
+  else if (pointerDragTopicId !== null) cacheTaskTouchRects(pointerDragTopicId)
+
+  const hit = findDragHit(event.clientX, event.clientY)
+  if (hit) {
+    if (pointerDragKind === 'topics') {
+      dragOverTopicIndex.value = hit.index
+    } else if (hit.topicId !== undefined) {
+      dragOverTask.value = { topicId: hit.topicId, index: hit.index }
+    }
+  }
+
+  updateAutoScroll(event.clientY)
+}
+
+function handlePointerDragEnd(event: PointerEvent) {
+  if (!pointerDragActive) return
+  event.preventDefault()
+  removePointerDragListeners()
+
+  const kind = pointerDragKind
+  const fromTopic = draggedTopicIndex.value
+  const toTopic = dragOverTopicIndex.value
+  const fromTask = draggedTask.value
+  const toTask = dragOverTask.value
+  resetDragState()
+
+  if (kind === 'topics' && fromTopic !== -1 && toTopic !== -1 && fromTopic !== toTopic) {
+    moveTopic(fromTopic, toTopic)
+    return
+  }
+
+  if (kind === 'tasks' && fromTask && toTask && fromTask.topicId === toTask.topicId && fromTask.index !== toTask.index) {
+    moveTask(fromTask.topicId, fromTask.index, toTask.index)
+  }
+}
+
+function findDragHit(clientX: number, clientY: number): TouchDragRect | undefined {
+  return touchItemRects.find(item => {
+    const sameDrag =
+      pointerDragKind === 'topics' || touchDragKind === 'topics'
+        ? item.index === draggedTopicIndex.value
+        : item.topicId === draggedTask.value?.topicId && item.index === draggedTask.value?.index
+    if (sameDrag) return false
+    const r = item.rect
+    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom
+  })
 }
 
 function onTopicDragStart(index: number, event: DragEvent) {
@@ -1264,7 +1364,7 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
     const loadedTopics = subjectId.value
       ? await topicAdapter.getTopicsBySubject(subjectId.value)
       : await topicAdapter.getTopicsByCourse(id)
-    topics.value = stampDisplayOrder(loadedTopics) as Topic[]
+    topics.value = stampDisplayOrder(sortByOrderIndex(loadedTopics)) as Topic[]
   } catch { /* empty */ }
 
   for (const topic of topics.value) {
@@ -1296,7 +1396,7 @@ async function loadTopicsAndTasks(id: number, clearCache = false) {
   const nextTaskMap: Record<number, Task[]> = {}
   const allTasks: Task[] = []
   for (const [topicId, tasks] of taskEntries) {
-    const orderedTasks = stampDisplayOrder(tasks) as Task[]
+    const orderedTasks = stampDisplayOrder(sortByOrderIndex(tasks)) as Task[]
     nextTaskMap[topicId] = orderedTasks
     allTasks.push(...orderedTasks)
   }
@@ -2120,8 +2220,9 @@ watch(activeTab, (tab) => {
   outline: 2px solid #BF5AF2;
   outline-offset: 2px;
 }
-.course-detail--drag .topic-expanded,
-.course-detail--drag .task-attachments {
+.course-detail--drag .content-row,
+.course-detail--drag .task-attachments,
+.course-detail--drag .attachment-link {
   pointer-events: none;
 }
 
