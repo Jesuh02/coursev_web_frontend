@@ -290,16 +290,12 @@ async function save() {
   saving.value = true
   saveError.value = ''
   try {
-    const { subjectAdapter } = await import('@/infrastructure/api')
+    const { subjectAdapter, uploadFileDirect } = await import('@/infrastructure/api')
 
     // Upload thumbnail if a new file was selected
     let thumbnailUrl: string | undefined
     if (selectedFile.value) {
-      const { api } = await import('@/infrastructure/api/httpClient')
-      const formData = new FormData()
-      formData.append('file', selectedFile.value)
-      formData.append('prefix', 'thumbnails')
-      const uploaded = await api.upload<{ publicUrl: string }>('/storage/upload', formData)
+      const uploaded = await uploadFileDirect(selectedFile.value, 'thumbnails')
       thumbnailUrl = encodeURI(uploaded.publicUrl)
     }
 

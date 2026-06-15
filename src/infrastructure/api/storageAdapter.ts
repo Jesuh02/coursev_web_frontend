@@ -1,7 +1,7 @@
 import type { StoragePort } from '@/domain/ports'
 import { api, tokenStorage, getApiV1 } from './httpClient'
 
-type StoragePrefix = 'videos' | 'content' | 'submissions' | 'courses' | 'images'
+type StoragePrefix = 'videos' | 'thumbnails' | 'content' | 'submissions' | 'courses' | 'images'
 
 
 export const storageAdapter: StoragePort = {
