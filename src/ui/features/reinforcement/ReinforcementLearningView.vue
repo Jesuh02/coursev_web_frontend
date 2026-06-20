@@ -456,7 +456,6 @@ let coachSplineViewer: HTMLElement | null = null
 let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
 let coachSplineLevel = 0
-let coachSplineRotation = 0
 let coachSpeechVolume = 0
 let coachResponsePulseUntil = 0
 let coachAudioContext: AudioContext | null = null
@@ -710,15 +709,17 @@ function animateCoachSpline(timestamp = performance.now()) {
   const targetLevel = Math.max(micLevel, speechWave, responsePulse, thinkingPulse)
   const easing = targetLevel > coachSplineLevel ? 0.24 : 0.1
   coachSplineLevel += (targetLevel - coachSplineLevel) * easing
-  coachSplineRotation += 0.12 + coachSplineLevel * 2.4
 
   const stage = coachSplineStage.value
   if (stage) {
-    const scale = 1 + coachSplineLevel * 0.17
-    const tilt = Math.sin(timestamp * 0.004) * coachSplineLevel * 5
+    const audioLevel = coachSplineLevel < 0.012 ? 0 : coachSplineLevel
+    const scale = 1 + audioLevel * 0.1
+    const tilt = audioLevel
+      ? Math.sin(timestamp * 0.006) * audioLevel * 3.5
+      : 0
     stage.style.setProperty('--coach-spline-scale', scale.toFixed(3))
-    stage.style.setProperty('--coach-spline-rotation', `${(coachSplineRotation + tilt).toFixed(2)}deg`)
-    stage.style.setProperty('--coach-spline-level', coachSplineLevel.toFixed(3))
+    stage.style.setProperty('--coach-spline-rotation', `${tilt.toFixed(2)}deg`)
+    stage.style.setProperty('--coach-spline-level', audioLevel.toFixed(3))
   }
 
   coachSplineFrame = requestAnimationFrame(animateCoachSpline)
@@ -734,6 +735,14 @@ function stopCoachSplineAnimation() {
   if (coachSplineFrame !== null) {
     cancelAnimationFrame(coachSplineFrame)
     coachSplineFrame = null
+  }
+  coachSplineLevel = 0
+  coachSpeechVolume = 0
+  const stage = coachSplineStage.value
+  if (stage) {
+    stage.style.setProperty('--coach-spline-scale', '1.000')
+    stage.style.setProperty('--coach-spline-rotation', '0.00deg')
+    stage.style.setProperty('--coach-spline-level', '0.000')
   }
 }
 
