@@ -48,13 +48,14 @@
           <button
             type="button"
             class="coach-spline-button"
-            :disabled="phase !== 'start' || coachLoading"
+            :disabled="phase !== 'start' || coachLoading || isCoachSpeaking"
+            aria-label="Iniciar conversación por voz con IA"
             title="Voz"
             @click="startVoiceQuestionFlow"
           >
             <div
               ref="coachSplineStage"
-              class="coach-spline-stage"
+              class="coach-spline-stage start-voice-spline-stage"
               :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
               aria-hidden="true"
             >
@@ -65,16 +66,6 @@
             </div>
           </button>
 
-          <button
-            type="button"
-            class="coach-voice-start"
-            :disabled="coachLoading"
-            @click="startVoiceQuestionFlow"
-          >
-            {{ coachLoading ? 'Preparando...' : 'Voz' }}
-          </button>
-
-          <p v-if="coachError" class="coach-error">{{ coachError }}</p>
         </section>
 
         <AppButton variant="primary" full @click="startQuiz">
@@ -84,6 +75,29 @@
     </Transition>
 
     <!-- ════════════════════════════════════ LOADING ════════════════════════════════════ -->
+    <Transition name="phase">
+      <div v-if="phase === 'voice'" key="voice" class="screen voice-screen">
+        <button
+          type="button"
+          class="voice-orb-button"
+          aria-label="Conversar por voz con IA"
+          @click="handleVoiceOrbClick"
+        >
+          <div
+            ref="coachSplineStage"
+            class="coach-spline-stage voice-spline-stage"
+            :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
+            aria-hidden="true"
+          >
+            <div ref="coachSplineMount" class="coach-spline-mount" />
+            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
+              <span>AI</span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </Transition>
+
     <Transition name="phase">
       <div v-if="phase === 'loading'" key="loading" class="screen loading-screen">
 
@@ -372,6 +386,20 @@ interface CoachResponse {
   confidence?: number
 }
 
+interface CoachSendOptions {
+  voiceMode?: boolean
+  silentUser?: boolean
+  starter?: boolean
+  resumeListening?: boolean
+}
+
+interface TTSResponse {
+  audio: string
+  format: string
+  contentType: string
+  estimatedDuration?: number
+}
+
 interface SpeechRecognitionLike {
   lang: string
   continuous: boolean
@@ -385,7 +413,7 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike
 
-type Phase = 'start' | 'loading' | 'quiz' | 'results'
+type Phase = 'start' | 'voice' | 'loading' | 'quiz' | 'results'
 type Cell  = '' | 'X' | 'O'
 type WinnerType = 'player' | 'cpu' | null
 type DifficultyLevel = 'EASY' | 'INTERMEDIATE' | 'HARD'
@@ -449,9 +477,15 @@ const coachSplineStage = ref<HTMLElement | null>(null)
 const coachSplineLoading = ref(true)
 const coachSplineError = ref(false)
 const voiceQuizMode = ref(false)
-const coachSplineActive = computed(() => isCoachSpeaking.value || isSpeaking.value || coachListening.value || coachLoading.value)
+const voiceConversationMode = ref(false)
+const coachLastQuestion = ref('')
+const coachSplineActive = computed(() => isCoachSpeaking.value || isSpeaking.value || coachListening.value || coachLoading.value || voiceConversationMode.value)
 let coachMsgSeq = 0
 let coachRecognition: SpeechRecognitionLike | null = null
+let coachAudioElement: HTMLAudioElement | null = null
+let coachSpeechToken = 0
+let coachVoiceRestartTimer: ReturnType<typeof setTimeout> | null = null
+let coachVoiceListeningWanted = false
 let coachSplineViewer: HTMLElement | null = null
 let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
@@ -542,6 +576,16 @@ function speakQuestion() {
 
 function stopSpeaking() {
   window.speechSynthesis?.cancel()
+  coachSpeechToken++
+  if (coachAudioElement) {
+    coachAudioElement.pause()
+    coachAudioElement.src = ''
+    coachAudioElement = null
+  }
+  if (coachVoiceRestartTimer) {
+    clearTimeout(coachVoiceRestartTimer)
+    coachVoiceRestartTimer = null
+  }
   isSpeaking.value = false
   isCoachSpeaking.value = false
   coachSpeechVolume = 0
@@ -773,7 +817,54 @@ function extractSpeechTranscript(event: unknown): string {
   return String(first?.transcript || '').trim()
 }
 
+function normalizeVoiceCommand(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isRepeatVoiceCommand(text: string): boolean {
+  const normalized = normalizeVoiceCommand(text)
+  return /\b(repiteme|repite|repitela|repetir|otra vez|de nuevo|no escuche|no entendi)\b/.test(normalized)
+}
+
+function stopCoachListening() {
+  coachVoiceListeningWanted = false
+  if (coachVoiceRestartTimer) {
+    clearTimeout(coachVoiceRestartTimer)
+    coachVoiceRestartTimer = null
+  }
+  coachRecognition?.stop()
+  coachListening.value = false
+  stopCoachAudioMeter()
+}
+
+function scheduleCoachListening(delay = 320) {
+  if (!voiceConversationMode.value || phase.value !== 'voice') return
+  coachVoiceListeningWanted = true
+  if (coachVoiceRestartTimer) clearTimeout(coachVoiceRestartTimer)
+  coachVoiceRestartTimer = window.setTimeout(() => {
+    coachVoiceRestartTimer = null
+    if (voiceConversationMode.value && phase.value === 'voice' && !isCoachSpeaking.value && !coachLoading.value) {
+      startCoachDictation(true)
+    }
+  }, delay)
+}
+
 function toggleCoachDictation() {
+  if (voiceConversationMode.value) {
+    if (coachListening.value) stopCoachListening()
+    else startCoachDictation(true)
+    return
+  }
+  startCoachDictation(false)
+}
+
+function startCoachDictation(autoSubmit = false) {
   if (coachListening.value) {
     coachRecognition?.stop()
     coachListening.value = false
@@ -793,60 +884,141 @@ function toggleCoachDictation() {
   coachRecognition.interimResults = false
   coachRecognition.onresult = (event: unknown) => {
     const transcript = extractSpeechTranscript(event)
-    if (transcript) coachInput.value = transcript
+    if (!transcript) return
+    if (autoSubmit || voiceConversationMode.value) {
+      void handleCoachVoiceTranscript(transcript)
+    } else {
+      coachInput.value = transcript
+    }
   }
   coachRecognition.onerror = () => {
-    coachError.value = 'No pude escuchar bien. Intenta hablar mas cerca o escribe tu postura.'
+    coachError.value = 'No pude escuchar bien.'
     coachListening.value = false
     stopCoachAudioMeter()
   }
   coachRecognition.onend = () => {
     coachListening.value = false
     stopCoachAudioMeter()
+    if (coachVoiceListeningWanted && voiceConversationMode.value && phase.value === 'voice' && !coachLoading.value && !isCoachSpeaking.value) {
+      scheduleCoachListening(620)
+    }
   }
   coachError.value = ''
+  coachVoiceListeningWanted = autoSubmit || voiceConversationMode.value
   coachListening.value = true
   try {
     coachRecognition.start()
     void startCoachAudioMeter()
   } catch (error) {
     console.warn('[Reinforcement] No se pudo iniciar el dictado.', error)
-    coachError.value = 'No pude iniciar el dictado. Intenta de nuevo o escribe tu postura.'
+    coachError.value = 'No pude iniciar el dictado.'
     coachListening.value = false
     stopCoachAudioMeter()
   }
 }
 
-function speakCoachText(text: string) {
+function pickSpanishFemaleVoice(): SpeechSynthesisVoice | null {
   const synth = window.speechSynthesis
-  if (!synth || !text.trim()) return
+  if (!synth) return null
+  const voices = synth.getVoices()
+  const spanishVoices = voices.filter(v => /^es([-_]|$)/i.test(v.lang))
+  const nonGoogle = spanishVoices.filter(v => !/google/i.test(v.name))
+  const preferredNames = /(sabina|elvira|helena|monica|mónica|paulina|paloma|luciana|laura|marta|marisol|dalia|luna|carmen|isabel|sofia|sofía|catalina|ximena|maria|maría|female|mujer)/i
+  return nonGoogle.find(v => preferredNames.test(v.name)) ||
+    nonGoogle[0] ||
+    spanishVoices.find(v => preferredNames.test(v.name)) ||
+    spanishVoices[0] ||
+    null
+}
+
+function finishCoachSpeech(token: number, resumeListening: boolean) {
+  if (token !== coachSpeechToken) return
+  isCoachSpeaking.value = false
+  coachSpeechVolume = 0
+  coachAudioElement = null
+  if (resumeListening) scheduleCoachListening(420)
+}
+
+function speakCoachText(text: string, resumeListening = false) {
+  const cleanText = text.replace(/\s+/g, ' ').trim()
+  if (!cleanText) return
+  const token = ++coachSpeechToken
+  coachVoiceListeningWanted = resumeListening
+  coachRecognition?.stop()
+  coachListening.value = false
+  stopCoachAudioMeter()
+  window.speechSynthesis?.cancel()
+  if (coachAudioElement) {
+    coachAudioElement.pause()
+    coachAudioElement.src = ''
+    coachAudioElement = null
+  }
+
+  void speakCoachWithRemoteTts(cleanText, token, resumeListening).catch(() => {
+    if (token === coachSpeechToken) speakCoachWithBrowserVoice(cleanText, token, resumeListening)
+  })
+}
+
+async function speakCoachWithRemoteTts(text: string, token: number, resumeListening: boolean) {
+  isCoachSpeaking.value = true
+  boostCoachSpeechVolume(0.66)
+  const data = await api.post<TTSResponse>('/tts/synthesize', {
+    text,
+    voice: 'nova',
+    model: 'tts-1-hd',
+    format: 'mp3',
+    speed: 1.03,
+  })
+  if (token !== coachSpeechToken) return
+
+  const audio = new Audio(`data:${data.contentType || 'audio/mpeg'};base64,${data.audio}`)
+  coachAudioElement = audio
+  audio.onplay = () => {
+    if (token !== coachSpeechToken) return
+    isCoachSpeaking.value = true
+    boostCoachSpeechVolume(0.82)
+  }
+  audio.ontimeupdate = () => {
+    if (token === coachSpeechToken) boostCoachSpeechVolume(0.54 + Math.random() * 0.24)
+  }
+  audio.onended = () => finishCoachSpeech(token, resumeListening)
+  audio.onerror = () => {
+    finishCoachSpeech(token, false)
+    speakCoachWithBrowserVoice(text, ++coachSpeechToken, resumeListening)
+  }
+  await audio.play()
+}
+
+function speakCoachWithBrowserVoice(text: string, token: number, resumeListening: boolean) {
+  if (token !== coachSpeechToken) return
+  const synth = window.speechSynthesis
+  if (!synth || !text.trim()) {
+    finishCoachSpeech(token, resumeListening)
+    return
+  }
   synth.cancel()
 
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = 'es-ES'
-  utterance.rate = 0.98
+  utterance.rate = 1
+  utterance.pitch = 1.12
 
-  const voices = synth.getVoices()
-  const esVoice = voices.find(v => v.lang.startsWith('es'))
+  const esVoice = pickSpanishFemaleVoice()
   if (esVoice) utterance.voice = esVoice
 
   utterance.onstart = () => {
+    if (token !== coachSpeechToken) return
     isCoachSpeaking.value = true
     boostCoachSpeechVolume(0.72)
   }
   utterance.onboundary = (event: SpeechSynthesisEvent) => {
+    if (token !== coachSpeechToken) return
     const spoken = text.slice(event.charIndex, event.charIndex + 36)
     const density = spoken.replace(/\s/g, '').length / 36
     boostCoachSpeechVolume(0.42 + density * 0.45)
   }
-  utterance.onend = () => {
-    isCoachSpeaking.value = false
-    coachSpeechVolume = 0
-  }
-  utterance.onerror = () => {
-    isCoachSpeaking.value = false
-    coachSpeechVolume = 0
-  }
+  utterance.onend = () => finishCoachSpeech(token, resumeListening)
+  utterance.onerror = () => finishCoachSpeech(token, resumeListening)
   synth.speak(utterance)
 }
 
@@ -2246,6 +2418,64 @@ function orderingItemClass(i: number): Record<string, boolean> {
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
+function voiceSubjectLabel(): string {
+  return (taskName.value || topicName.value || 'este tema').trim()
+}
+
+function defaultOpenCoachQuestion(): string {
+  const subject = voiceSubjectLabel()
+  return `Sin esconderte detras de opciones: que entiendes por ${subject} y como lo explicarias con un ejemplo?`
+}
+
+function looksMultipleChoiceLike(text = ''): boolean {
+  return /(^|\n)\s*[A-D]\s*[\).:-]/i.test(text) ||
+    /\b(opcion|opción)\s+[A-D]\b/i.test(text) ||
+    /\b[A-D]\s*[\).:-]\s+\S/i.test(text)
+}
+
+function openCoachQuestion(raw = ''): string {
+  const text = raw.replace(/\s+/g, ' ').trim()
+  if (!text || looksMultipleChoiceLike(text)) return defaultOpenCoachQuestion()
+  return text
+}
+
+function spokenCoachReply(message: CoachMessage): string {
+  return [
+    message.content,
+    message.critique,
+    message.question ? `Ahora dime: ${message.question}` : '',
+  ].filter(Boolean).join('. ')
+}
+
+function repeatLastCoachQuestion() {
+  const question = coachLastQuestion.value || defaultOpenCoachQuestion()
+  coachLastQuestion.value = question
+  speakCoachText(question, true)
+}
+
+function handleVoiceOrbClick() {
+  if (isCoachSpeaking.value) {
+    stopSpeaking()
+    scheduleCoachListening(180)
+    return
+  }
+  if (coachListening.value) {
+    stopCoachListening()
+    return
+  }
+  repeatLastCoachQuestion()
+}
+
+async function handleCoachVoiceTranscript(transcript: string) {
+  const content = transcript.trim()
+  if (!content || coachLoading.value) return
+  if (isRepeatVoiceCommand(content)) {
+    repeatLastCoachQuestion()
+    return
+  }
+  await sendCoachMessage(content, { voiceMode: true, resumeListening: true })
+}
+
 function buildCoachHistoryPayload() {
   return coachMessages.value.slice(-8).map(msg => ({
     role: msg.role,
@@ -2256,11 +2486,15 @@ function buildCoachHistoryPayload() {
 }
 
 async function askCoachStarter() {
-  coachInput.value = 'Hazme una pregunta puntual sobre este tema y critica mi primera intuicion cuando responda.'
-  await sendCoachMessage()
+  await sendCoachMessage('__VOICE_START__', {
+    voiceMode: true,
+    silentUser: true,
+    starter: true,
+    resumeListening: true,
+  })
 }
 
-async function sendCoachMessage(seed?: string) {
+async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
   const content = (seed ?? coachInput.value).trim()
   if (!content || coachLoading.value) return
   if (!courseId.value) {
@@ -2270,12 +2504,14 @@ async function sendCoachMessage(seed?: string) {
 
   coachError.value = ''
   coachLoading.value = true
-  const userMessage: CoachMessage = {
-    id: ++coachMsgSeq,
-    role: 'user',
-    content,
+  if (!options.silentUser) {
+    const userMessage: CoachMessage = {
+      id: ++coachMsgSeq,
+      role: 'user',
+      content,
+    }
+    coachMessages.value.push(userMessage)
   }
-  coachMessages.value.push(userMessage)
   coachInput.value = ''
 
   try {
@@ -2284,53 +2520,78 @@ async function sendCoachMessage(seed?: string) {
       topicId: topicId.value ?? undefined,
       taskId: taskId.value ?? undefined,
       difficulty: selectedDifficulty.value,
-      message: content,
+      message: options.starter ? '__VOICE_START__' : content,
       history: buildCoachHistoryPayload(),
     }
     if (tokenStorage.userId) payload.userId = tokenStorage.userId
 
     const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
     const stance: CoachStance = response.stance || 'incorrect'
+    const question = openCoachQuestion(response.question || '')
+    coachLastQuestion.value = question
     const assistantMessage: CoachMessage = {
       id: ++coachMsgSeq,
       role: 'assistant',
       stance,
       content: response.reply || 'Incorrecto o, minimo, demasiado flojo. Tu idea necesita evidencia del material.',
       critique: response.critique || '',
-      question: response.question || 'Que evidencia concreta del material defenderia tu postura?',
+      question,
     }
     coachMessages.value.push(assistantMessage)
     pulseCoachSpline()
 
-    if (coachAutoSpeak.value) {
-      speakCoachText([assistantMessage.content, assistantMessage.critique, assistantMessage.question].filter(Boolean).join('. '))
+    if (options.voiceMode || coachAutoSpeak.value) {
+      speakCoachText(spokenCoachReply(assistantMessage), options.resumeListening === true)
     }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'No pude conversar con el coach.'
     coachError.value = message
-    coachMessages.value.push({
+    const fallbackMessage: CoachMessage = {
       id: ++coachMsgSeq,
       role: 'assistant',
       stance: 'incorrect',
       content: 'No pude revisar tu postura ahora. Ironia academica: hasta el critico necesita conexion.',
       critique: 'Vuelve a intentar para contrastar tu respuesta con los documentos del docente.',
-      question: 'Mientras tanto, cual es la evidencia mas fuerte que crees tener?',
-    })
+      question: defaultOpenCoachQuestion(),
+    }
+    coachLastQuestion.value = fallbackMessage.question || defaultOpenCoachQuestion()
+    coachMessages.value.push(fallbackMessage)
     pulseCoachSpline()
+    if (options.voiceMode) speakCoachText(spokenCoachReply(fallbackMessage), options.resumeListening === true)
   } finally {
     coachLoading.value = false
   }
 }
 
 async function startVoiceQuestionFlow() {
+  if (!courseId.value) { showError('No se especifico un curso'); return }
   coachError.value = ''
-  await startQuiz(true)
+  voiceQuizMode.value = false
+  voiceConversationMode.value = true
+  phase.value = 'voice'
+  coachInput.value = ''
+  coachMessages.value = []
+  coachLastQuestion.value = ''
+  stopSpeaking()
+  stopCoachListening()
+  await nextTick()
+  void initCoachSpline()
+  await wait(250)
+  await sendCoachMessage('__VOICE_START__', {
+    voiceMode: true,
+    silentUser: true,
+    starter: true,
+    resumeListening: true,
+  })
 }
 
 async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
   if (!courseId.value) { showError('No se especificó un curso'); return }
 
   voiceQuizMode.value = voiceModeOrEvent === true
+  voiceConversationMode.value = false
+  coachLastQuestion.value = ''
+  stopCoachListening()
   stopSpeaking()
 
   // Always reset previous questions to force fresh generation
@@ -2542,6 +2803,10 @@ function restart() {
   orderingUserSeq.value = []
   questions.value       = []
   voiceQuizMode.value   = false
+  voiceConversationMode.value = false
+  coachLastQuestion.value = ''
+  stopCoachListening()
+  stopSpeaking()
   phase.value           = 'start'
 }
 
@@ -2551,7 +2816,7 @@ function showError(msg: string) {
 }
 
 watch([phase, voiceQuizMode], ([nextPhase, isVoice]) => {
-  if (nextPhase === 'start' || (nextPhase === 'quiz' && isVoice)) {
+  if (nextPhase === 'start' || nextPhase === 'voice' || (nextPhase === 'quiz' && isVoice)) {
     void initCoachSpline()
   }
 })
@@ -2564,7 +2829,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (loadingTimer)       clearInterval(loadingTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
-  coachRecognition?.stop()
+  stopCoachListening()
   disposeCoachSpline()
   stopSpeaking()
 })
@@ -2614,6 +2879,31 @@ onUnmounted(() => {
    START SCREEN
 ═══════════════════════════════════════════════════════════════════════════════ */
 .start-screen { padding-top: 24px; }
+
+.voice-screen {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 92px);
+  padding: 0 16px 56px;
+  justify-content: center;
+  gap: 0;
+}
+
+.voice-orb-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.voice-orb-button:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.78);
+  outline-offset: 14px;
+}
 
 .mascot-wrap {
   display: flex;
@@ -2742,6 +3032,24 @@ onUnmounted(() => {
   cursor: default;
 }
 
+.coach-spline-stage.start-voice-spline-stage {
+  --coach-spline-render-size: clamp(520px, 112vw, 640px);
+  --coach-spline-fit: 0.42;
+}
+
+.coach-spline-stage.voice-spline-stage {
+  --coach-spline-render-size: clamp(620px, 128vw, 780px);
+  --coach-spline-fit: 0.44;
+  width: min(390px, 84vw);
+  height: min(390px, 84vw);
+  min-width: min(300px, 84vw);
+  min-height: min(300px, 84vw);
+  box-shadow:
+    0 26px 82px rgba(0, 113, 227, calc(0.2 + var(--coach-spline-level) * 0.2)),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 40px rgba(0, 212, 255, calc(0.08 + var(--coach-spline-level) * 0.2));
+}
+
 .coach-spline-stage {
   --coach-spline-scale: 1;
   --coach-spline-rotation: 0deg;
@@ -2833,6 +3141,15 @@ onUnmounted(() => {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
+}
+
+.coach-spline-fallback span {
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle at 32% 18%, #6ef2ff 0%, #006eff 48%, #021856 100%);
+  font-size: 0;
+  box-shadow: 0 0 22px rgba(0, 113, 227, 0.42);
 }
 
 .coach-voice-start {
