@@ -52,9 +52,6 @@
               :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
             >
               <div ref="coachSplineMount" class="coach-spline-mount" />
-              <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
-                <span>AI</span>
-              </div>
             </div>
           </div>
 
@@ -92,9 +89,6 @@
             aria-hidden="true"
           >
             <div ref="coachSplineMount" class="coach-spline-mount" />
-            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
-              <span>AI</span>
-            </div>
           </div>
         </button>
       </div>
@@ -173,9 +167,6 @@
             :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
           >
             <div ref="coachSplineMount" class="coach-spline-mount" />
-            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
-              <span>AI</span>
-            </div>
           </div>
         </div>
 
@@ -3231,30 +3222,6 @@ onUnmounted(() => {
   display: block;
   border-radius: 999px;
   transform-origin: center;
-}
-
-.coach-spline-fallback {
-  position: absolute;
-  inset: 32%;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #1d1d1f;
-  border: 1px solid rgba(29, 29, 31, 0.08);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.coach-spline-fallback span {
-  width: 34%;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: radial-gradient(circle at 32% 18%, #6ef2ff 0%, #006eff 48%, #021856 100%);
-  font-size: 0;
-  box-shadow: 0 0 22px rgba(0, 113, 227, 0.42);
 }
 
 .coach-voice-start {
