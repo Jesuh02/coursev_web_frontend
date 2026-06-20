@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import type { Course } from '@/domain/models'
 import { resolveImageUrl, courseAdapter } from '@/infrastructure/api'
@@ -74,6 +74,7 @@ import TopBar from '@/ui/shared/components/TopBar.vue'
 import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
 
@@ -130,7 +131,8 @@ onMounted(async () => {
 })
 
 function select(course: Course) {
-  router.push(`/learning/course/${course.id}/topic-selection`)
+  const query = route.query.mode === 'reinforcement' ? { mode: 'reinforcement' } : undefined
+  router.push({ path: `/learning/course/${course.id}/topic-selection`, query })
 }
 </script>
 

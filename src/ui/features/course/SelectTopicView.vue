@@ -132,6 +132,7 @@ function select(topic: Topic) {
     const query: Record<string, string> = {}
     if (subjectId.value) query.subjectId = String(subjectId.value)
     if (isReinforcement.value) query.mode = 'reinforcement'
+    query.topicName = topic.title
     router.push({
       path: `/course/${courseId.value}/topic/${topic.id}/select-task`,
       query: Object.keys(query).length ? query : undefined,

@@ -79,6 +79,9 @@ const { isDark, toggleTheme } = useTheme()
 
 const courseId = computed(() => Number(route.params.courseId))
 const topicId = computed(() => Number(route.params.topicId))
+const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
+const topicName = computed(() => (route.query.topicName as string) || '')
+const isReinforcement = computed(() => route.query.mode === 'reinforcement')
 
 const search = ref('')
 const tasks = ref<Task[]>([])
@@ -121,6 +124,19 @@ onMounted(async () => {
 })
 
 function select(task: Task) {
+  if (isReinforcement.value) {
+    router.push({
+      path: `/reinforcement/${courseId.value}`,
+      query: {
+        topicId: String(topicId.value),
+        taskId: String(task.id),
+        topicName: topicName.value,
+        taskName: task.title,
+        ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
+      },
+    })
+    return
+  }
   router.push(`/learning/course/${courseId.value}/topic/${topicId.value}/task/${task.id}/mode`)
 }
 </script>

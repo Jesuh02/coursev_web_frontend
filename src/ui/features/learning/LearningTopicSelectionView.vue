@@ -122,7 +122,13 @@ onMounted(async () => {
 })
 
 function select(topic: Topic) {
-  router.push(`/learning/course/${courseId.value}/topic/${topic.id}/task-selection`)
+  const query: Record<string, string> = { topicName: topic.title }
+  if (route.query.mode === 'reinforcement') query.mode = 'reinforcement'
+  if (route.query.subjectId) query.subjectId = String(route.query.subjectId)
+  router.push({
+    path: `/learning/course/${courseId.value}/topic/${topic.id}/task-selection`,
+    query,
+  })
 }
 </script>
 

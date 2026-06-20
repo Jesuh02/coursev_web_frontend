@@ -44,97 +44,35 @@
           </div>
         </div>
 
-        <section class="coach-card" aria-label="Conversacion critica con IA">
-          <div
-            ref="coachSplineStage"
-            class="coach-spline-stage"
-            :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
-            aria-hidden="true"
+        <section class="coach-card" aria-label="Modo voz con IA">
+          <button
+            type="button"
+            class="coach-spline-button"
+            :disabled="phase !== 'start' || coachLoading"
+            title="Voz"
+            @click="startVoiceQuestionFlow"
           >
-            <div ref="coachSplineMount" class="coach-spline-mount" />
-            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
-              <span>AI</span>
-            </div>
-          </div>
-
-          <div class="coach-heading">
-            <p class="coach-kicker">voz critica</p>
-            <h2>Debate con el LLM</h2>
-            <p>
-              Defiende una idea del tema. El coach la revisa con el material del docente,
-              te corrige sin rodeos y te deja una pregunta puntual.
-            </p>
-          </div>
-
-          <div v-if="coachMessages.length" class="coach-thread" aria-live="polite">
-            <article
-              v-for="msg in coachMessages"
-              :key="msg.id"
-              class="coach-message"
-              :class="msg.role === 'user' ? 'coach-user' : 'coach-ai'"
+            <div
+              ref="coachSplineStage"
+              class="coach-spline-stage"
+              :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
+              aria-hidden="true"
             >
-              <div class="coach-message-top">
-                <span>{{ msg.role === 'user' ? 'Tu postura' : 'Coach IA' }}</span>
-                <span v-if="msg.stance" class="coach-stance" :class="`stance-${msg.stance}`">
-                  {{ coachStanceLabel(msg.stance) }}
-                </span>
+              <div ref="coachSplineMount" class="coach-spline-mount" />
+              <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
+                <span>AI</span>
               </div>
-              <p>{{ msg.content }}</p>
-              <p v-if="msg.critique" class="coach-critique">{{ msg.critique }}</p>
-              <p v-if="msg.question" class="coach-question">{{ msg.question }}</p>
-            </article>
-          </div>
-
-          <div v-else class="coach-empty">
-            <p>Ejemplo: "Creo que este concepto siempre se aplica igual en cualquier caso".</p>
-          </div>
-
-          <div class="coach-input-wrap">
-            <textarea
-              v-model="coachInput"
-              class="coach-input"
-              rows="3"
-              :disabled="coachLoading"
-              placeholder="Di o escribe tu postura sobre el tema..."
-              @keydown.ctrl.enter.prevent="sendCoachMessage()"
-            />
-            <div class="coach-actions">
-              <button
-                type="button"
-                class="coach-icon-btn"
-                :class="{ 'is-active': coachListening }"
-                :disabled="coachLoading || !coachSpeechSupported"
-                :title="coachSpeechSupported ? 'Dictar postura' : 'Tu navegador no soporta dictado'"
-                @click="toggleCoachDictation"
-              >
-                {{ coachListening ? 'Escuchando' : 'Dictar' }}
-              </button>
-              <button
-                type="button"
-                class="coach-link-btn"
-                :disabled="coachLoading"
-                @click="askCoachStarter"
-              >
-                Pregunta inicial
-              </button>
-              <button
-                type="button"
-                class="coach-voice-toggle"
-                :class="{ 'is-active': coachAutoSpeak }"
-                @click="coachAutoSpeak = !coachAutoSpeak"
-              >
-                Voz {{ coachAutoSpeak ? 'activa' : 'off' }}
-              </button>
-              <button
-                type="button"
-                class="coach-send-btn"
-                :disabled="coachLoading || !coachInput.trim()"
-                @click="sendCoachMessage()"
-              >
-                {{ coachLoading ? 'Pensando...' : 'Enviar' }}
-              </button>
             </div>
-          </div>
+          </button>
+
+          <button
+            type="button"
+            class="coach-voice-start"
+            :disabled="coachLoading"
+            @click="startVoiceQuestionFlow"
+          >
+            {{ coachLoading ? 'Preparando...' : 'Voz' }}
+          </button>
 
           <p v-if="coachError" class="coach-error">{{ coachError }}</p>
         </section>
@@ -149,7 +87,7 @@
     <Transition name="phase">
       <div v-if="phase === 'loading'" key="loading" class="screen loading-screen">
 
-        <div class="ai-header">
+        <div v-if="false" class="ai-header">
           <div class="ai-spinner" aria-label="Cargando">
             <span class="ring r1" />
             <span class="ring r2" />
@@ -211,6 +149,19 @@
     <!-- ════════════════════════════════════ QUIZ ════════════════════════════════════ -->
     <Transition name="phase">
       <div v-if="phase === 'quiz'" key="quiz" class="screen quiz-screen">
+
+        <div v-if="voiceQuizMode" class="quiz-voice-panel" aria-hidden="true">
+          <div
+            ref="coachSplineStage"
+            class="coach-spline-stage"
+            :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
+          >
+            <div ref="coachSplineMount" class="coach-spline-mount" />
+            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
+              <span>AI</span>
+            </div>
+          </div>
+        </div>
 
         <!-- Progress -->
         <div class="prog-bar-wrap">
@@ -381,7 +332,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -497,7 +448,8 @@ const coachSplineMount = ref<HTMLElement | null>(null)
 const coachSplineStage = ref<HTMLElement | null>(null)
 const coachSplineLoading = ref(true)
 const coachSplineError = ref(false)
-const coachSplineActive = computed(() => isCoachSpeaking.value || coachListening.value || coachLoading.value)
+const voiceQuizMode = ref(false)
+const coachSplineActive = computed(() => isCoachSpeaking.value || isSpeaking.value || coachListening.value || coachLoading.value)
 let coachMsgSeq = 0
 let coachRecognition: SpeechRecognitionLike | null = null
 let coachSplineViewer: HTMLElement | null = null
@@ -505,6 +457,7 @@ let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
 let coachSplineLevel = 0
 let coachSplineRotation = 0
+let coachSpeechVolume = 0
 let coachResponsePulseUntil = 0
 let coachAudioContext: AudioContext | null = null
 let coachAudioAnalyser: AnalyserNode | null = null
@@ -567,9 +520,23 @@ function speakQuestion() {
   const esVoice = voices.find(v => v.lang.startsWith('es'))
   if (esVoice) utterance.voice = esVoice
 
-  utterance.onstart = () => { isSpeaking.value = true }
-  utterance.onend   = () => { isSpeaking.value = false }
-  utterance.onerror = () => { isSpeaking.value = false }
+  utterance.onstart = () => {
+    isSpeaking.value = true
+    boostCoachSpeechVolume(0.72)
+  }
+  utterance.onboundary = (event: SpeechSynthesisEvent) => {
+    const spoken = parts.join('. ').slice(event.charIndex, event.charIndex + 36)
+    const density = spoken.replace(/\s/g, '').length / 36
+    boostCoachSpeechVolume(0.42 + density * 0.45)
+  }
+  utterance.onend = () => {
+    isSpeaking.value = false
+    coachSpeechVolume = 0
+  }
+  utterance.onerror = () => {
+    isSpeaking.value = false
+    coachSpeechVolume = 0
+  }
 
   synth.speak(utterance)
 }
@@ -578,12 +545,14 @@ function stopSpeaking() {
   window.speechSynthesis?.cancel()
   isSpeaking.value = false
   isCoachSpeaking.value = false
+  coachSpeechVolume = 0
 }
 
 async function initCoachSpline() {
   await nextTick()
   const mount = coachSplineMount.value
   if (!mount || typeof document === 'undefined') return
+  ensureCoachSplineAnimation()
 
   coachSplineLoading.value = true
   coachSplineError.value = false
@@ -718,10 +687,21 @@ function pulseCoachSpline(duration = 1300) {
   coachResponsePulseUntil = Math.max(coachResponsePulseUntil, performance.now() + duration)
 }
 
+function boostCoachSpeechVolume(amount = 0.68) {
+  coachSpeechVolume = Math.max(coachSpeechVolume, Math.min(1, amount))
+}
+
 function animateCoachSpline(timestamp = performance.now()) {
   const micLevel = readCoachMicLevel()
-  const speechWave = isCoachSpeaking.value
-    ? 0.34 + (Math.sin(timestamp * 0.018) + 1) * 0.16 + (Math.sin(timestamp * 0.043) + 1) * 0.07
+  const speechActive = isCoachSpeaking.value || isSpeaking.value
+  if (speechActive) {
+    const cadence = 0.18 + (Math.sin(timestamp * 0.018) + 1) * 0.13 + (Math.sin(timestamp * 0.043) + 1) * 0.06
+    coachSpeechVolume = Math.max(coachSpeechVolume * 0.9, cadence)
+  } else {
+    coachSpeechVolume *= 0.86
+  }
+  const speechWave = speechActive
+    ? Math.min(1, coachSpeechVolume)
     : 0
   const responsePulse = timestamp < coachResponsePulseUntil
     ? 0.44 * Math.max(0, (coachResponsePulseUntil - timestamp) / 1300)
@@ -742,6 +722,12 @@ function animateCoachSpline(timestamp = performance.now()) {
   }
 
   coachSplineFrame = requestAnimationFrame(animateCoachSpline)
+}
+
+function ensureCoachSplineAnimation() {
+  if (coachSplineFrame === null) {
+    coachSplineFrame = requestAnimationFrame(animateCoachSpline)
+  }
 }
 
 function stopCoachSplineAnimation() {
@@ -835,9 +821,23 @@ function speakCoachText(text: string) {
   const esVoice = voices.find(v => v.lang.startsWith('es'))
   if (esVoice) utterance.voice = esVoice
 
-  utterance.onstart = () => { isCoachSpeaking.value = true }
-  utterance.onend = () => { isCoachSpeaking.value = false }
-  utterance.onerror = () => { isCoachSpeaking.value = false }
+  utterance.onstart = () => {
+    isCoachSpeaking.value = true
+    boostCoachSpeechVolume(0.72)
+  }
+  utterance.onboundary = (event: SpeechSynthesisEvent) => {
+    const spoken = text.slice(event.charIndex, event.charIndex + 36)
+    const density = spoken.replace(/\s/g, '').length / 36
+    boostCoachSpeechVolume(0.42 + density * 0.45)
+  }
+  utterance.onend = () => {
+    isCoachSpeaking.value = false
+    coachSpeechVolume = 0
+  }
+  utterance.onerror = () => {
+    isCoachSpeaking.value = false
+    coachSpeechVolume = 0
+  }
   synth.speak(utterance)
 }
 
@@ -2308,8 +2308,16 @@ async function sendCoachMessage(seed?: string) {
   }
 }
 
-async function startQuiz() {
+async function startVoiceQuestionFlow() {
+  coachError.value = ''
+  await startQuiz(true)
+}
+
+async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
   if (!courseId.value) { showError('No se especificó un curso'); return }
+
+  voiceQuizMode.value = voiceModeOrEvent === true
+  stopSpeaking()
 
   // Always reset previous questions to force fresh generation
   questions.value    = []
@@ -2382,6 +2390,11 @@ async function startQuiz() {
           questions.value = qs
           quizStartTime   = Date.now()
           phase.value     = 'quiz'
+          if (voiceQuizMode.value) {
+            await nextTick()
+            void initCoachSpline()
+            window.setTimeout(() => speakQuestion(), 250)
+          }
           break
         }
 
@@ -2411,6 +2424,7 @@ async function startQuiz() {
     let msg = 'Error al generar preguntas'
     if (e instanceof Error) msg = e.message
     showError(msg)
+    voiceQuizMode.value = false
     phase.value = 'start'
   } finally {
     if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null }
@@ -2498,6 +2512,9 @@ function nextQ() {
   fillAnswer.value     = ''
   fillCorrect.value    = false
   orderingUserSeq.value = []
+  if (voiceQuizMode.value) {
+    void nextTick(() => speakQuestion())
+  }
 }
 
 function restart() {
@@ -2509,6 +2526,7 @@ function restart() {
   fillCorrect.value     = false
   orderingUserSeq.value = []
   questions.value       = []
+  voiceQuizMode.value   = false
   phase.value           = 'start'
 }
 
@@ -2517,9 +2535,15 @@ function showError(msg: string) {
   setTimeout(() => (errorMsg.value = ''), 5000)
 }
 
+watch([phase, voiceQuizMode], ([nextPhase, isVoice]) => {
+  if (nextPhase === 'start' || (nextPhase === 'quiz' && isVoice)) {
+    void initCoachSpline()
+  }
+})
+
 onMounted(() => {
   void initCoachSpline()
-  coachSplineFrame = requestAnimationFrame(animateCoachSpline)
+  ensureCoachSplineAnimation()
 })
 
 onUnmounted(() => {
@@ -2676,17 +2700,30 @@ onUnmounted(() => {
 
 .coach-card {
   width: 100%;
-  overflow: hidden;
-  border-radius: 28px;
-  background: #f5f5f7;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
   color: #1d1d1f;
-  padding: 22px;
-  border: 1px solid rgba(29, 29, 31, 0.08);
+  padding: 4px 0 12px;
+  border: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 16px;
   font-family: "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   animation: coachRise 0.48s cubic-bezier(.22,1,.36,1) both;
+}
+
+.coach-spline-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.coach-spline-button:disabled {
+  cursor: default;
 }
 
 .coach-spline-stage {
@@ -2694,19 +2731,18 @@ onUnmounted(() => {
   --coach-spline-rotation: 0deg;
   --coach-spline-level: 0;
   position: relative;
-  width: min(172px, 48vw);
-  height: min(172px, 48vw);
-  min-width: 124px;
-  min-height: 124px;
-  margin: -2px auto 0;
+  width: min(228px, 68vw);
+  height: min(228px, 68vw);
+  min-width: 164px;
+  min-height: 164px;
+  margin: 0 auto;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #ffffff;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
   box-shadow:
-    0 18px 42px rgba(0, 113, 227, calc(0.12 + var(--coach-spline-level) * 0.2)),
-    inset 0 0 0 1px rgba(29, 29, 31, 0.08);
+    0 18px 42px rgba(0, 113, 227, calc(0.08 + var(--coach-spline-level) * 0.16));
   transform: scale(var(--coach-spline-scale)) rotate(var(--coach-spline-rotation));
   transform-origin: center;
   will-change: transform, box-shadow;
@@ -2722,11 +2758,11 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 113, 227, calc(0.14 + var(--coach-spline-level) * 0.24));
   pointer-events: none;
   z-index: 2;
+  display: none;
 }
 
 .coach-spline-stage::after {
-  inset: 0;
-  border-color: rgba(29, 29, 31, 0.08);
+  display: none;
 }
 
 .coach-spline-stage.is-audio-active {
@@ -2750,12 +2786,13 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: block;
-  transform: scale(1.15);
+  transform: scale(0.78);
+  transform-origin: center;
 }
 
 .coach-spline-fallback {
   position: absolute;
-  inset: 24%;
+  inset: 32%;
   z-index: 3;
   display: grid;
   place-items: center;
@@ -2766,6 +2803,31 @@ onUnmounted(() => {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
+}
+
+.coach-voice-start {
+  min-width: 112px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 22px;
+  background: #ffffff;
+  color: #1d1d1f;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  transition: transform 0.16s ease, opacity 0.16s ease, background 0.2s ease;
+}
+
+.coach-voice-start:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.coach-voice-start:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
 }
 
 .coach-heading {
@@ -3133,6 +3195,20 @@ onUnmounted(() => {
    QUIZ SCREEN
 ═══════════════════════════════════════════════════════════════════════════════ */
 .quiz-screen { padding-top: 12px; }
+
+.quiz-voice-panel {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  margin: -8px 0 2px;
+}
+
+.quiz-voice-panel .coach-spline-stage {
+  width: min(172px, 52vw);
+  height: min(172px, 52vw);
+  min-width: 132px;
+  min-height: 132px;
+}
 
 .prog-bar-wrap { width: 100%; }
 .prog-track {
