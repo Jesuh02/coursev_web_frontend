@@ -77,6 +77,7 @@ const courseId = computed(() => Number(route.params.courseId))
 const topicId = computed(() => Number(route.params.topicId))
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
 const isReinforcement = computed(() => route.query.mode === 'reinforcement')
+const topicName = computed(() => (route.query.topicName as string) || '')
 
 const search = ref('')
 const tasks = ref<Task[]>([])
@@ -122,6 +123,8 @@ function select(task: Task) {
       query: {
         topicId: String(topicId.value),
         taskId: String(task.id),
+        topicName: topicName.value,
+        taskName: task.title,
         ...(subjectId.value ? { subjectId: String(subjectId.value) } : {}),
       },
     })
