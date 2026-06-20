@@ -1,6 +1,6 @@
 <template>
   <div class="al-root">
-    <TopBar :title="result?.title || 'Video IA'" @back="$router.back()">
+    <TopBar title="Video IA" @back="$router.back()">
       <template #right>
         <button class="theme-btn" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'">
           <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -10,20 +10,22 @@
     </TopBar>
 
     <div v-if="status === 'loading'" class="gen-state gen-center">
-      <div class="orb-stage">
-        <div class="orb" ref="orbEl" />
-        <div class="ring" ref="ring1El" />
-        <div class="ring ring--2" ref="ring2El" />
+      <div class="render-frame" ref="renderFrameEl" aria-hidden="true">
+        <span class="render-frame__cell render-frame__cell--wide" />
+        <span class="render-frame__cell" />
+        <span class="render-frame__cell" />
+        <span class="render-frame__cell render-frame__cell--tall" />
       </div>
       <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
       <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
       <p class="al-sub" style="text-align:center;">
-        Estamos generando guion, voz y secuencia visual a partir del contenido del curso.
+        Estamos convirtiendo el contenido del curso en escenas con analogias de la vida real.
       </p>
       <ul class="gen-steps" ref="stepsEl">
         <li>Extrayendo materiales del tema y la tarea…</li>
         <li>Construyendo guion y voz con el modelo de texto…</li>
-        <li>Generando escenas con el modelo de video…</li>
+        <li>Buscando metaforas cotidianas para explicar el concepto…</li>
+        <li>Generando escenas visuales coherentes…</li>
         <li>Ensamblando la pieza final…</li>
       </ul>
     </div>
@@ -55,15 +57,15 @@
               v-if="result.slides[slideIndex].imageUrl"
               :src="result.slides[slideIndex].imageUrl"
               class="slide-img"
-              alt=""
+              :alt="result.slides[slideIndex].narration || 'Escena generada'"
             />
             <div v-else class="slide-placeholder" />
             <p class="slide-narration">{{ result.slides[slideIndex].narration }}</p>
           </div>
           <div class="slide-nav">
-            <button class="slide-btn" :disabled="slideIndex === 0" @click="slideIndex--">‹</button>
+            <button class="slide-btn" :disabled="slideIndex === 0" aria-label="Escena anterior" @click="slideIndex--">‹</button>
             <span class="slide-counter">{{ slideIndex + 1 }} / {{ result.slides.length }}</span>
-            <button class="slide-btn" :disabled="slideIndex === result.slides.length - 1" @click="slideIndex++">›</button>
+            <button class="slide-btn" :disabled="slideIndex === result.slides.length - 1" aria-label="Escena siguiente" @click="slideIndex++">›</button>
           </div>
         </div>
         <div v-else class="vv-no-video">
@@ -122,9 +124,7 @@ const isGenerating = ref(false)
 const videoError = ref(false)
 const slideIndex = ref(0)
 
-const orbEl = ref<HTMLElement | null>(null)
-const ring1El = ref<HTMLElement | null>(null)
-const ring2El = ref<HTMLElement | null>(null)
+const renderFrameEl = ref<HTMLElement | null>(null)
 const stepsEl = ref<HTMLElement | null>(null)
 const headEl = ref<HTMLElement | null>(null)
 const playerEl = ref<HTMLElement | null>(null)
@@ -187,24 +187,12 @@ async function pollUntilReady(jobId: string) {
 }
 
 function startLoading() {
-  if (orbEl.value) {
-    animate(orbEl.value, {
-      scale: [1, 1.08, 1],
-      duration: 2200, loop: true, ease: 'inOutSine',
-    })
-  }
-  if (ring1El.value) {
-    animate(ring1El.value, {
-      scale: [0.9, 1.4],
-      opacity: [0.7, 0],
-      duration: 1800, loop: true, ease: 'outQuad',
-    })
-  }
-  if (ring2El.value) {
-    animate(ring2El.value, {
-      scale: [0.9, 1.6],
-      opacity: [0.5, 0],
-      duration: 1800, delay: 700, loop: true, ease: 'outQuad',
+  if (renderFrameEl.value) {
+    animate(Array.from(renderFrameEl.value.children) as HTMLElement[], {
+      opacity: [0.38, 1, 0.38],
+      scale: [0.98, 1.02, 0.98],
+      delay: utils.stagger(120),
+      duration: 1600, loop: true, ease: 'inOutSine',
     })
   }
   if (stepsEl.value) {
@@ -269,23 +257,34 @@ onMounted(generate)
   padding: 56px 16px;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
-.orb-stage {
-  position: relative;
-  width: 160px; height: 160px;
-  display: grid; place-items: center;
+.render-frame {
+  width: min(280px, 76vw);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
   margin-bottom: 18px;
+  border-radius: 24px;
+  background: var(--apple-snow);
+  border: 1px solid var(--apple-border);
+  box-shadow: 0 18px 45px rgba(29, 29, 31, 0.10);
 }
-.orb {
-  position: absolute;
-  width: 88px; height: 88px; border-radius: 50%;
-  background: var(--apple-ink);
+.render-frame__cell {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(0, 113, 227, 0.18), rgba(0, 184, 212, 0.12)),
+    var(--apple-cloud);
 }
-.ring {
-  position: absolute;
-  width: 88px; height: 88px; border-radius: 50%;
-  border: 1px solid var(--apple-ring-a);
+.render-frame__cell--wide {
+  grid-row: span 2;
 }
-.ring--2 { border-color: var(--apple-ring-b); }
+.render-frame__cell--tall {
+  grid-column: span 2;
+}
 
 .gen-steps {
   list-style: none; padding: 0; margin: 18px 0 0;
@@ -306,7 +305,7 @@ onMounted(generate)
 .player-wrap {
   width: 100%;
   overflow: hidden;
-  background: #000;
+  background: #050507;
   flex-shrink: 0;
 }
 .player {
@@ -319,15 +318,18 @@ onMounted(generate)
 .vv-no-video {
   aspect-ratio: 16 / 9;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #111;
   color: var(--apple-graphite);
+  padding: 24px;
+  text-align: center;
 }
 
 .vv-slideshow {
   aspect-ratio: 16 / 9;
-  background: #000;
+  background: #050507;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -337,6 +339,7 @@ onMounted(generate)
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 .slide-img {
   width: 100%;
@@ -350,13 +353,20 @@ onMounted(generate)
   background: #111;
 }
 .slide-narration {
-  font-size: 13px;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  font-size: 14px;
   line-height: 1.5;
-  color: #e5e5e7;
-  padding: 10px 14px;
-  background: rgba(0,0,0,0.8);
+  color: #f5f5f7;
+  padding: 12px 14px;
+  background: rgba(8, 9, 11, 0.74);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   margin: 0;
-  max-height: 72px;
+  max-height: 92px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -367,12 +377,18 @@ onMounted(generate)
   align-items: center;
   justify-content: center;
   gap: 16px;
+  min-height: 48px;
   padding: 8px;
-  background: rgba(0,0,0,0.6);
+  background: #111114;
 }
 .slide-btn {
-  background: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
   border: none;
+  border-radius: 50%;
   color: #fff;
   font-size: 22px;
   cursor: pointer;
@@ -383,9 +399,10 @@ onMounted(generate)
 .slide-btn:disabled { opacity: 0.25; cursor: default; }
 .slide-counter {
   font-size: 12px;
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.72);
   min-width: 48px;
   text-align: center;
+  font-weight: 600;
 }
 
 .credits-banner {

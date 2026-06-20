@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="comic-root">
-    <TopBar :title="result?.title || 'Comic'" @back="$router.back()">
+    <TopBar title="Comic IA" @back="$router.back()">
       <template #right>
         <button class="theme-btn" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'">
           <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -57,7 +57,7 @@
               <img
                 v-if="currentPanel.imageUrl"
                 :src="currentPanel.imageUrl"
-                :alt="`Panel ${currentIdx + 1}`"
+                :alt="currentPanel.caption || `Panel ${currentIdx + 1}`"
               />
               <div v-else class="slide-ph">
                 <span class="slide-ph-icon">&#x1F3A8;</span>
@@ -116,12 +116,7 @@
       <div class="footer-actions">
         <button class="al-cta al-cta--ghost" @click="generate">Regenerar</button>
         <button
-          v-if="currentIdx < result.panels.length - 1"
-          class="al-cta al-cta--accent"
-          @click="next"
-        >Siguiente ›</button>
-        <button
-          v-else
+          v-if="currentIdx === result.panels.length - 1"
           class="al-cta al-cta--accent"
           @click="$router.push('/video')"
         >Terminar</button>
@@ -160,7 +155,8 @@ let mouseStartX = 0
 const generationSteps = [
   'Leyendo documentos del tema...',
   'Construyendo el guion con el modelo de texto...',
-  'Pintando los paneles con el modelo de imagen...',
+  'Traduciendo conceptos a alegorias de la vida real...',
+  'Pintando escenas con objetos y acciones cotidianas...',
   'Ensamblando la historia...',
 ]
 
@@ -373,8 +369,8 @@ onMounted(generate)
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 5px 16px 4px;
-  background: var(--apple-snow);
+  padding: 10px 16px 8px;
+  background: color-mix(in srgb, var(--apple-snow) 94%, transparent);
   border-bottom: 1px solid var(--apple-border);
 }
 .comic-counter {
@@ -382,7 +378,7 @@ onMounted(generate)
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--apple-accent-purple);
+  color: var(--apple-signal-blue);
   flex-shrink: 0;
 }
 .comic-title-text {
@@ -403,7 +399,7 @@ onMounted(generate)
   overflow: hidden;
   min-height: 0;
   cursor: grab;
-  background: #000;
+  background: #08090b;
   user-select: none;
 }
 .slide-viewport:active { cursor: grabbing; }
@@ -421,7 +417,8 @@ onMounted(generate)
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #0a0a0a;
+  padding: clamp(10px, 2.5vw, 24px);
+  background: #08090b;
 }
 .slide-image img {
   max-width: 100%;
@@ -430,6 +427,8 @@ onMounted(generate)
   height: auto;
   object-fit: contain;
   display: block;
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
 }
 .slide-ph {
   display: flex;
@@ -445,20 +444,23 @@ onMounted(generate)
 }
 .slide-text {
   flex-shrink: 0;
-  padding: 10px 16px 8px;
+  padding: 12px 16px 10px;
   background: var(--apple-snow);
-  max-height: 22%;
+  max-height: 30%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  border-top: 1px solid var(--apple-border);
 }
 .slide-dialogue {
   font-family: var(--apple-font-display);
   font-size: 15px;
   font-weight: 600;
   color: var(--apple-ink);
-  margin: 0 0 8px;
-  padding-left: 12px;
-  border-left: 3px solid var(--apple-accent-purple);
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--apple-cloud);
+  border-left: 3px solid var(--apple-signal-blue);
   line-height: 1.4;
 }
 .slide-caption {
@@ -485,7 +487,7 @@ onMounted(generate)
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   background: var(--apple-snow);
   border-top: 1px solid var(--apple-border);
 }
@@ -530,7 +532,7 @@ onMounted(generate)
   transition: background 0.2s, transform 0.2s;
 }
 .dot.active {
-  background: var(--apple-accent-purple);
+  background: var(--apple-signal-blue);
   transform: scale(1.5);
 }
 
@@ -538,8 +540,10 @@ onMounted(generate)
   flex-shrink: 0;
   display: flex;
   gap: 10px;
+  min-height: 56px;
   padding: 7px 16px 12px;
   justify-content: center;
+  align-items: center;
   background: var(--apple-snow);
 }
 
@@ -553,7 +557,7 @@ onMounted(generate)
 
 @media (min-width: 860px) {
   .slide-card { flex-direction: row; }
-  .slide-image { flex: 3; }
+  .slide-image { flex: 3; padding: 28px; }
   .slide-text {
     flex: 1;
     max-height: 100%;
