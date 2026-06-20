@@ -1,5 +1,5 @@
 <template>
-  <div class="rl-root">
+  <div class="rl-root" :class="{ 'is-voice-only': phase === 'voice' }">
 
     <!-- ░░ Floating particles ░░ -->
     <div class="particles" aria-hidden="true">
@@ -2865,11 +2865,18 @@ onUnmounted(() => {
   min-height: 100vh;
   color-scheme: dark;
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(0, 113, 227, 0.14) 0%, rgba(0, 113, 227, 0) 46%),
-    radial-gradient(circle at 18% 82%, rgba(0, 212, 255, 0.08), transparent 34%),
-    linear-gradient(180deg, #050512 0%, #020812 52%, #02090d 100%);
+    radial-gradient(ellipse at 50% 18%, rgba(0, 113, 227, 0.1) 0%, rgba(0, 113, 227, 0) 42%),
+    #000;
   position: relative;
   overflow-x: hidden;
+}
+
+.rl-root.is-voice-only {
+  background: #000;
+}
+
+.rl-root.is-voice-only .particles {
+  display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -2907,9 +2914,10 @@ onUnmounted(() => {
   width: 100%;
   max-width: none;
   min-height: calc(100vh - 92px);
-  padding: 0 16px 56px;
+  padding: 0 16px 40px;
   justify-content: center;
   gap: 0;
+  background: #000;
 }
 
 .voice-orb-button {
@@ -3051,21 +3059,21 @@ onUnmounted(() => {
 }
 
 .coach-spline-stage.start-voice-spline-stage {
-  --coach-spline-render-size: clamp(620px, 132vw, 760px);
-  --coach-spline-fit: 0.31;
+  --coach-spline-render-size: clamp(560px, 124vw, 700px);
+  --coach-spline-fit: 0.46;
+  background: #000;
 }
 
 .coach-spline-stage.voice-spline-stage {
-  --coach-spline-render-size: clamp(780px, 158vw, 960px);
-  --coach-spline-fit: 0.29;
-  width: min(460px, 88vw);
-  height: min(460px, 88vw);
-  min-width: min(300px, 88vw);
-  min-height: min(300px, 88vw);
+  --coach-spline-render-size: clamp(720px, 150vw, 900px);
+  --coach-spline-fit: 0.52;
+  width: min(520px, 90vw);
+  height: min(520px, 90vw);
+  min-width: min(320px, 90vw);
+  min-height: min(320px, 90vw);
+  background: #000;
   box-shadow:
-    0 26px 82px rgba(0, 113, 227, calc(0.2 + var(--coach-spline-level) * 0.2)),
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 0 40px rgba(0, 212, 255, calc(0.08 + var(--coach-spline-level) * 0.2));
+    0 0 70px rgba(0, 113, 227, calc(0.12 + var(--coach-spline-level) * 0.22));
 }
 
 .coach-spline-stage {
@@ -3098,6 +3106,13 @@ onUnmounted(() => {
   isolation: isolate;
   will-change: transform, box-shadow, filter;
   transition: filter 0.2s ease;
+}
+
+.is-voice-only .coach-spline-stage,
+.is-voice-only .coach-spline-stage.has-error {
+  background: #000;
+  box-shadow:
+    0 0 84px rgba(0, 113, 227, calc(0.14 + var(--coach-spline-level) * 0.22));
 }
 
 .coach-spline-stage::before,
