@@ -45,25 +45,27 @@
         </div>
 
         <section class="coach-card" aria-label="Modo voz con IA">
-          <button
-            type="button"
-            class="coach-spline-button"
-            :disabled="phase !== 'start' || coachLoading || isCoachSpeaking"
-            aria-label="Iniciar conversación por voz con IA"
-            title="Voz"
-            @click="startVoiceQuestionFlow"
-          >
+          <div class="coach-spline-preview" aria-hidden="true">
             <div
               ref="coachSplineStage"
               class="coach-spline-stage start-voice-spline-stage"
               :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
-              aria-hidden="true"
             >
               <div ref="coachSplineMount" class="coach-spline-mount" />
               <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
                 <span>AI</span>
               </div>
             </div>
+          </div>
+
+          <button
+            type="button"
+            class="coach-voice-start"
+            :disabled="phase !== 'start' || coachLoading || isCoachSpeaking"
+            aria-label="Iniciar conversación por voz con IA"
+            @click="startVoiceQuestionFlow"
+          >
+            Voz
           </button>
 
         </section>
@@ -391,6 +393,7 @@ interface CoachSendOptions {
   silentUser?: boolean
   starter?: boolean
   resumeListening?: boolean
+  deferSpeech?: boolean
 }
 
 interface TTSResponse {
@@ -2540,7 +2543,7 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     coachMessages.value.push(assistantMessage)
     pulseCoachSpline()
 
-    if (options.voiceMode || coachAutoSpeak.value) {
+    if (!options.deferSpeech && (options.voiceMode || coachAutoSpeak.value)) {
       speakCoachText(spokenCoachReply(assistantMessage), options.resumeListening === true)
     }
   } catch (e: unknown) {
@@ -2557,7 +2560,7 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     coachLastQuestion.value = fallbackMessage.question || defaultOpenCoachQuestion()
     coachMessages.value.push(fallbackMessage)
     pulseCoachSpline()
-    if (options.voiceMode) speakCoachText(spokenCoachReply(fallbackMessage), options.resumeListening === true)
+    if (!options.deferSpeech && options.voiceMode) speakCoachText(spokenCoachReply(fallbackMessage), options.resumeListening === true)
   } finally {
     coachLoading.value = false
   }
@@ -2568,21 +2571,40 @@ async function startVoiceQuestionFlow() {
   coachError.value = ''
   voiceQuizMode.value = false
   voiceConversationMode.value = true
-  phase.value = 'voice'
   coachInput.value = ''
   coachMessages.value = []
   coachLastQuestion.value = ''
   stopSpeaking()
   stopCoachListening()
+  resetTriqui()
+  phase.value = 'loading'
+  if (loadingTimer) clearInterval(loadingTimer)
+  loadingTimer = setInterval(() => loadingTick.value++, 2000)
+
+  try {
+    await sendCoachMessage('__VOICE_START__', {
+      voiceMode: true,
+      silentUser: true,
+      starter: true,
+      resumeListening: true,
+      deferSpeech: true,
+    })
+  } finally {
+    if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null }
+  }
+
+  if (!voiceConversationMode.value) return
+  phase.value = 'voice'
   await nextTick()
-  void initCoachSpline()
-  await wait(250)
-  await sendCoachMessage('__VOICE_START__', {
-    voiceMode: true,
-    silentUser: true,
-    starter: true,
-    resumeListening: true,
-  })
+  await initCoachSpline()
+  await wait(180)
+
+  const lastAssistant = [...coachMessages.value].reverse().find(msg => msg.role === 'assistant')
+  if (lastAssistant) {
+    speakCoachText(spokenCoachReply(lastAssistant), true)
+  } else {
+    repeatLastCoachQuestion()
+  }
 }
 
 async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
@@ -2816,7 +2838,7 @@ function showError(msg: string) {
 }
 
 watch([phase, voiceQuizMode], ([nextPhase, isVoice]) => {
-  if (nextPhase === 'start' || nextPhase === 'voice' || (nextPhase === 'quiz' && isVoice)) {
+  if (nextPhase === 'start' || (nextPhase === 'quiz' && isVoice)) {
     void initCoachSpline()
   }
 })
@@ -2843,8 +2865,9 @@ onUnmounted(() => {
   min-height: 100vh;
   color-scheme: dark;
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(0, 113, 227, 0.16) 0%, rgba(0, 113, 227, 0) 48%),
-    linear-gradient(180deg, #090818 0%, #061019 54%, #031015 100%);
+    radial-gradient(ellipse at 50% -10%, rgba(0, 113, 227, 0.14) 0%, rgba(0, 113, 227, 0) 46%),
+    radial-gradient(circle at 18% 82%, rgba(0, 212, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, #050512 0%, #020812 52%, #02090d 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -3020,30 +3043,25 @@ onUnmounted(() => {
   animation: coachRise 0.48s cubic-bezier(.22,1,.36,1) both;
 }
 
-.coach-spline-button {
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.coach-spline-button:disabled {
-  cursor: default;
+.coach-spline-preview {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  overflow: visible;
 }
 
 .coach-spline-stage.start-voice-spline-stage {
-  --coach-spline-render-size: clamp(520px, 112vw, 640px);
-  --coach-spline-fit: 0.42;
+  --coach-spline-render-size: clamp(620px, 132vw, 760px);
+  --coach-spline-fit: 0.31;
 }
 
 .coach-spline-stage.voice-spline-stage {
-  --coach-spline-render-size: clamp(620px, 128vw, 780px);
-  --coach-spline-fit: 0.44;
-  width: min(390px, 84vw);
-  height: min(390px, 84vw);
-  min-width: min(300px, 84vw);
-  min-height: min(300px, 84vw);
+  --coach-spline-render-size: clamp(780px, 158vw, 960px);
+  --coach-spline-fit: 0.29;
+  width: min(460px, 88vw);
+  height: min(460px, 88vw);
+  min-width: min(300px, 88vw);
+  min-height: min(300px, 88vw);
   box-shadow:
     0 26px 82px rgba(0, 113, 227, calc(0.2 + var(--coach-spline-level) * 0.2)),
     0 0 0 1px rgba(255, 255, 255, 0.08),
@@ -3066,6 +3084,7 @@ onUnmounted(() => {
   place-items: center;
   overflow: hidden;
   border-radius: 999px;
+  clip-path: circle(50% at 50% 50%);
   background:
     radial-gradient(circle at 28% 16%, rgba(0, 224, 255, 0.28), transparent 34%),
     radial-gradient(circle at 74% 78%, rgba(0, 56, 255, 0.26), transparent 36%),
