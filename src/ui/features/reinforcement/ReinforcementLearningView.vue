@@ -2576,9 +2576,10 @@ onUnmounted(() => {
 ═══════════════════════════════════════════════════════════════════════════════ */
 .rl-root {
   min-height: 100vh;
-  background: radial-gradient(ellipse at 30% 0%, rgba(98,0,238,0.18) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 80%, rgba(0,212,255,0.10) 0%, transparent 55%),
-              #0A0A0F;
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 113, 227, 0.16) 0%, rgba(0, 113, 227, 0) 48%),
+    linear-gradient(180deg, #090818 0%, #061019 54%, #031015 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -2745,22 +2746,30 @@ onUnmounted(() => {
   --coach-spline-scale: 1;
   --coach-spline-rotation: 0deg;
   --coach-spline-level: 0;
+  --coach-spline-render-size: clamp(420px, 96vw, 500px);
+  --coach-spline-fit: 0.54;
   position: relative;
-  width: min(228px, 68vw);
-  height: min(228px, 68vw);
-  min-width: 164px;
-  min-height: 164px;
+  width: min(256px, 68vw);
+  height: min(256px, 68vw);
+  min-width: 190px;
+  min-height: 190px;
   margin: 0 auto;
   display: grid;
   place-items: center;
-  overflow: visible;
-  border-radius: 0;
-  background: transparent;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 28% 16%, rgba(0, 224, 255, 0.28), transparent 34%),
+    radial-gradient(circle at 74% 78%, rgba(0, 56, 255, 0.26), transparent 36%),
+    #020716;
   box-shadow:
-    0 18px 42px rgba(0, 113, 227, calc(0.08 + var(--coach-spline-level) * 0.16));
+    0 22px 58px rgba(0, 113, 227, calc(0.18 + var(--coach-spline-level) * 0.18)),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 34px rgba(0, 212, 255, calc(0.08 + var(--coach-spline-level) * 0.18));
   transform: scale(var(--coach-spline-scale)) rotate(var(--coach-spline-rotation));
   transform-origin: center;
-  will-change: transform, box-shadow;
+  isolation: isolate;
+  will-change: transform, box-shadow, filter;
   transition: filter 0.2s ease;
 }
 
@@ -2786,14 +2795,20 @@ onUnmounted(() => {
 
 .coach-spline-stage.has-error {
   box-shadow:
-    0 18px 42px rgba(29, 29, 31, 0.12),
-    inset 0 0 0 1px rgba(29, 29, 31, 0.08);
+    0 18px 42px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .coach-spline-mount {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--coach-spline-render-size);
+  height: var(--coach-spline-render-size);
   display: block;
+  transform: translate(-50%, -50%) scale(var(--coach-spline-fit));
+  transform-origin: center;
+  z-index: 1;
 }
 
 .coach-spline-mount :deep(.coach-spline-viewer),
@@ -2801,7 +2816,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: block;
-  transform: scale(0.78);
+  border-radius: 999px;
   transform-origin: center;
 }
 
@@ -3219,6 +3234,8 @@ onUnmounted(() => {
 }
 
 .quiz-voice-panel .coach-spline-stage {
+  --coach-spline-render-size: clamp(360px, 86vw, 440px);
+  --coach-spline-fit: 0.42;
   width: min(172px, 52vw);
   height: min(172px, 52vw);
   min-width: 132px;
