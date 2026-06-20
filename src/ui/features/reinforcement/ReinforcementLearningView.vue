@@ -403,6 +403,12 @@ interface TTSResponse {
   estimatedDuration?: number
 }
 
+interface TTSCapabilities {
+  available: boolean
+  voices?: Record<string, string>
+  formats?: Record<string, string>
+}
+
 interface SpeechRecognitionLike {
   lang: string
   continuous: boolean
@@ -499,6 +505,7 @@ let coachAudioContext: AudioContext | null = null
 let coachAudioAnalyser: AnalyserNode | null = null
 let coachMicStream: MediaStream | null = null
 let coachMicData: Uint8Array<ArrayBuffer> | null = null
+let remoteTtsAvailable: boolean | null = null
 
 const COACH_SPLINE_SCENE_URL = 'https://prod.spline.design/g7wxPPP8P6KMYRcT/scene.splinecode'
 const SPLINE_VIEWER_SCRIPT_ID = 'spline-viewer-script'
@@ -963,15 +970,32 @@ function speakCoachText(text: string, resumeListening = false) {
 }
 
 async function speakCoachWithRemoteTts(text: string, token: number, resumeListening: boolean) {
+  if (remoteTtsAvailable === false) throw new Error('Remote TTS unavailable')
   isCoachSpeaking.value = true
   boostCoachSpeechVolume(0.66)
-  const data = await api.post<TTSResponse>('/tts/synthesize', {
-    text,
-    voice: 'nova',
-    model: 'tts-1-hd',
-    format: 'mp3',
-    speed: 1.03,
-  })
+  if (remoteTtsAvailable === null) {
+    try {
+      const capabilities = await api.get<TTSCapabilities>('/tts/capabilities')
+      remoteTtsAvailable = capabilities?.available === true
+    } catch {
+      remoteTtsAvailable = false
+    }
+  }
+  if (!remoteTtsAvailable) throw new Error('Remote TTS unavailable')
+
+  let data: TTSResponse
+  try {
+    data = await api.post<TTSResponse>('/tts/synthesize', {
+      text,
+      voice: 'nova',
+      model: 'tts-1-hd',
+      format: 'mp3',
+      speed: 1.03,
+    })
+  } catch (error) {
+    remoteTtsAvailable = false
+    throw error
+  }
   if (token !== coachSpeechToken) return
 
   const audio = new Audio(`data:${data.contentType || 'audio/mpeg'};base64,${data.audio}`)
@@ -2425,15 +2449,41 @@ function voiceSubjectLabel(): string {
   return (taskName.value || topicName.value || 'este tema').trim()
 }
 
+function pickPlayfulFallbackReply(): string {
+  const replies = [
+    'Mmm, eso suena a que copiaste de algun lado sin entender. Intentalo de nuevo con tus palabras.',
+    'Ay no, eso estuvo medio flojito. A ver, dame algo mejor.',
+    'Jajaja casi, pero no. Te falta un poquito de estudio ahi.',
+    'Uy, eso no convence ni a mi abuela. Dale otra vez.',
+    'Interesante teoria, pero no. Vuelve a intentarlo.',
+    'Me dejaste pensando... pensando en como lo dijiste tan mal. Otra oportunidad.',
+    'Bueno, al menos lo intentaste. Pero necesitas revisar eso.',
+    'Hmm, ahi hay algo raro. Explicamelo mejor a ver si te entiendo.',
+  ]
+  return replies[Math.floor(Math.random() * replies.length)]
+}
+
 function defaultOpenCoachQuestion(): string {
   const subject = voiceSubjectLabel()
-  return `Sin esconderte detras de opciones: que entiendes por ${subject} y como lo explicarias con un ejemplo?`
+  const starters = [
+    `A ver genio, explicame que es ${subject} con tus propias palabras, sin copiar y pegar.`,
+    `Bueno, iluminame: que sabes tu de ${subject}? Dame un ejemplo real.`,
+    `Dale, cuentame que entiendes por ${subject}. Sorprendeme.`,
+    `Vamos a ver si estudiaste: que es ${subject} segun tu?`,
+    `Ok cerebrito, explicame ${subject} como si yo no supiera nada.`,
+  ]
+  return starters[Math.floor(Math.random() * starters.length)]
 }
 
 function looksMultipleChoiceLike(text = ''): boolean {
   return /(^|\n)\s*[A-D]\s*[\).:-]/i.test(text) ||
     /\b(opcion|opción)\s+[A-D]\b/i.test(text) ||
-    /\b[A-D]\s*[\).:-]\s+\S/i.test(text)
+    /\b[A-D]\s*[\).:-]\s+\S/i.test(text) ||
+    /\b(a|b|c|d)\)\s+\S/i.test(text) ||
+    /cual\s+de\s+(las|los)\s+siguientes/i.test(text) ||
+    /selecciona\s+(la|el)\s+(opcion|opción)/i.test(text) ||
+    /marca\s+(la|el)\s+(opcion|opción)/i.test(text) ||
+    /elige\s+(la|el|una|uno)/i.test(text)
 }
 
 function openCoachQuestion(raw = ''): string {
@@ -2525,6 +2575,9 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
       difficulty: selectedDifficulty.value,
       message: options.starter ? '__VOICE_START__' : content,
       history: buildCoachHistoryPayload(),
+      conversational: true,
+      voiceMode: options.voiceMode === true,
+      personality: 'playful_critic',
     }
     if (tokenStorage.userId) payload.userId = tokenStorage.userId
 
@@ -2536,7 +2589,7 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
       id: ++coachMsgSeq,
       role: 'assistant',
       stance,
-      content: response.reply || 'Incorrecto o, minimo, demasiado flojo. Tu idea necesita evidencia del material.',
+      content: response.reply || pickPlayfulFallbackReply(),
       critique: response.critique || '',
       question,
     }
@@ -2553,8 +2606,8 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
       id: ++coachMsgSeq,
       role: 'assistant',
       stance: 'incorrect',
-      content: 'No pude revisar tu postura ahora. Ironia academica: hasta el critico necesita conexion.',
-      critique: 'Vuelve a intentar para contrastar tu respuesta con los documentos del docente.',
+      content: 'Uy, parece que me quede sin senal. Hasta yo necesito internet para criticarte. Vuelve a intentarlo.',
+      critique: '',
       question: defaultOpenCoachQuestion(),
     }
     coachLastQuestion.value = fallbackMessage.question || defaultOpenCoachQuestion()
@@ -2913,11 +2966,15 @@ onUnmounted(() => {
 .voice-screen {
   width: 100%;
   max-width: none;
-  min-height: calc(100vh - 92px);
-  padding: 0 16px 40px;
+  min-height: 100vh;
+  padding: 0;
   justify-content: center;
+  align-items: center;
   gap: 0;
   background: #000;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
 }
 
 .voice-orb-button {
@@ -2934,6 +2991,17 @@ onUnmounted(() => {
 .voice-orb-button:focus-visible {
   outline: 2px solid rgba(0, 212, 255, 0.78);
   outline-offset: 14px;
+}
+
+/* Ocultar elementos decorativos en voice-screen */
+.voice-screen .coach-spline-stage::before,
+.voice-screen .coach-spline-stage::after {
+  display: none;
+}
+
+/* Efecto sutil para la esfera activa */
+.voice-screen .coach-spline-stage.is-audio-active {
+  filter: brightness(1.05);
 }
 
 .mascot-wrap {
@@ -3065,15 +3133,16 @@ onUnmounted(() => {
 }
 
 .coach-spline-stage.voice-spline-stage {
-  --coach-spline-render-size: clamp(720px, 150vw, 900px);
-  --coach-spline-fit: 0.52;
-  width: min(520px, 90vw);
-  height: min(520px, 90vw);
-  min-width: min(320px, 90vw);
-  min-height: min(320px, 90vw);
-  background: #000;
-  box-shadow:
-    0 0 70px rgba(0, 113, 227, calc(0.12 + var(--coach-spline-level) * 0.22));
+  --coach-spline-render-size: clamp(900px, 200vw, 1200px);
+  --coach-spline-fit: 0.68;
+  width: min(75vh, 85vw);
+  height: min(75vh, 85vw);
+  min-width: min(400px, 90vw);
+  min-height: min(400px, 90vw);
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  clip-path: none;
 }
 
 .coach-spline-stage {
@@ -3109,10 +3178,12 @@ onUnmounted(() => {
 }
 
 .is-voice-only .coach-spline-stage,
-.is-voice-only .coach-spline-stage.has-error {
-  background: #000;
-  box-shadow:
-    0 0 84px rgba(0, 113, 227, calc(0.14 + var(--coach-spline-level) * 0.22));
+.is-voice-only .coach-spline-stage.has-error,
+.voice-screen .coach-spline-stage,
+.voice-screen .coach-spline-stage.has-error {
+  background: transparent;
+  box-shadow: none;
+  clip-path: none;
 }
 
 .coach-spline-stage::before,
