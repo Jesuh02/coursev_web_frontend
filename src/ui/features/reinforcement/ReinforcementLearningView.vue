@@ -886,6 +886,11 @@ const progressPct = computed(() => {
 })
 
 // ─── Score computed ─────────────────────────────────────────────────────────────
+function requiresWrittenAnswer(question: QuizQuestion) {
+  const hasSelectableOptions = Array.isArray(question.options) && question.options.length >= 2
+  return !hasSelectableOptions && question.type !== 'ordering'
+}
+
 const scorePct   = computed(() => questions.value.length ? Math.round((correctCount.value / questions.value.length) * 100) : 0)
 const scoreArc   = computed(() => (scorePct.value / 100) * 289)
 const scoreTrophy = computed(() => {
@@ -2372,6 +2377,7 @@ async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
             .filter(q => q.question)
             .map(normalizeQuestionForDisplay)
             .filter(q => !(q as QuizQuestion & { _rejected?: boolean })._rejected)
+            .filter(q => !voiceQuizMode.value || !requiresWrittenAnswer(q))
 
           // Backend returned empty questions (insufficient count) — retry generation
           if (!qs.length) {
