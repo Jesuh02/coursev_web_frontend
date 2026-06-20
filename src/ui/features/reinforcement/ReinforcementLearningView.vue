@@ -51,7 +51,7 @@
             :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
             aria-hidden="true"
           >
-            <canvas ref="coachSplineCanvas" class="coach-spline-canvas" />
+            <div ref="coachSplineMount" class="coach-spline-mount" />
             <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
               <span>AI</span>
             </div>
@@ -383,7 +383,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Application } from '@splinetool/runtime'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
@@ -494,14 +493,15 @@ const coachError      = ref('')
 const coachListening  = ref(false)
 const coachAutoSpeak  = ref(true)
 const isCoachSpeaking = ref(false)
-const coachSplineCanvas = ref<HTMLCanvasElement | null>(null)
+const coachSplineMount = ref<HTMLElement | null>(null)
 const coachSplineStage = ref<HTMLElement | null>(null)
 const coachSplineLoading = ref(true)
 const coachSplineError = ref(false)
 const coachSplineActive = computed(() => isCoachSpeaking.value || coachListening.value || coachLoading.value)
 let coachMsgSeq = 0
 let coachRecognition: SpeechRecognitionLike | null = null
-let coachSplineApp: Application | null = null
+let coachSplineViewer: HTMLElement | null = null
+let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
 let coachSplineLevel = 0
 let coachSplineRotation = 0
@@ -512,6 +512,8 @@ let coachMicStream: MediaStream | null = null
 let coachMicData: Uint8Array<ArrayBuffer> | null = null
 
 const COACH_SPLINE_SCENE_URL = 'https://prod.spline.design/g7wxPPP8P6KMYRcT/scene.splinecode'
+const SPLINE_VIEWER_SCRIPT_ID = 'spline-viewer-script'
+const SPLINE_VIEWER_SRC = 'https://unpkg.com/@splinetool/viewer@1.12.97/build/spline-viewer.js'
 
 // ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
 const isSpeaking = ref(false)
@@ -580,22 +582,87 @@ function stopSpeaking() {
 
 async function initCoachSpline() {
   await nextTick()
-  const canvas = coachSplineCanvas.value
-  if (!canvas) return
+  const mount = coachSplineMount.value
+  if (!mount || typeof document === 'undefined') return
 
   coachSplineLoading.value = true
   coachSplineError.value = false
 
   try {
-    coachSplineApp = new Application(canvas, { renderMode: 'continuous' })
-    await coachSplineApp.load(COACH_SPLINE_SCENE_URL)
-    coachSplineApp.setBackgroundColor('rgba(0,0,0,0)')
+    await ensureSplineViewerScript()
+    mount.replaceChildren()
+
+    const viewer = document.createElement('spline-viewer')
+    viewer.className = 'coach-spline-viewer'
+    viewer.setAttribute('url', COACH_SPLINE_SCENE_URL)
+    viewer.addEventListener('load', () => {
+      coachSplineLoading.value = false
+    }, { once: true })
+    viewer.addEventListener('error', () => {
+      coachSplineError.value = true
+      coachSplineLoading.value = false
+    }, { once: true })
+
+    coachSplineViewer = viewer
+    mount.appendChild(viewer)
+    hideCoachSplineWatermark(viewer)
+    window.setTimeout(() => {
+      if (coachSplineViewer === viewer) coachSplineLoading.value = false
+    }, 3200)
   } catch (error) {
     console.warn('[Reinforcement] No se pudo cargar la esfera Spline.', error)
     coachSplineError.value = true
-  } finally {
     coachSplineLoading.value = false
   }
+}
+
+function ensureSplineViewerScript(): Promise<void> {
+  if (customElements.get('spline-viewer')) return Promise.resolve()
+
+  const existing = document.getElementById(SPLINE_VIEWER_SCRIPT_ID) as HTMLScriptElement | null
+  if (existing?.dataset.loaded === 'true') return Promise.resolve()
+
+  return new Promise((resolve, reject) => {
+    const script = existing ?? document.createElement('script')
+    const onLoad = () => {
+      script.dataset.loaded = 'true'
+      resolve()
+    }
+    const onError = () => reject(new Error('No se pudo cargar spline-viewer.'))
+
+    script.addEventListener('load', onLoad, { once: true })
+    script.addEventListener('error', onError, { once: true })
+
+    if (!existing) {
+      script.id = SPLINE_VIEWER_SCRIPT_ID
+      script.type = 'module'
+      script.src = SPLINE_VIEWER_SRC
+      document.head.appendChild(script)
+    }
+  })
+}
+
+function hideCoachSplineWatermark(viewer: HTMLElement) {
+  const inject = () => {
+    const shadow = viewer.shadowRoot
+    if (!shadow || shadow.querySelector('[data-coach-hide-logo]')) return
+    const style = document.createElement('style')
+    style.setAttribute('data-coach-hide-logo', '')
+    style.textContent = '#logo { display: none !important; }'
+    shadow.appendChild(style)
+  }
+
+  inject()
+  coachSplineLogoObserver?.disconnect()
+  const observer = new MutationObserver(() => inject())
+  observer.observe(viewer, { childList: true, subtree: true })
+  coachSplineLogoObserver = observer
+  window.setTimeout(() => {
+    if (coachSplineLogoObserver === observer) {
+      observer.disconnect()
+      coachSplineLogoObserver = null
+    }
+  }, 10000)
 }
 
 function getAudioContextCtor(): typeof AudioContext | null {
@@ -687,8 +754,11 @@ function stopCoachSplineAnimation() {
 function disposeCoachSpline() {
   stopCoachSplineAnimation()
   stopCoachAudioMeter()
-  coachSplineApp?.dispose()
-  coachSplineApp = null
+  coachSplineLogoObserver?.disconnect()
+  coachSplineLogoObserver = null
+  coachSplineViewer?.remove()
+  coachSplineViewer = null
+  coachSplineMount.value?.replaceChildren()
 }
 
 function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
@@ -2669,7 +2739,14 @@ onUnmounted(() => {
     inset 0 0 0 1px rgba(29, 29, 31, 0.08);
 }
 
-.coach-spline-canvas {
+.coach-spline-mount {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.coach-spline-mount :deep(.coach-spline-viewer),
+.coach-spline-mount :deep(spline-viewer) {
   width: 100%;
   height: 100%;
   display: block;
