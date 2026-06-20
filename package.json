@@ -12,6 +12,7 @@
     "deploy:wrangler": "node scripts/wrangler-deploy-retry.mjs"
   },
   "dependencies": {
+    "@splinetool/runtime": "^1.12.97",
     "@vueuse/core": "^14.2.1",
     "animejs": "^4.4.1",
     "decimal.js": "^10.6.0",

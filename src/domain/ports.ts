@@ -240,6 +240,7 @@ export interface ReinforcementPort {
   getMyResults(): Promise<Record<string, unknown>[]>
   getResultsByCourse(courseId: number): Promise<Record<string, unknown>[]>
   getLearningContext(data: Record<string, unknown>): Promise<Record<string, unknown>>
+  coachConversation(data: Record<string, unknown>): Promise<Record<string, unknown>>
 }
 
 export interface InstitucionPort {

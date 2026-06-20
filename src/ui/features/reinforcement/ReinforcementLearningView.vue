@@ -44,6 +44,101 @@
           </div>
         </div>
 
+        <section class="coach-card" aria-label="Conversacion critica con IA">
+          <div
+            ref="coachSplineStage"
+            class="coach-spline-stage"
+            :class="{ 'is-audio-active': coachSplineActive, 'has-error': coachSplineError }"
+            aria-hidden="true"
+          >
+            <canvas ref="coachSplineCanvas" class="coach-spline-canvas" />
+            <div v-if="coachSplineLoading || coachSplineError" class="coach-spline-fallback">
+              <span>AI</span>
+            </div>
+          </div>
+
+          <div class="coach-heading">
+            <p class="coach-kicker">voz critica</p>
+            <h2>Debate con el LLM</h2>
+            <p>
+              Defiende una idea del tema. El coach la revisa con el material del docente,
+              te corrige sin rodeos y te deja una pregunta puntual.
+            </p>
+          </div>
+
+          <div v-if="coachMessages.length" class="coach-thread" aria-live="polite">
+            <article
+              v-for="msg in coachMessages"
+              :key="msg.id"
+              class="coach-message"
+              :class="msg.role === 'user' ? 'coach-user' : 'coach-ai'"
+            >
+              <div class="coach-message-top">
+                <span>{{ msg.role === 'user' ? 'Tu postura' : 'Coach IA' }}</span>
+                <span v-if="msg.stance" class="coach-stance" :class="`stance-${msg.stance}`">
+                  {{ coachStanceLabel(msg.stance) }}
+                </span>
+              </div>
+              <p>{{ msg.content }}</p>
+              <p v-if="msg.critique" class="coach-critique">{{ msg.critique }}</p>
+              <p v-if="msg.question" class="coach-question">{{ msg.question }}</p>
+            </article>
+          </div>
+
+          <div v-else class="coach-empty">
+            <p>Ejemplo: "Creo que este concepto siempre se aplica igual en cualquier caso".</p>
+          </div>
+
+          <div class="coach-input-wrap">
+            <textarea
+              v-model="coachInput"
+              class="coach-input"
+              rows="3"
+              :disabled="coachLoading"
+              placeholder="Di o escribe tu postura sobre el tema..."
+              @keydown.ctrl.enter.prevent="sendCoachMessage()"
+            />
+            <div class="coach-actions">
+              <button
+                type="button"
+                class="coach-icon-btn"
+                :class="{ 'is-active': coachListening }"
+                :disabled="coachLoading || !coachSpeechSupported"
+                :title="coachSpeechSupported ? 'Dictar postura' : 'Tu navegador no soporta dictado'"
+                @click="toggleCoachDictation"
+              >
+                {{ coachListening ? 'Escuchando' : 'Dictar' }}
+              </button>
+              <button
+                type="button"
+                class="coach-link-btn"
+                :disabled="coachLoading"
+                @click="askCoachStarter"
+              >
+                Pregunta inicial
+              </button>
+              <button
+                type="button"
+                class="coach-voice-toggle"
+                :class="{ 'is-active': coachAutoSpeak }"
+                @click="coachAutoSpeak = !coachAutoSpeak"
+              >
+                Voz {{ coachAutoSpeak ? 'activa' : 'off' }}
+              </button>
+              <button
+                type="button"
+                class="coach-send-btn"
+                :disabled="coachLoading || !coachInput.trim()"
+                @click="sendCoachMessage()"
+              >
+                {{ coachLoading ? 'Pensando...' : 'Enviar' }}
+              </button>
+            </div>
+          </div>
+
+          <p v-if="coachError" class="coach-error">{{ coachError }}</p>
+        </section>
+
         <AppButton variant="primary" full @click="startQuiz">
           ¡Comenzar Sesión! 🚀
         </AppButton>
@@ -286,12 +381,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { Application } from '@splinetool/runtime'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { api, tokenStorage, HttpError } from '@/infrastructure/api/httpClient'
+import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface QuizQuestion {
@@ -304,6 +401,39 @@ interface QuizQuestion {
   items?: string[]       // ordering type: pasos desordenados
   correctOrder?: number[] // ordering type: índices en orden correcto
 }
+
+type CoachRole = 'user' | 'assistant'
+type CoachStance = 'incorrect' | 'partial' | 'reasonable'
+
+interface CoachMessage {
+  id: number
+  role: CoachRole
+  content: string
+  stance?: CoachStance
+  critique?: string
+  question?: string
+}
+
+interface CoachResponse {
+  stance?: CoachStance
+  reply?: string
+  critique?: string
+  question?: string
+  confidence?: number
+}
+
+interface SpeechRecognitionLike {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: unknown) => void) | null
+  onerror: ((event: unknown) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike
 
 type Phase = 'start' | 'loading' | 'quiz' | 'results'
 type Cell  = '' | 'X' | 'O'
@@ -357,9 +487,35 @@ const qTransition  = ref('slide-left')
 const fillAnswer      = ref('')
 const fillCorrect     = ref(false)
 const orderingUserSeq = ref<number[]>([])
+const coachInput      = ref('')
+const coachMessages   = ref<CoachMessage[]>([])
+const coachLoading    = ref(false)
+const coachError      = ref('')
+const coachListening  = ref(false)
+const coachAutoSpeak  = ref(true)
+const isCoachSpeaking = ref(false)
+const coachSplineCanvas = ref<HTMLCanvasElement | null>(null)
+const coachSplineStage = ref<HTMLElement | null>(null)
+const coachSplineLoading = ref(true)
+const coachSplineError = ref(false)
+const coachSplineActive = computed(() => isCoachSpeaking.value || coachListening.value || coachLoading.value)
+let coachMsgSeq = 0
+let coachRecognition: SpeechRecognitionLike | null = null
+let coachSplineApp: Application | null = null
+let coachSplineFrame: number | null = null
+let coachSplineLevel = 0
+let coachSplineRotation = 0
+let coachResponsePulseUntil = 0
+let coachAudioContext: AudioContext | null = null
+let coachAudioAnalyser: AnalyserNode | null = null
+let coachMicStream: MediaStream | null = null
+let coachMicData: Uint8Array<ArrayBuffer> | null = null
+
+const COACH_SPLINE_SCENE_URL = 'https://prod.spline.design/g7wxPPP8P6KMYRcT/scene.splinecode'
 
 // ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
 const isSpeaking = ref(false)
+const coachSpeechSupported = computed(() => Boolean(getSpeechRecognitionCtor()))
 
 function speakQuestion() {
   const synth = window.speechSynthesis
@@ -419,6 +575,206 @@ function speakQuestion() {
 function stopSpeaking() {
   window.speechSynthesis?.cancel()
   isSpeaking.value = false
+  isCoachSpeaking.value = false
+}
+
+async function initCoachSpline() {
+  await nextTick()
+  const canvas = coachSplineCanvas.value
+  if (!canvas) return
+
+  coachSplineLoading.value = true
+  coachSplineError.value = false
+
+  try {
+    coachSplineApp = new Application(canvas, { renderMode: 'continuous' })
+    await coachSplineApp.load(COACH_SPLINE_SCENE_URL)
+    coachSplineApp.setBackgroundColor('rgba(0,0,0,0)')
+  } catch (error) {
+    console.warn('[Reinforcement] No se pudo cargar la esfera Spline.', error)
+    coachSplineError.value = true
+  } finally {
+    coachSplineLoading.value = false
+  }
+}
+
+function getAudioContextCtor(): typeof AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const w = window as Window & { webkitAudioContext?: typeof AudioContext }
+  return window.AudioContext || w.webkitAudioContext || null
+}
+
+async function startCoachAudioMeter() {
+  if (coachMicStream || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return
+  const AudioContextCtor = getAudioContextCtor()
+  if (!AudioContextCtor) return
+
+  try {
+    coachMicStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    coachAudioContext = new AudioContextCtor()
+    const source = coachAudioContext.createMediaStreamSource(coachMicStream)
+    coachAudioAnalyser = coachAudioContext.createAnalyser()
+    coachAudioAnalyser.fftSize = 512
+    coachMicData = new Uint8Array(new ArrayBuffer(coachAudioAnalyser.fftSize))
+    source.connect(coachAudioAnalyser)
+  } catch (error) {
+    console.warn('[Reinforcement] No se pudo medir el audio del microfono.', error)
+    stopCoachAudioMeter()
+  }
+}
+
+function stopCoachAudioMeter() {
+  coachMicStream?.getTracks().forEach(track => track.stop())
+  coachMicStream = null
+  coachAudioAnalyser = null
+  coachMicData = null
+  if (coachAudioContext) {
+    void coachAudioContext.close().catch(() => undefined)
+    coachAudioContext = null
+  }
+}
+
+function readCoachMicLevel(): number {
+  if (!coachAudioAnalyser || !coachMicData) return 0
+  coachAudioAnalyser.getByteTimeDomainData(coachMicData)
+
+  let sum = 0
+  for (const value of coachMicData) {
+    const normalized = (value - 128) / 128
+    sum += normalized * normalized
+  }
+
+  return Math.min(1, Math.sqrt(sum / coachMicData.length) * 4.2)
+}
+
+function pulseCoachSpline(duration = 1300) {
+  coachResponsePulseUntil = Math.max(coachResponsePulseUntil, performance.now() + duration)
+}
+
+function animateCoachSpline(timestamp = performance.now()) {
+  const micLevel = readCoachMicLevel()
+  const speechWave = isCoachSpeaking.value
+    ? 0.34 + (Math.sin(timestamp * 0.018) + 1) * 0.16 + (Math.sin(timestamp * 0.043) + 1) * 0.07
+    : 0
+  const responsePulse = timestamp < coachResponsePulseUntil
+    ? 0.44 * Math.max(0, (coachResponsePulseUntil - timestamp) / 1300)
+    : 0
+  const thinkingPulse = coachLoading.value ? 0.14 + (Math.sin(timestamp * 0.006) + 1) * 0.04 : 0
+  const targetLevel = Math.max(micLevel, speechWave, responsePulse, thinkingPulse)
+  const easing = targetLevel > coachSplineLevel ? 0.24 : 0.1
+  coachSplineLevel += (targetLevel - coachSplineLevel) * easing
+  coachSplineRotation += 0.12 + coachSplineLevel * 2.4
+
+  const stage = coachSplineStage.value
+  if (stage) {
+    const scale = 1 + coachSplineLevel * 0.17
+    const tilt = Math.sin(timestamp * 0.004) * coachSplineLevel * 5
+    stage.style.setProperty('--coach-spline-scale', scale.toFixed(3))
+    stage.style.setProperty('--coach-spline-rotation', `${(coachSplineRotation + tilt).toFixed(2)}deg`)
+    stage.style.setProperty('--coach-spline-level', coachSplineLevel.toFixed(3))
+  }
+
+  coachSplineFrame = requestAnimationFrame(animateCoachSpline)
+}
+
+function stopCoachSplineAnimation() {
+  if (coachSplineFrame !== null) {
+    cancelAnimationFrame(coachSplineFrame)
+    coachSplineFrame = null
+  }
+}
+
+function disposeCoachSpline() {
+  stopCoachSplineAnimation()
+  stopCoachAudioMeter()
+  coachSplineApp?.dispose()
+  coachSplineApp = null
+}
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null
+  const w = window as Window & {
+    SpeechRecognition?: SpeechRecognitionCtor
+    webkitSpeechRecognition?: SpeechRecognitionCtor
+  }
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null
+}
+
+function extractSpeechTranscript(event: unknown): string {
+  const resultEvent = event as {
+    results?: ArrayLike<ArrayLike<{ transcript?: string }>>
+  }
+  const first = resultEvent.results?.[0]?.[0]
+  return String(first?.transcript || '').trim()
+}
+
+function toggleCoachDictation() {
+  if (coachListening.value) {
+    coachRecognition?.stop()
+    coachListening.value = false
+    stopCoachAudioMeter()
+    return
+  }
+
+  const Recognition = getSpeechRecognitionCtor()
+  if (!Recognition) {
+    coachError.value = 'El dictado no esta disponible en este navegador.'
+    return
+  }
+
+  coachRecognition = new Recognition()
+  coachRecognition.lang = 'es-ES'
+  coachRecognition.continuous = false
+  coachRecognition.interimResults = false
+  coachRecognition.onresult = (event: unknown) => {
+    const transcript = extractSpeechTranscript(event)
+    if (transcript) coachInput.value = transcript
+  }
+  coachRecognition.onerror = () => {
+    coachError.value = 'No pude escuchar bien. Intenta hablar mas cerca o escribe tu postura.'
+    coachListening.value = false
+    stopCoachAudioMeter()
+  }
+  coachRecognition.onend = () => {
+    coachListening.value = false
+    stopCoachAudioMeter()
+  }
+  coachError.value = ''
+  coachListening.value = true
+  try {
+    coachRecognition.start()
+    void startCoachAudioMeter()
+  } catch (error) {
+    console.warn('[Reinforcement] No se pudo iniciar el dictado.', error)
+    coachError.value = 'No pude iniciar el dictado. Intenta de nuevo o escribe tu postura.'
+    coachListening.value = false
+    stopCoachAudioMeter()
+  }
+}
+
+function speakCoachText(text: string) {
+  const synth = window.speechSynthesis
+  if (!synth || !text.trim()) return
+  synth.cancel()
+
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'es-ES'
+  utterance.rate = 0.98
+
+  const voices = synth.getVoices()
+  const esVoice = voices.find(v => v.lang.startsWith('es'))
+  if (esVoice) utterance.voice = esVoice
+
+  utterance.onstart = () => { isCoachSpeaking.value = true }
+  utterance.onend = () => { isCoachSpeaking.value = false }
+  utterance.onerror = () => { isCoachSpeaking.value = false }
+  synth.speak(utterance)
+}
+
+function coachStanceLabel(stance: CoachStance): string {
+  if (stance === 'reasonable') return 'Sostenible'
+  if (stance === 'partial') return 'Parcial'
+  return 'Incorrecto'
 }
 
 // Loading animation
@@ -1806,6 +2162,82 @@ function orderingItemClass(i: number): Record<string, boolean> {
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
+function buildCoachHistoryPayload() {
+  return coachMessages.value.slice(-8).map(msg => ({
+    role: msg.role,
+    content: msg.content,
+    stance: msg.stance,
+    question: msg.question,
+  }))
+}
+
+async function askCoachStarter() {
+  coachInput.value = 'Hazme una pregunta puntual sobre este tema y critica mi primera intuicion cuando responda.'
+  await sendCoachMessage()
+}
+
+async function sendCoachMessage(seed?: string) {
+  const content = (seed ?? coachInput.value).trim()
+  if (!content || coachLoading.value) return
+  if (!courseId.value) {
+    coachError.value = 'No se especifico un curso para consultar el material.'
+    return
+  }
+
+  coachError.value = ''
+  coachLoading.value = true
+  const userMessage: CoachMessage = {
+    id: ++coachMsgSeq,
+    role: 'user',
+    content,
+  }
+  coachMessages.value.push(userMessage)
+  coachInput.value = ''
+
+  try {
+    const payload: Record<string, unknown> = {
+      courseId: courseId.value,
+      topicId: topicId.value ?? undefined,
+      taskId: taskId.value ?? undefined,
+      difficulty: selectedDifficulty.value,
+      message: content,
+      history: buildCoachHistoryPayload(),
+    }
+    if (tokenStorage.userId) payload.userId = tokenStorage.userId
+
+    const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
+    const stance: CoachStance = response.stance || 'incorrect'
+    const assistantMessage: CoachMessage = {
+      id: ++coachMsgSeq,
+      role: 'assistant',
+      stance,
+      content: response.reply || 'Incorrecto o, minimo, demasiado flojo. Tu idea necesita evidencia del material.',
+      critique: response.critique || '',
+      question: response.question || 'Que evidencia concreta del material defenderia tu postura?',
+    }
+    coachMessages.value.push(assistantMessage)
+    pulseCoachSpline()
+
+    if (coachAutoSpeak.value) {
+      speakCoachText([assistantMessage.content, assistantMessage.critique, assistantMessage.question].filter(Boolean).join('. '))
+    }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'No pude conversar con el coach.'
+    coachError.value = message
+    coachMessages.value.push({
+      id: ++coachMsgSeq,
+      role: 'assistant',
+      stance: 'incorrect',
+      content: 'No pude revisar tu postura ahora. Ironia academica: hasta el critico necesita conexion.',
+      critique: 'Vuelve a intentar para contrastar tu respuesta con los documentos del docente.',
+      question: 'Mientras tanto, cual es la evidencia mas fuerte que crees tener?',
+    })
+    pulseCoachSpline()
+  } finally {
+    coachLoading.value = false
+  }
+}
+
 async function startQuiz() {
   if (!courseId.value) { showError('No se especificó un curso'); return }
 
@@ -2015,9 +2447,16 @@ function showError(msg: string) {
   setTimeout(() => (errorMsg.value = ''), 5000)
 }
 
+onMounted(() => {
+  void initCoachSpline()
+  coachSplineFrame = requestAnimationFrame(animateCoachSpline)
+})
+
 onUnmounted(() => {
   if (loadingTimer)       clearInterval(loadingTimer)
   if (triquiResetTimer)   clearTimeout(triquiResetTimer)
+  coachRecognition?.stop()
+  disposeCoachSpline()
   stopSpeaking()
 })
 </script>
@@ -2164,6 +2603,309 @@ onUnmounted(() => {
 }
 .diff-emoji { font-size: 22px; line-height: 1; }
 .diff-name  { font-size: 11px; font-weight: 700; letter-spacing: 0.2px; }
+
+.coach-card {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  padding: 22px;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  animation: coachRise 0.48s cubic-bezier(.22,1,.36,1) both;
+}
+
+.coach-spline-stage {
+  --coach-spline-scale: 1;
+  --coach-spline-rotation: 0deg;
+  --coach-spline-level: 0;
+  position: relative;
+  width: min(172px, 48vw);
+  height: min(172px, 48vw);
+  min-width: 124px;
+  min-height: 124px;
+  margin: -2px auto 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 18px 42px rgba(0, 113, 227, calc(0.12 + var(--coach-spline-level) * 0.2)),
+    inset 0 0 0 1px rgba(29, 29, 31, 0.08);
+  transform: scale(var(--coach-spline-scale)) rotate(var(--coach-spline-rotation));
+  transform-origin: center;
+  will-change: transform, box-shadow;
+  transition: filter 0.2s ease;
+}
+
+.coach-spline-stage::before,
+.coach-spline-stage::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: inherit;
+  border: 1px solid rgba(0, 113, 227, calc(0.14 + var(--coach-spline-level) * 0.24));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.coach-spline-stage::after {
+  inset: 0;
+  border-color: rgba(29, 29, 31, 0.08);
+}
+
+.coach-spline-stage.is-audio-active {
+  filter: saturate(1.12) contrast(1.04);
+}
+
+.coach-spline-stage.has-error {
+  box-shadow:
+    0 18px 42px rgba(29, 29, 31, 0.12),
+    inset 0 0 0 1px rgba(29, 29, 31, 0.08);
+}
+
+.coach-spline-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: scale(1.15);
+}
+
+.coach-spline-fallback {
+  position: absolute;
+  inset: 24%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1d1d1f;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.coach-heading {
+  text-align: center;
+}
+
+.coach-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #707070;
+}
+
+.coach-heading h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.14;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.coach-heading p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: #707070;
+}
+
+.coach-thread {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 2px;
+}
+
+.coach-message {
+  border-radius: 22px;
+  padding: 14px;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  animation: coachBubble 0.28s ease both;
+}
+
+.coach-user { background: #ffffff; }
+.coach-ai { background: #e8e8ed; }
+
+.coach-message-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #707070;
+}
+
+.coach-message p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.coach-stance {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  color: #1d1d1f;
+  background: #ffffff;
+}
+
+.stance-incorrect {
+  color: #b42318;
+  background: #fff0ed;
+}
+
+.stance-partial {
+  color: #7a4b00;
+  background: #fff7df;
+}
+
+.stance-reasonable {
+  color: #0f6b3f;
+  background: #eaf8ef;
+}
+
+.coach-critique {
+  margin-top: 10px !important;
+  color: #474747;
+}
+
+.coach-question {
+  margin-top: 10px !important;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.coach-empty {
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 16px;
+  border: 1px solid rgba(29, 29, 31, 0.06);
+}
+
+.coach-empty p {
+  margin: 0;
+  color: #707070;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.coach-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coach-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 86px;
+  border: 1px solid rgba(29, 29, 31, 0.1);
+  border-radius: 22px;
+  background: #ffffff;
+  color: #1d1d1f;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.coach-input:focus {
+  border-color: #0071e3;
+}
+
+.coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.coach-actions button {
+  min-height: 38px;
+  border-radius: 980px;
+  border: 0;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: transform 0.16s ease, opacity 0.16s ease, background 0.2s ease;
+}
+
+.coach-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.coach-actions button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.coach-icon-btn,
+.coach-voice-toggle,
+.coach-link-btn {
+  background: #ffffff;
+  color: #1d1d1f;
+}
+
+.coach-link-btn {
+  color: #0066cc;
+}
+
+.coach-icon-btn.is-active,
+.coach-voice-toggle.is-active {
+  background: #1d1d1f;
+  color: #ffffff;
+}
+
+.coach-send-btn {
+  margin-left: auto;
+  background: #0071e3;
+  color: #ffffff;
+}
+
+.coach-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@keyframes coachRise {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes coachPulse {
+  0%, 100% { opacity: 0.28; transform: scale(0.86); }
+  50% { opacity: 0.78; transform: scale(1.08); }
+}
+
+@keyframes coachBubble {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    LOADING SCREEN

@@ -9,4 +9,5 @@ export const reinforcementAdapter: ReinforcementPort = {
   getMyResults: () => api.get('/reinforcement-results/my'),
   getResultsByCourse: (courseId) => api.get(`/reinforcement-results/course/${courseId}`),
   getLearningContext: (data) => api.post('/reinforcement/learning-context', data),
+  coachConversation: (data) => api.post('/reinforcement/coach', data),
 }
