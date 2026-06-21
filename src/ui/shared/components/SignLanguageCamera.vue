@@ -218,12 +218,11 @@ const serviceNotice = ref<string | null>(null)
 // El frontend solo transmite frames. El backend mantiene la máquina de estados:
 // mano quieta 1 s => letra/vocal/número; movimiento => palabra/frase/oración.
 let simulationMode = false
-const SAMPLE_INTERVAL_MS = 100
+const SAMPLE_INTERVAL_MS = 250 // Aumentado para evitar rate limiting
 const STILL_HOLD_MS = 1000
-// Dejamos varias solicitudes en vuelo para que el backend siga recibiendo
-// frames de tracking aunque una inferencia ONNX/VLM tarde mas.
-const AUTO_FRAME_MAX_IN_FLIGHT = 4
-const AUTO_FRAME_MAX_QUEUE = 12
+// Reducimos las solicitudes en vuelo para evitar saturar el servidor
+const AUTO_FRAME_MAX_IN_FLIGHT = 2
+const AUTO_FRAME_MAX_QUEUE = 6
 const AUTO_FRAME_JPEG_QUALITY = 0.58
 const AUTO_FRAME_MAX_DIMENSION = 512
 const AUTO_FRAME_MIN_LETTER_CONFIDENCE = 0.55
@@ -243,6 +242,8 @@ let lastAppliedStatusSeq = 0
 let lastConfirmedLetter: string | null = null
 let lastConfirmedLetterAt = 0
 let lastSimulationAt = 0
+let rateLimitPausedUntil = 0
+const RATE_LIMIT_PAUSE_MS = 3000
 
 const captureStatusLabel = computed(() => {
   if (!isStreaming.value) return ''
@@ -316,6 +317,7 @@ function stopCamera() {
   isInferring.value = false
   captureMode.value = 'idle'
   captureStillMs.value = 0
+  rateLimitPausedUntil = 0
   if (sampleTimer) {
     clearInterval(sampleTimer)
     sampleTimer = null
@@ -353,6 +355,10 @@ async function tick() {
   if (!isStreaming.value) return
 
   const now = Date.now()
+
+  // No capturar frames durante pausa por rate limiting
+  if (now < rateLimitPausedUntil) return
+
   if (simulationMode) {
     if (now - lastSimulationAt > STILL_HOLD_MS) {
       lastSimulationAt = now
@@ -379,6 +385,9 @@ function enqueueAutoFrame(frame: QueuedAutoFrame) {
 }
 
 function dispatchAutoFrames() {
+  // No enviar si estamos en pausa por rate limiting
+  if (Date.now() < rateLimitPausedUntil) return
+
   while (autoFrameInFlight < AUTO_FRAME_MAX_IN_FLIGHT && autoFrameQueue.length > 0) {
     const frame = autoFrameQueue.shift()
     if (frame) void sendAutoFrame(frame)
@@ -386,6 +395,11 @@ function dispatchAutoFrames() {
 }
 
 async function sendAutoFrame(frame: QueuedAutoFrame) {
+  // Verificar si estamos en pausa por rate limiting
+  if (Date.now() < rateLimitPausedUntil) {
+    return
+  }
+
   autoFrameInFlight++
   isInferring.value = true
   try {
@@ -412,6 +426,11 @@ async function sendAutoFrame(frame: QueuedAutoFrame) {
       serviceNotice.value = 'Para palabras, oraciones y números LSC configura OPENROUTER_API_KEY en el backend.'
     } else if (err instanceof HttpError && err.errorCode === 'SIGN_LANGUAGE_DISABLED') {
       errorMsg.value = 'El reconocimiento de lengua de señas esta deshabilitado.'
+    } else if (err instanceof HttpError && err.statusCode === 429) {
+      // Rate limiting - pausar temporalmente
+      rateLimitPausedUntil = Date.now() + RATE_LIMIT_PAUSE_MS
+      autoFrameQueue = [] // Limpiar la cola
+      console.warn('[SignLanguage] Rate limited, pausando por', RATE_LIMIT_PAUSE_MS, 'ms')
     } else {
       console.warn('[SignLanguage] /auto-frame fallo:', err)
     }
@@ -537,6 +556,7 @@ function clearText() {
   autoFrameQueue = []
   isInferring.value = false
   lastConfirmedLetter = null
+  rateLimitPausedUntil = 0
   // reiniciar sesión en el servidor también
   if (!simulationMode) {
     api.delete(`/sign-language/session/${encodeURIComponent(sessionId)}`).catch(() => { /* ignore */ })
