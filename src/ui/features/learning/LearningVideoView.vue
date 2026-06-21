@@ -466,11 +466,18 @@ onMounted(generate)
 }
 .side-section {
   margin: 0 0 16px;
+  padding: 12px 14px;
+  background: rgba(0, 113, 227, 0.04);
+  border-radius: 12px;
+  border-left: 3px solid var(--apple-signal-blue);
 }
 .side-section:last-child {
   margin-bottom: 0;
 }
 .side-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 0 8px;
   color: var(--apple-signal-blue);
   font-size: 11px;
@@ -478,11 +485,19 @@ onMounted(generate)
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.side-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
 .side-copy {
   margin: 0;
-  color: var(--apple-graphite);
+  color: var(--apple-ink);
   font-size: 14px;
-  line-height: 1.58;
+  line-height: 1.7;
 }
 .side-stack {
   display: grid;
@@ -490,20 +505,24 @@ onMounted(generate)
 }
 .side-technical {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #0b1020;
-  color: #f5f7fb;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #0d1224 0%, #0a0f1a 100%);
+  color: #e8ecf4;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.45;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  border: 1px solid rgba(0, 150, 255, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 20px rgba(0, 0, 0, 0.15);
 }
 .side-technical--compact {
   margin-top: 8px;
   font-size: 11px;
+  padding: 10px 12px;
 }
 .scene-note-list {
   margin: 0;
