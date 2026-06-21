@@ -15,6 +15,7 @@ export interface ComicPanel {
   imageUrl: string
   caption: string
   dialogue?: string
+  technicalDetail?: string
 }
 
 export interface ComicResult {
@@ -27,16 +28,18 @@ export interface VideoSlide {
   imageUrl: string
   narration: string
   duration: number
+  technicalDetail?: string
 }
 
 export interface VideoLearningResult {
   jobId?: string
   status?: 'processing' | 'completed' | 'error'
   title: string
-  videoUrl: string
+  videoUrl?: string
   posterUrl?: string
   durationSeconds?: number
   slides?: VideoSlide[]
+  technicalHighlights?: string[]
   error?: string
   insufficientCredits?: boolean
 }

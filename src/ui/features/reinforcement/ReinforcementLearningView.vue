@@ -814,8 +814,15 @@ function extractSpeechTranscript(event: unknown): string {
   const resultEvent = event as {
     results?: ArrayLike<ArrayLike<{ transcript?: string }>>
   }
-  const first = resultEvent.results?.[0]?.[0]
-  return String(first?.transcript || '').trim()
+  const results = resultEvent.results
+  if (!results?.length) return ''
+
+  const chunks: string[] = []
+  for (let i = 0; i < results.length; i++) {
+    const transcript = results[i]?.[0]?.transcript
+    if (transcript) chunks.push(transcript)
+  }
+  return chunks.join(' ').replace(/\s+/g, ' ').trim()
 }
 
 function normalizeVoiceCommand(text: string): string {
@@ -830,7 +837,12 @@ function normalizeVoiceCommand(text: string): string {
 
 function isRepeatVoiceCommand(text: string): boolean {
   const normalized = normalizeVoiceCommand(text)
-  return /\b(repiteme|repite|repitela|repetir|otra vez|de nuevo|no escuche|no entendi)\b/.test(normalized)
+  return /\b(repiteme|repitame|repite|repita|repitela|repitemela|repitamela|repetir|repetila|repitelo|otra vez|de nuevo|no escuche|no oi|no entendi|no te escuche|vuelve a decir|di la pregunta|dime la pregunta|repiteme la pregunta|repitame la pregunta|repite la pregunta|repita la pregunta)\b/.test(normalized)
+}
+
+function getCoachRecognitionLanguage(): string {
+  const browserLang = typeof navigator !== 'undefined' ? navigator.language : ''
+  return /^es[-_]/i.test(browserLang) ? browserLang : 'es-CO'
 }
 
 function stopCoachListening() {
@@ -850,7 +862,13 @@ function scheduleCoachListening(delay = 320) {
   if (coachVoiceRestartTimer) clearTimeout(coachVoiceRestartTimer)
   coachVoiceRestartTimer = window.setTimeout(() => {
     coachVoiceRestartTimer = null
-    if (voiceConversationMode.value && phase.value === 'voice' && !isCoachSpeaking.value && !coachLoading.value) {
+    if (
+      voiceConversationMode.value &&
+      phase.value === 'voice' &&
+      !isCoachSpeaking.value &&
+      !coachLoading.value &&
+      !coachListening.value
+    ) {
       startCoachDictation(true)
     }
   }, delay)
@@ -867,6 +885,7 @@ function toggleCoachDictation() {
 
 function startCoachDictation(autoSubmit = false) {
   if (coachListening.value) {
+    if (autoSubmit) return
     coachRecognition?.stop()
     coachListening.value = false
     stopCoachAudioMeter()
@@ -880,7 +899,7 @@ function startCoachDictation(autoSubmit = false) {
   }
 
   coachRecognition = new Recognition()
-  coachRecognition.lang = 'es-ES'
+  coachRecognition.lang = getCoachRecognitionLanguage()
   coachRecognition.continuous = false
   coachRecognition.interimResults = false
   coachRecognition.onresult = (event: unknown) => {
@@ -892,10 +911,23 @@ function startCoachDictation(autoSubmit = false) {
       coachInput.value = transcript
     }
   }
-  coachRecognition.onerror = () => {
-    coachError.value = 'No pude escuchar bien.'
+  coachRecognition.onerror = (event: unknown) => {
+    const speechError = String((event as { error?: string })?.error || '')
+    coachError.value = speechError === 'not-allowed'
+      ? 'Permite el microfono para conversar por voz.'
+      : 'No pude escuchar bien.'
     coachListening.value = false
     stopCoachAudioMeter()
+    if (
+      coachVoiceListeningWanted &&
+      speechError !== 'not-allowed' &&
+      voiceConversationMode.value &&
+      phase.value === 'voice' &&
+      !coachLoading.value &&
+      !isCoachSpeaking.value
+    ) {
+      scheduleCoachListening(900)
+    }
   }
   coachRecognition.onend = () => {
     coachListening.value = false

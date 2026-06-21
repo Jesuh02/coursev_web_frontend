@@ -68,6 +68,10 @@
               <blockquote v-if="currentPanel.dialogue" class="slide-dialogue">
                 "{{ currentPanel.dialogue }}"
               </blockquote>
+              <div v-if="currentPanel.technicalDetail" class="slide-technical">
+                <span class="slide-technical__label">Contenido tecnico</span>
+                <pre>{{ currentPanel.technicalDetail }}</pre>
+              </div>
               <p class="slide-caption">{{ currentPanel.caption }}</p>
             </div>
           </div>
@@ -156,12 +160,13 @@ const generationSteps = [
   'Leyendo documentos del tema...',
   'Construyendo el guion con el modelo de texto...',
   'Traduciendo conceptos a alegorias de la vida real...',
-  'Pintando escenas con objetos y acciones cotidianas...',
+  'Integrando codigo, diagramas o datos del tema cuando aplica...',
+  'Pintando escenas con objetos, acciones y contenido tecnico...',
   'Ensamblando la historia...',
 ]
 
 const currentPanel = computed(() =>
-  result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined }
+  result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
 
 function prev() {
@@ -468,6 +473,32 @@ onMounted(generate)
   line-height: 1.6;
   color: var(--apple-graphite);
   margin: 0;
+}
+.slide-technical {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0b1020;
+  color: #f5f7fb;
+  border: 1px solid rgba(0, 113, 227, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.slide-technical__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fd3ff;
+}
+.slide-technical pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .slide-left-enter-active,

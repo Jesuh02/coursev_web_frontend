@@ -19,12 +19,13 @@
       <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
       <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
       <p class="al-sub" style="text-align:center;">
-        Estamos convirtiendo el contenido del curso en escenas con analogias de la vida real.
+        Estamos convirtiendo el contenido del curso en escenas con analogias y contenido tecnico visible.
       </p>
       <ul class="gen-steps" ref="stepsEl">
         <li>Extrayendo materiales del tema y la tarea…</li>
         <li>Construyendo guion y voz con el modelo de texto…</li>
         <li>Buscando metaforas cotidianas para explicar el concepto…</li>
+        <li>Integrando codigo, formulas, endpoints o diagramas cuando aplica…</li>
         <li>Generando escenas visuales coherentes…</li>
         <li>Ensamblando la pieza final…</li>
       </ul>
@@ -60,7 +61,10 @@
               :alt="result.slides[slideIndex].narration || 'Escena generada'"
             />
             <div v-else class="slide-placeholder" />
-            <p class="slide-narration">{{ result.slides[slideIndex].narration }}</p>
+            <div class="slide-overlay">
+              <pre v-if="result.slides[slideIndex].technicalDetail" class="slide-technical">{{ result.slides[slideIndex].technicalDetail }}</pre>
+              <p class="slide-narration">{{ result.slides[slideIndex].narration }}</p>
+            </div>
           </div>
           <div class="slide-nav">
             <button class="slide-btn" :disabled="slideIndex === 0" aria-label="Escena anterior" @click="slideIndex--">‹</button>
@@ -97,6 +101,12 @@
           <h1 class="al-display">{{ result.title }}</h1>
           <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
         </header>
+        <section v-if="technicalHighlights.length" class="technical-strip" aria-label="Contenido tecnico del video">
+          <p class="technical-strip__label">Contenido tecnico visible</p>
+          <div class="technical-strip__items">
+            <pre v-for="item in technicalHighlights" :key="item">{{ item }}</pre>
+          </div>
+        </section>
         <div class="footer-actions">
           <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
           <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Terminar</button>
@@ -107,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
@@ -128,6 +138,14 @@ const renderFrameEl = ref<HTMLElement | null>(null)
 const stepsEl = ref<HTMLElement | null>(null)
 const headEl = ref<HTMLElement | null>(null)
 const playerEl = ref<HTMLElement | null>(null)
+
+const technicalHighlights = computed(() => {
+  const items = [
+    ...(result.value?.technicalHighlights ?? []),
+    ...((result.value?.slides ?? []).map((slide) => slide.technicalDetail).filter(Boolean) as string[]),
+  ]
+  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean))).slice(0, 4)
+})
 
 function formatDuration(s: number) {
   const m = Math.floor(s / 60), r = Math.round(s % 60)
@@ -352,11 +370,32 @@ onMounted(generate)
   flex: 1;
   background: #111;
 }
-.slide-narration {
+.slide-overlay {
   position: absolute;
   left: 16px;
   right: 16px;
   bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(48%, 220px);
+}
+.slide-technical {
+  margin: 0;
+  padding: 10px 12px;
+  color: #f5f7fb;
+  background: rgba(6, 12, 24, 0.86);
+  border: 1px solid rgba(143, 211, 255, 0.30);
+  border-radius: 14px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.42;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.slide-narration {
   font-size: 14px;
   line-height: 1.5;
   color: #f5f5f7;
@@ -445,6 +484,38 @@ onMounted(generate)
   align-self: center;
   font-size: 13px;
   padding: 7px 14px;
+}
+
+.technical-strip {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--apple-snow);
+  border: 1px solid var(--apple-border);
+}
+.technical-strip__label {
+  margin: 0 0 10px;
+  color: var(--apple-signal-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.technical-strip__items {
+  display: grid;
+  gap: 8px;
+}
+.technical-strip pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0b1020;
+  color: #f5f7fb;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .footer-actions {
