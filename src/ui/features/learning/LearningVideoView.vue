@@ -41,6 +41,7 @@
     </div>
 
     <div v-else-if="status === 'ready' && result" class="vv-ready">
+      <div class="media-stage">
       <div class="player-wrap" ref="playerEl">
         <video
           v-if="result.videoUrl && !videoError"
@@ -61,10 +62,6 @@
               :alt="result.slides[slideIndex].narration || 'Escena generada'"
             />
             <div v-else class="slide-placeholder" />
-            <div class="slide-overlay">
-              <pre v-if="result.slides[slideIndex].technicalDetail" class="slide-technical">{{ result.slides[slideIndex].technicalDetail }}</pre>
-              <p class="slide-narration">{{ result.slides[slideIndex].narration }}</p>
-            </div>
           </div>
           <div class="slide-nav">
             <button class="slide-btn" :disabled="slideIndex === 0" aria-label="Escena anterior" @click="slideIndex--">‹</button>
@@ -76,6 +73,41 @@
           <p class="al-sub">No se pudo reproducir el video en el navegador.</p>
           <a v-if="result?.videoUrl" :href="result.videoUrl" target="_blank" rel="noopener noreferrer" class="al-cta al-cta--accent" style="margin-top:14px; display:inline-block;">Abrir video ↗</a>
         </div>
+      </div>
+
+      <aside v-if="sidePanelVisible" class="media-side" aria-label="Explicacion de la escena">
+        <template v-if="currentSlideNote">
+          <section class="side-section">
+            <p class="side-label">Situacion</p>
+            <p class="side-copy">{{ currentSlideNote.narration }}</p>
+          </section>
+          <section v-if="currentSlideNote.technicalDetail" class="side-section">
+            <p class="side-label">Codigo / contenido del tema</p>
+            <pre class="side-technical">{{ currentSlideNote.technicalDetail }}</pre>
+          </section>
+        </template>
+        <template v-else>
+          <section v-if="result.summary" class="side-section">
+            <p class="side-label">Situacion</p>
+            <p class="side-copy">{{ result.summary }}</p>
+          </section>
+          <section v-if="technicalHighlights.length" class="side-section">
+            <p class="side-label">Codigo / contenido del tema</p>
+            <div class="side-stack">
+              <pre v-for="item in technicalHighlights" :key="item" class="side-technical">{{ item }}</pre>
+            </div>
+          </section>
+          <section v-if="visibleSceneNotes.length" class="side-section">
+            <p class="side-label">Escenas</p>
+            <ol class="scene-note-list">
+              <li v-for="(scene, index) in visibleSceneNotes" :key="`${index}-${scene.narration}`">
+                <span>{{ scene.narration }}</span>
+                <pre v-if="scene.technicalDetail" class="side-technical side-technical--compact">{{ scene.technicalDetail }}</pre>
+              </li>
+            </ol>
+          </section>
+        </template>
+      </aside>
       </div>
 
       <!-- Credits banner — shown below the player/slideshow when 402 was the cause -->
@@ -101,12 +133,6 @@
           <h1 class="al-display">{{ result.title }}</h1>
           <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
         </header>
-        <section v-if="technicalHighlights.length" class="technical-strip" aria-label="Contenido tecnico del video">
-          <p class="technical-strip__label">Contenido tecnico visible</p>
-          <div class="technical-strip__items">
-            <pre v-for="item in technicalHighlights" :key="item">{{ item }}</pre>
-          </div>
-        </section>
         <div class="footer-actions">
           <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
           <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Terminar</button>
@@ -146,6 +172,25 @@ const technicalHighlights = computed(() => {
   ]
   return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean))).slice(0, 4)
 })
+
+const currentSlideNote = computed(() => {
+  const slide = result.value?.slides?.[slideIndex.value]
+  if (!slide) return null
+  return {
+    narration: slide.narration,
+    technicalDetail: slide.technicalDetail,
+  }
+})
+
+const visibleSceneNotes = computed(() => (result.value?.sceneNotes ?? []).slice(0, 3))
+
+const sidePanelVisible = computed(() => Boolean(
+  currentSlideNote.value?.narration ||
+  currentSlideNote.value?.technicalDetail ||
+  result.value?.summary ||
+  technicalHighlights.value.length ||
+  visibleSceneNotes.value.length,
+))
 
 function formatDuration(s: number) {
   const m = Math.floor(s / 60), r = Math.round(s % 60)
@@ -320,6 +365,13 @@ onMounted(generate)
   background: var(--apple-silver);
 }
 
+.media-stage {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background: #050507;
+}
+
 .player-wrap {
   width: 100%;
   overflow: hidden;
@@ -370,47 +422,6 @@ onMounted(generate)
   flex: 1;
   background: #111;
 }
-.slide-overlay {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: min(48%, 220px);
-}
-.slide-technical {
-  margin: 0;
-  padding: 10px 12px;
-  color: #f5f7fb;
-  background: rgba(6, 12, 24, 0.86);
-  border: 1px solid rgba(143, 211, 255, 0.30);
-  border-radius: 14px;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.42;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-.slide-narration {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #f5f5f7;
-  padding: 12px 14px;
-  background: rgba(8, 9, 11, 0.74);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  margin: 0;
-  max-height: 92px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
 .slide-nav {
   display: flex;
   align-items: center;
@@ -442,6 +453,66 @@ onMounted(generate)
   min-width: 48px;
   text-align: center;
   font-weight: 600;
+}
+
+.media-side {
+  min-width: 0;
+  max-height: 44vh;
+  overflow: auto;
+  padding: 16px;
+  background: var(--apple-snow);
+  color: var(--apple-ink);
+  border-top: 1px solid var(--apple-border);
+}
+.side-section {
+  margin: 0 0 16px;
+}
+.side-section:last-child {
+  margin-bottom: 0;
+}
+.side-label {
+  margin: 0 0 8px;
+  color: var(--apple-signal-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.side-copy {
+  margin: 0;
+  color: var(--apple-graphite);
+  font-size: 14px;
+  line-height: 1.58;
+}
+.side-stack {
+  display: grid;
+  gap: 8px;
+}
+.side-technical {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0b1020;
+  color: #f5f7fb;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.side-technical--compact {
+  margin-top: 8px;
+  font-size: 11px;
+}
+.scene-note-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  color: var(--apple-graphite);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .credits-banner {
@@ -486,38 +557,6 @@ onMounted(generate)
   padding: 7px 14px;
 }
 
-.technical-strip {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 16px;
-  background: var(--apple-snow);
-  border: 1px solid var(--apple-border);
-}
-.technical-strip__label {
-  margin: 0 0 10px;
-  color: var(--apple-signal-blue);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.technical-strip__items {
-  display: grid;
-  gap: 8px;
-}
-.technical-strip pre {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #0b1020;
-  color: #f5f7fb;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
 .footer-actions {
   display: flex; gap: 12px; flex-wrap: wrap;
   justify-content: center;
@@ -531,14 +570,22 @@ onMounted(generate)
 }
 
 @media (min-width: 860px) {
-  .player-wrap {
-    max-width: 1080px;
+  .media-stage {
+    grid-template-columns: minmax(0, 2.3fr) minmax(300px, 0.85fr);
+    align-items: stretch;
+    overflow: hidden;
+    width: min(1180px, calc(100% - 32px));
     margin: 16px auto 0;
     border-radius: var(--apple-r-card);
     box-shadow: 0 8px 32px rgba(29,29,31,0.12);
   }
+  .media-side {
+    max-height: none;
+    border-top: none;
+    border-left: 1px solid var(--apple-border);
+  }
   .vv-info {
-    max-width: 1080px;
+    max-width: 1180px;
   }
 }
 </style>

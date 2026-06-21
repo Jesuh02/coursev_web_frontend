@@ -65,14 +65,17 @@
               </div>
             </div>
             <div class="slide-text">
+              <section class="slide-section">
+                <span class="slide-section__label">Situacion</span>
+                <p class="slide-caption">{{ currentPanel.caption }}</p>
+              </section>
               <blockquote v-if="currentPanel.dialogue" class="slide-dialogue">
                 "{{ currentPanel.dialogue }}"
               </blockquote>
               <div v-if="currentPanel.technicalDetail" class="slide-technical">
-                <span class="slide-technical__label">Contenido tecnico</span>
+                <span class="slide-technical__label">Codigo / contenido del tema</span>
                 <pre>{{ currentPanel.technicalDetail }}</pre>
               </div>
-              <p class="slide-caption">{{ currentPanel.caption }}</p>
             </div>
           </div>
         </transition>
@@ -461,12 +464,24 @@ onMounted(generate)
   font-size: 15px;
   font-weight: 600;
   color: var(--apple-ink);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding: 10px 12px;
   border-radius: 14px;
   background: var(--apple-cloud);
   border-left: 3px solid var(--apple-signal-blue);
   line-height: 1.4;
+}
+.slide-section {
+  margin: 0 0 12px;
+}
+.slide-section__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--apple-signal-blue);
 }
 .slide-caption {
   font-size: 14px;

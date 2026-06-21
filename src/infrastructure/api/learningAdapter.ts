@@ -31,15 +31,22 @@ export interface VideoSlide {
   technicalDetail?: string
 }
 
+export interface VideoSceneNote {
+  narration: string
+  technicalDetail?: string
+}
+
 export interface VideoLearningResult {
   jobId?: string
   status?: 'processing' | 'completed' | 'error'
   title: string
+  summary?: string
   videoUrl?: string
   posterUrl?: string
   durationSeconds?: number
   slides?: VideoSlide[]
   technicalHighlights?: string[]
+  sceneNotes?: VideoSceneNote[]
   error?: string
   insufficientCredits?: boolean
 }
