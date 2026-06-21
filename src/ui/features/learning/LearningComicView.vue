@@ -66,15 +66,20 @@
             </div>
             <div class="slide-text">
               <section class="slide-section">
-                <span class="slide-section__label">Situacion</span>
+                <span class="slide-section__label">Situacion en la historia</span>
                 <p class="slide-caption">{{ currentPanel.caption }}</p>
               </section>
               <blockquote v-if="currentPanel.dialogue" class="slide-dialogue">
                 "{{ currentPanel.dialogue }}"
               </blockquote>
               <div v-if="currentPanel.technicalDetail" class="slide-technical">
-                <span class="slide-technical__label">Codigo / contenido del tema</span>
-                <pre>{{ currentPanel.technicalDetail }}</pre>
+                <div class="slide-technical__header">
+                  <span class="slide-technical__dot"></span>
+                  <span class="slide-technical__dot"></span>
+                  <span class="slide-technical__dot"></span>
+                  <span class="slide-technical__label">{{ detectCodeLanguage(currentPanel.technicalDetail) }}</span>
+                </div>
+                <pre class="slide-technical__code"><code>{{ currentPanel.technicalDetail }}</code></pre>
               </div>
             </div>
           </div>
@@ -171,6 +176,23 @@ const generationSteps = [
 const currentPanel = computed(() =>
   result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
+
+function detectCodeLanguage(code: string | undefined): string {
+  if (!code) return 'Codigo'
+  const c = code.toLowerCase()
+  if (/\b(def |import |print\(|class .+:|if __name__|\.py\b|python)/.test(c)) return 'Python'
+  if (/\b(function |const |let |var |=>|\.js\b|console\.log|async |await )/.test(c)) return 'JavaScript'
+  if (/\b(interface |type |: string|: number|: boolean|\.ts\b)/.test(c)) return 'TypeScript'
+  if (/\b(select |from |where |insert |update |delete |join |create table)/.test(c)) return 'SQL'
+  if (/\b(get |post |put |delete |patch |https?:\/\/|endpoint|api\/)/.test(c)) return 'API / HTTP'
+  if (/[{}\[\]":,]+/.test(c) && /{[\s\S]*}/.test(code)) return 'JSON'
+  if (/\b(<!doctype|<html|<div|<span|<p>|<\/|class=")/.test(c)) return 'HTML'
+  if (/\b(\.[\w-]+\s*{|#[\w-]+\s*{|@media|color:|background:|margin:|padding:)/.test(c)) return 'CSS'
+  if (/\b(docker|npm |yarn |pip |git |curl |wget |chmod |mkdir |cd |ls )/.test(c)) return 'Terminal'
+  if (/\b(public |private |void |int |string |class |static |new )/.test(c)) return 'Java / C#'
+  if (/[+\-*/=<>]+|^[\d\s+\-*/()=]+$|[∑∏∫√]|sin|cos|log/.test(c)) return 'Formula'
+  return 'Codigo del tema'
+}
 
 function prev() {
   if (!result.value || currentIdx.value === 0) return
@@ -420,12 +442,12 @@ onMounted(generate)
 }
 .slide-image {
   flex: 1;
-  min-height: 0;
+  min-height: 60%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: clamp(10px, 2.5vw, 24px);
+  padding: clamp(16px, 4vw, 24px);
   background: #08090b;
 }
 .slide-image img {
@@ -433,10 +455,14 @@ onMounted(generate)
   max-height: 100%;
   width: auto;
   height: auto;
+  min-width: 80%;
+  min-height: 80%;
   object-fit: contain;
   display: block;
-  border-radius: 18px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .slide-ph {
   display: flex;
@@ -452,12 +478,15 @@ onMounted(generate)
 }
 .slide-text {
   flex-shrink: 0;
-  padding: 12px 16px 10px;
+  padding: 14px 16px 12px;
   background: var(--apple-snow);
-  max-height: 30%;
+  max-height: 35%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   border-top: 1px solid var(--apple-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .slide-dialogue {
   font-family: var(--apple-font-display);
@@ -501,50 +530,64 @@ onMounted(generate)
 }
 .slide-technical {
   margin: 0;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #0d1224 0%, #0a0f1a 100%);
-  color: #e8ecf4;
-  border: 1px solid rgba(0, 150, 255, 0.2);
+  padding: 0;
+  border-radius: 12px;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border: 1px solid rgba(137, 180, 250, 0.15);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 4px 20px rgba(0, 0, 0, 0.15);
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-.slide-technical__label {
+.slide-technical__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #64b5f6;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #181825;
+  border-bottom: 1px solid rgba(137, 180, 250, 0.1);
 }
-.slide-technical__label::before {
-  content: '';
-  width: 8px;
-  height: 8px;
+.slide-technical__dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #4caf50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-  animation: codePulse 2s ease-in-out infinite;
+  background: #ff5f57;
 }
-@keyframes codePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.85); }
+.slide-technical__dot:nth-child(2) {
+  background: #febc2e;
 }
-.slide-technical pre {
+.slide-technical__dot:nth-child(3) {
+  background: #28c840;
+}
+.slide-technical__label {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #89b4fa;
+  text-transform: uppercase;
+}
+.slide-technical__code {
+  flex: 1;
   margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  padding: 14px 16px;
+  overflow: auto;
+  background: transparent;
+}
+.slide-technical__code code {
+  display: block;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 12.5px;
-  line-height: 1.55;
-  color: #c5d1e0;
+  line-height: 1.6;
+  color: #cdd6f4;
+  white-space: pre-wrap;
+  word-break: break-word;
   tab-size: 2;
 }
-
 .slide-left-enter-active,
 .slide-left-leave-active,
 .slide-right-enter-active,
@@ -635,7 +678,10 @@ onMounted(generate)
   .slide-image {
     flex: 1;
     max-width: 55%;
-    padding: 28px;
+    padding: 24px;
+  }
+  .slide-image img {
+    border-radius: 28px;
   }
   .slide-text {
     flex: 1;
@@ -655,20 +701,28 @@ onMounted(generate)
   .slide-caption { font-size: 15px; line-height: 1.7; }
   .slide-technical {
     flex: 1;
-    min-height: 120px;
+    min-height: 140px;
     max-height: none;
+  }
+  .slide-technical__code {
     padding: 16px 18px;
   }
-  .slide-technical pre {
+  .slide-technical__code code {
     font-size: 13px;
-    line-height: 1.55;
+    line-height: 1.6;
   }
 }
 
 @media (min-width: 1200px) {
   .slide-image {
-    max-width: 50%;
-    padding: 32px;
+    max-width: 55%;
+    padding: 28px;
+  }
+  .slide-image img {
+    border-radius: 32px;
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.45),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
   }
   .slide-text {
     min-width: 50%;
@@ -682,11 +736,14 @@ onMounted(generate)
     font-size: 16px;
   }
   .slide-technical {
-    padding: 20px 22px;
+    min-height: 160px;
   }
-  .slide-technical pre {
+  .slide-technical__code {
+    padding: 18px 20px;
+  }
+  .slide-technical__code code {
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.65;
   }
 }
 </style>
