@@ -524,6 +524,9 @@ let coachAudioElement: HTMLAudioElement | null = null
 let coachSpeechToken = 0
 let coachVoiceRestartTimer: ReturnType<typeof setTimeout> | null = null
 let coachVoiceListeningWanted = false
+let coachVoiceDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let coachAccumulatedTranscript = ''
+const COACH_VOICE_SILENCE_DELAY_MS = 4000 // 4 seconds of silence before sending
 let coachSplineViewer: HTMLElement | null = null
 let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
@@ -890,6 +893,11 @@ function stopCoachListening() {
     clearTimeout(coachVoiceRestartTimer)
     coachVoiceRestartTimer = null
   }
+  if (coachVoiceDebounceTimer) {
+    clearTimeout(coachVoiceDebounceTimer)
+    coachVoiceDebounceTimer = null
+  }
+  coachAccumulatedTranscript = ''
   coachRecognition?.stop()
   coachListening.value = false
   stopCoachAudioMeter()
@@ -922,9 +930,33 @@ function toggleCoachDictation() {
   startCoachDictation(false)
 }
 
+function clearCoachVoiceDebounce() {
+  if (coachVoiceDebounceTimer) {
+    clearTimeout(coachVoiceDebounceTimer)
+    coachVoiceDebounceTimer = null
+  }
+}
+
+function flushCoachAccumulatedTranscript(autoSubmit: boolean) {
+  const finalTranscript = coachAccumulatedTranscript.trim()
+  coachAccumulatedTranscript = ''
+  clearCoachVoiceDebounce()
+
+  if (!finalTranscript) return
+
+  console.log('[Coach Mic] Enviando transcripcion acumulada:', finalTranscript)
+  if (autoSubmit || voiceConversationMode.value) {
+    void handleCoachVoiceTranscript(finalTranscript)
+  } else {
+    coachInput.value = finalTranscript
+  }
+}
+
 function startCoachDictation(autoSubmit = false) {
   if (coachListening.value) {
     if (autoSubmit) return
+    // Manual stop: flush any accumulated transcript immediately
+    flushCoachAccumulatedTranscript(autoSubmit)
     coachRecognition?.stop()
     coachListening.value = false
     stopCoachAudioMeter()
@@ -937,27 +969,73 @@ function startCoachDictation(autoSubmit = false) {
     return
   }
 
+  // Reset accumulated transcript
+  coachAccumulatedTranscript = ''
+  clearCoachVoiceDebounce()
+
   coachRecognition = new Recognition()
   coachRecognition.lang = getCoachRecognitionLanguage()
-  coachRecognition.continuous = false
-  coachRecognition.interimResults = false
+  coachRecognition.continuous = true // Keep listening continuously
+  coachRecognition.interimResults = true // Get interim results to detect speech activity
   coachRecognition.onresult = (event: unknown) => {
-    const transcript = extractSpeechTranscript(event)
-    console.log('[Coach Mic] Resultado de voz:', transcript)
-    if (!transcript) return
-    if (autoSubmit || voiceConversationMode.value) {
-      void handleCoachVoiceTranscript(transcript)
-    } else {
-      coachInput.value = transcript
+    const resultEvent = event as {
+      results?: ArrayLike<ArrayLike<{ transcript?: string }> & { isFinal?: boolean }>
+      resultIndex?: number
+    }
+    const results = resultEvent.results
+    if (!results?.length) return
+
+    // Build transcript from all results
+    let fullTranscript = ''
+    let hasNewFinal = false
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      const transcript = result?.[0]?.transcript || ''
+      if (result?.isFinal) {
+        fullTranscript += transcript + ' '
+        hasNewFinal = true
+      } else {
+        // Interim result - show in input but don't accumulate yet
+        fullTranscript += transcript
+      }
+    }
+
+    fullTranscript = fullTranscript.replace(/\s+/g, ' ').trim()
+    console.log('[Coach Mic] Transcripcion parcial:', fullTranscript, '| Final:', hasNewFinal)
+
+    if (fullTranscript) {
+      // Update accumulated transcript with final results only
+      if (hasNewFinal) {
+        coachAccumulatedTranscript = fullTranscript
+      }
+      // Show current transcript in input for visual feedback
+      if (!autoSubmit && !voiceConversationMode.value) {
+        coachInput.value = fullTranscript
+      }
+
+      // Reset debounce timer - wait 4 seconds of silence before sending
+      clearCoachVoiceDebounce()
+      coachVoiceDebounceTimer = setTimeout(() => {
+        console.log('[Coach Mic] 4 segundos de silencio, enviando mensaje...')
+        // Stop recognition and send
+        coachRecognition?.stop()
+        flushCoachAccumulatedTranscript(autoSubmit)
+      }, COACH_VOICE_SILENCE_DELAY_MS)
     }
   }
   coachRecognition.onerror = (event: unknown) => {
     const speechError = String((event as { error?: string })?.error || '')
+    // 'no-speech' is not a real error in continuous mode, just means silence
+    if (speechError === 'no-speech') {
+      console.log('[Coach Mic] No se detecto voz, esperando...')
+      return
+    }
     coachError.value = speechError === 'not-allowed'
       ? 'Permite el microfono para conversar por voz.'
       : 'No pude escuchar bien.'
     coachListening.value = false
     stopCoachAudioMeter()
+    clearCoachVoiceDebounce()
     if (
       coachVoiceListeningWanted &&
       speechError !== 'not-allowed' &&
@@ -972,6 +1050,11 @@ function startCoachDictation(autoSubmit = false) {
   coachRecognition.onend = () => {
     coachListening.value = false
     stopCoachAudioMeter()
+    clearCoachVoiceDebounce()
+    // If there's accumulated transcript that wasn't sent, send it now
+    if (coachAccumulatedTranscript.trim()) {
+      flushCoachAccumulatedTranscript(autoSubmit)
+    }
     if (coachVoiceListeningWanted && voiceConversationMode.value && phase.value === 'voice' && !coachLoading.value && !isCoachSpeaking.value) {
       scheduleCoachListening(620)
     }
