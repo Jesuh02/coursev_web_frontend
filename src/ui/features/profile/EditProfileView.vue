@@ -111,8 +111,7 @@ async function save() {
     }
 
     if (selectedAvatarFile.value) {
-      const avatar = await userAdapter.uploadAvatar(selectedAvatarFile.value)
-      if (avatar) payload.avatar = avatar
+      await userAdapter.uploadAvatar(selectedAvatarFile.value)
     }
 
     await userAdapter.updateMyProfile(payload)

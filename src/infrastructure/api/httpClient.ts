@@ -142,6 +142,14 @@ function authHeaders(): Record<string, string> {
   return h
 }
 
+function uploadHeaders(): Record<string, string> {
+  const h: Record<string, string> = {}
+  if (_accessToken) h['Authorization'] = `Bearer ${_accessToken}`
+  const selectedTenantId = localStorage.getItem('selected_tenant_id')
+  if (selectedTenantId) h['X-Tenant-ID'] = selectedTenantId
+  return h
+}
+
 async function request<T>(path: string, options?: RequestInit, isPublic = false, raw = false): Promise<T> {
   const url = `${API_V1}${path}`
   const handler = raw ? handleRawResponse<T> : handleResponse<T>
@@ -232,6 +240,32 @@ async function request<T>(path: string, options?: RequestInit, isPublic = false,
   throw lastError ?? new Error('Request failed')
 }
 
+async function handleUploadResponse<T>(res: Response): Promise<T> {
+  const text = await res.text()
+  if (!text) {
+    if (res.ok) return undefined as T
+    throw new HttpError(res.status, 'EMPTY_RESPONSE', 'Respuesta vacia del servidor')
+  }
+
+  let json: ApiResponse<T> | ApiError
+  try {
+    json = JSON.parse(text)
+  } catch {
+    throw new HttpError(res.status, 'INVALID_RESPONSE', 'Respuesta invalida del servidor')
+  }
+
+  if (!res.ok || json.success === false) {
+    const err = (json as ApiError).error || {}
+    throw new HttpError(
+      err.statusCode || res.status,
+      err.code || 'UPLOAD_ERROR',
+      err.message || `Error ${res.status}`,
+    )
+  }
+
+  return (json as ApiResponse<T>).data !== undefined ? (json as ApiResponse<T>).data : json as T
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const text = await res.text()
   if (!text) {
@@ -292,17 +326,49 @@ export const api = {
     return request<T>(path, { headers }, true)
   },
   upload: <T>(path: string, formData: FormData) => {
-    // Don't set Content-Type – the browser sets it automatically with the correct
-    // multipart boundary. Authorization is handled via HttpOnly cookie.
-    const headers: Record<string, string> = {}
-    const selectedTenantId = localStorage.getItem('selected_tenant_id')
-    if (selectedTenantId) headers['X-Tenant-ID'] = selectedTenantId
-    return fetch(`${API_V1}${path}`, { method: 'POST', headers, body: formData, credentials: 'include' })
-      .then(r => r.json())
-      .then((json: ApiResponse<T>) => {
-        if (json.success === false) throw new HttpError(400, 'UPLOAD_ERROR', (json as unknown as ApiError).error.message)
-        return json.data !== undefined ? json.data : json as T
-      })
+    // Don't set Content-Type: the browser sets the multipart boundary.
+    // Bearer auth is still needed when cross-site cookies are blocked.
+    const url = `${API_V1}${path}`
+    const execUpload = () => fetch(url, {
+      method: 'POST',
+      headers: uploadHeaders(),
+      body: formData,
+      credentials: 'include',
+      cache: 'no-store',
+    })
+
+    return execUpload().then(async (res) => {
+      if (res.status === 401) {
+        let errCode: string | undefined
+        try {
+          const body = await res.clone().json() as { error?: { code?: string } }
+          errCode = body?.error?.code
+        } catch { /* ignore parse failures, fall through to normal refresh logic */ }
+
+        if (errCode === 'INVALID_TOKEN_SIGNATURE' || errCode === 'invalid signature') {
+          tokenStorage.clear()
+          _onUnauthorized?.()
+          throw new HttpError(401, 'INVALID_TOKEN_SIGNATURE', 'Token invalido: firma incorrecta, vuelve a iniciar sesion')
+        }
+
+        const refreshed = await tryRefresh()
+        if (refreshed) {
+          const retryRes = await execUpload()
+          if (retryRes.status === 401) {
+            tokenStorage.clear()
+            _onUnauthorized?.()
+            throw new HttpError(401, 'UNAUTHORIZED', 'Sesion expirada')
+          }
+          return handleUploadResponse<T>(retryRes)
+        }
+
+        tokenStorage.clear()
+        _onUnauthorized?.()
+        throw new HttpError(401, 'UNAUTHORIZED', 'Sesion expirada')
+      }
+
+      return handleUploadResponse<T>(res)
+    })
   },
 }
 
