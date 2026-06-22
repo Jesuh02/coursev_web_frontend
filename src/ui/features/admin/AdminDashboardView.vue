@@ -776,7 +776,18 @@
             <!-- Columna Izquierda: Grafo Principal -->
             <div class="dt-graph-panel">
               <div class="dt-graph-canvas">
-                <svg class="dt-graph-svg" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet">
+                <div class="dt-map-topline">
+                  <div>
+                    <span class="dt-map-kicker">Mapa de conocimiento</span>
+                    <strong>{{ selectedCognitiveStudent?.fullName || selectedCognitiveStudent?.username || 'Estudiante' }}</strong>
+                  </div>
+                  <div class="dt-map-score">
+                    <small>Retencion media</small>
+                    <strong>{{ knowledgeSummary.avgRetention }}%</strong>
+                  </div>
+                </div>
+
+                <svg class="dt-graph-svg" viewBox="0 0 720 430" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <!-- Gradientes -->
                     <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
@@ -801,23 +812,26 @@
                       <stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#10B981"/>
                     </linearGradient>
                     <linearGradient id="dtGradProgress" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#FBBF24"/><stop offset="100%" stop-color="#F59E0B"/>
+                      <stop offset="0%" stop-color="#64D2FF"/><stop offset="100%" stop-color="#0A84FF"/>
                     </linearGradient>
                     <linearGradient id="dtGradForgetting" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#F87171"/><stop offset="100%" stop-color="#EF4444"/>
+                      <stop offset="0%" stop-color="#FFD60A"/><stop offset="100%" stop-color="#FF9F0A"/>
                     </linearGradient>
                     <linearGradient id="dtGradUnseen" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#6B7280"/><stop offset="100%" stop-color="#4B5563"/>
+                      <stop offset="0%" stop-color="#AEAEB2"/><stop offset="100%" stop-color="#636366"/>
                     </linearGradient>
                   </defs>
 
+                  <rect x="18" y="18" width="684" height="394" rx="30" class="dt-map-frame" />
                   <!-- Fondo con glow central -->
-                  <circle cx="180" cy="180" r="140" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+                  <circle cx="360" cy="220" r="176" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
 
                   <!-- Anillos orbitales decorativos -->
-                  <circle cx="180" cy="180" r="60" class="dt-orbit-ring" style="animation-delay: 0s"/>
-                  <circle cx="180" cy="180" r="100" class="dt-orbit-ring" style="animation-delay: 0.5s"/>
-                  <circle cx="180" cy="180" r="140" class="dt-orbit-ring" style="animation-delay: 1s"/>
+                  <circle cx="360" cy="220" r="88" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="360" cy="220" r="156" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
+                  <text x="64" y="74" class="dt-zone-label">Consolidado</text>
+                  <text x="544" y="74" class="dt-zone-label">Riesgo</text>
+                  <text x="64" y="376" class="dt-zone-label">Nuevo</text>
 
                   <!-- Conexiones con curvas bezier -->
                   <g class="dt-connections">
@@ -826,8 +840,12 @@
                       :key="`dtconn-${idx}`"
                       :d="conn.path"
                       class="dt-conn-path"
-                      :class="{ 'dt-conn-active': conn.active, 'dt-conn-inactive': !conn.active }"
-                      :style="{ animationDelay: `${idx * 100}ms` }"
+                      :class="{
+                        'dt-conn-active': conn.active,
+                        'dt-conn-inactive': !conn.active,
+                        'dt-conn-highlighted': isKnowledgeConnectionHighlighted(conn),
+                      }"
+                      :style="{ animationDelay: `${idx * 70}ms`, strokeWidth: `${1.2 + conn.strength * 2.8}px` }"
                     />
                   </g>
 
@@ -847,27 +865,37 @@
                     v-for="(node, idx) in knowledgeGraphNodes"
                     :key="`dtnode-${idx}`"
                     class="dt-node"
-                    :class="{ 'dt-node-selected': selectedKnowledgeNode?.id === node.id }"
+                    :class="{
+                      'dt-node-selected': selectedKnowledgeNode?.id === node.id,
+                      'dt-node-dimmed': isKnowledgeNodeDimmed(node),
+                    }"
                     :transform="`translate(${node.x}, ${node.y})`"
                     :style="{ animationDelay: `${idx * 80}ms` }"
+                    @mouseenter="hoveredKnowledgeNodeId = node.id"
+                    @mouseleave="hoveredKnowledgeNodeId = null"
                     @click="selectKnowledgeNode(node)"
                   >
                     <!-- Aura externa -->
                     <circle
-                      r="36"
+                      :r="node.size + 13"
                       class="dt-node-aura"
                       :class="`dt-aura-${node.status}`"
                     />
+                    <circle
+                      :r="node.size + 7"
+                      class="dt-node-track"
+                    />
                     <!-- Anillo de progreso -->
                     <circle
-                      r="28"
+                      :r="node.size + 7"
+                      pathLength="100"
                       class="dt-node-ring"
-                      :stroke-dasharray="`${(node.retention / 100) * 176} 176`"
+                      :stroke-dasharray="`${node.retention} 100`"
                       :class="`dt-ring-${node.status}`"
                     />
                     <!-- Núcleo -->
                     <circle
-                      r="22"
+                      :r="node.size"
                       class="dt-node-core"
                       :fill="`url(#dtGrad${node.status.charAt(0).toUpperCase() + node.status.slice(1)})`"
                     />
@@ -875,22 +903,46 @@
                     <text class="dt-node-text" dy="5" text-anchor="middle">{{ node.abbrev }}</text>
 
                     <!-- Badge de predicción -->
-                    <g v-if="node.prediction" class="dt-pred-badge" transform="translate(20, -20)">
+                    <g v-if="node.prediction" class="dt-pred-badge" :transform="`translate(${node.size - 2}, ${-node.size + 2})`">
                       <circle r="12" :class="`dt-pred-${node.prediction.urgency}`"/>
                       <text class="dt-pred-num" dy="4" text-anchor="middle">{{ node.prediction.days }}</text>
                     </g>
 
                     <!-- Indicador de retención circular -->
-                    <text class="dt-retention-label" dy="42" text-anchor="middle">{{ node.retention }}%</text>
+                    <text class="dt-retention-label" :y="node.size + 24" text-anchor="middle">{{ node.retention }}%</text>
+                    <g class="dt-node-chip" :transform="`translate(0, ${node.size + 43})`">
+                      <rect x="-58" y="-18" width="116" height="36" rx="12" />
+                      <text y="-3" text-anchor="middle" class="dt-node-label">{{ node.shortName }}</text>
+                      <text y="11" text-anchor="middle" class="dt-node-hint">{{ node.level }}</text>
+                    </g>
                   </g>
                 </svg>
 
-                <!-- Leyenda flotante -->
-                <div class="dt-legend">
-                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-mastered"></span><span>Domina</span></div>
-                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-progress"></span><span>Progreso</span></div>
-                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-forgetting"></span><span>Olvidando</span></div>
-                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-unseen"></span><span>No visto</span></div>
+                <div class="dt-map-footer">
+                  <button
+                    v-for="row in knowledgeStatusRows"
+                    :key="row.status"
+                    class="dt-leg-card"
+                    type="button"
+                    :style="{ '--dt-status-color': row.color, '--dt-status-bg': row.soft }"
+                  >
+                    <span class="dt-leg-dot"></span>
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.value }}</strong>
+                  </button>
+                </div>
+
+                <div v-if="knowledgePriorityNodes.length" class="dt-priority-strip">
+                  <span>Prioridad de repaso</span>
+                  <button
+                    v-for="node in knowledgePriorityNodes"
+                    :key="`priority-${node.id}`"
+                    type="button"
+                    @click="selectKnowledgeNode(node)"
+                  >
+                    {{ node.shortName }}
+                    <strong>{{ node.retention }}%</strong>
+                  </button>
                 </div>
               </div>
             </div>
@@ -967,6 +1019,25 @@
                     <span>Curva del Olvido</span>
                     <span class="dt-curve-formula">R = e<sup>-t/S</sup></span>
                   </div>
+                  <AreaChart
+                    class="dt-retention-vue-chart app-chart-section"
+                    :data="knowledgeRetentionChartData"
+                    :height="172"
+                    :categories="knowledgeRetentionCategories"
+                    :y-num-ticks="4"
+                    :x-num-ticks="4"
+                    :y-grid-line="true"
+                    :hide-legend="true"
+                    :x-formatter="knowledgeRetentionXFormatter"
+                  >
+                    <template #tooltip="{ values }">
+                      <div class="dt-chart-tooltip">
+                        <strong>{{ values?.day ?? 'Hoy' }}</strong>
+                        <span>Retencion: {{ values?.retention ?? 0 }}%</span>
+                        <small>Umbral de repaso: {{ values?.umbral ?? 50 }}%</small>
+                      </div>
+                    </template>
+                  </AreaChart>
                   <div class="dt-curve-chart">
                     <svg viewBox="0 0 240 80" preserveAspectRatio="none" class="dt-curve-svg">
                       <defs>
@@ -1011,6 +1082,22 @@
               <!-- Resumen general -->
               <div class="dt-summary-card">
                 <h4>Resumen Cognitivo</h4>
+                <BarChart
+                  class="dt-status-chart app-chart-section"
+                  :data="knowledgeStatusChartData"
+                  :categories="knowledgeStatusCategories"
+                  :height="132"
+                  :xAxis="'label'"
+                  :yAxis="['nodos']"
+                  :radius="6"
+                  :barPadding="0.34"
+                  :hideLegend="true"
+                  :yNumTicks="3"
+                  :minMaxTicksOnly="true"
+                  :yGridLine="false"
+                  :xDomainLine="false"
+                  :yDomainLine="false"
+                />
                 <div class="dt-summary-bars">
                   <div class="dt-bar-item">
                     <div class="dt-bar-info">
@@ -5081,8 +5168,11 @@ interface KnowledgeNode {
   id: string
   name: string
   abbrev: string
+  shortName: string
+  level: string
   x: number
   y: number
+  size: number
   status: KnowledgeStatus
   retention: number
   lastPractice: string | null
@@ -5095,9 +5185,11 @@ interface KnowledgeConnection {
   to: string
   path: string
   active: boolean
+  strength: number
 }
 
 const selectedKnowledgeNodeId = ref<string | null>(null)
+const hoveredKnowledgeNodeId = ref<string | null>(null)
 
 /**
  * Curva del Olvido de Ebbinghaus: R = e^(-t/S)
@@ -5132,10 +5224,31 @@ const predictForgettingDate = (currentRetention: number, practiceCount: number):
 }
 
 const getKnowledgeStatus = (retention: number, daysSinceLastPractice: number, hasPracticed: boolean): KnowledgeStatus => {
+  void daysSinceLastPractice
   if (!hasPracticed) return 'unseen'
   if (retention >= 80) return 'mastered'
   if (retention >= 50) return 'progress'
   return 'forgetting'
+}
+
+const clampKnowledgeValue = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value))
+
+const getStableKnowledgeSeed = (value: string | number): number => {
+  const source = String(value || 'coursev')
+  let hash = 0
+  for (let i = 0; i < source.length; i += 1) {
+    hash = ((hash << 5) - hash) + source.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+const compactKnowledgeName = (value: string, fallback = 'Nodo'): string => {
+  const clean = String(value || fallback).replace(/\s+/g, ' ').trim()
+  if (!clean) return fallback
+  const words = clean.split(' ').filter(Boolean)
+  if (words.length <= 2) return clean.slice(0, 24)
+  return `${words.slice(0, 2).join(' ')}...`
 }
 
 const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
@@ -5147,14 +5260,15 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const baseNodes: KnowledgeNode[] = []
 
   // Posiciones predefinidas para el grafo (diseño radial - viewBox 360x360)
-  const centerX = 180
-  const centerY = 180
-  const radius = 110
+  const centerX = 360
+  const centerY = 220
+  const radiusX = 245
+  const radiusY = 135
   const positions = Array.from({ length: 8 }, (_, i) => {
     const angle = (i * Math.PI * 2) / 8 - Math.PI / 2 // Start from top
     return {
-      x: Math.round(centerX + radius * Math.cos(angle)),
-      y: Math.round(centerY + radius * Math.sin(angle)),
+      x: Math.round(centerX + radiusX * Math.cos(angle)),
+      y: Math.round(centerY + radiusY * Math.sin(angle)),
     }
   })
 
@@ -5169,8 +5283,11 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     id: 'overall',
     name: 'Rendimiento General',
     abbrev: 'RG',
+    shortName: 'Rendimiento',
+    level: 'General',
     x: centerX,
     y: centerY,
+    size: 35,
     status: overallStatus,
     retention: overallRetention,
     lastPractice: student.lastActivity,
@@ -5183,9 +5300,13 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   // Generar nodos para cada curso
   courses.slice(0, 7).forEach((course, idx) => {
     const pos = positions[idx] || positions[idx % positions.length]
-    const courseAccuracy = Math.round(accuracy * (0.8 + Math.random() * 0.4)) // Variación realista
-    const courseSessions = Math.max(1, Math.round(sessions / courses.length))
-    const courseDays = Math.max(0, daysSinceLast + Math.floor(Math.random() * 3))
+    const seed = getStableKnowledgeSeed(`${course.id}-${course.title}`)
+    const accuracyBias = 0.88 + ((seed % 25) / 100)
+    const courseAccuracy = clampKnowledgeValue(Math.round(accuracy * accuracyBias))
+    const sessionBias = 0.85 + (((seed >> 3) % 35) / 100)
+    const dayBias = (seed % 5) - 2
+    const courseSessions = Math.max(1, Math.round((sessions / Math.max(1, courses.length)) * sessionBias))
+    const courseDays = Math.max(0, daysSinceLast + dayBias)
     const courseRetention = calculateEbbinghausRetention(courseDays, courseSessions)
     const courseStatus = getKnowledgeStatus(courseRetention, courseDays, courseSessions > 0)
 
@@ -5193,8 +5314,11 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       id: `course-${course.id}`,
       name: course.title,
       abbrev: course.title.slice(0, 2).toUpperCase(),
+      shortName: compactKnowledgeName(course.title, `Curso ${idx + 1}`),
+      level: `${courseAccuracy}% precision`,
       x: pos.x,
       y: pos.y,
+      size: 25,
       status: courseStatus,
       retention: courseRetention,
       lastPractice: student.lastActivity,
@@ -5218,29 +5342,33 @@ const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
 
   // Conectar nodos periféricos al centro
   nodes.filter(n => n.id !== 'overall').forEach(node => {
-    const midX = (centerNode.x + node.x) / 2
-    const midY = (centerNode.y + node.y) / 2
-    const offset = 15
+    const dx = node.x - centerNode.x
+    const dy = node.y - centerNode.y
+    const controlX = centerNode.x + dx * 0.52 - dy * 0.08
+    const controlY = centerNode.y + dy * 0.52 + dx * 0.08
 
     connections.push({
       from: centerNode.id,
       to: node.id,
-      path: `M ${centerNode.x} ${centerNode.y} Q ${midX + offset} ${midY - offset} ${node.x} ${node.y}`,
+      path: `M ${centerNode.x} ${centerNode.y} Q ${Math.round(controlX)} ${Math.round(controlY)} ${node.x} ${node.y}`,
       active: node.status === 'mastered' || node.status === 'progress',
+      strength: Math.max(0.25, node.retention / 100),
     })
   })
 
   // Algunas conexiones entre nodos periféricos (dependencias)
   const peripheralNodes = nodes.filter(n => n.id !== 'overall')
-  for (let i = 0; i < peripheralNodes.length - 1; i += 2) {
+  for (let i = 0; i < peripheralNodes.length - 1; i += 1) {
     const nodeA = peripheralNodes[i]
     const nodeB = peripheralNodes[i + 1]
     if (nodeA && nodeB) {
+      const avgRetention = Math.round((nodeA.retention + nodeB.retention) / 2)
       connections.push({
         from: nodeA.id,
         to: nodeB.id,
-        path: `M ${nodeA.x} ${nodeA.y} L ${nodeB.x} ${nodeB.y}`,
-        active: nodeA.status === 'mastered' && nodeB.status !== 'unseen',
+        path: `M ${nodeA.x} ${nodeA.y} Q 360 220 ${nodeB.x} ${nodeB.y}`,
+        active: nodeA.status !== 'unseen' && nodeB.status !== 'unseen' && avgRetention >= 55,
+        strength: Math.max(0.2, avgRetention / 100),
       })
     }
   }
@@ -5260,6 +5388,23 @@ const selectKnowledgeNode = (node: KnowledgeNode) => {
   selectedKnowledgeNodeId.value = node.id
 }
 
+const activeKnowledgeNodeId = computed(() => hoveredKnowledgeNodeId.value || selectedKnowledgeNode.value?.id || 'overall')
+
+const isKnowledgeConnectionHighlighted = (connection: KnowledgeConnection): boolean => {
+  const activeId = activeKnowledgeNodeId.value
+  if (!activeId || activeId === 'overall') return connection.active
+  return connection.from === activeId || connection.to === activeId
+}
+
+const isKnowledgeNodeDimmed = (node: KnowledgeNode): boolean => {
+  const activeId = activeKnowledgeNodeId.value
+  if (!activeId || activeId === 'overall') return false
+  if (node.id === activeId) return false
+  return !knowledgeGraphConnections.value.some(conn =>
+    (conn.from === activeId && conn.to === node.id) || (conn.to === activeId && conn.from === node.id)
+  )
+}
+
 const getKnowledgeStatusLabel = (status: KnowledgeStatus): string => {
   const labels: Record<KnowledgeStatus, string> = {
     mastered: 'Domina',
@@ -5269,6 +5414,17 @@ const getKnowledgeStatusLabel = (status: KnowledgeStatus): string => {
   }
   return labels[status] || 'Desconocido'
 }
+
+const knowledgeStatusOrder: KnowledgeStatus[] = ['mastered', 'progress', 'forgetting', 'unseen']
+
+const knowledgeStatusMeta: Record<KnowledgeStatus, { label: string; shortLabel: string; color: string; soft: string }> = {
+  mastered: { label: 'Dominados', shortLabel: 'Domina', color: '#30D158', soft: 'rgba(48, 209, 88, 0.14)' },
+  progress: { label: 'En progreso', shortLabel: 'Progreso', color: '#0A84FF', soft: 'rgba(10, 132, 255, 0.14)' },
+  forgetting: { label: 'Riesgo de olvido', shortLabel: 'Riesgo', color: '#FF9F0A', soft: 'rgba(255, 159, 10, 0.16)' },
+  unseen: { label: 'Sin practica', shortLabel: 'Nuevo', color: '#8E8E93', soft: 'rgba(142, 142, 147, 0.13)' },
+}
+
+const getKnowledgeNodeColor = (status: KnowledgeStatus): string => knowledgeStatusMeta[status]?.color || '#8E8E93'
 
 const formatKnowledgeDate = (dateStr: string | null): string => {
   if (!dateStr) return 'Nunca'
@@ -5364,6 +5520,72 @@ const knowledgeSummary = computed(() => {
     avgRetention,
   }
 })
+
+interface KnowledgeRetentionChartPoint {
+  day: string
+  retention: number
+  umbral: number
+}
+
+const knowledgeRetentionChartData = computed<KnowledgeRetentionChartPoint[]>(() => {
+  const node = selectedKnowledgeNode.value
+  if (!node) return []
+  const memoryStrength = 1 + (node.practiceCount * 0.5)
+  const days = [0, 1, 2, 3, 5, 7, 10]
+  return days.map(day => ({
+    day: day === 0 ? 'Hoy' : `+${day}d`,
+    retention: Math.round(clampKnowledgeValue(node.retention * Math.exp(-day / memoryStrength))),
+    umbral: 50,
+  }))
+})
+
+const knowledgeRetentionCategories: Record<string, BulletLegendItemInterface> = {
+  retention: { name: 'Retencion', color: '#0A84FF' },
+  umbral: { name: 'Umbral', color: '#FF9F0A' },
+}
+
+const knowledgeRetentionXFormatter = (tick: number): string => {
+  const data = knowledgeRetentionChartData.value
+  return typeof tick === 'number' && data[tick]?.day ? data[tick].day : String(tick)
+}
+
+const knowledgeStatusChartData = computed(() =>
+  knowledgeStatusOrder.map(status => ({
+    label: knowledgeStatusMeta[status].shortLabel,
+    nodos: knowledgeGraphNodes.value.filter(node => node.id !== 'overall' && node.status === status).length,
+  }))
+)
+
+const knowledgeStatusCategories: Record<string, BulletLegendItemInterface> = {
+  nodos: { name: 'Nodos', color: '#0A84FF' },
+}
+
+const knowledgeStatusRows = computed(() =>
+  {
+    const summary = knowledgeSummary.value
+    const pctByStatus: Record<KnowledgeStatus, number> = {
+      mastered: summary.masteredPct,
+      progress: summary.progressPct,
+      forgetting: summary.forgettingPct,
+      unseen: summary.unseenPct,
+    }
+    return knowledgeStatusOrder.map(status => ({
+      status,
+      label: knowledgeStatusMeta[status].label,
+      value: knowledgeGraphNodes.value.filter(node => node.id !== 'overall' && node.status === status).length,
+      pct: pctByStatus[status],
+      color: knowledgeStatusMeta[status].color,
+      soft: knowledgeStatusMeta[status].soft,
+    }))
+  }
+)
+
+const knowledgePriorityNodes = computed(() =>
+  knowledgeGraphNodes.value
+    .filter(node => node.id !== 'overall' && (node.status === 'forgetting' || node.prediction?.urgency === 'high'))
+    .sort((left, right) => left.retention - right.retention)
+    .slice(0, 3)
+)
 
 const getKnowledgeGaugeColor = (status: KnowledgeStatus, stop: number): string => {
   const colors: Record<KnowledgeStatus, [string, string]> = {
