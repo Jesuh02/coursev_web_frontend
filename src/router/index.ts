@@ -80,6 +80,7 @@ const routes: RouteRecordRaw[] = [
   // Reinforcement
   { path: '/reinforcement/:courseId', name: 'reinforcementLearning', component: () => import('@/ui/features/reinforcement/ReinforcementLearningView.vue'), props: true, meta: { hideNav: true } },
   { path: '/evaluative-reinforcement', name: 'evaluativeReinforcement', component: () => import('@/ui/features/reinforcement/EvaluativeReinforcementView.vue'), meta: { hideNav: true } },
+  { path: '/cognitive-analytics', name: 'cognitiveAnalytics', component: () => import('@/ui/features/reinforcement/CognitiveAnalyticsDashboard.vue'), meta: { hideNav: true } },
 
   // ICFES
   { path: '/icfes', name: 'icfesHome', component: () => import('@/ui/features/icfes/IcfesHomeView.vue') },

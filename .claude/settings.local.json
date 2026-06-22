@@ -5,7 +5,9 @@
       "Bash(npm run:*)",
       "Bash(npx vue-tsc:*)",
       "Bash(dir:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(del \"C:\\\\Users\\\\yasuy\\\\Documents\\\\githup\\\\mcp-backend-deploy\\\\scripts\\\\migration_voice_coach_history.sql\")",
+      "Bash(del /f \"C:\\\\Users\\\\yasuy\\\\Documents\\\\githup\\\\mcp-backend-deploy\\\\scripts\\\\migration_voice_coach_history.sql\")"
     ]
   }
 }
