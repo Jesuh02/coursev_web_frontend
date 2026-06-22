@@ -787,7 +787,7 @@
                   </div>
                 </div>
 
-                <svg class="dt-graph-svg" viewBox="0 0 760 455" preserveAspectRatio="xMidYMid meet">
+                <svg class="dt-graph-svg" viewBox="0 0 760 390" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <!-- Gradientes -->
                     <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
@@ -822,16 +822,16 @@
                     </linearGradient>
                   </defs>
 
-                  <rect x="24" y="18" width="712" height="418" rx="30" class="dt-map-frame" />
+                  <rect x="20" y="10" width="720" height="372" rx="30" class="dt-map-frame" />
                   <!-- Fondo con glow central -->
-                  <circle cx="380" cy="230" r="176" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+                  <circle cx="315" cy="215" r="150" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
 
                   <!-- Anillos orbitales decorativos -->
-                  <circle cx="380" cy="230" r="92" class="dt-orbit-ring" style="animation-delay: 0s"/>
-                  <circle cx="380" cy="230" r="164" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
-                  <text x="68" y="84" class="dt-zone-label">Consolidado</text>
-                  <text x="612" y="84" class="dt-zone-label">Riesgo</text>
-                  <text x="68" y="400" class="dt-zone-label">Nuevo</text>
+                  <circle cx="315" cy="215" r="82" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="315" cy="215" r="146" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
+                  <text x="68" y="36" class="dt-zone-label">Consolidado</text>
+                  <text x="646" y="36" class="dt-zone-label">Riesgo</text>
+                  <text x="68" y="344" class="dt-zone-label">Nuevo</text>
 
                   <!-- Conexiones con curvas bezier -->
                   <g class="dt-connections">
@@ -915,7 +915,7 @@
 
                     <!-- Indicador de retención circular -->
                     <text class="dt-retention-label" :y="node.size + 24" text-anchor="middle">{{ node.retention }}%</text>
-                    <g class="dt-node-chip" :transform="`translate(0, ${node.labelOffsetY})`">
+                    <g class="dt-node-chip" :transform="`translate(${node.labelOffsetX}, ${node.labelOffsetY})`">
                       <rect :x="-(node.labelWidth / 2)" y="-18" :width="node.labelWidth" height="36" rx="12" />
                       <text y="-3" text-anchor="middle" class="dt-node-label">{{ node.shortName }}</text>
                       <text y="11" text-anchor="middle" class="dt-node-hint">{{ node.level }}</text>
@@ -3143,6 +3143,12 @@ const hasAdminRole = computed(() => {
 })
 
 const hasTeacherRole = computed(() => roleIds.value.includes(2))
+const hasCognitiveAdminRole = computed(() => roleIds.value.includes(3) || roleIds.value.includes(4))
+const teacherHasCognitiveInvitation = ref(false)
+const cognitiveAccessCourses = ref<CognitiveCourseRef[]>([])
+const canViewCognitive = computed(() =>
+  hasCognitiveAdminRole.value || (hasTeacherRole.value && teacherHasCognitiveInvitation.value)
+)
 const isRole1Only = computed(() =>
   roleIds.value.length === 1 &&
   roleIds.value[0] === 1 &&
@@ -3274,7 +3280,7 @@ const issueAllCertificates = async () => {
 
 const allTabs = [
   { id: 'analytics', label: 'Analytics', adminOnly: false },
-  { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false },
+  { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false, cognitiveOnly: true },
   { id: 'moderation', label: 'Moderación', adminOnly: false },
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },
@@ -3289,6 +3295,7 @@ const visibleTabs = computed(() => {
   }
 
   return allTabs.filter((tab) => {
+    if ((tab as any).cognitiveOnly) return canViewCognitive.value
     if ((tab as any).superAdminOnly) return hasSuperAdminRole.value
     return !tab.adminOnly || hasAdminRole.value
   })
@@ -3315,7 +3322,7 @@ watch(activeTab, (tab) => {
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
   }
-  if (tab === 'cognitive' && cognitiveStudents.value.length === 0 && !cognitiveLoading.value) {
+  if (tab === 'cognitive' && canViewCognitive.value && cognitiveStudents.value.length === 0 && !cognitiveLoading.value) {
     loadCognitiveData()
   }
 })
@@ -4804,6 +4811,33 @@ const cognitiveCourseFilter = ref('all')
 const cognitiveSortBy = ref<CognitiveSortKey>('recent_activity')
 const selectedCognitiveStudentId = ref<number | null>(null)
 
+const normalizeCognitiveCourse = (course: Record<string, any>): CognitiveCourseRef => ({
+  id: parseSafeNumber(course.id ?? course.courseId ?? course.course_id),
+  title: String(course.title || course.name || course.courseName || `Curso #${course.id ?? course.courseId ?? course.course_id}`),
+})
+
+const loadCognitiveAccess = async () => {
+  teacherHasCognitiveInvitation.value = false
+  cognitiveAccessCourses.value = []
+
+  if (hasCognitiveAdminRole.value) return
+  if (!hasTeacherRole.value) return
+
+  try {
+    const access = await reinforcementAdapter.getCognitiveAccess()
+    teacherHasCognitiveInvitation.value = Boolean((access as any)?.canView)
+    cognitiveAccessCourses.value = Array.isArray((access as any)?.courses)
+      ? (access as any).courses
+          .map((course: Record<string, any>) => normalizeCognitiveCourse(course))
+          .filter((course: CognitiveCourseRef) => course.id > 0)
+      : []
+  } catch (error) {
+    console.error('Error loading cognitive access:', error)
+    teacherHasCognitiveInvitation.value = false
+    cognitiveAccessCourses.value = []
+  }
+}
+
 const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCourseRef): CognitiveStudentProfile => {
   const performance = raw.performance || {}
   const insights = raw.cognitiveInsights || {}
@@ -5019,6 +5053,12 @@ const loadCognitiveData = async () => {
   cognitiveLoading.value = true
   cognitiveLoadError.value = ''
   try {
+    if (!canViewCognitive.value) {
+      cognitiveStudents.value = []
+      cognitiveCourseOptions.value = []
+      return
+    }
+
     const userId = authStore.user?.id
     if (!userId) {
       cognitiveStudents.value = []
@@ -5026,15 +5066,19 @@ const loadCognitiveData = async () => {
     }
 
     let courses = await loadManageableCourses(userId)
+    if (hasTeacherRole.value && !hasCognitiveAdminRole.value) {
+      const accessCourseIds = new Set(cognitiveAccessCourses.value.map(course => course.id))
+      courses = courses.filter((course: any) => accessCourseIds.has(parseSafeNumber(course.id)))
+      if (courses.length === 0) {
+        courses = cognitiveAccessCourses.value
+      }
+    }
     if (courses.length === 0 && hasAdminRole.value) {
       courses = await courseAdapter.getCourses(1, 300).catch(() => [])
     }
 
     const normalizedCourses = courses
-      .map((course: any) => ({
-        id: parseSafeNumber(course.id),
-        title: String(course.title || course.name || `Curso #${course.id}`),
-      }))
+      .map((course: any) => normalizeCognitiveCourse(course))
       .filter(course => course.id > 0)
 
     cognitiveCourseOptions.value = normalizedCourses
@@ -5178,6 +5222,7 @@ interface KnowledgeNode {
   x: number
   y: number
   size: number
+  labelOffsetX: number
   labelOffsetY: number
   labelWidth: number
   status: KnowledgeStatus
@@ -5258,9 +5303,6 @@ const compactKnowledgeName = (value: string, fallback = 'Nodo'): string => {
   return compact.length > 18 ? `${compact.slice(0, 15)}...` : compact
 }
 
-const getKnowledgeLabelOffset = (y: number, centerY: number, size: number): number =>
-  y > centerY + 42 ? -(size + 50) : size + 48
-
 const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const student = selectedCognitiveStudent.value
   if (!student) return []
@@ -5270,17 +5312,17 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const baseNodes: KnowledgeNode[] = []
 
   // Posiciones predefinidas con margen suficiente para nodos, halos y etiquetas.
-  const centerX = 380
-  const centerY = 230
-  const radiusX = 215
-  const radiusY = 122
-  const positions = Array.from({ length: 8 }, (_, i) => {
-    const angle = (i * Math.PI * 2) / 8 - Math.PI / 2 // Start from top
-    return {
-      x: Math.round(centerX + radiusX * Math.cos(angle)),
-      y: Math.round(centerY + radiusY * Math.sin(angle)),
-    }
-  })
+  const centerX = 315
+  const centerY = 215
+  const positions = [
+    { x: 400, y: 86, labelOffsetX: 0, labelOffsetY: 54, labelWidth: 132 },
+    { x: 570, y: 128, labelOffsetX: 0, labelOffsetY: -52, labelWidth: 126 },
+    { x: 650, y: 222, labelOffsetX: -8, labelOffsetY: 54, labelWidth: 132 },
+    { x: 548, y: 306, labelOffsetX: 0, labelOffsetY: 52, labelWidth: 132 },
+    { x: 238, y: 306, labelOffsetX: 0, labelOffsetY: 52, labelWidth: 132 },
+    { x: 145, y: 220, labelOffsetX: 0, labelOffsetY: 54, labelWidth: 126 },
+    { x: 225, y: 122, labelOffsetX: 0, labelOffsetY: -52, labelWidth: 126 },
+  ]
 
   // Nodo central: rendimiento general
   const accuracy = student.performance.accuracy
@@ -5298,6 +5340,7 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     x: centerX,
     y: centerY,
     size: 35,
+    labelOffsetX: 0,
     labelOffsetY: 84,
     labelWidth: 128,
     status: overallStatus,
@@ -5331,8 +5374,9 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       x: pos.x,
       y: pos.y,
       size: 25,
-      labelOffsetY: getKnowledgeLabelOffset(pos.y, centerY, 25),
-      labelWidth: 132,
+      labelOffsetX: pos.labelOffsetX,
+      labelOffsetY: pos.labelOffsetY,
+      labelWidth: pos.labelWidth,
       status: courseStatus,
       retention: courseRetention,
       lastPractice: student.lastActivity,
@@ -5358,8 +5402,8 @@ const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
   nodes.filter(n => n.id !== 'overall').forEach(node => {
     const dx = node.x - centerNode.x
     const dy = node.y - centerNode.y
-    const controlX = centerNode.x + dx * 0.52 - dy * 0.08
-    const controlY = centerNode.y + dy * 0.52 + dx * 0.08
+    const controlX = centerNode.x + dx * 0.58
+    const controlY = centerNode.y + dy * 0.42
 
     connections.push({
       from: centerNode.id,
@@ -5371,22 +5415,6 @@ const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
   })
 
   // Algunas conexiones entre nodos periféricos (dependencias)
-  const peripheralNodes = nodes.filter(n => n.id !== 'overall')
-  for (let i = 0; i < peripheralNodes.length - 1; i += 1) {
-    const nodeA = peripheralNodes[i]
-    const nodeB = peripheralNodes[i + 1]
-    if (nodeA && nodeB) {
-      const avgRetention = Math.round((nodeA.retention + nodeB.retention) / 2)
-      connections.push({
-        from: nodeA.id,
-        to: nodeB.id,
-        path: `M ${nodeA.x} ${nodeA.y} Q ${centerNode.x} ${centerNode.y} ${nodeB.x} ${nodeB.y}`,
-        active: nodeA.status !== 'unseen' && nodeB.status !== 'unseen' && avgRetention >= 55,
-        strength: Math.max(0.2, avgRetention / 100),
-      })
-    }
-  }
-
   return connections
 })
 
@@ -6798,6 +6826,8 @@ onMounted(async () => {
     await authStore.fetchProfile()
   }
 
+  await loadCognitiveAccess()
+
   // Launch all independent loads in parallel
   const promises: Promise<any>[] = [loadData(), loadAnalyticsData(), loadMyCoursesProgressData()]
   if (canViewActivation.value) promises.push(loadUsers())
@@ -6808,9 +6838,9 @@ onMounted(async () => {
     promises.push(loadPendingSubmissions())
     promises.push(loadStudentProgressData())
     promises.push(loadReinforcementData())
-    promises.push(loadCognitiveData())
     promises.push(loadSubjectProgress())
   }
+  if (canViewCognitive.value) promises.push(loadCognitiveData())
   Promise.allSettled(promises)
   applyAdminQueryNavigation()
 })
@@ -8414,8 +8444,8 @@ watch(() => route.query, () => {
 }
 
 .dt-graph-svg {
-  min-height: 455px;
-  aspect-ratio: 760 / 455;
+  min-height: 390px;
+  aspect-ratio: 760 / 390;
 }
 
 .dt-map-frame {
@@ -8434,7 +8464,7 @@ watch(() => route.query, () => {
 
 .dt-orbit-ring {
   stroke: rgba(10, 132, 255, 0.13);
-  transform-origin: 380px 230px;
+  transform-origin: 315px 215px;
 }
 
 .dt-orbit-ring-wide {
@@ -8442,8 +8472,8 @@ watch(() => route.query, () => {
 }
 
 @keyframes dtOrbitRotate {
-  from { transform: rotate(0deg); transform-origin: 380px 230px; }
-  to { transform: rotate(360deg); transform-origin: 380px 230px; }
+  from { transform: rotate(0deg); transform-origin: 315px 215px; }
+  to { transform: rotate(360deg); transform-origin: 315px 215px; }
 }
 
 .dt-particles {
@@ -8451,7 +8481,7 @@ watch(() => route.query, () => {
 }
 
 .dt-conn-path {
-  opacity: 0.52;
+  opacity: 0.46;
   transition:
     opacity 0.2s ease,
     stroke-width 0.2s ease,
@@ -8460,7 +8490,7 @@ watch(() => route.query, () => {
 
 .dt-conn-active {
   stroke: url(#dtConnGrad);
-  filter: none;
+  filter: drop-shadow(0 0 7px rgba(100, 210, 255, 0.18));
 }
 
 .dt-conn-inactive {
@@ -8553,20 +8583,22 @@ watch(() => route.query, () => {
 }
 
 .dt-node-chip rect {
-  fill: rgba(18, 18, 20, 0.82);
-  stroke: rgba(255, 255, 255, 0.1);
+  fill: rgba(18, 18, 20, 0.68);
+  stroke: rgba(255, 255, 255, 0.13);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .dt-node-label {
   fill: #F5F5F7;
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 750;
   pointer-events: none;
 }
 
 .dt-node-hint {
   fill: rgba(235, 235, 245, 0.52);
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 650;
   pointer-events: none;
 }

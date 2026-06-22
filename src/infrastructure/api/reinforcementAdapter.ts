@@ -8,6 +8,7 @@ export const reinforcementAdapter: ReinforcementPort = {
   saveResult: (data) => api.post('/reinforcement-results', data),
   getMyResults: () => api.get('/reinforcement-results/my'),
   getResultsByCourse: (courseId) => api.get(`/reinforcement-results/course/${courseId}`),
+  getCognitiveAccess: () => api.get('/reinforcement/cognitive-access'),
   getCognitiveAnalytics: (courseId, options = {}) => {
     const params = new URLSearchParams({ courseId: String(courseId) })
     Object.entries(options).forEach(([key, value]) => {

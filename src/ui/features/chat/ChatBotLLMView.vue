@@ -25,6 +25,16 @@
       </div>
 
       <div class="hdr-actions">
+        <button class="hdr-btn" @click="openClassRadarOverlay()" title="Radar de la clase">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="8"/>
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        </button>
         <button class="hdr-btn" @click="openStudentProgressOverlay" title="Progreso de estudiantes">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
@@ -488,6 +498,173 @@
     </Transition>
 
     <!-- ══════════════════════════════════════
+         CLASS RADAR OVERLAY
+    ══════════════════════════════════════ -->
+    <Transition name="sheet-up">
+      <div v-if="showClassRadarOverlay" class="sheet-backdrop" @click.self="closeClassRadarOverlay">
+        <div class="sheet-panel class-radar-panel">
+          <div class="sheet-handle" />
+          <div class="sheet-header class-radar-header">
+            <div>
+              <span class="sheet-title">Radar de la clase</span>
+              <p class="class-radar-subtitle">Señales de refuerzo, notas y riesgo académico</p>
+            </div>
+            <div class="class-radar-header-actions">
+              <button class="class-radar-refresh" :disabled="classRadarLoading" @click="openClassRadarOverlay(true)" title="Actualizar radar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 0 1-15.5 6.2"/>
+                  <path d="M3 12A9 9 0 0 1 18.5 5.8"/>
+                  <polyline points="18 2 18.5 5.8 22 5"/>
+                  <polyline points="6 22 5.5 18.2 2 19"/>
+                </svg>
+              </button>
+              <button class="sheet-close" @click="closeClassRadarOverlay">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="classRadarLoading" class="class-radar-loading">
+            <div v-for="i in 4" :key="i" class="sheet-skel">
+              <div class="skel-icon" />
+              <div class="skel-text">
+                <div class="skel-line skel-title" />
+                <div class="skel-line skel-sub" />
+              </div>
+            </div>
+          </div>
+          <div v-else-if="classRadarError" class="sheet-empty class-radar-empty">
+            {{ classRadarError }}
+          </div>
+          <div v-else-if="!classRadarReports.length" class="sheet-empty class-radar-empty">
+            No hay cursos con estudiantes para analizar.
+          </div>
+          <div v-else class="class-radar-layout">
+            <aside class="class-radar-courses">
+              <button
+                v-for="report in classRadarReports"
+                :key="report.courseId"
+                class="class-radar-course"
+                :class="{ 'class-radar-course--active': report.courseId === selectedClassRadarCourseId }"
+                @click="selectClassRadarCourse(report.courseId)"
+              >
+                <span class="class-radar-course-name">{{ report.courseName }}</span>
+                <span class="class-radar-course-meta">
+                  {{ report.totalStudents }} estudiantes · {{ report.riskCount }} en riesgo
+                </span>
+              </button>
+            </aside>
+
+            <section v-if="selectedClassRadar" class="class-radar-detail">
+              <!-- AI Summary Card -->
+              <div class="radar-ai-card">
+                <div class="radar-ai-header">
+                  <div class="radar-ai-avatar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M12 2v2m0 16v2M2 12h2m16 0h2"/>
+                      <path d="M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+                    </svg>
+                  </div>
+                  <div class="radar-ai-title">
+                    <span class="radar-ai-name">Asistente IA</span>
+                    <span class="radar-ai-label">Radar de {{ selectedClassRadar.courseName }}</span>
+                  </div>
+                  <button class="radar-ai-refresh" :disabled="selectedClassRadar.aiSummaryLoading" @click="generateAiRadarSummary(selectedClassRadar)" title="Regenerar análisis">
+                    <svg :class="{ 'radar-ai-spin': selectedClassRadar.aiSummaryLoading }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12a9 9 0 0 1-15.5 6.2"/>
+                      <path d="M3 12A9 9 0 0 1 18.5 5.8"/>
+                      <polyline points="18 2 18.5 5.8 22 5"/>
+                      <polyline points="6 22 5.5 18.2 2 19"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="radar-ai-message">
+                  <template v-if="selectedClassRadar.aiSummaryLoading">
+                    <div class="radar-ai-typing">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <p class="radar-ai-placeholder">Analizando patrones del curso...</p>
+                  </template>
+                  <p v-else-if="selectedClassRadar.aiSummary" class="radar-ai-text">{{ selectedClassRadar.aiSummary }}</p>
+                  <p v-else class="radar-ai-text">{{ selectedClassRadar.professorSummary }}</p>
+                </div>
+                <div class="radar-ai-actions">
+                  <button class="radar-ai-action" @click="useClassRadarAsContext(selectedClassRadar)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Usar en chat
+                  </button>
+                  <button class="radar-ai-action" @click="copyRadarSummary(selectedClassRadar)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="selectedClassRadar.loading" class="class-radar-inline-loading">
+                Analizando entregas y refuerzos del curso...
+              </div>
+              <template v-else>
+                <div class="radar-metrics">
+                  <div class="radar-metric">
+                    <span class="radar-metric-value">{{ formatGrade(selectedClassRadar.averageGrade) }}</span>
+                    <span class="radar-metric-label">Promedio</span>
+                  </div>
+                  <div class="radar-metric">
+                    <span class="radar-metric-value">{{ selectedClassRadar.reinforcedStudents }}</span>
+                    <span class="radar-metric-label">Refuerzan</span>
+                  </div>
+                  <div class="radar-metric radar-metric--risk">
+                    <span class="radar-metric-value">{{ selectedClassRadar.riskCount }}</span>
+                    <span class="radar-metric-label">En riesgo</span>
+                  </div>
+                  <div class="radar-metric radar-metric--ok">
+                    <span class="radar-metric-value">{{ selectedClassRadar.dominatedCount }}</span>
+                    <span class="radar-metric-label">Dominan</span>
+                  </div>
+                </div>
+
+                <div class="radar-insights">
+                  <article
+                    v-for="insight in selectedClassRadar.insights"
+                    :key="insight.id"
+                    class="radar-insight"
+                    :class="`radar-insight--${insight.severity}`"
+                  >
+                    <div class="radar-insight-top">
+                      <span class="radar-insight-title">{{ insight.title }}</span>
+                      <span class="radar-insight-value">{{ insight.value }}</span>
+                    </div>
+                    <p>{{ insight.detail }}</p>
+                    <span class="radar-insight-action">{{ insight.action }}</span>
+                  </article>
+                </div>
+
+                <div class="radar-students" v-if="selectedClassRadar.riskStudents.length || selectedClassRadar.supportStudents.length">
+                  <div>
+                    <span class="radar-students-label">En riesgo</span>
+                    <p>{{ formatStudentList(selectedClassRadar.riskStudents) }}</p>
+                  </div>
+                  <div>
+                    <span class="radar-students-label">Acompañamiento</span>
+                    <p>{{ formatStudentList(selectedClassRadar.supportStudents) }}</p>
+                  </div>
+                </div>
+              </template>
+            </section>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ══════════════════════════════════════
          GRADED TASKS OVERLAY
     ══════════════════════════════════════ -->
     <Transition name="sheet-up">
@@ -534,7 +711,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { api, tokenStorage, chatAdapter, submissionAdapter, courseAdapter, taskAdapter, HttpError } from '@/infrastructure/api'
+import { api, tokenStorage, chatAdapter, submissionAdapter, courseAdapter, taskAdapter, reinforcementAdapter, HttpError } from '@/infrastructure/api'
 import type { Course, TaskSubmission, Task } from '@/domain/models'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
@@ -618,6 +795,99 @@ interface StudentProgressData {
   students: StudentProgressItem[]
 }
 
+interface CognitiveAnalyticsStudent {
+  id?: number | string
+  userId?: number
+  username?: string
+  fullName?: string
+  performance?: {
+    accuracy?: number
+    avgGrade?: number
+    totalSessions?: number
+    totalQuestions?: number
+  }
+  cognitiveInsights?: {
+    skillLevel?: string
+    trend?: string
+    performanceStatus?: string
+  }
+}
+
+interface CognitiveAnalyticsData {
+  students?: CognitiveAnalyticsStudent[]
+  totalStudents?: number
+  courseStats?: {
+    totalSessions?: number
+    totalQuestions?: number
+    avgAccuracy?: number
+    avgGrade?: number
+    skillDistribution?: Record<string, number>
+    trendDistribution?: Record<string, number>
+    performanceStatusDistribution?: Record<string, number>
+  } | null
+}
+
+interface CourseStealthAnalytics {
+  hasData?: boolean
+  totalStudents?: number
+  avgCourseComprehension?: number
+  studentsNeedingSupport?: number
+  topCourseWeakAreas?: Array<{ category: string; studentCount?: number; occurrences?: number }>
+  masteryDistribution?: Record<string, number>
+  students?: Array<{ userId: number; avgComprehension?: number; masteryLevel?: string; needsSupport?: boolean }>
+}
+
+interface RadarTaskSignal {
+  taskId: number
+  title: string
+  averageGrade: number
+  failedCount: number
+  total: number
+}
+
+type RadarSeverity = 'critical' | 'warning' | 'positive' | 'neutral'
+
+interface RadarInsight {
+  id: string
+  title: string
+  value: string
+  detail: string
+  action: string
+  severity: RadarSeverity
+}
+
+interface ClassRadarReport {
+  courseId: number
+  courseName: string
+  totalStudents: number
+  averageGrade: number
+  progressCompletion: number
+  reinforcedStudents: number
+  reinforcementSessions: number
+  submissionsCount: number
+  gradedCount: number
+  riskStudents: StudentProgressItem[]
+  supportStudents: StudentProgressItem[]
+  dominatedStudents: StudentProgressItem[]
+  riskCount: number
+  supportCount: number
+  dominatedCount: number
+  weakTopic: string
+  weakTopicStudentCount: number
+  difficultTask: RadarTaskSignal | null
+  weakQuestion: string
+  incompleteContent: string
+  reinforceClass: string
+  competenciesDominated: string
+  professorSummary: string
+  aiSummary: string
+  aiSummaryLoading: boolean
+  insights: RadarInsight[]
+  detailLoaded: boolean
+  loading: boolean
+  error: string
+}
+
 interface StudentProgressContext {
   courseId: number
   courseName: string
@@ -669,6 +939,15 @@ const studentProgressLoading = ref(false)
 const studentProgressData = ref<StudentProgressData[]>([])
 const selectedProgressContext = ref<StudentProgressContext | null>(null)
 const exportingExcel = ref(false)
+
+// Class radar
+const showClassRadarOverlay = ref(false)
+const classRadarLoading = ref(false)
+const classRadarError = ref('')
+const classRadarReports = ref<ClassRadarReport[]>([])
+const selectedClassRadarCourseId = ref<number | null>(null)
+const classRadarAiSummary = ref<string>('')
+const classRadarAiLoading = ref(false)
 
 // Message actions
 const copiedMsgId = ref<string | null>(null)
@@ -886,6 +1165,13 @@ const filteredOverlayItems = computed(() => {
 // True when an inline plan-card marker exists in the message flow. Used to avoid
 // double-rendering the fallback card below the messages.
 const hasInlinePlanCard = computed(() => messages.value.some(m => m.isPlanCard))
+
+const selectedClassRadar = computed(() => {
+  if (!classRadarReports.value.length) return null
+  return classRadarReports.value.find(report => report.courseId === selectedClassRadarCourseId.value)
+    ?? classRadarReports.value[0]
+    ?? null
+})
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -2172,6 +2458,536 @@ function clearProgressContext() {
   selectedProgressContext.value = null
 }
 
+// ─── Class radar ─────────────────────────────────────────────────────────────
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const parsed = typeof value === 'number' ? value : parseFloat(String(value ?? ''))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function roundOne(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
+function formatGrade(value: number): string {
+  return roundOne(value || 0).toFixed(1)
+}
+
+function studentName(student: StudentProgressItem): string {
+  return student.username || `Estudiante #${student.userId}`
+}
+
+function formatStudentList(students: StudentProgressItem[]): string {
+  if (!students.length) return 'Sin estudiantes priorizados por ahora.'
+  return students.slice(0, 4).map(studentName).join(', ') + (students.length > 4 ? ` y ${students.length - 4} más` : '')
+}
+
+async function fetchTeacherCourses(): Promise<Course[]> {
+  const userId = tokenStorage.userId
+  const [created, manageable] = await Promise.allSettled([
+    courseAdapter.getCoursesByCreatorId(userId),
+    courseAdapter.getManageableCourses(userId),
+  ])
+
+  const all: Course[] = []
+  if (created.status === 'fulfilled') all.push(...created.value)
+  if (manageable.status === 'fulfilled') all.push(...manageable.value)
+
+  return Array.from(new Map(all.map(course => [course.id, course])).values())
+}
+
+async function ensureStudentProgressData() {
+  if (studentProgressData.value.length) return
+  const data = await api.get<StudentProgressData[]>('/progress/teacher/students')
+  studentProgressData.value = Array.isArray(data) ? data : []
+}
+
+function buildBaseRadarReport(course: StudentProgressData): ClassRadarReport {
+  const students = course.students || []
+  const totalStudents = students.length
+  const averageGrade = totalStudents
+    ? roundOne(students.reduce((acc, student) => acc + (student.averageGrade || 0), 0) / totalStudents)
+    : 0
+  const progressCompletion = totalStudents
+    ? Math.round(students.reduce((acc, student) => acc + (student.progressPercentage || 0), 0) / totalStudents)
+    : 0
+  const riskStudents = students.filter(student =>
+    (student.averageGrade || 0) < 6 ||
+    (student.progressPercentage || 0) < 45 ||
+    /riesgo|perdido|reprobado/i.test(student.status || '')
+  )
+  const supportStudents = students.filter(student =>
+    (student.averageGrade || 0) < 7 ||
+    (student.progressPercentage || 0) < 65 ||
+    /riesgo|perdido|reprobado|pendiente/i.test(student.status || '')
+  )
+  const dominatedStudents = students.filter(student =>
+    (student.averageGrade || 0) >= 8 &&
+    (student.progressPercentage || 0) >= 75 &&
+    /ganado|aprobado/i.test(student.status || '')
+  )
+
+  const report: ClassRadarReport = {
+    courseId: course.courseId,
+    courseName: course.courseName,
+    totalStudents,
+    averageGrade,
+    progressCompletion,
+    reinforcedStudents: 0,
+    reinforcementSessions: 0,
+    submissionsCount: 0,
+    gradedCount: 0,
+    riskStudents,
+    supportStudents,
+    dominatedStudents,
+    riskCount: riskStudents.length,
+    supportCount: supportStudents.length,
+    dominatedCount: dominatedStudents.length,
+    weakTopic: 'Sin patrón dominante todavía',
+    weakTopicStudentCount: riskStudents.length,
+    difficultTask: null,
+    weakQuestion: 'No hay evidencia suficiente para marcar una pregunta como mal formulada.',
+    incompleteContent: 'No hay evidencia suficiente para marcar contenido incompleto.',
+    reinforceClass: course.courseName,
+    competenciesDominated: dominatedStudents.length
+      ? `${dominatedStudents.length} estudiantes sostienen desempeño alto y avance estable.`
+      : 'Aún no hay una competencia dominada por el grupo completo.',
+    professorSummary: '',
+    aiSummary: '',
+    aiSummaryLoading: false,
+    insights: [],
+    detailLoaded: false,
+    loading: false,
+    error: '',
+  }
+
+  report.professorSummary = buildProfessorSummary(report)
+  report.insights = buildRadarInsights(report)
+  return report
+}
+
+function buildEmptyRadarReport(course: Course): ClassRadarReport {
+  return buildBaseRadarReport({
+    courseId: course.id,
+    courseName: course.title,
+    students: [],
+  })
+}
+
+function buildTaskSignals(submissions: TaskSubmission[]): RadarTaskSignal[] {
+  const grouped = new Map<number, { title: string; grades: number[] }>()
+  for (const submission of submissions) {
+    const grade = toFiniteNumber(submission.grade, NaN)
+    if (!Number.isFinite(grade)) continue
+    const taskId = submission.task_id
+    const current: { title: string; grades: number[] } = grouped.get(taskId) ?? {
+      title: (submission as any).taskName || `Tarea #${taskId}`,
+      grades: [] as number[],
+    }
+    current.grades.push(grade)
+    grouped.set(taskId, current)
+  }
+
+  return Array.from(grouped.entries())
+    .map(([taskId, task]) => {
+      const total = task.grades.length
+      const averageGrade = total
+        ? roundOne(task.grades.reduce((acc, grade) => acc + grade, 0) / total)
+        : 0
+      return {
+        taskId,
+        title: task.title,
+        averageGrade,
+        failedCount: task.grades.filter(grade => grade < 6).length,
+        total,
+      }
+    })
+    .sort((a, b) => {
+      const failureDelta = (b.failedCount / Math.max(b.total, 1)) - (a.failedCount / Math.max(a.total, 1))
+      if (Math.abs(failureDelta) > 0.05) return failureDelta
+      return a.averageGrade - b.averageGrade
+    })
+}
+
+function pickDifficultTask(signals: RadarTaskSignal[]): RadarTaskSignal | null {
+  return signals.find(signal => signal.total >= 2 && (signal.averageGrade < 7 || signal.failedCount > 0))
+    ?? signals.find(signal => signal.averageGrade < 7)
+    ?? null
+}
+
+function countCognitiveSupportStudents(students: CognitiveAnalyticsStudent[]): number {
+  return students.filter(student => {
+    const accuracy = toFiniteNumber(student.performance?.accuracy, 100)
+    const status = student.cognitiveInsights?.performanceStatus || ''
+    const skill = student.cognitiveInsights?.skillLevel || ''
+    const trend = student.cognitiveInsights?.trend || ''
+    return accuracy < 60 || status === 'needs_support' || skill === 'beginner' || trend === 'declining'
+  }).length
+}
+
+function buildProfessorSummary(report: ClassRadarReport): string {
+  if (!report.totalStudents) {
+    return 'Profesor, aún no hay suficientes estudiantes con progreso para emitir una alerta de grupo.'
+  }
+
+  if (report.weakTopicStudentCount > 0 && report.weakTopic !== 'Sin patrón dominante todavía') {
+    return `Profesor, ${report.weakTopicStudentCount} de ${report.totalStudents} estudiantes muestran dificultad asociada a "${report.weakTopic}". Recomiendo una actividad visual breve, una tarea corta de aplicación y revisar si el material explica los errores más frecuentes.`
+  }
+
+  if (report.riskCount > 0) {
+    return `Profesor, ${report.riskCount} de ${report.totalStudents} estudiantes necesitan seguimiento. El grupo no muestra un tema único dominante, pero conviene reforzar antes de avanzar.`
+  }
+
+  return `Profesor, el grupo avanza de forma estable. ${report.dominatedCount} estudiantes ya muestran dominio alto y el radar no detecta una intervención urgente.`
+}
+
+/**
+ * Generates an AI-powered summary for the class radar.
+ * Creates a conversational, actionable message for the teacher.
+ */
+async function generateAiRadarSummary(report: ClassRadarReport): Promise<string> {
+  if (!report.totalStudents) {
+    return ''
+  }
+
+  report.aiSummaryLoading = true
+
+  try {
+    const radarContext = `
+RADAR DE LA CLASE - ${report.courseName}
+
+MÉTRICAS ACTUALES:
+- Total estudiantes: ${report.totalStudents}
+- Promedio general: ${formatGrade(report.averageGrade)}/10
+- Progreso promedio: ${report.progressCompletion}%
+- Estudiantes en riesgo: ${report.riskCount} (${report.riskStudents.map(s => s.username).join(', ') || 'ninguno'})
+- Estudiantes que dominan: ${report.dominatedCount}
+- Sesiones de refuerzo registradas: ${report.reinforcementSessions}
+- Entregas calificadas: ${report.gradedCount}/${report.submissionsCount}
+
+ALERTAS DETECTADAS:
+- Tema con más errores: ${report.weakTopic} (${report.weakTopicStudentCount} estudiantes)
+- Tarea más difícil: ${report.difficultTask ? `${report.difficultTask.title} (promedio ${formatGrade(report.difficultTask.averageGrade)}/10, ${report.difficultTask.failedCount} reprobados)` : 'Sin alerta'}
+- Pregunta problemática: ${report.weakQuestion}
+- Contenido incompleto detectado: ${report.incompleteContent}
+- Competencias dominadas: ${report.competenciesDominated}
+
+ESTUDIANTES QUE NECESITAN ACOMPAÑAMIENTO:
+${report.supportStudents.map(s => `- ${s.username}: nota ${s.averageGrade}/10, progreso ${s.progressPercentage}%`).join('\n') || '- Ninguno identificado'}
+`.trim()
+
+    const payload = {
+      prompt: `Eres un asistente pedagógico experto. Con base en el siguiente análisis del radar de clase, genera UN SOLO párrafo conversacional (máximo 3 oraciones) dirigido al profesor. Sé directo, específico y accionable. Incluye números concretos. Si hay un tema problemático, menciónalo por nombre. Si hay estudiantes en riesgo, indica cuántos. Sugiere UNA acción concreta. No uses bullets ni listas.
+
+${radarContext}
+
+Ejemplo de formato esperado:
+"Profesor, 21 de 35 estudiantes fallaron preguntas asociadas a 'matriz de confusión'. Recomiendo una actividad visual de 15 minutos y una tarea corta de 3 casos. También detecté que el material subido no explica falsos positivos y falsos negativos."`,
+      sessionId: `radar_${report.courseId}`,
+      userId: tokenStorage.userId,
+      forceMCPTools: false,
+    }
+
+    const response = await api.postSlow<{
+      respuesta_texto?: string
+      response?: string
+    }>('/llm/process', payload, 60_000)
+
+    const summary = response.respuesta_texto || response.response || ''
+    report.aiSummary = summary.trim()
+    return report.aiSummary
+  } catch (error) {
+    console.error('Error generating AI radar summary:', error)
+    report.aiSummary = report.professorSummary
+    return report.aiSummary
+  } finally {
+    report.aiSummaryLoading = false
+  }
+}
+
+function buildRadarInsights(report: ClassRadarReport): RadarInsight[] {
+  const difficultTaskLabel = report.difficultTask
+    ? `${report.difficultTask.title} (${formatGrade(report.difficultTask.averageGrade)}/10)`
+    : 'Sin alerta'
+
+  return [
+    {
+      id: 'weak-topic',
+      title: 'Tema no entendido',
+      value: report.weakTopic,
+      detail: report.weakTopicStudentCount
+        ? `${report.weakTopicStudentCount} estudiantes concentran bajo desempeño o errores en esta señal.`
+        : 'No hay concentración clara de error por tema.',
+      action: 'Reforzar con explicación visual y ejemplo guiado.',
+      severity: report.weakTopicStudentCount
+        ? (report.weakTopicStudentCount >= Math.ceil(report.totalStudents * 0.4) ? 'critical' : 'warning')
+        : 'positive',
+    },
+    {
+      id: 'risk-students',
+      title: 'Estudiantes en riesgo',
+      value: String(report.riskCount),
+      detail: formatStudentList(report.riskStudents),
+      action: 'Priorizar seguimiento individual y metas de recuperación.',
+      severity: report.riskCount ? 'critical' : 'positive',
+    },
+    {
+      id: 'difficult-task',
+      title: 'Tarea difícil',
+      value: difficultTaskLabel,
+      detail: report.difficultTask
+        ? `${report.difficultTask.failedCount} de ${report.difficultTask.total} entregas calificadas quedaron por debajo de 6/10.`
+        : 'Las tareas calificadas no muestran una caída fuerte.',
+      action: 'Revisar consigna, rúbrica y ejemplo de entrega esperada.',
+      severity: report.difficultTask ? 'warning' : 'positive',
+    },
+    {
+      id: 'bad-question',
+      title: 'Pregunta a revisar',
+      value: report.weakQuestion,
+      detail: 'Señal inferida desde errores repetidos, bajo promedio y refuerzo cognitivo.',
+      action: 'Reescribir la pregunta con criterio observable y contexto suficiente.',
+      severity: report.weakQuestion.startsWith('No hay') ? 'positive' : 'warning',
+    },
+    {
+      id: 'content-gap',
+      title: 'Contenido incompleto',
+      value: report.incompleteContent,
+      detail: 'El radar compara desempeño, refuerzo y entregas para detectar vacíos probables.',
+      action: 'Añadir definición, contraejemplo y ejercicio resuelto.',
+      severity: report.incompleteContent.startsWith('No hay') ? 'positive' : 'warning',
+    },
+    {
+      id: 'reinforce-class',
+      title: 'Clase a reforzar',
+      value: report.reinforceClass,
+      detail: `${report.reinforcementSessions} sesiones de refuerzo registradas en este curso.`,
+      action: 'Programar microclase de 15 minutos y práctica de 3 casos.',
+      severity: report.reinforcementSessions || report.riskCount ? 'warning' : 'neutral',
+    },
+    {
+      id: 'support',
+      title: 'Acompañamiento',
+      value: String(report.supportCount),
+      detail: formatStudentList(report.supportStudents),
+      action: 'Crear grupo temporal de apoyo con objetivo medible.',
+      severity: report.supportCount ? 'warning' : 'positive',
+    },
+    {
+      id: 'mastered',
+      title: 'Competencias dominadas',
+      value: String(report.dominatedCount),
+      detail: report.competenciesDominated,
+      action: 'Asignar reto de extensión o rol de apoyo entre pares.',
+      severity: report.dominatedCount ? 'positive' : 'neutral',
+    },
+  ]
+}
+
+function applyRadarDetails(
+  baseReport: ClassRadarReport,
+  cognitive: CognitiveAnalyticsData | null,
+  stealth: CourseStealthAnalytics | null,
+  submissions: TaskSubmission[],
+): ClassRadarReport {
+  const courseStats = cognitive?.courseStats ?? null
+  const cognitiveStudents = cognitive?.students ?? []
+  const taskSignals = buildTaskSignals(submissions)
+  const difficultTask = pickDifficultTask(taskSignals)
+  const topWeakArea = stealth?.hasData && stealth.topCourseWeakAreas?.length
+    ? stealth.topCourseWeakAreas[0]
+    : null
+  const weakTopic = topWeakArea?.category
+    || difficultTask?.title
+    || (baseReport.riskCount ? 'desempeño general del curso' : 'Sin patrón dominante todavía')
+  const weakTopicStudentCount = topWeakArea?.studentCount
+    || difficultTask?.failedCount
+    || baseReport.riskCount
+  const cognitiveSupportCount = countCognitiveSupportStudents(cognitiveStudents)
+  const advancedCount = toFiniteNumber(courseStats?.skillDistribution?.advanced, 0)
+  const proficientCount = toFiniteNumber(stealth?.masteryDistribution?.proficient, 0)
+  const expertCount = toFiniteNumber(stealth?.masteryDistribution?.expert, 0)
+  const dominatedCount = Math.max(baseReport.dominatedCount, advancedCount + proficientCount + expertCount)
+  const supportCount = Math.max(
+    baseReport.supportCount,
+    toFiniteNumber(stealth?.studentsNeedingSupport, 0),
+    cognitiveSupportCount,
+  )
+  const reinforcedStudents = Math.max(
+    toFiniteNumber(cognitive?.totalStudents, 0),
+    cognitiveStudents.length,
+  )
+  const reinforcementSessions = Math.max(
+    toFiniteNumber(courseStats?.totalSessions, 0),
+    cognitiveStudents.reduce((acc, student) => acc + toFiniteNumber(student.performance?.totalSessions, 0), 0),
+  )
+  const gradedSubmissions = submissions.filter(submission => Number.isFinite(toFiniteNumber(submission.grade, NaN)))
+
+  const report: ClassRadarReport = {
+    ...baseReport,
+    averageGrade: courseStats?.avgGrade != null
+      ? roundOne(toFiniteNumber(courseStats.avgGrade, baseReport.averageGrade))
+      : baseReport.averageGrade,
+    reinforcedStudents,
+    reinforcementSessions,
+    submissionsCount: submissions.length,
+    gradedCount: gradedSubmissions.length,
+    riskCount: Math.max(baseReport.riskCount, cognitiveSupportCount),
+    supportCount,
+    dominatedCount,
+    weakTopic,
+    weakTopicStudentCount,
+    difficultTask,
+    weakQuestion: difficultTask && difficultTask.failedCount >= Math.max(2, Math.ceil(difficultTask.total * 0.5))
+      ? `Revisar la consigna de "${difficultTask.title}"`
+      : topWeakArea
+        ? `Revisar preguntas asociadas a "${topWeakArea.category}"`
+        : 'No hay evidencia suficiente para marcar una pregunta como mal formulada.',
+    incompleteContent: topWeakArea
+      ? `El material debería explicar mejor "${topWeakArea.category}" con falsos ejemplos, errores típicos y práctica corta.`
+      : difficultTask
+        ? `Validar si el material de "${difficultTask.title}" incluye criterio de evaluación, ejemplo resuelto y contraejemplo.`
+        : 'No hay evidencia suficiente para marcar contenido incompleto.',
+    reinforceClass: weakTopic,
+    competenciesDominated: dominatedCount
+      ? `${dominatedCount} estudiantes aparecen en nivel avanzado/proficiente o sostienen nota alta con progreso estable.`
+      : 'Aún no hay una competencia dominada por el grupo completo.',
+    aiSummary: baseReport.aiSummary || '',
+    aiSummaryLoading: false,
+    detailLoaded: true,
+    loading: false,
+    error: '',
+  }
+
+  report.professorSummary = buildProfessorSummary(report)
+  report.insights = buildRadarInsights(report)
+  return report
+}
+
+async function openClassRadarOverlay(force = false) {
+  showClassRadarOverlay.value = true
+  classRadarError.value = ''
+
+  if (classRadarReports.value.length && !force) {
+    const selected = selectedClassRadar.value
+    if (selected && !selected.detailLoaded && !selected.loading) {
+      await loadClassRadarCourse(selected.courseId)
+    }
+    return
+  }
+
+  classRadarLoading.value = true
+  try {
+    await ensureStudentProgressData()
+    const progressReports = studentProgressData.value.map(buildBaseRadarReport)
+
+    if (progressReports.length) {
+      classRadarReports.value = progressReports
+    } else {
+      const courses = await fetchTeacherCourses()
+      classRadarReports.value = courses.map(buildEmptyRadarReport)
+    }
+
+    selectedClassRadarCourseId.value = classRadarReports.value[0]?.courseId ?? null
+    if (selectedClassRadarCourseId.value) {
+      await loadClassRadarCourse(selectedClassRadarCourseId.value, true)
+    }
+  } catch (error) {
+    console.error('Error loading class radar:', error)
+    classRadarError.value = 'No se pudo cargar el radar de la clase. Intenta de nuevo.'
+  } finally {
+    classRadarLoading.value = false
+  }
+}
+
+function closeClassRadarOverlay() {
+  showClassRadarOverlay.value = false
+}
+
+async function selectClassRadarCourse(courseId: number) {
+  selectedClassRadarCourseId.value = courseId
+  await loadClassRadarCourse(courseId)
+}
+
+async function loadClassRadarCourse(courseId: number, force = false) {
+  const report = classRadarReports.value.find(item => item.courseId === courseId)
+  if (!report || (report.detailLoaded && !force)) return
+
+  report.loading = true
+  report.error = ''
+
+  try {
+    const [cognitiveResult, stealthResult, submissionsResult] = await Promise.allSettled([
+      reinforcementAdapter.getCognitiveAnalytics(courseId, { limit: 100, sortBy: 'performance' }),
+      api.get<CourseStealthAnalytics>(`/reinforcement/stealth-assessment/course-analytics?courseId=${courseId}&limit=100`),
+      submissionAdapter.getSubmissionByCourse(courseId),
+    ])
+
+    const cognitive = cognitiveResult.status === 'fulfilled'
+      ? cognitiveResult.value as CognitiveAnalyticsData
+      : null
+    const stealth = stealthResult.status === 'fulfilled'
+      ? stealthResult.value
+      : null
+    const submissions = submissionsResult.status === 'fulfilled' && Array.isArray(submissionsResult.value)
+      ? submissionsResult.value
+      : []
+
+    Object.assign(report, applyRadarDetails(report, cognitive, stealth, submissions))
+
+    // Generate AI summary in background (non-blocking)
+    if (!report.aiSummary) {
+      generateAiRadarSummary(report).catch(console.error)
+    }
+  } catch (error) {
+    console.error('Error loading class radar details:', error)
+    report.loading = false
+    report.error = 'No se pudo analizar este curso.'
+    report.insights = buildRadarInsights(report)
+  }
+}
+
+function buildClassRadarContext(report: ClassRadarReport): string {
+  return [
+    `RADAR DE LA CLASE - ${report.courseName}`,
+    `Estudiantes: ${report.totalStudents}`,
+    `Promedio: ${formatGrade(report.averageGrade)}/10`,
+    `Progreso promedio: ${report.progressCompletion}%`,
+    `Estudiantes con refuerzo registrado: ${report.reinforcedStudents}`,
+    `Sesiones de refuerzo: ${report.reinforcementSessions}`,
+    `Entregas calificadas: ${report.gradedCount}/${report.submissionsCount}`,
+    `Tema no entendido: ${report.weakTopic} (${report.weakTopicStudentCount} estudiantes)`,
+    `Estudiantes en riesgo: ${formatStudentList(report.riskStudents)}`,
+    `Tarea demasiado difícil: ${report.difficultTask ? `${report.difficultTask.title} (${formatGrade(report.difficultTask.averageGrade)}/10)` : 'Sin alerta'}`,
+    `Pregunta a revisar: ${report.weakQuestion}`,
+    `Contenido incompleto probable: ${report.incompleteContent}`,
+    `Clase recomendada para reforzar: ${report.reinforceClass}`,
+    `Estudiantes que necesitan acompañamiento: ${formatStudentList(report.supportStudents)}`,
+    `Competencias dominadas: ${report.competenciesDominated}`,
+  ].join('\n')
+}
+
+function useClassRadarAsContext(report: ClassRadarReport) {
+  selectedProgressContext.value = {
+    courseId: report.courseId,
+    courseName: report.courseName,
+    summary: buildClassRadarContext(report),
+  }
+  closeClassRadarOverlay()
+  inputText.value = `Con base en el radar de la clase, genera un plan de refuerzo para ${report.courseName}.`
+  nextTick(() => {
+    inputRef.value?.focus()
+    autoResizeTextarea()
+  })
+}
+
+function copyRadarSummary(report: ClassRadarReport) {
+  const text = report.aiSummary || report.professorSummary
+  navigator.clipboard.writeText(text).then(() => {
+    // Could add a toast notification here
+  }).catch(console.error)
+}
+
 async function exportCourseProgressExcel(course: StudentProgressData) {
   if (exportingExcel.value) return
   exportingExcel.value = true
@@ -3103,6 +3919,10 @@ function renderMarkdown(text: string): string {
   overflow: hidden;
 }
 
+.class-radar-panel {
+  max-height: 86dvh;
+}
+
 .sheet-handle {
   width: 36px;
   height: 4px;
@@ -3137,6 +3957,372 @@ function renderMarkdown(text: string): string {
   transition: background 0.15s;
 }
 .sheet-close:hover { background: rgba(255,255,255,0.12); }
+
+.class-radar-header {
+  align-items: flex-start;
+  gap: 12px;
+}
+.class-radar-subtitle {
+  margin: 3px 0 0;
+  color: #8696A0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.class-radar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.class-radar-refresh {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  color: #9FB0BB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.class-radar-refresh:disabled { opacity: 0.45; }
+.class-radar-refresh:not(:disabled):hover {
+  background: rgba(255,255,255,0.12);
+  color: #E9EDEF;
+}
+.class-radar-loading,
+.class-radar-empty {
+  padding: 16px 0 28px;
+}
+.class-radar-layout {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  overflow: hidden;
+}
+.class-radar-courses {
+  overflow-y: auto;
+  padding: 10px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.class-radar-course {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  text-align: left;
+  color: #E9EDEF;
+  transition: background 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
+}
+.class-radar-course:hover {
+  background: rgba(255,255,255,0.05);
+}
+.class-radar-course--active {
+  background: rgba(125, 211, 252, 0.08);
+  border-color: rgba(125, 211, 252, 0.24);
+}
+.class-radar-course-name {
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.class-radar-course-meta {
+  font-size: 11.5px;
+  color: #93A4AE;
+}
+.class-radar-detail {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+.radar-brief {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #17222A;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.radar-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: #7DD3FC;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.radar-brief h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #F5F7F8;
+}
+.radar-brief p {
+  margin: 7px 0 0;
+  color: #B7C2C8;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ─── AI Radar Card (Conversational style) ────────────────────── */
+.radar-ai-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.radar-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+}
+.radar-ai-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.radar-ai-title {
+  flex: 1;
+  min-width: 0;
+}
+.radar-ai-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #E5E7EB;
+}
+.radar-ai-label {
+  display: block;
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 1px;
+}
+.radar-ai-refresh {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.1);
+  color: #A78BFA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.radar-ai-refresh:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+}
+.radar-ai-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.radar-ai-spin {
+  animation: radar-spin 1s linear infinite;
+}
+@keyframes radar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.radar-ai-message {
+  padding: 14px 16px;
+}
+.radar-ai-typing {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.radar-ai-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #A78BFA;
+  animation: radar-typing-bounce 1.4s ease-in-out infinite;
+}
+.radar-ai-typing span:nth-child(1) { animation-delay: 0s; }
+.radar-ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+.radar-ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes radar-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.radar-ai-placeholder {
+  margin: 0;
+  font-size: 12px;
+  color: #9CA3AF;
+  font-style: italic;
+}
+.radar-ai-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #E5E7EB;
+}
+.radar-ai-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  background: rgba(0, 0, 0, 0.15);
+}
+.radar-ai-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.12);
+  color: #C4B5FD;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  transition: all 0.15s ease;
+}
+.radar-ai-action:hover {
+  background: rgba(139, 92, 246, 0.2);
+  color: #DDD6FE;
+}
+
+.radar-context-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: rgba(37, 211, 102, 0.12);
+  color: #34D399;
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.radar-context-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+}
+.class-radar-inline-loading {
+  margin: 14px 0 0;
+  padding: 18px;
+  border-radius: 12px;
+  color: #9FB0BB;
+  background: rgba(255,255,255,0.04);
+  font-size: 13px;
+}
+.radar-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.radar-metric {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.radar-metric-value {
+  display: block;
+  color: #F5F7F8;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1;
+}
+.radar-metric-label {
+  display: block;
+  margin-top: 5px;
+  color: #8FA1AB;
+  font-size: 11.5px;
+}
+.radar-metric--risk .radar-metric-value { color: #FBBF24; }
+.radar-metric--ok .radar-metric-value { color: #34D399; }
+.radar-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+.radar-insight {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.radar-insight--critical { border-color: rgba(251, 191, 36, 0.34); }
+.radar-insight--warning { border-color: rgba(125, 211, 252, 0.22); }
+.radar-insight--positive { border-color: rgba(52, 211, 153, 0.24); }
+.radar-insight-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.radar-insight-title {
+  color: #E9EDEF;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.radar-insight-value {
+  color: #DDE6EA;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  max-width: 48%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.radar-insight p {
+  margin: 7px 0;
+  color: #A8B5BC;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.radar-insight-action {
+  display: block;
+  color: #7DD3FC;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.radar-students {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+.radar-students > div {
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.14);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.radar-students-label {
+  color: #93A4AE;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.radar-students p {
+  margin: 6px 0 0;
+  color: #DDE6EA;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
 
 .sheet-search {
   display: flex;
@@ -3328,5 +4514,45 @@ function renderMarkdown(text: string): string {
 
 .bubble--user :deep(.md-table tbody tr:nth-child(even)) {
   background: rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 760px) {
+  .class-radar-panel {
+    max-height: 90dvh;
+  }
+  .class-radar-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .class-radar-courses {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 10px 12px;
+  }
+  .class-radar-course {
+    min-width: 190px;
+  }
+  .class-radar-detail {
+    padding: 12px;
+  }
+  .radar-brief,
+  .radar-students {
+    grid-template-columns: 1fr;
+  }
+  .radar-brief {
+    display: grid;
+  }
+  .radar-context-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .radar-metrics,
+  .radar-insights {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
