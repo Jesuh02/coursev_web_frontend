@@ -746,131 +746,337 @@
               <span>Lectura del sistema</span>
               <p>{{ getCognitiveRecommendation(selectedCognitiveStudent) }}</p>
             </div>
+          </aside>
+        </section>
 
-            <!-- Knowledge Graph - Gemelo Digital -->
-            <div class="knowledge-graph-section">
-              <div class="kg-header">
-                <div class="kg-title-row">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-                    <path d="m4.93 4.93 2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                  </svg>
-                  <span>Grafo de Conocimiento</span>
-                </div>
-                <span class="kg-subtitle">Curva del Olvido de Ebbinghaus</span>
-              </div>
-
-              <div class="kg-canvas">
-                <svg class="kg-svg" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid meet">
-                  <defs>
-                    <filter id="kgGlow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="3" result="blur"/>
-                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                    </filter>
-                    <linearGradient id="kgLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stop-color="rgba(191,90,242,0.6)"/>
-                      <stop offset="100%" stop-color="rgba(10,132,255,0.4)"/>
-                    </linearGradient>
-                    <marker id="kgArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(191,90,242,0.5)"/>
-                    </marker>
-                  </defs>
-
-                  <!-- Conexiones -->
-                  <g class="kg-connections">
-                    <path
-                      v-for="(conn, idx) in knowledgeGraphConnections"
-                      :key="`conn-${idx}`"
-                      :d="conn.path"
-                      class="kg-connection-line"
-                      :class="{ 'kg-conn-active': conn.active }"
-                      marker-end="url(#kgArrow)"
-                    />
-                  </g>
-
-                  <!-- Nodos -->
-                  <g
-                    v-for="(node, idx) in knowledgeGraphNodes"
-                    :key="`node-${idx}`"
-                    class="kg-node-group"
-                    :transform="`translate(${node.x}, ${node.y})`"
-                    @click="selectKnowledgeNode(node)"
-                  >
-                    <circle
-                      r="28"
-                      class="kg-node-ring"
-                      :class="`kg-status-${node.status}`"
-                    />
-                    <circle
-                      r="22"
-                      class="kg-node-core"
-                      :class="`kg-status-${node.status}`"
-                    />
-                    <text class="kg-node-label" dy="4" text-anchor="middle">{{ node.abbrev }}</text>
-
-                    <!-- Indicador de prediccion -->
-                    <g v-if="node.prediction" class="kg-prediction-badge" :transform="`translate(18, -18)`">
-                      <circle r="10" :class="`kg-pred-${node.prediction.urgency}`"/>
-                      <text class="kg-pred-text" dy="3" text-anchor="middle">{{ node.prediction.days }}d</text>
-                    </g>
-                  </g>
+        <!-- ═══════ GEMELO DIGITAL - Knowledge Graph Section ═══════ -->
+        <section class="dt-section">
+          <div class="dt-header">
+            <div class="dt-title-group">
+              <div class="dt-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="12" cy="12" r="3"/>
+                  <circle cx="12" cy="3" r="2"/><circle cx="12" cy="21" r="2"/>
+                  <circle cx="3" cy="12" r="2"/><circle cx="21" cy="12" r="2"/>
+                  <path d="M12 5v4M12 15v4M5 12h4M15 12h4"/>
                 </svg>
               </div>
-
-              <!-- Leyenda -->
-              <div class="kg-legend">
-                <span class="kg-legend-item"><span class="kg-dot kg-dot-mastered"></span>Domina</span>
-                <span class="kg-legend-item"><span class="kg-dot kg-dot-progress"></span>En progreso</span>
-                <span class="kg-legend-item"><span class="kg-dot kg-dot-forgetting"></span>Olvidando</span>
-                <span class="kg-legend-item"><span class="kg-dot kg-dot-unseen"></span>No visto</span>
-              </div>
-
-              <!-- Panel de Nodo Seleccionado -->
-              <div v-if="selectedKnowledgeNode" class="kg-node-detail">
-                <div class="kg-detail-header">
-                  <strong>{{ selectedKnowledgeNode.name }}</strong>
-                  <span :class="`kg-status-badge kg-badge-${selectedKnowledgeNode.status}`">
-                    {{ getKnowledgeStatusLabel(selectedKnowledgeNode.status) }}
-                  </span>
-                </div>
-                <div class="kg-detail-metrics">
-                  <div>
-                    <span class="kg-metric-label">Retención</span>
-                    <strong>{{ selectedKnowledgeNode.retention }}%</strong>
-                  </div>
-                  <div>
-                    <span class="kg-metric-label">Última práctica</span>
-                    <strong>{{ formatKnowledgeDate(selectedKnowledgeNode.lastPractice) }}</strong>
-                  </div>
-                  <div v-if="selectedKnowledgeNode.prediction">
-                    <span class="kg-metric-label">Predicción</span>
-                    <strong class="kg-pred-warn">Olvidará en {{ selectedKnowledgeNode.prediction.days }} días</strong>
-                  </div>
-                </div>
-                <div class="kg-retention-curve">
-                  <span class="kg-curve-label">Curva de retención</span>
-                  <svg class="kg-curve-svg" viewBox="0 0 200 60" preserveAspectRatio="none">
-                    <path :d="getRetentionCurvePath(selectedKnowledgeNode)" class="kg-curve-line"/>
-                    <circle :cx="getRetentionCurveX(selectedKnowledgeNode)" :cy="getRetentionCurveY(selectedKnowledgeNode)" r="4" class="kg-curve-dot"/>
-                  </svg>
-                  <div class="kg-curve-axis">
-                    <span>Hoy</span>
-                    <span>+7 días</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Recomendación de repaso -->
-              <div v-if="knowledgeReviewRecommendation" class="kg-review-alert">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                <p>{{ knowledgeReviewRecommendation }}</p>
+              <div>
+                <h3>Gemelo Digital</h3>
+                <p>Knowledge Graph + Curva del Olvido</p>
               </div>
             </div>
-          </aside>
+            <div class="dt-badges">
+              <span class="dt-badge dt-badge-purple">Ebbinghaus</span>
+              <span class="dt-badge dt-badge-cyan">{{ knowledgeGraphNodes.length }} nodos</span>
+            </div>
+          </div>
+
+          <div class="dt-grid">
+            <!-- Columna Izquierda: Grafo Principal -->
+            <div class="dt-graph-panel">
+              <div class="dt-graph-canvas">
+                <svg class="dt-graph-svg" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <!-- Gradientes -->
+                    <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="rgba(191,90,242,0.25)"/>
+                      <stop offset="100%" stop-color="transparent"/>
+                    </radialGradient>
+                    <linearGradient id="dtConnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="rgba(191,90,242,0.5)"/>
+                      <stop offset="50%" stop-color="rgba(90,200,250,0.4)"/>
+                      <stop offset="100%" stop-color="rgba(48,209,88,0.3)"/>
+                    </linearGradient>
+                    <filter id="dtNodeGlow" x="-100%" y="-100%" width="300%" height="300%">
+                      <feGaussianBlur stdDeviation="4" result="blur"/>
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <filter id="dtSoftGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="8" result="blur"/>
+                      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                    <!-- Gradientes por estado -->
+                    <linearGradient id="dtGradMastered" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#10B981"/>
+                    </linearGradient>
+                    <linearGradient id="dtGradProgress" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#FBBF24"/><stop offset="100%" stop-color="#F59E0B"/>
+                    </linearGradient>
+                    <linearGradient id="dtGradForgetting" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#F87171"/><stop offset="100%" stop-color="#EF4444"/>
+                    </linearGradient>
+                    <linearGradient id="dtGradUnseen" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#6B7280"/><stop offset="100%" stop-color="#4B5563"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Fondo con glow central -->
+                  <circle cx="180" cy="180" r="140" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+
+                  <!-- Anillos orbitales decorativos -->
+                  <circle cx="180" cy="180" r="60" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="180" cy="180" r="100" class="dt-orbit-ring" style="animation-delay: 0.5s"/>
+                  <circle cx="180" cy="180" r="140" class="dt-orbit-ring" style="animation-delay: 1s"/>
+
+                  <!-- Conexiones con curvas bezier -->
+                  <g class="dt-connections">
+                    <path
+                      v-for="(conn, idx) in knowledgeGraphConnections"
+                      :key="`dtconn-${idx}`"
+                      :d="conn.path"
+                      class="dt-conn-path"
+                      :class="{ 'dt-conn-active': conn.active, 'dt-conn-inactive': !conn.active }"
+                      :style="{ animationDelay: `${idx * 100}ms` }"
+                    />
+                  </g>
+
+                  <!-- Partículas de flujo en conexiones activas -->
+                  <g class="dt-particles">
+                    <circle
+                      v-for="(conn, idx) in knowledgeGraphConnections.filter(c => c.active)"
+                      :key="`particle-${idx}`"
+                      r="3"
+                      class="dt-particle"
+                      :style="{ offsetPath: `path('${conn.path}')`, animationDelay: `${idx * 200}ms` }"
+                    />
+                  </g>
+
+                  <!-- Nodos del grafo -->
+                  <g
+                    v-for="(node, idx) in knowledgeGraphNodes"
+                    :key="`dtnode-${idx}`"
+                    class="dt-node"
+                    :class="{ 'dt-node-selected': selectedKnowledgeNode?.id === node.id }"
+                    :transform="`translate(${node.x}, ${node.y})`"
+                    :style="{ animationDelay: `${idx * 80}ms` }"
+                    @click="selectKnowledgeNode(node)"
+                  >
+                    <!-- Aura externa -->
+                    <circle
+                      r="36"
+                      class="dt-node-aura"
+                      :class="`dt-aura-${node.status}`"
+                    />
+                    <!-- Anillo de progreso -->
+                    <circle
+                      r="28"
+                      class="dt-node-ring"
+                      :stroke-dasharray="`${(node.retention / 100) * 176} 176`"
+                      :class="`dt-ring-${node.status}`"
+                    />
+                    <!-- Núcleo -->
+                    <circle
+                      r="22"
+                      class="dt-node-core"
+                      :fill="`url(#dtGrad${node.status.charAt(0).toUpperCase() + node.status.slice(1)})`"
+                    />
+                    <!-- Icono o abreviatura -->
+                    <text class="dt-node-text" dy="5" text-anchor="middle">{{ node.abbrev }}</text>
+
+                    <!-- Badge de predicción -->
+                    <g v-if="node.prediction" class="dt-pred-badge" transform="translate(20, -20)">
+                      <circle r="12" :class="`dt-pred-${node.prediction.urgency}`"/>
+                      <text class="dt-pred-num" dy="4" text-anchor="middle">{{ node.prediction.days }}</text>
+                    </g>
+
+                    <!-- Indicador de retención circular -->
+                    <text class="dt-retention-label" dy="42" text-anchor="middle">{{ node.retention }}%</text>
+                  </g>
+                </svg>
+
+                <!-- Leyenda flotante -->
+                <div class="dt-legend">
+                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-mastered"></span><span>Domina</span></div>
+                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-progress"></span><span>Progreso</span></div>
+                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-forgetting"></span><span>Olvidando</span></div>
+                  <div class="dt-legend-item"><span class="dt-leg-dot dt-leg-unseen"></span><span>No visto</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Columna Derecha: Panel de Detalles -->
+            <div class="dt-detail-panel">
+              <!-- Tarjeta del nodo seleccionado -->
+              <div v-if="selectedKnowledgeNode" class="dt-node-card">
+                <div class="dt-card-header">
+                  <div class="dt-card-icon" :class="`dt-icon-${selectedKnowledgeNode.status}`">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 6v6l4 2"/>
+                    </svg>
+                  </div>
+                  <div class="dt-card-titles">
+                    <h4>{{ selectedKnowledgeNode.name }}</h4>
+                    <span class="dt-card-status" :class="`dt-status-${selectedKnowledgeNode.status}`">
+                      {{ getKnowledgeStatusLabel(selectedKnowledgeNode.status) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Gauge de retención grande -->
+                <div class="dt-gauge-wrap">
+                  <svg class="dt-gauge-svg" viewBox="0 0 120 120">
+                    <defs>
+                      <linearGradient :id="`gaugeGrad-${selectedKnowledgeNode.id}`" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" :stop-color="getKnowledgeGaugeColor(selectedKnowledgeNode.status, 0)"/>
+                        <stop offset="100%" :stop-color="getKnowledgeGaugeColor(selectedKnowledgeNode.status, 1)"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="52" class="dt-gauge-bg"/>
+                    <circle
+                      cx="60" cy="60" r="52"
+                      class="dt-gauge-fill"
+                      :stroke="`url(#gaugeGrad-${selectedKnowledgeNode.id})`"
+                      :stroke-dasharray="`${(selectedKnowledgeNode.retention / 100) * 327} 327`"
+                      transform="rotate(-90 60 60)"
+                    />
+                    <text x="60" y="55" class="dt-gauge-value" text-anchor="middle">{{ selectedKnowledgeNode.retention }}</text>
+                    <text x="60" y="72" class="dt-gauge-label" text-anchor="middle">% RETENCIÓN</text>
+                  </svg>
+                </div>
+
+                <!-- Métricas en grid -->
+                <div class="dt-metrics-grid">
+                  <div class="dt-metric">
+                    <span class="dt-metric-icon">📅</span>
+                    <div>
+                      <span class="dt-metric-label">Última práctica</span>
+                      <strong>{{ formatKnowledgeDate(selectedKnowledgeNode.lastPractice) }}</strong>
+                    </div>
+                  </div>
+                  <div class="dt-metric">
+                    <span class="dt-metric-icon">🔄</span>
+                    <div>
+                      <span class="dt-metric-label">Repeticiones</span>
+                      <strong>{{ selectedKnowledgeNode.practiceCount }}</strong>
+                    </div>
+                  </div>
+                  <div v-if="selectedKnowledgeNode.prediction" class="dt-metric dt-metric-warn">
+                    <span class="dt-metric-icon">⚠️</span>
+                    <div>
+                      <span class="dt-metric-label">Predicción</span>
+                      <strong>Olvidará en {{ selectedKnowledgeNode.prediction.days }}d</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mini chart de curva de retención -->
+                <div class="dt-curve-section">
+                  <div class="dt-curve-header">
+                    <span>Curva del Olvido</span>
+                    <span class="dt-curve-formula">R = e<sup>-t/S</sup></span>
+                  </div>
+                  <div class="dt-curve-chart">
+                    <svg viewBox="0 0 240 80" preserveAspectRatio="none" class="dt-curve-svg">
+                      <defs>
+                        <linearGradient id="dtCurveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stop-color="rgba(191,90,242,0.4)"/>
+                          <stop offset="100%" stop-color="rgba(191,90,242,0.02)"/>
+                        </linearGradient>
+                      </defs>
+                      <!-- Grid lines -->
+                      <line x1="0" y1="20" x2="240" y2="20" class="dt-curve-grid"/>
+                      <line x1="0" y1="40" x2="240" y2="40" class="dt-curve-grid"/>
+                      <line x1="0" y1="60" x2="240" y2="60" class="dt-curve-grid"/>
+                      <!-- Area fill -->
+                      <path :d="getRetentionAreaPath(selectedKnowledgeNode)" class="dt-curve-area"/>
+                      <!-- Line -->
+                      <path :d="getRetentionCurvePath(selectedKnowledgeNode)" class="dt-curve-line"/>
+                      <!-- Punto actual -->
+                      <circle
+                        :cx="getRetentionCurveX(selectedKnowledgeNode)"
+                        :cy="getRetentionCurveY(selectedKnowledgeNode)"
+                        r="5"
+                        class="dt-curve-point"
+                      />
+                      <!-- Línea vertical al punto -->
+                      <line
+                        :x1="getRetentionCurveX(selectedKnowledgeNode)"
+                        y1="0"
+                        :x2="getRetentionCurveX(selectedKnowledgeNode)"
+                        :y2="getRetentionCurveY(selectedKnowledgeNode)"
+                        class="dt-curve-vline"
+                      />
+                    </svg>
+                    <div class="dt-curve-labels">
+                      <span>Hoy</span>
+                      <span>+3d</span>
+                      <span>+7d</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resumen general -->
+              <div class="dt-summary-card">
+                <h4>Resumen Cognitivo</h4>
+                <div class="dt-summary-bars">
+                  <div class="dt-bar-item">
+                    <div class="dt-bar-info">
+                      <span>Dominados</span>
+                      <strong>{{ knowledgeSummary.mastered }}</strong>
+                    </div>
+                    <div class="dt-bar-track">
+                      <div class="dt-bar-fill dt-bar-green" :style="{ width: `${knowledgeSummary.masteredPct}%` }"></div>
+                    </div>
+                  </div>
+                  <div class="dt-bar-item">
+                    <div class="dt-bar-info">
+                      <span>En progreso</span>
+                      <strong>{{ knowledgeSummary.progress }}</strong>
+                    </div>
+                    <div class="dt-bar-track">
+                      <div class="dt-bar-fill dt-bar-yellow" :style="{ width: `${knowledgeSummary.progressPct}%` }"></div>
+                    </div>
+                  </div>
+                  <div class="dt-bar-item">
+                    <div class="dt-bar-info">
+                      <span>Olvidando</span>
+                      <strong>{{ knowledgeSummary.forgetting }}</strong>
+                    </div>
+                    <div class="dt-bar-track">
+                      <div class="dt-bar-fill dt-bar-red" :style="{ width: `${knowledgeSummary.forgettingPct}%` }"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Retención promedio -->
+                <div class="dt-avg-retention">
+                  <div class="dt-avg-ring">
+                    <svg viewBox="0 0 60 60">
+                      <circle cx="30" cy="30" r="26" class="dt-avg-bg"/>
+                      <circle
+                        cx="30" cy="30" r="26"
+                        class="dt-avg-fill"
+                        :stroke-dasharray="`${(knowledgeSummary.avgRetention / 100) * 163} 163`"
+                        transform="rotate(-90 30 30)"
+                      />
+                    </svg>
+                    <span>{{ knowledgeSummary.avgRetention }}%</span>
+                  </div>
+                  <div class="dt-avg-text">
+                    <strong>Retención Promedio</strong>
+                    <p>{{ getRetentionHealthText(knowledgeSummary.avgRetention) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alerta de repaso -->
+              <div v-if="knowledgeReviewRecommendation" class="dt-alert">
+                <div class="dt-alert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </div>
+                <div class="dt-alert-content">
+                  <strong>Acción Recomendada</strong>
+                  <p>{{ knowledgeReviewRecommendation }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </template>
     </div>
@@ -4940,17 +5146,17 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const courses = student.courses
   const baseNodes: KnowledgeNode[] = []
 
-  // Posiciones predefinidas para el grafo (diseño radial)
-  const positions = [
-    { x: 200, y: 50 },   // Top center
-    { x: 320, y: 100 },  // Top right
-    { x: 350, y: 200 },  // Right
-    { x: 300, y: 280 },  // Bottom right
-    { x: 200, y: 300 },  // Bottom center
-    { x: 100, y: 280 },  // Bottom left
-    { x: 50, y: 200 },   // Left
-    { x: 80, y: 100 },   // Top left
-  ]
+  // Posiciones predefinidas para el grafo (diseño radial - viewBox 360x360)
+  const centerX = 180
+  const centerY = 180
+  const radius = 110
+  const positions = Array.from({ length: 8 }, (_, i) => {
+    const angle = (i * Math.PI * 2) / 8 - Math.PI / 2 // Start from top
+    return {
+      x: Math.round(centerX + radius * Math.cos(angle)),
+      y: Math.round(centerY + radius * Math.sin(angle)),
+    }
+  })
 
   // Nodo central: rendimiento general
   const accuracy = student.performance.accuracy
@@ -4963,8 +5169,8 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     id: 'overall',
     name: 'Rendimiento General',
     abbrev: 'RG',
-    x: 200,
-    y: 160,
+    x: centerX,
+    y: centerY,
     status: overallStatus,
     retention: overallRetention,
     lastPractice: student.lastActivity,
@@ -5079,26 +5285,34 @@ const formatKnowledgeDate = (dateStr: string | null): string => {
 const getRetentionCurvePath = (node: KnowledgeNode): string => {
   const memoryStrength = 1 + (node.practiceCount * 0.5)
   const points: string[] = []
+  const width = 240
+  const height = 75
 
   for (let day = 0; day <= 7; day++) {
     const retention = Math.exp(-day / memoryStrength) * 100
-    const x = (day / 7) * 200
-    const y = 60 - (retention / 100) * 55
-    points.push(`${day === 0 ? 'M' : 'L'} ${x} ${y}`)
+    const x = (day / 7) * width
+    const y = height - (retention / 100) * (height - 5)
+    points.push(`${day === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`)
   }
 
   return points.join(' ')
+}
+
+const getRetentionAreaPath = (node: KnowledgeNode): string => {
+  const linePath = getRetentionCurvePath(node)
+  return `${linePath} L 240 80 L 0 80 Z`
 }
 
 const getRetentionCurveX = (node: KnowledgeNode): number => {
   const daysSince = node.lastPractice
     ? Math.floor((Date.now() - new Date(node.lastPractice).getTime()) / (1000 * 60 * 60 * 24))
     : 0
-  return Math.min(200, (daysSince / 7) * 200)
+  return Math.min(240, (daysSince / 7) * 240)
 }
 
 const getRetentionCurveY = (node: KnowledgeNode): number => {
-  return 60 - (node.retention / 100) * 55
+  const height = 75
+  return height - (node.retention / 100) * (height - 5)
 }
 
 const knowledgeReviewRecommendation = computed((): string | null => {
@@ -5122,6 +5336,51 @@ const knowledgeReviewRecommendation = computed((): string | null => {
 
   return null
 })
+
+// ─── Knowledge Graph: Funciones de utilidad adicionales ─────────────────
+const knowledgeSummary = computed(() => {
+  const nodes = knowledgeGraphNodes.value.filter(n => n.id !== 'overall')
+  const total = Math.max(1, nodes.length)
+
+  const mastered = nodes.filter(n => n.status === 'mastered').length
+  const progress = nodes.filter(n => n.status === 'progress').length
+  const forgetting = nodes.filter(n => n.status === 'forgetting').length
+  const unseen = nodes.filter(n => n.status === 'unseen').length
+
+  const avgRetention = nodes.length > 0
+    ? Math.round(nodes.reduce((sum, n) => sum + n.retention, 0) / nodes.length)
+    : 0
+
+  return {
+    mastered,
+    progress,
+    forgetting,
+    unseen,
+    total,
+    masteredPct: Math.round((mastered / total) * 100),
+    progressPct: Math.round((progress / total) * 100),
+    forgettingPct: Math.round((forgetting / total) * 100),
+    unseenPct: Math.round((unseen / total) * 100),
+    avgRetention,
+  }
+})
+
+const getKnowledgeGaugeColor = (status: KnowledgeStatus, stop: number): string => {
+  const colors: Record<KnowledgeStatus, [string, string]> = {
+    mastered: ['#34D399', '#10B981'],
+    progress: ['#FBBF24', '#F59E0B'],
+    forgetting: ['#F87171', '#EF4444'],
+    unseen: ['#6B7280', '#4B5563'],
+  }
+  return colors[status]?.[stop] || colors.unseen[stop]
+}
+
+const getRetentionHealthText = (retention: number): string => {
+  if (retention >= 80) return 'Excelente memoria. El conocimiento está consolidado.'
+  if (retention >= 60) return 'Buena retención. Se recomienda práctica ocasional.'
+  if (retention >= 40) return 'Retención moderada. Aumentar frecuencia de repaso.'
+  return 'Retención baja. Se requiere repaso urgente.'
+}
 
 const expandedSections = ref({
   courses: true,
@@ -7148,325 +7407,740 @@ watch(() => route.query, () => {
   line-height: 1.5;
 }
 
-/* ═══════ Knowledge Graph - Gemelo Digital ═══════ */
-.knowledge-graph-section {
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(28, 28, 30, 0.95), rgba(20, 20, 22, 0.98));
-  border: 0.5px solid rgba(191, 90, 242, 0.2);
-  overflow: hidden;
+/* ═══════ Digital Twin - Premium Knowledge Graph ═══════ */
+.dt-section {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: 28px;
+  background: linear-gradient(165deg, rgba(28, 28, 30, 0.98), rgba(18, 18, 20, 1));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  animation: dtSectionIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.kg-header {
+@keyframes dtSectionIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dt-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.kg-title-row {
+.dt-title-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #EBEBF5;
-  font-size: 13px;
-  font-weight: 700;
+  gap: 14px;
 }
 
-.kg-title-row svg {
+.dt-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.2), rgba(90, 200, 250, 0.15));
+  border: 1px solid rgba(191, 90, 242, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #BF5AF2;
 }
 
-.kg-subtitle {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(191, 90, 242, 0.7);
-  padding: 4px 8px;
-  background: rgba(191, 90, 242, 0.12);
-  border-radius: 6px;
+.dt-title-group h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
 }
 
-.kg-canvas {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 400 / 320;
-  background: radial-gradient(ellipse at center, rgba(191, 90, 242, 0.04) 0%, transparent 70%);
-  border-radius: 16px;
-  overflow: hidden;
+.dt-title-group p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(235, 235, 245, 0.5);
 }
 
-.kg-svg {
-  width: 100%;
-  height: 100%;
+.dt-badges {
+  display: flex;
+  gap: 8px;
 }
 
-.kg-connection-line {
-  fill: none;
-  stroke: rgba(191, 90, 242, 0.2);
-  stroke-width: 1.5;
-  stroke-dasharray: 4, 3;
-  transition: stroke 0.3s ease, stroke-width 0.3s ease;
-}
-
-.kg-connection-line.kg-conn-active {
-  stroke: url(#kgLineGrad);
-  stroke-dasharray: none;
-  stroke-width: 2;
-}
-
-.kg-node-group {
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.kg-node-group:hover {
-  transform: scale(1.08);
-}
-
-.kg-node-ring {
-  fill: none;
-  stroke-width: 3;
-  opacity: 0.4;
-  transition: stroke 0.3s ease, opacity 0.3s ease;
-}
-
-.kg-node-core {
-  fill: rgba(28, 28, 30, 0.95);
-  stroke-width: 2;
-  transition: fill 0.3s ease, stroke 0.3s ease;
-}
-
-/* Estados del nodo */
-.kg-status-mastered.kg-node-ring { stroke: #30D158; }
-.kg-status-mastered.kg-node-core { stroke: #30D158; fill: rgba(48, 209, 88, 0.15); }
-
-.kg-status-progress.kg-node-ring { stroke: #FFD60A; }
-.kg-status-progress.kg-node-core { stroke: #FFD60A; fill: rgba(255, 214, 10, 0.12); }
-
-.kg-status-forgetting.kg-node-ring { stroke: #FF453A; animation: kgPulse 1.5s ease-in-out infinite; }
-.kg-status-forgetting.kg-node-core { stroke: #FF453A; fill: rgba(255, 69, 58, 0.15); }
-
-.kg-status-unseen.kg-node-ring { stroke: #636366; }
-.kg-status-unseen.kg-node-core { stroke: #636366; fill: rgba(99, 99, 102, 0.1); }
-
-@keyframes kgPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
-}
-
-.kg-node-label {
-  fill: #fff;
+.dt-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
-  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.kg-prediction-badge circle {
-  stroke: #1C1C1E;
-  stroke-width: 1.5;
+.dt-badge-purple {
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.2), rgba(191, 90, 242, 0.1));
+  color: #BF5AF2;
+  border: 1px solid rgba(191, 90, 242, 0.3);
 }
 
-.kg-pred-high { fill: #FF453A; }
-.kg-pred-medium { fill: #FF9F0A; }
-.kg-pred-low { fill: #FFD60A; }
+.dt-badge-cyan {
+  background: linear-gradient(135deg, rgba(90, 200, 250, 0.2), rgba(90, 200, 250, 0.1));
+  color: #5AC8FA;
+  border: 1px solid rgba(90, 200, 250, 0.3);
+}
 
-.kg-pred-text {
+.dt-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ═══════ Graph Panel ═══════ */
+.dt-graph-panel {
+  position: relative;
+}
+
+.dt-graph-canvas {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 50%, rgba(191, 90, 242, 0.08) 0%, transparent 60%);
+  border-radius: 24px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dt-graph-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Anillos orbitales */
+.dt-orbit-ring {
+  fill: none;
+  stroke: rgba(191, 90, 242, 0.08);
+  stroke-width: 1;
+  stroke-dasharray: 4, 6;
+  animation: dtOrbitRotate 60s linear infinite;
+}
+
+@keyframes dtOrbitRotate {
+  from { transform: rotate(0deg); transform-origin: 180px 180px; }
+  to { transform: rotate(360deg); transform-origin: 180px 180px; }
+}
+
+.dt-bg-glow {
+  animation: dtGlowPulse 4s ease-in-out infinite;
+}
+
+@keyframes dtGlowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Conexiones */
+.dt-conn-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  animation: dtConnDraw 1s ease-out both;
+}
+
+.dt-conn-active {
+  stroke: url(#dtConnGrad);
+  filter: drop-shadow(0 0 4px rgba(191, 90, 242, 0.4));
+}
+
+.dt-conn-inactive {
+  stroke: rgba(99, 99, 102, 0.25);
+  stroke-dasharray: 6, 4;
+}
+
+@keyframes dtConnDraw {
+  from { stroke-dasharray: 0, 1000; opacity: 0; }
+  to { stroke-dasharray: 1000, 0; opacity: 1; }
+}
+
+/* Partículas de flujo */
+.dt-particle {
+  fill: #BF5AF2;
+  filter: drop-shadow(0 0 6px #BF5AF2);
+  offset-distance: 0%;
+  animation: dtParticleFlow 3s linear infinite;
+}
+
+@keyframes dtParticleFlow {
+  from { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  to { offset-distance: 100%; opacity: 0; }
+}
+
+/* Nodos */
+.dt-node {
+  cursor: pointer;
+  animation: dtNodeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dt-node:hover {
+  transform: scale(1.12);
+}
+
+.dt-node-selected {
+  transform: scale(1.15);
+}
+
+@keyframes dtNodeIn {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.dt-node-aura {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.3;
+  animation: dtAuraPulse 2s ease-in-out infinite;
+}
+
+.dt-aura-mastered { stroke: #34D399; }
+.dt-aura-progress { stroke: #FBBF24; }
+.dt-aura-forgetting { stroke: #F87171; animation: dtAuraPulse 1s ease-in-out infinite; }
+.dt-aura-unseen { stroke: #6B7280; opacity: 0.15; }
+
+@keyframes dtAuraPulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+.dt-node-ring {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.dt-ring-mastered { stroke: #34D399; }
+.dt-ring-progress { stroke: #FBBF24; }
+.dt-ring-forgetting { stroke: #F87171; }
+.dt-ring-unseen { stroke: #4B5563; }
+
+.dt-node-core {
+  filter: url(#dtNodeGlow);
+  transition: fill 0.3s ease;
+}
+
+.dt-node-text {
   fill: #fff;
-  font-size: 8px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Leyenda */
-.kg-legend {
+.dt-retention-label {
+  fill: rgba(235, 235, 245, 0.6);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Badge de predicción */
+.dt-pred-badge circle {
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.dt-pred-high { fill: #EF4444; }
+.dt-pred-medium { fill: #F59E0B; }
+.dt-pred-low { fill: #FBBF24; }
+
+.dt-pred-num {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* Leyenda flotante */
+.dt-legend {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
+  gap: 16px;
+  padding: 10px 18px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.kg-legend-item {
+.dt-legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
+  font-weight: 600;
   color: rgba(235, 235, 245, 0.7);
 }
 
-.kg-dot {
-  width: 10px;
-  height: 10px;
+.dt-leg-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
-.kg-dot-mastered { background: #30D158; }
-.kg-dot-progress { background: #FFD60A; }
-.kg-dot-forgetting { background: #FF453A; }
-.kg-dot-unseen { background: #636366; }
+.dt-leg-mastered { background: #34D399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.5); }
+.dt-leg-progress { background: #FBBF24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.5); }
+.dt-leg-forgetting { background: #F87171; box-shadow: 0 0 8px rgba(248, 113, 113, 0.5); }
+.dt-leg-unseen { background: #6B7280; }
 
-/* Panel de detalle del nodo */
-.kg-node-detail {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
+/* ═══════ Detail Panel ═══════ */
+.dt-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.kg-detail-header {
+.dt-node-card {
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(40, 40, 44, 0.9), rgba(28, 28, 30, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  animation: dtCardIn 0.4s ease both;
+}
+
+@keyframes dtCardIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.dt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dt-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dt-icon-mastered { background: rgba(52, 211, 153, 0.15); color: #34D399; border: 1px solid rgba(52, 211, 153, 0.3); }
+.dt-icon-progress { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.3); }
+.dt-icon-forgetting { background: rgba(248, 113, 113, 0.15); color: #F87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+.dt-icon-unseen { background: rgba(107, 114, 128, 0.15); color: #9CA3AF; border: 1px solid rgba(107, 114, 128, 0.3); }
+
+.dt-card-titles h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dt-card-status {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dt-status-mastered { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+.dt-status-progress { background: rgba(251, 191, 36, 0.15); color: #FBBF24; }
+.dt-status-forgetting { background: rgba(248, 113, 113, 0.15); color: #F87171; }
+.dt-status-unseen { background: rgba(107, 114, 128, 0.15); color: #9CA3AF; }
+
+/* Gauge de retención */
+.dt-gauge-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.dt-gauge-svg {
+  width: 120px;
+  height: 120px;
+}
+
+.dt-gauge-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 8;
+}
+
+.dt-gauge-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.dt-gauge-value {
+  fill: #fff;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.dt-gauge-label {
+  fill: rgba(235, 235, 245, 0.5);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* Métricas grid */
+.dt-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dt-metric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dt-metric-warn {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.dt-metric-warn strong {
+  color: #F87171 !important;
+}
+
+.dt-metric-icon {
+  font-size: 18px;
+}
+
+.dt-metric-label {
+  display: block;
+  font-size: 10px;
+  color: rgba(235, 235, 245, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dt-metric strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Curva de retención */
+.dt-curve-section {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dt-curve-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
 }
 
-.kg-detail-header strong {
-  font-size: 14px;
-  color: #fff;
-}
-
-.kg-status-badge {
-  font-size: 10px;
+.dt-curve-header span {
+  font-size: 11px;
   font-weight: 700;
+  color: rgba(235, 235, 245, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dt-curve-formula {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 10px !important;
+  color: #BF5AF2 !important;
   padding: 4px 8px;
+  background: rgba(191, 90, 242, 0.1);
   border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.kg-badge-mastered { background: rgba(48, 209, 88, 0.2); color: #30D158; }
-.kg-badge-progress { background: rgba(255, 214, 10, 0.2); color: #FFD60A; }
-.kg-badge-forgetting { background: rgba(255, 69, 58, 0.2); color: #FF453A; }
-.kg-badge-unseen { background: rgba(99, 99, 102, 0.2); color: #636366; }
-
-.kg-detail-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.dt-curve-chart {
+  position: relative;
 }
 
-.kg-detail-metrics > div {
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.25);
-}
-
-.kg-detail-metrics:has(> div:nth-child(3)) {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.kg-metric-label {
-  display: block;
-  font-size: 10px;
-  color: #8E8E93;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-
-.kg-detail-metrics strong {
-  display: block;
-  font-size: 14px;
-  color: #fff;
-}
-
-.kg-pred-warn {
-  color: #FF9F0A !important;
-}
-
-/* Curva de retención */
-.kg-retention-curve {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.kg-curve-label {
-  display: block;
-  font-size: 10px;
-  color: #8E8E93;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-}
-
-.kg-curve-svg {
+.dt-curve-svg {
   width: 100%;
-  height: 60px;
+  height: 80px;
+  display: block;
 }
 
-.kg-curve-line {
+.dt-curve-grid {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 1;
+}
+
+.dt-curve-area {
+  fill: url(#dtCurveGrad);
+  opacity: 0.6;
+}
+
+.dt-curve-line {
   fill: none;
-  stroke: url(#kgLineGrad);
-  stroke-width: 2;
+  stroke: #BF5AF2;
+  stroke-width: 2.5;
   stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(191, 90, 242, 0.5));
 }
 
-.kg-curve-dot {
+.dt-curve-point {
   fill: #BF5AF2;
   stroke: #1C1C1E;
-  stroke-width: 2;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(191, 90, 242, 0.6));
 }
 
-.kg-curve-axis {
+.dt-curve-vline {
+  stroke: rgba(191, 90, 242, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 4, 3;
+}
+
+.dt-curve-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 8px;
   font-size: 10px;
-  color: #636366;
+  color: rgba(235, 235, 245, 0.4);
 }
 
-/* Alerta de repaso */
-.kg-review-alert {
+/* Summary Card */
+.dt-summary-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dt-summary-card h4 {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(235, 235, 245, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dt-summary-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dt-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-bar-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.dt-bar-info span {
+  color: rgba(235, 235, 245, 0.6);
+}
+
+.dt-bar-info strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+.dt-bar-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dt-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dt-bar-green { background: linear-gradient(90deg, #34D399, #10B981); }
+.dt-bar-yellow { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
+.dt-bar-red { background: linear-gradient(90deg, #F87171, #EF4444); }
+
+/* Retención promedio */
+.dt-avg-retention {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dt-avg-ring {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.dt-avg-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dt-avg-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 5;
+}
+
+.dt-avg-fill {
+  fill: none;
+  stroke: #BF5AF2;
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(191, 90, 242, 0.5));
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.dt-avg-ring span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.dt-avg-text strong {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+}
+
+.dt-avg-text p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: rgba(235, 235, 245, 0.5);
+  line-height: 1.4;
+}
+
+/* Alert */
+.dt-alert {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: rgba(255, 159, 10, 0.12);
-  border: 0.5px solid rgba(255, 159, 10, 0.25);
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  animation: dtAlertIn 0.5s ease both 0.3s;
 }
 
-.kg-review-alert svg {
+@keyframes dtAlertIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dt-alert-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FBBF24;
   flex-shrink: 0;
-  color: #FF9F0A;
-  margin-top: 2px;
 }
 
-.kg-review-alert p {
-  margin: 0;
+.dt-alert-content strong {
+  display: block;
   font-size: 12px;
+  color: #FBBF24;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dt-alert-content p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(235, 235, 245, 0.8);
   line-height: 1.5;
-  color: rgba(235, 235, 245, 0.82);
 }
 
 /* Responsive */
-@media (max-width: 480px) {
-  .kg-canvas {
-    aspect-ratio: 1;
-  }
-
-  .kg-legend {
-    gap: 8px;
-  }
-
-  .kg-legend-item {
-    font-size: 10px;
-  }
-
-  .kg-detail-metrics {
+@media (max-width: 1100px) {
+  .dt-grid {
     grid-template-columns: 1fr;
   }
 
-  .kg-detail-metrics:has(> div:nth-child(3)) {
+  .dt-detail-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .dt-alert {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .dt-section {
+    padding: 16px;
+  }
+
+  .dt-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dt-detail-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dt-legend {
+    position: static;
+    transform: none;
+    margin-top: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .dt-metrics-grid {
     grid-template-columns: 1fr;
   }
 }
