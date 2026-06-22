@@ -2650,138 +2650,73 @@
     <!-- Educational Standards Tab -->
     <div v-if="activeTab === 'standards' && canViewStandards" class="tab-content standards-tab">
       <section class="standards-hero">
-        <div class="standards-hero-content">
-          <span class="standards-eyebrow">Interoperabilidad Educativa</span>
-          <h2>Estándares Abiertos</h2>
-          <p>Conecta tu plataforma con el ecosistema educativo global mediante estándares internacionales.</p>
+        <div class="standards-hero-copy">
+          <span class="standards-eyebrow">Interoperabilidad institucional</span>
+          <h2>8. Usar estándares educativos reales</h2>
+          <p>
+            Para que CourseV no sea solo un proyecto con IA, sino una plataforma seria para
+            universidades e instituciones, el roadmap debe hablar el lenguaje de los LMS,
+            registros académicos y analítica de aprendizaje.
+          </p>
+        </div>
+        <div class="standards-hero-panel">
+          <span>Acceso estratégico</span>
+          <strong>Roles 3 y 4</strong>
+          <p>Vista reservada para administración académica y superadministración.</p>
         </div>
       </section>
 
-      <section class="standards-grid">
-        <!-- Caliper Analytics -->
-        <article class="standards-card">
-          <div class="standards-card-icon standards-icon-caliper">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3"/>
-              <path d="m7 14 4-4 4 4 6-6"/>
-            </svg>
+      <section class="standards-matrix">
+        <div class="standards-matrix-header">
+          <div>
+            <span class="standards-eyebrow">Mapa de estándares</span>
+            <h3>Qué habilita cada estándar en CourseV</h3>
           </div>
-          <div class="standards-card-body">
-            <h3>Caliper Analytics</h3>
-            <p class="standards-card-desc">Framework de IMS Global para medir eventos de aprendizaje en tiempo real.</p>
-            <ul class="standards-features">
-              <li>Eventos de lectura, navegación y evaluación</li>
-              <li>Sensor API estandarizado</li>
-              <li>Integración con LRS</li>
-            </ul>
-            <div class="standards-card-footer">
-              <span class="standards-status standards-status-ready">Disponible</span>
-              <span class="standards-version">v1.2</span>
-            </div>
-          </div>
-        </article>
+          <span class="standards-pill">Roadmap institucional</span>
+        </div>
 
-        <!-- xAPI -->
-        <article class="standards-card">
-          <div class="standards-card-icon standards-icon-xapi">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="m8 12 3 3 5-5"/>
-            </svg>
+        <div class="standards-table" role="table" aria-label="Estándares educativos reales">
+          <div class="standards-table-row standards-table-head" role="row">
+            <span role="columnheader">Estándar</span>
+            <span role="columnheader">Para qué sirve</span>
+            <span role="columnheader">Por qué importa en tu app</span>
           </div>
-          <div class="standards-card-body">
-            <h3>xAPI (Tin Can)</h3>
-            <p class="standards-card-desc">Registra experiencias de aprendizaje dentro y fuera de la aplicación.</p>
-            <ul class="standards-features">
-              <li>Statements Actor-Verb-Object</li>
-              <li>Learning Record Store (LRS)</li>
-              <li>Aprendizaje móvil y offline</li>
-            </ul>
-            <div class="standards-card-footer">
-              <span class="standards-status standards-status-ready">Disponible</span>
-              <span class="standards-version">v1.0.3</span>
+          <article
+            v-for="standard in educationalStandards"
+            :key="standard.name"
+            class="standards-table-row standards-standard-row"
+            :style="{ '--standard-accent': standard.accent }"
+            role="row"
+          >
+            <div class="standards-name-cell" role="cell">
+              <span class="standards-mark">{{ standard.short }}</span>
+              <div>
+                <strong>{{ standard.name }}</strong>
+                <small>{{ standard.scope }}</small>
+              </div>
             </div>
-          </div>
-        </article>
-
-        <!-- QTI -->
-        <article class="standards-card">
-          <div class="standards-card-icon standards-icon-qti">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <path d="M9 9h6"/>
-              <path d="M9 12h6"/>
-              <path d="M9 15h4"/>
-            </svg>
-          </div>
-          <div class="standards-card-body">
-            <h3>QTI</h3>
-            <p class="standards-card-desc">Exporta e importa preguntas y exámenes en formato estándar.</p>
-            <ul class="standards-features">
-              <li>Opción múltiple, ordenamiento, emparejamiento</li>
-              <li>Metadatos de dificultad y competencias</li>
-              <li>Banco de preguntas portátil</li>
-            </ul>
-            <div class="standards-card-footer">
-              <span class="standards-status standards-status-beta">En desarrollo</span>
-              <span class="standards-version">v2.2</span>
-            </div>
-          </div>
-        </article>
-
-        <!-- OneRoster -->
-        <article class="standards-card">
-          <div class="standards-card-icon standards-icon-oneroster">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <div class="standards-card-body">
-            <h3>OneRoster</h3>
-            <p class="standards-card-desc">Sincroniza estudiantes, cursos y calificaciones con sistemas externos.</p>
-            <ul class="standards-features">
-              <li>Importación de nóminas escolares</li>
-              <li>Sincronización de calificaciones</li>
-              <li>REST API y CSV bulk</li>
-            </ul>
-            <div class="standards-card-footer">
-              <span class="standards-status standards-status-ready">Disponible</span>
-              <span class="standards-version">v1.1</span>
-            </div>
-          </div>
-        </article>
-
-        <!-- LTI -->
-        <article class="standards-card standards-card-featured">
-          <div class="standards-card-icon standards-icon-lti">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-          </div>
-          <div class="standards-card-body">
-            <h3>LTI</h3>
-            <p class="standards-card-desc">Conecta con Moodle, Canvas, Blackboard y cualquier LMS compatible.</p>
-            <ul class="standards-features">
-              <li>Single Sign-On integrado</li>
-              <li>Envío de calificaciones al gradebook</li>
-              <li>Deep linking de contenidos</li>
-            </ul>
-            <div class="standards-card-footer">
-              <span class="standards-status standards-status-ready">Disponible</span>
-              <span class="standards-version">v1.3</span>
-            </div>
-          </div>
-        </article>
+            <p role="cell">{{ standard.purpose }}</p>
+            <p role="cell">{{ standard.importance }}</p>
+          </article>
+        </div>
       </section>
 
       <section class="standards-info">
         <div class="standards-info-card">
-          <h4>Certificación IMS Global</h4>
-          <p>Nuestra plataforma cumple con los estándares de interoperabilidad de IMS Global Learning Consortium, garantizando compatibilidad con miles de herramientas educativas en todo el mundo.</p>
+          <span class="standards-eyebrow">Criterio de producto</span>
+          <h4>De demo con IA a plataforma vendible</h4>
+          <p>
+            Caliper y xAPI hacen medible el aprendizaje; QTI vuelve portables los quizzes
+            generados por IA; OneRoster conecta matrícula, cursos y notas; LTI permite entrar
+            a Moodle, Canvas o Blackboard sin obligar a la institución a reemplazar todo.
+          </p>
+        </div>
+        <div class="standards-next-grid">
+          <article v-for="item in standardsImplementationSteps" :key="item.title" class="standards-next-item">
+            <span>{{ item.step }}</span>
+            <h4>{{ item.title }}</h4>
+            <p>{{ item.body }}</p>
+          </article>
         </div>
       </section>
     </div>
@@ -3304,6 +3239,67 @@ const canViewStandards = computed(() => roleIds.value.includes(3) || roleIds.val
 const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
+
+const educationalStandards = [
+  {
+    name: 'Caliper',
+    short: 'CA',
+    scope: 'Analítica de aprendizaje',
+    purpose: 'Medir eventos de aprendizaje y actividad digital dentro de recursos educativos.',
+    importance: 'Saber qué hace el estudiante, dónde abandona, qué recurso usa y en qué punto falla.',
+    accent: '#34D399',
+  },
+  {
+    name: 'xAPI',
+    short: 'xAPI',
+    scope: 'Experiencias dentro y fuera del LMS',
+    purpose: 'Registrar aprendizaje dentro y fuera de la app: WhatsApp, simulaciones, actividades offline o recursos externos.',
+    importance: 'Medir rutas reales de aprendizaje más allá de CourseV y consolidarlas en un LRS.',
+    accent: '#60A5FA',
+  },
+  {
+    name: 'QTI',
+    short: 'QTI',
+    scope: 'Evaluaciones portables',
+    purpose: 'Exportar e importar preguntas, bancos de evaluación y pruebas entre plataformas.',
+    importance: 'Permitir que los quizzes generados por IA funcionen en otros LMS sin rehacerlos desde cero.',
+    accent: '#A78BFA',
+  },
+  {
+    name: 'OneRoster',
+    short: 'OR',
+    scope: 'SIS y sistemas académicos',
+    purpose: 'Sincronizar estudiantes, cursos, matrículas, listas y calificaciones.',
+    importance: 'Integrarte con sistemas académicos reales sin carga manual ni doble digitación.',
+    accent: '#F59E0B',
+  },
+  {
+    name: 'LTI',
+    short: 'LTI',
+    scope: 'Conexión con LMS',
+    purpose: 'Conectar CourseV con Moodle, Canvas, Blackboard u otras herramientas institucionales.',
+    importance: 'Vender sin obligar a la universidad a cambiar todo ni exigir múltiples inicios de sesión.',
+    accent: '#22D3EE',
+  },
+]
+
+const standardsImplementationSteps = [
+  {
+    step: '01',
+    title: 'Instrumentar eventos',
+    body: 'Modelar lectura, entrega, refuerzo, quiz, asistencia y WhatsApp como eventos trazables.',
+  },
+  {
+    step: '02',
+    title: 'Normalizar evaluación',
+    body: 'Preparar los bancos de preguntas IA para exportación/importación compatible con QTI.',
+  },
+  {
+    step: '03',
+    title: 'Abrir integración LMS',
+    body: 'Priorizar LTI y OneRoster para pilotos con universidades que ya usan sistemas académicos.',
+  },
+]
 
 // Certificados
 const certificates = ref<AdminCertificateItem[]>([])
@@ -14304,10 +14300,262 @@ watch(() => route.query, () => {
   margin: 0 auto;
 }
 
+.standards-tab {
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.11), transparent 34%),
+    radial-gradient(circle at top right, rgba(52, 211, 153, 0.08), transparent 30%),
+    #0A0A0A;
+}
+
+.standards-hero {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 26px;
+}
+
+.standards-hero-copy {
+  min-width: 0;
+}
+
+.standards-hero h2 {
+  font-size: clamp(30px, 4vw, 48px);
+  max-width: 780px;
+}
+
+.standards-hero p {
+  max-width: 760px;
+}
+
+.standards-hero-panel {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.standards-hero-panel span,
+.standards-pill {
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #93C5FD;
+}
+
+.standards-hero-panel strong {
+  color: #F8FAFC;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.standards-hero-panel p {
+  color: rgba(245, 245, 247, 0.56);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.standards-matrix,
+.standards-info {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.standards-matrix {
+  background: rgba(255, 255, 255, 0.026);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.standards-matrix-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.standards-matrix-header h3 {
+  margin: 5px 0 0;
+  color: #F5F5F7;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.standards-pill {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #A7F3D0;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.18);
+  flex-shrink: 0;
+}
+
+.standards-table {
+  display: grid;
+}
+
+.standards-table-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr) minmax(260px, 1.15fr);
+  gap: 18px;
+  align-items: start;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.standards-table-row:last-child {
+  border-bottom: 0;
+}
+
+.standards-table-head {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: rgba(255, 255, 255, 0.028);
+}
+
+.standards-table-head span {
+  color: rgba(245, 245, 247, 0.48);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.standards-standard-row {
+  position: relative;
+}
+
+.standards-standard-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--standard-accent);
+}
+
+.standards-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.standards-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--standard-accent);
+  background: color-mix(in srgb, var(--standard-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--standard-accent) 24%, transparent);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.standards-name-cell strong {
+  display: block;
+  color: #F8FAFC;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.standards-name-cell small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(245, 245, 247, 0.45);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.standards-standard-row p {
+  margin: 0;
+  color: rgba(245, 245, 247, 0.66);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.standards-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  margin-top: 18px;
+  padding-bottom: 38px;
+}
+
+.standards-info-card {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.028);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.standards-info-card h4 {
+  font-size: 22px;
+}
+
+.standards-info-card p {
+  margin: 0;
+  max-width: none;
+  color: rgba(245, 245, 247, 0.62);
+}
+
+.standards-next-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.standards-next-item {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.standards-next-item span {
+  color: #60A5FA;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.standards-next-item h4 {
+  margin: 5px 0 5px;
+  color: #F8FAFC;
+  font-size: 15px;
+}
+
+.standards-next-item p {
+  margin: 0;
+  color: rgba(245, 245, 247, 0.56);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 /* Standards responsive */
 @media (max-width: 768px) {
   .standards-hero {
-    padding: 32px 20px 28px;
+    grid-template-columns: 1fr;
+    padding: 22px;
   }
 
   .standards-hero h2 {
@@ -14318,10 +14566,18 @@ watch(() => route.query, () => {
     font-size: 15px;
   }
 
-  .standards-grid {
+  .standards-matrix-header,
+  .standards-table-row {
     grid-template-columns: 1fr;
-    padding: 0 16px 24px;
-    gap: 16px;
+  }
+
+  .standards-table-head {
+    display: none;
+  }
+
+  .standards-table-row {
+    gap: 10px;
+    padding: 18px;
   }
 
   .standards-card {
@@ -14334,7 +14590,8 @@ watch(() => route.query, () => {
   }
 
   .standards-info {
-    padding: 0 16px 32px;
+    grid-template-columns: 1fr;
+    padding-bottom: 32px;
   }
 }
 </style>
