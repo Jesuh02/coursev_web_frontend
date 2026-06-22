@@ -76,6 +76,14 @@
     <!-- ════════════════════════════════════ LOADING ════════════════════════════════════ -->
     <Transition name="phase">
       <div v-if="phase === 'voice'" key="voice" class="screen voice-screen">
+        <!-- Indicador de estado -->
+        <div class="voice-status-indicator">
+          <span v-if="coachLoading" class="voice-status thinking">Pensando...</span>
+          <span v-else-if="isCoachSpeaking" class="voice-status speaking">Hablando</span>
+          <span v-else-if="coachListening" class="voice-status listening">Escuchando</span>
+          <span v-else class="voice-status idle">Toca para hablar</span>
+        </div>
+
         <button
           type="button"
           class="voice-orb-button"
@@ -91,6 +99,26 @@
             <div ref="coachSplineMount" class="coach-spline-mount" />
           </div>
         </button>
+
+        <!-- Visualizador de audio del micrófono -->
+        <Transition name="audio-viz">
+          <div v-if="coachListening" class="mic-visualizer">
+            <div
+              v-for="(bar, i) in micVolumeBars"
+              :key="i"
+              class="mic-bar"
+              :class="{ active: bar.active }"
+              :style="{ height: bar.height + 'px' }"
+            />
+          </div>
+        </Transition>
+
+        <!-- Indicador de onda cuando la IA habla -->
+        <Transition name="audio-viz">
+          <div v-if="isCoachSpeaking" class="ai-speaking-wave">
+            <div class="wave-bar" v-for="i in 7" :key="i" :style="{ animationDelay: (i * 0.08) + 's' }" />
+          </div>
+        </Transition>
       </div>
     </Transition>
 
@@ -480,6 +508,16 @@ const voiceQuizMode = ref(false)
 const voiceConversationMode = ref(false)
 const coachLastQuestion = ref('')
 const coachSplineActive = computed(() => isCoachSpeaking.value || isSpeaking.value || coachListening.value || coachLoading.value || voiceConversationMode.value)
+const micVolumeLevel = ref(0)
+const micVolumeBars = computed(() => {
+  const level = micVolumeLevel.value
+  return Array.from({ length: 5 }, (_, i) => {
+    const threshold = (i + 1) * 0.15
+    const active = level >= threshold
+    const height = active ? 20 + level * 60 * (1 + i * 0.15) : 8 + Math.random() * 4
+    return { active, height: Math.min(80, height) }
+  })
+})
 let coachMsgSeq = 0
 let coachRecognition: SpeechRecognitionLike | null = null
 let coachAudioElement: HTMLAudioElement | null = null
@@ -737,6 +775,7 @@ function boostCoachSpeechVolume(amount = 0.68) {
 
 function animateCoachSpline(timestamp = performance.now()) {
   const micLevel = readCoachMicLevel()
+  micVolumeLevel.value = micLevel
   const speechActive = isCoachSpeaking.value || isSpeaking.value
   if (speechActive) {
     const cadence = 0.18 + (Math.sin(timestamp * 0.018) + 1) * 0.13 + (Math.sin(timestamp * 0.043) + 1) * 0.06
@@ -3021,11 +3060,143 @@ onUnmounted(() => {
   padding: 0;
   justify-content: center;
   align-items: center;
-  gap: 0;
+  gap: 24px;
   background: #000;
   position: fixed;
   inset: 0;
   z-index: 100;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VOICE STATUS INDICATOR
+═══════════════════════════════════════════════════════════════════════════════ */
+.voice-status-indicator {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.voice-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(12px);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.voice-status.listening {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00D4FF;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.voice-status.speaking {
+  background: rgba(139, 92, 246, 0.15);
+  color: #BF5AF2;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.voice-status.thinking {
+  background: rgba(255, 159, 64, 0.15);
+  color: #FF9F40;
+  border: 1px solid rgba(255, 159, 64, 0.3);
+}
+
+.voice-status.idle {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: none;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MIC VISUALIZER - Barras de volumen del micrófono
+═══════════════════════════════════════════════════════════════════════════════ */
+.mic-visualizer {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 80px;
+  padding: 0 20px;
+}
+
+.mic-bar {
+  width: 8px;
+  min-height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to top, #00D4FF, #0071E3);
+  transition: height 0.08s ease-out;
+  opacity: 0.4;
+}
+
+.mic-bar.active {
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   AI SPEAKING WAVE - Onda cuando la IA habla
+═══════════════════════════════════════════════════════════════════════════════ */
+.ai-speaking-wave {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 60px;
+}
+
+.wave-bar {
+  width: 6px;
+  height: 20px;
+  border-radius: 3px;
+  background: linear-gradient(to top, #BF5AF2, #8B5CF6);
+  animation: waveAnimation 0.8s ease-in-out infinite;
+}
+
+@keyframes waveAnimation {
+  0%, 100% {
+    height: 12px;
+    opacity: 0.5;
+  }
+  50% {
+    height: 40px;
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   AUDIO VIZ TRANSITION
+═══════════════════════════════════════════════════════════════════════════════ */
+.audio-viz-enter-active,
+.audio-viz-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.audio-viz-enter-from,
+.audio-viz-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
 }
 
 .voice-orb-button {
