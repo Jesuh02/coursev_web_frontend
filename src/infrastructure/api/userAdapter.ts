@@ -13,8 +13,8 @@ export const userAdapter: UserPort = {
   uploadAvatar: async (file) => {
     const formData = new FormData()
     formData.append('avatar', file)
-    const res = await api.upload<{ url: string }>('/users/me/avatar', formData)
-    return res.url
+    const res = await api.upload<{ url?: string; avatarUrl?: string }>('/users/me/avatar', formData)
+    return res.avatarUrl || res.url || ''
   },
 
   // Admin: user activation management

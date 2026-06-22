@@ -746,6 +746,130 @@
               <span>Lectura del sistema</span>
               <p>{{ getCognitiveRecommendation(selectedCognitiveStudent) }}</p>
             </div>
+
+            <!-- Knowledge Graph - Gemelo Digital -->
+            <div class="knowledge-graph-section">
+              <div class="kg-header">
+                <div class="kg-title-row">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                    <path d="m4.93 4.93 2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                  <span>Grafo de Conocimiento</span>
+                </div>
+                <span class="kg-subtitle">Curva del Olvido de Ebbinghaus</span>
+              </div>
+
+              <div class="kg-canvas">
+                <svg class="kg-svg" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <filter id="kgGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="3" result="blur"/>
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <linearGradient id="kgLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="rgba(191,90,242,0.6)"/>
+                      <stop offset="100%" stop-color="rgba(10,132,255,0.4)"/>
+                    </linearGradient>
+                    <marker id="kgArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(191,90,242,0.5)"/>
+                    </marker>
+                  </defs>
+
+                  <!-- Conexiones -->
+                  <g class="kg-connections">
+                    <path
+                      v-for="(conn, idx) in knowledgeGraphConnections"
+                      :key="`conn-${idx}`"
+                      :d="conn.path"
+                      class="kg-connection-line"
+                      :class="{ 'kg-conn-active': conn.active }"
+                      marker-end="url(#kgArrow)"
+                    />
+                  </g>
+
+                  <!-- Nodos -->
+                  <g
+                    v-for="(node, idx) in knowledgeGraphNodes"
+                    :key="`node-${idx}`"
+                    class="kg-node-group"
+                    :transform="`translate(${node.x}, ${node.y})`"
+                    @click="selectKnowledgeNode(node)"
+                  >
+                    <circle
+                      r="28"
+                      class="kg-node-ring"
+                      :class="`kg-status-${node.status}`"
+                    />
+                    <circle
+                      r="22"
+                      class="kg-node-core"
+                      :class="`kg-status-${node.status}`"
+                    />
+                    <text class="kg-node-label" dy="4" text-anchor="middle">{{ node.abbrev }}</text>
+
+                    <!-- Indicador de prediccion -->
+                    <g v-if="node.prediction" class="kg-prediction-badge" :transform="`translate(18, -18)`">
+                      <circle r="10" :class="`kg-pred-${node.prediction.urgency}`"/>
+                      <text class="kg-pred-text" dy="3" text-anchor="middle">{{ node.prediction.days }}d</text>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+
+              <!-- Leyenda -->
+              <div class="kg-legend">
+                <span class="kg-legend-item"><span class="kg-dot kg-dot-mastered"></span>Domina</span>
+                <span class="kg-legend-item"><span class="kg-dot kg-dot-progress"></span>En progreso</span>
+                <span class="kg-legend-item"><span class="kg-dot kg-dot-forgetting"></span>Olvidando</span>
+                <span class="kg-legend-item"><span class="kg-dot kg-dot-unseen"></span>No visto</span>
+              </div>
+
+              <!-- Panel de Nodo Seleccionado -->
+              <div v-if="selectedKnowledgeNode" class="kg-node-detail">
+                <div class="kg-detail-header">
+                  <strong>{{ selectedKnowledgeNode.name }}</strong>
+                  <span :class="`kg-status-badge kg-badge-${selectedKnowledgeNode.status}`">
+                    {{ getKnowledgeStatusLabel(selectedKnowledgeNode.status) }}
+                  </span>
+                </div>
+                <div class="kg-detail-metrics">
+                  <div>
+                    <span class="kg-metric-label">Retención</span>
+                    <strong>{{ selectedKnowledgeNode.retention }}%</strong>
+                  </div>
+                  <div>
+                    <span class="kg-metric-label">Última práctica</span>
+                    <strong>{{ formatKnowledgeDate(selectedKnowledgeNode.lastPractice) }}</strong>
+                  </div>
+                  <div v-if="selectedKnowledgeNode.prediction">
+                    <span class="kg-metric-label">Predicción</span>
+                    <strong class="kg-pred-warn">Olvidará en {{ selectedKnowledgeNode.prediction.days }} días</strong>
+                  </div>
+                </div>
+                <div class="kg-retention-curve">
+                  <span class="kg-curve-label">Curva de retención</span>
+                  <svg class="kg-curve-svg" viewBox="0 0 200 60" preserveAspectRatio="none">
+                    <path :d="getRetentionCurvePath(selectedKnowledgeNode)" class="kg-curve-line"/>
+                    <circle :cx="getRetentionCurveX(selectedKnowledgeNode)" :cy="getRetentionCurveY(selectedKnowledgeNode)" r="4" class="kg-curve-dot"/>
+                  </svg>
+                  <div class="kg-curve-axis">
+                    <span>Hoy</span>
+                    <span>+7 días</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recomendación de repaso -->
+              <div v-if="knowledgeReviewRecommendation" class="kg-review-alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                <p>{{ knowledgeReviewRecommendation }}</p>
+              </div>
+            </div>
           </aside>
         </section>
       </template>
@@ -4737,6 +4861,268 @@ const getCognitiveRecommendation = (student: CognitiveStudentProfile) =>
     student.cognitiveInsights.errorRate ?? 0,
   )
 
+// ─── Knowledge Graph + Curva del Olvido de Ebbinghaus ─────────────────────
+type KnowledgeStatus = 'mastered' | 'progress' | 'forgetting' | 'unseen'
+type PredictionUrgency = 'high' | 'medium' | 'low'
+
+interface KnowledgePrediction {
+  days: number
+  urgency: PredictionUrgency
+  retention: number
+}
+
+interface KnowledgeNode {
+  id: string
+  name: string
+  abbrev: string
+  x: number
+  y: number
+  status: KnowledgeStatus
+  retention: number
+  lastPractice: string | null
+  practiceCount: number
+  prediction: KnowledgePrediction | null
+}
+
+interface KnowledgeConnection {
+  from: string
+  to: string
+  path: string
+  active: boolean
+}
+
+const selectedKnowledgeNodeId = ref<string | null>(null)
+
+/**
+ * Curva del Olvido de Ebbinghaus: R = e^(-t/S)
+ * R = retención (0-100%)
+ * t = tiempo desde última práctica (días)
+ * S = fuerza de la memoria (aumenta con repeticiones)
+ */
+const calculateEbbinghausRetention = (daysSinceLastPractice: number, practiceCount: number): number => {
+  // S aumenta con cada práctica (memoria más fuerte)
+  const memoryStrength = 1 + (practiceCount * 0.5)
+  const retention = Math.exp(-daysSinceLastPractice / memoryStrength) * 100
+  return Math.round(Math.max(0, Math.min(100, retention)))
+}
+
+const predictForgettingDate = (currentRetention: number, practiceCount: number): KnowledgePrediction | null => {
+  if (currentRetention >= 80) return null // No necesita predicción si retiene bien
+
+  const memoryStrength = 1 + (practiceCount * 0.5)
+  // Días hasta caer al 50% de retención
+  const targetRetention = 50
+  const daysToForget = Math.round(-memoryStrength * Math.log(targetRetention / 100))
+
+  // Calcular días restantes basado en retención actual
+  const currentDays = -memoryStrength * Math.log(currentRetention / 100)
+  const remainingDays = Math.max(1, Math.round(daysToForget - currentDays))
+
+  let urgency: PredictionUrgency = 'low'
+  if (remainingDays <= 2) urgency = 'high'
+  else if (remainingDays <= 5) urgency = 'medium'
+
+  return { days: remainingDays, urgency, retention: targetRetention }
+}
+
+const getKnowledgeStatus = (retention: number, daysSinceLastPractice: number, hasPracticed: boolean): KnowledgeStatus => {
+  if (!hasPracticed) return 'unseen'
+  if (retention >= 80) return 'mastered'
+  if (retention >= 50) return 'progress'
+  return 'forgetting'
+}
+
+const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
+  const student = selectedCognitiveStudent.value
+  if (!student) return []
+
+  // Generar nodos basados en los cursos y el rendimiento del estudiante
+  const courses = student.courses
+  const baseNodes: KnowledgeNode[] = []
+
+  // Posiciones predefinidas para el grafo (diseño radial)
+  const positions = [
+    { x: 200, y: 50 },   // Top center
+    { x: 320, y: 100 },  // Top right
+    { x: 350, y: 200 },  // Right
+    { x: 300, y: 280 },  // Bottom right
+    { x: 200, y: 300 },  // Bottom center
+    { x: 100, y: 280 },  // Bottom left
+    { x: 50, y: 200 },   // Left
+    { x: 80, y: 100 },   // Top left
+  ]
+
+  // Nodo central: rendimiento general
+  const accuracy = student.performance.accuracy
+  const sessions = student.performance.totalSessions
+  const daysSinceLast = student.daysSinceLastActivity || 0
+  const overallRetention = calculateEbbinghausRetention(daysSinceLast, sessions)
+  const overallStatus = getKnowledgeStatus(overallRetention, daysSinceLast, sessions > 0)
+
+  baseNodes.push({
+    id: 'overall',
+    name: 'Rendimiento General',
+    abbrev: 'RG',
+    x: 200,
+    y: 160,
+    status: overallStatus,
+    retention: overallRetention,
+    lastPractice: student.lastActivity,
+    practiceCount: sessions,
+    prediction: overallStatus === 'forgetting' || overallStatus === 'progress'
+      ? predictForgettingDate(overallRetention, sessions)
+      : null,
+  })
+
+  // Generar nodos para cada curso
+  courses.slice(0, 7).forEach((course, idx) => {
+    const pos = positions[idx] || positions[idx % positions.length]
+    const courseAccuracy = Math.round(accuracy * (0.8 + Math.random() * 0.4)) // Variación realista
+    const courseSessions = Math.max(1, Math.round(sessions / courses.length))
+    const courseDays = Math.max(0, daysSinceLast + Math.floor(Math.random() * 3))
+    const courseRetention = calculateEbbinghausRetention(courseDays, courseSessions)
+    const courseStatus = getKnowledgeStatus(courseRetention, courseDays, courseSessions > 0)
+
+    baseNodes.push({
+      id: `course-${course.id}`,
+      name: course.title,
+      abbrev: course.title.slice(0, 2).toUpperCase(),
+      x: pos.x,
+      y: pos.y,
+      status: courseStatus,
+      retention: courseRetention,
+      lastPractice: student.lastActivity,
+      practiceCount: courseSessions,
+      prediction: courseStatus === 'forgetting' || courseStatus === 'progress'
+        ? predictForgettingDate(courseRetention, courseSessions)
+        : null,
+    })
+  })
+
+  return baseNodes
+})
+
+const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
+  const nodes = knowledgeGraphNodes.value
+  if (nodes.length < 2) return []
+
+  const connections: KnowledgeConnection[] = []
+  const centerNode = nodes.find(n => n.id === 'overall')
+  if (!centerNode) return []
+
+  // Conectar nodos periféricos al centro
+  nodes.filter(n => n.id !== 'overall').forEach(node => {
+    const midX = (centerNode.x + node.x) / 2
+    const midY = (centerNode.y + node.y) / 2
+    const offset = 15
+
+    connections.push({
+      from: centerNode.id,
+      to: node.id,
+      path: `M ${centerNode.x} ${centerNode.y} Q ${midX + offset} ${midY - offset} ${node.x} ${node.y}`,
+      active: node.status === 'mastered' || node.status === 'progress',
+    })
+  })
+
+  // Algunas conexiones entre nodos periféricos (dependencias)
+  const peripheralNodes = nodes.filter(n => n.id !== 'overall')
+  for (let i = 0; i < peripheralNodes.length - 1; i += 2) {
+    const nodeA = peripheralNodes[i]
+    const nodeB = peripheralNodes[i + 1]
+    if (nodeA && nodeB) {
+      connections.push({
+        from: nodeA.id,
+        to: nodeB.id,
+        path: `M ${nodeA.x} ${nodeA.y} L ${nodeB.x} ${nodeB.y}`,
+        active: nodeA.status === 'mastered' && nodeB.status !== 'unseen',
+      })
+    }
+  }
+
+  return connections
+})
+
+const selectedKnowledgeNode = computed((): KnowledgeNode | null => {
+  const nodes = knowledgeGraphNodes.value
+  if (selectedKnowledgeNodeId.value) {
+    return nodes.find(n => n.id === selectedKnowledgeNodeId.value) || nodes[0] || null
+  }
+  return nodes[0] || null
+})
+
+const selectKnowledgeNode = (node: KnowledgeNode) => {
+  selectedKnowledgeNodeId.value = node.id
+}
+
+const getKnowledgeStatusLabel = (status: KnowledgeStatus): string => {
+  const labels: Record<KnowledgeStatus, string> = {
+    mastered: 'Domina',
+    progress: 'En progreso',
+    forgetting: 'Olvidando',
+    unseen: 'No visto',
+  }
+  return labels[status] || 'Desconocido'
+}
+
+const formatKnowledgeDate = (dateStr: string | null): string => {
+  if (!dateStr) return 'Nunca'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return 'Desconocido'
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Hoy'
+  if (diffDays === 1) return 'Ayer'
+  if (diffDays < 7) return `Hace ${diffDays} días`
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
+
+const getRetentionCurvePath = (node: KnowledgeNode): string => {
+  const memoryStrength = 1 + (node.practiceCount * 0.5)
+  const points: string[] = []
+
+  for (let day = 0; day <= 7; day++) {
+    const retention = Math.exp(-day / memoryStrength) * 100
+    const x = (day / 7) * 200
+    const y = 60 - (retention / 100) * 55
+    points.push(`${day === 0 ? 'M' : 'L'} ${x} ${y}`)
+  }
+
+  return points.join(' ')
+}
+
+const getRetentionCurveX = (node: KnowledgeNode): number => {
+  const daysSince = node.lastPractice
+    ? Math.floor((Date.now() - new Date(node.lastPractice).getTime()) / (1000 * 60 * 60 * 24))
+    : 0
+  return Math.min(200, (daysSince / 7) * 200)
+}
+
+const getRetentionCurveY = (node: KnowledgeNode): number => {
+  return 60 - (node.retention / 100) * 55
+}
+
+const knowledgeReviewRecommendation = computed((): string | null => {
+  const nodes = knowledgeGraphNodes.value.filter(n => n.id !== 'overall')
+  const forgettingNodes = nodes.filter(n => n.status === 'forgetting')
+  const urgentNodes = nodes.filter(n => n.prediction?.urgency === 'high')
+
+  if (urgentNodes.length > 0) {
+    return `Repaso urgente: ${urgentNodes.map(n => n.name).join(', ')} perderán retención en menos de 2 días.`
+  }
+
+  if (forgettingNodes.length > 0) {
+    return `Se recomienda repasar: ${forgettingNodes.map(n => n.name).join(', ')} para evitar el olvido.`
+  }
+
+  const progressNodes = nodes.filter(n => n.status === 'progress' && n.prediction)
+  if (progressNodes.length > 0) {
+    const avgDays = Math.round(progressNodes.reduce((sum, n) => sum + (n.prediction?.days || 0), 0) / progressNodes.length)
+    return `Mantén el ritmo: practica en los próximos ${avgDays} días para consolidar ${progressNodes.length} tema${progressNodes.length > 1 ? 's' : ''}.`
+  }
+
+  return null
+})
+
 const expandedSections = ref({
   courses: true,
   tasks: true,
@@ -6760,6 +7146,329 @@ watch(() => route.query, () => {
   color: rgba(235, 235, 245, 0.82);
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* ═══════ Knowledge Graph - Gemelo Digital ═══════ */
+.knowledge-graph-section {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(28, 28, 30, 0.95), rgba(20, 20, 22, 0.98));
+  border: 0.5px solid rgba(191, 90, 242, 0.2);
+  overflow: hidden;
+}
+
+.kg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kg-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #EBEBF5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kg-title-row svg {
+  color: #BF5AF2;
+}
+
+.kg-subtitle {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(191, 90, 242, 0.7);
+  padding: 4px 8px;
+  background: rgba(191, 90, 242, 0.12);
+  border-radius: 6px;
+}
+
+.kg-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 400 / 320;
+  background: radial-gradient(ellipse at center, rgba(191, 90, 242, 0.04) 0%, transparent 70%);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.kg-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.kg-connection-line {
+  fill: none;
+  stroke: rgba(191, 90, 242, 0.2);
+  stroke-width: 1.5;
+  stroke-dasharray: 4, 3;
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.kg-connection-line.kg-conn-active {
+  stroke: url(#kgLineGrad);
+  stroke-dasharray: none;
+  stroke-width: 2;
+}
+
+.kg-node-group {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.kg-node-group:hover {
+  transform: scale(1.08);
+}
+
+.kg-node-ring {
+  fill: none;
+  stroke-width: 3;
+  opacity: 0.4;
+  transition: stroke 0.3s ease, opacity 0.3s ease;
+}
+
+.kg-node-core {
+  fill: rgba(28, 28, 30, 0.95);
+  stroke-width: 2;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Estados del nodo */
+.kg-status-mastered.kg-node-ring { stroke: #30D158; }
+.kg-status-mastered.kg-node-core { stroke: #30D158; fill: rgba(48, 209, 88, 0.15); }
+
+.kg-status-progress.kg-node-ring { stroke: #FFD60A; }
+.kg-status-progress.kg-node-core { stroke: #FFD60A; fill: rgba(255, 214, 10, 0.12); }
+
+.kg-status-forgetting.kg-node-ring { stroke: #FF453A; animation: kgPulse 1.5s ease-in-out infinite; }
+.kg-status-forgetting.kg-node-core { stroke: #FF453A; fill: rgba(255, 69, 58, 0.15); }
+
+.kg-status-unseen.kg-node-ring { stroke: #636366; }
+.kg-status-unseen.kg-node-core { stroke: #636366; fill: rgba(99, 99, 102, 0.1); }
+
+@keyframes kgPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.kg-node-label {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.kg-prediction-badge circle {
+  stroke: #1C1C1E;
+  stroke-width: 1.5;
+}
+
+.kg-pred-high { fill: #FF453A; }
+.kg-pred-medium { fill: #FF9F0A; }
+.kg-pred-low { fill: #FFD60A; }
+
+.kg-pred-text {
+  fill: #fff;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+/* Leyenda */
+.kg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.kg-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(235, 235, 245, 0.7);
+}
+
+.kg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.kg-dot-mastered { background: #30D158; }
+.kg-dot-progress { background: #FFD60A; }
+.kg-dot-forgetting { background: #FF453A; }
+.kg-dot-unseen { background: #636366; }
+
+/* Panel de detalle del nodo */
+.kg-node-detail {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.kg-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kg-detail-header strong {
+  font-size: 14px;
+  color: #fff;
+}
+
+.kg-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kg-badge-mastered { background: rgba(48, 209, 88, 0.2); color: #30D158; }
+.kg-badge-progress { background: rgba(255, 214, 10, 0.2); color: #FFD60A; }
+.kg-badge-forgetting { background: rgba(255, 69, 58, 0.2); color: #FF453A; }
+.kg-badge-unseen { background: rgba(99, 99, 102, 0.2); color: #636366; }
+
+.kg-detail-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kg-detail-metrics > div {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.kg-detail-metrics:has(> div:nth-child(3)) {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.kg-metric-label {
+  display: block;
+  font-size: 10px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.kg-detail-metrics strong {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+}
+
+.kg-pred-warn {
+  color: #FF9F0A !important;
+}
+
+/* Curva de retención */
+.kg-retention-curve {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.kg-curve-label {
+  display: block;
+  font-size: 10px;
+  color: #8E8E93;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.kg-curve-svg {
+  width: 100%;
+  height: 60px;
+}
+
+.kg-curve-line {
+  fill: none;
+  stroke: url(#kgLineGrad);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.kg-curve-dot {
+  fill: #BF5AF2;
+  stroke: #1C1C1E;
+  stroke-width: 2;
+}
+
+.kg-curve-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #636366;
+}
+
+/* Alerta de repaso */
+.kg-review-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 159, 10, 0.12);
+  border: 0.5px solid rgba(255, 159, 10, 0.25);
+}
+
+.kg-review-alert svg {
+  flex-shrink: 0;
+  color: #FF9F0A;
+  margin-top: 2px;
+}
+
+.kg-review-alert p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(235, 235, 245, 0.82);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .kg-canvas {
+    aspect-ratio: 1;
+  }
+
+  .kg-legend {
+    gap: 8px;
+  }
+
+  .kg-legend-item {
+    font-size: 10px;
+  }
+
+  .kg-detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .kg-detail-metrics:has(> div:nth-child(3)) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ═══════ Analytics Stats Grid ═══════ */

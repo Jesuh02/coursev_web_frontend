@@ -31,15 +31,18 @@
         <AppInput v-model="form.telefono" label="Teléfono" type="tel" />
       </section>
 
+      <p v-if="errorMessage" class="form-message error-message">{{ errorMessage }}</p>
+      <p v-if="successMessage" class="form-message success-message">{{ successMessage }}</p>
+
       <AppButton type="submit" :loading="saving" full>Guardar Cambios</AppButton>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
-import { userAdapter } from '@/infrastructure/api'
+import { userAdapter, HttpError } from '@/infrastructure/api'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppInput from '@/ui/shared/components/AppInput.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
@@ -47,6 +50,10 @@ import AppButton from '@/ui/shared/components/AppButton.vue'
 const authStore = useAuthStore()
 const fileInput = ref<HTMLInputElement>()
 const saving = ref(false)
+const selectedAvatarFile = ref<File | null>(null)
+const previewAvatarUrl = ref<string | null>(null)
+const errorMessage = ref('')
+const successMessage = ref('')
 
 const form = reactive({
   nombre: '',
@@ -64,17 +71,67 @@ function openFilePicker() {
 function onFileSelect(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) {
-    form.avatar = URL.createObjectURL(file)
+    selectedAvatarFile.value = file
+    if (previewAvatarUrl.value) URL.revokeObjectURL(previewAvatarUrl.value)
+    previewAvatarUrl.value = URL.createObjectURL(file)
+    form.avatar = previewAvatarUrl.value
   }
+}
+
+function populateFormFromUser() {
+  const u = authStore.user
+  if (!u) return
+  form.nombre = u.persona?.nombres ?? ''
+  form.apellido = u.persona?.apellidos ?? ''
+  form.username = u.username
+  form.email = u.email ?? ''
+  form.telefono = u.persona?.telefono ?? ''
+  form.avatar = u.avatar ?? ''
 }
 
 async function save() {
   saving.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
   try {
-    await userAdapter.updateMyProfile({ username: form.username, email: form.email })
+    const username = form.username.trim()
+    const email = form.email.trim()
+    const nombres = form.nombre.trim()
+    const apellidos = form.apellido.trim()
+    const telefono = form.telefono.trim()
+
+    const payload: Record<string, unknown> = {
+      username,
+      email,
+      persona: {
+        nombres,
+        apellidos,
+        telefono,
+      },
+    }
+
+    if (selectedAvatarFile.value) {
+      const avatar = await userAdapter.uploadAvatar(selectedAvatarFile.value)
+      if (avatar) payload.avatar = avatar
+    }
+
+    await userAdapter.updateMyProfile(payload)
+
     await authStore.fetchProfile()
-  } catch { /* empty */ }
-  saving.value = false
+    selectedAvatarFile.value = null
+    populateFormFromUser()
+    if (previewAvatarUrl.value) {
+      URL.revokeObjectURL(previewAvatarUrl.value)
+      previewAvatarUrl.value = null
+    }
+    successMessage.value = 'Perfil actualizado correctamente.'
+  } catch (error) {
+    errorMessage.value = error instanceof HttpError
+      ? error.message
+      : 'No se pudo actualizar el perfil. Revisa los datos e intenta de nuevo.'
+  } finally {
+    saving.value = false
+  }
 }
 
 // Pobla el formulario en cuanto el usuario esté disponible.
@@ -84,17 +141,16 @@ async function save() {
 watch(
   () => authStore.user,
   (u) => {
-    if (u && !form.username) {
-      form.nombre = u.persona?.nombres ?? ''
-      form.apellido = u.persona?.apellidos ?? ''
-      form.username = u.username
-      form.email = u.email ?? ''
-      form.telefono = u.persona?.telefono ?? ''
-      form.avatar = u.avatar ?? ''
+    if (u && !saving.value && !selectedAvatarFile.value) {
+      populateFormFromUser()
     }
   },
   { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  if (previewAvatarUrl.value) URL.revokeObjectURL(previewAvatarUrl.value)
+})
 </script>
 
 <style scoped>
@@ -180,5 +236,25 @@ watch(
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.form-message {
+  margin: -6px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.error-message {
+  color: #ff8a84;
+  background: rgba(255, 69, 58, 0.1);
+  border: 1px solid rgba(255, 69, 58, 0.18);
+}
+
+.success-message {
+  color: #7ee787;
+  background: rgba(48, 209, 88, 0.1);
+  border: 1px solid rgba(48, 209, 88, 0.16);
 }
 </style>
