@@ -924,7 +924,7 @@
                     :key="row.status"
                     class="dt-leg-card"
                     type="button"
-                    :style="{ '--dt-status-color': row.color, '--dt-status-bg': row.soft }"
+                    :style="`--dt-status-color: ${row.color}; --dt-status-bg: ${row.soft};`"
                   >
                     <span class="dt-leg-dot"></span>
                     <span>{{ row.label }}</span>
@@ -5560,25 +5560,23 @@ const knowledgeStatusCategories: Record<string, BulletLegendItemInterface> = {
   nodos: { name: 'Nodos', color: '#0A84FF' },
 }
 
-const knowledgeStatusRows = computed(() =>
-  {
-    const summary = knowledgeSummary.value
-    const pctByStatus: Record<KnowledgeStatus, number> = {
-      mastered: summary.masteredPct,
-      progress: summary.progressPct,
-      forgetting: summary.forgettingPct,
-      unseen: summary.unseenPct,
-    }
-    return knowledgeStatusOrder.map(status => ({
-      status,
-      label: knowledgeStatusMeta[status].label,
-      value: knowledgeGraphNodes.value.filter(node => node.id !== 'overall' && node.status === status).length,
-      pct: pctByStatus[status],
-      color: knowledgeStatusMeta[status].color,
-      soft: knowledgeStatusMeta[status].soft,
-    }))
+const knowledgeStatusRows = computed(() => {
+  const summary = knowledgeSummary.value
+  const pctByStatus: Record<KnowledgeStatus, number> = {
+    mastered: summary.masteredPct,
+    progress: summary.progressPct,
+    forgetting: summary.forgettingPct,
+    unseen: summary.unseenPct,
   }
-)
+  return knowledgeStatusOrder.map(status => ({
+    status,
+    label: knowledgeStatusMeta[status].label,
+    value: knowledgeGraphNodes.value.filter(node => node.id !== 'overall' && node.status === status).length,
+    pct: pctByStatus[status],
+    color: knowledgeStatusMeta[status].color,
+    soft: knowledgeStatusMeta[status].soft,
+  }))
+})
 
 const knowledgePriorityNodes = computed(() =>
   knowledgeGraphNodes.value
@@ -5589,10 +5587,10 @@ const knowledgePriorityNodes = computed(() =>
 
 const getKnowledgeGaugeColor = (status: KnowledgeStatus, stop: number): string => {
   const colors: Record<KnowledgeStatus, [string, string]> = {
-    mastered: ['#34D399', '#10B981'],
-    progress: ['#FBBF24', '#F59E0B'],
-    forgetting: ['#F87171', '#EF4444'],
-    unseen: ['#6B7280', '#4B5563'],
+    mastered: ['#30D158', '#16A34A'],
+    progress: ['#64D2FF', '#0A84FF'],
+    forgetting: ['#FFD60A', '#FF9F0A'],
+    unseen: ['#AEAEB2', '#636366'],
   }
   return colors[status]?.[stop] || colors.unseen[stop]
 }
@@ -8323,6 +8321,376 @@ watch(() => route.query, () => {
   line-height: 1.5;
 }
 
+/* Professional cognitive map refinement */
+.dt-section {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(10, 132, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(48, 209, 88, 0.12), transparent 30%),
+    linear-gradient(165deg, rgba(29, 29, 31, 0.98), rgba(12, 12, 14, 1));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.38),
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.025) inset;
+}
+
+.dt-icon-wrap {
+  background: linear-gradient(145deg, rgba(10, 132, 255, 0.22), rgba(48, 209, 88, 0.12));
+  border-color: rgba(100, 210, 255, 0.26);
+  color: #64D2FF;
+}
+
+.dt-graph-canvas {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(10, 132, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 74% 70%, rgba(48, 209, 88, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24) inset;
+}
+
+.dt-map-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.dt-map-topline strong {
+  display: block;
+  color: #F5F5F7;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.dt-map-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(235, 235, 245, 0.56);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dt-map-score {
+  min-width: 118px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: right;
+}
+
+.dt-map-score small {
+  display: block;
+  color: rgba(235, 235, 245, 0.52);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dt-map-score strong {
+  color: #fff;
+  font-size: 22px;
+}
+
+.dt-graph-svg {
+  min-height: 430px;
+}
+
+.dt-map-frame {
+  fill: rgba(255, 255, 255, 0.018);
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.dt-zone-label {
+  fill: rgba(235, 235, 245, 0.34);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dt-orbit-ring {
+  stroke: rgba(10, 132, 255, 0.13);
+  transform-origin: 360px 220px;
+}
+
+.dt-orbit-ring-wide {
+  stroke: rgba(48, 209, 88, 0.1);
+}
+
+@keyframes dtOrbitRotate {
+  from { transform: rotate(0deg); transform-origin: 360px 220px; }
+  to { transform: rotate(360deg); transform-origin: 360px 220px; }
+}
+
+.dt-particles {
+  display: none;
+}
+
+.dt-conn-path {
+  opacity: 0.52;
+  transition:
+    opacity 0.2s ease,
+    stroke-width 0.2s ease,
+    filter 0.2s ease;
+}
+
+.dt-conn-active {
+  stroke: url(#dtConnGrad);
+  filter: none;
+}
+
+.dt-conn-inactive {
+  stroke: rgba(142, 142, 147, 0.2);
+  stroke-dasharray: 7, 8;
+}
+
+.dt-conn-highlighted {
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(100, 210, 255, 0.34));
+}
+
+.dt-node {
+  transition: opacity 0.2s ease;
+}
+
+.dt-node:hover,
+.dt-node-selected {
+  transform: none;
+}
+
+@keyframes dtNodeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dt-node:hover .dt-node-core,
+.dt-node-selected .dt-node-core {
+  filter: url(#dtNodeGlow) drop-shadow(0 0 16px rgba(10, 132, 255, 0.34));
+}
+
+.dt-node-dimmed {
+  opacity: 0.34;
+}
+
+.dt-node-aura {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.dt-aura-progress {
+  stroke: #0A84FF;
+}
+
+.dt-aura-forgetting {
+  stroke: #FF9F0A;
+  animation: dtAuraPulse 1.6s ease-in-out infinite;
+}
+
+.dt-aura-unseen {
+  stroke: #8E8E93;
+}
+
+.dt-node-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 5;
+}
+
+.dt-node-ring {
+  stroke-width: 5;
+}
+
+.dt-ring-mastered {
+  stroke: #30D158;
+}
+
+.dt-ring-progress {
+  stroke: #0A84FF;
+}
+
+.dt-ring-forgetting {
+  stroke: #FF9F0A;
+}
+
+.dt-ring-unseen {
+  stroke: #8E8E93;
+}
+
+.dt-node-chip rect {
+  fill: rgba(18, 18, 20, 0.82);
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.dt-node-label {
+  fill: #F5F5F7;
+  font-size: 10.5px;
+  font-weight: 750;
+  pointer-events: none;
+}
+
+.dt-node-hint {
+  fill: rgba(235, 235, 245, 0.52);
+  font-size: 8.5px;
+  font-weight: 650;
+  pointer-events: none;
+}
+
+.dt-map-footer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.dt-leg-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px;
+  gap: 8px;
+  color: #F5F5F7;
+  background: var(--dt-status-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  cursor: default;
+}
+
+.dt-leg-card .dt-leg-dot {
+  background: var(--dt-status-color);
+  box-shadow: 0 0 14px var(--dt-status-color);
+}
+
+.dt-leg-card span:not(.dt-leg-dot) {
+  color: rgba(235, 235, 245, 0.72);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.dt-leg-card strong {
+  color: var(--dt-status-color);
+  font-size: 18px;
+}
+
+.dt-priority-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 159, 10, 0.09);
+  border: 1px solid rgba(255, 159, 10, 0.18);
+}
+
+.dt-priority-strip > span {
+  margin-right: 4px;
+  color: #FF9F0A;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dt-priority-strip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  color: #F5F5F7;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 159, 10, 0.2);
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dt-priority-strip strong {
+  color: #FF9F0A;
+}
+
+.dt-icon-progress {
+  background: rgba(10, 132, 255, 0.15);
+  color: #64D2FF;
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.dt-icon-forgetting {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+  border-color: rgba(255, 159, 10, 0.3);
+}
+
+.dt-status-progress {
+  background: rgba(10, 132, 255, 0.15);
+  color: #64D2FF;
+}
+
+.dt-status-forgetting {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+}
+
+.dt-metric-warn {
+  background: rgba(255, 159, 10, 0.1);
+  border-color: rgba(255, 159, 10, 0.22);
+}
+
+.dt-metric-warn strong {
+  color: #FF9F0A !important;
+}
+
+.dt-retention-vue-chart {
+  min-height: 172px;
+}
+
+.dt-chart-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  color: #F5F5F7;
+  background: #1C1C1E;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.dt-chart-tooltip strong {
+  font-size: 12px;
+}
+
+.dt-chart-tooltip span,
+.dt-chart-tooltip small {
+  color: rgba(235, 235, 245, 0.68);
+  font-size: 11px;
+}
+
+.dt-curve-chart {
+  display: none;
+}
+
+.dt-status-chart {
+  margin: -4px 0 14px;
+}
+
+.dt-bar-yellow {
+  background: linear-gradient(90deg, #64D2FF, #0A84FF);
+}
+
+.dt-bar-red {
+  background: linear-gradient(90deg, #FFD60A, #FF9F0A);
+}
+
 /* Responsive */
 @media (max-width: 1100px) {
   .dt-grid {
@@ -8363,6 +8731,30 @@ watch(() => route.query, () => {
   }
 
   .dt-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dt-map-topline {
+    flex-direction: column;
+  }
+
+  .dt-map-score {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .dt-graph-svg {
+    min-height: 360px;
+  }
+
+  .dt-map-footer {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .dt-map-footer {
     grid-template-columns: 1fr;
   }
 }
