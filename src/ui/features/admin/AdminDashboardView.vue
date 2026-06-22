@@ -791,13 +791,13 @@
                   <defs>
                     <!-- Gradientes -->
                     <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stop-color="rgba(191,90,242,0.25)"/>
+                      <stop offset="0%" stop-color="rgba(16,185,129,0.28)"/>
                       <stop offset="100%" stop-color="transparent"/>
                     </radialGradient>
                     <linearGradient id="dtConnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stop-color="rgba(191,90,242,0.5)"/>
-                      <stop offset="50%" stop-color="rgba(90,200,250,0.4)"/>
-                      <stop offset="100%" stop-color="rgba(48,209,88,0.3)"/>
+                      <stop offset="0%" stop-color="rgba(52,211,153,0.86)"/>
+                      <stop offset="55%" stop-color="rgba(56,189,248,0.72)"/>
+                      <stop offset="100%" stop-color="rgba(16,185,129,0.64)"/>
                     </linearGradient>
                     <filter id="dtNodeGlow" x="-100%" y="-100%" width="300%" height="300%">
                       <feGaussianBlur stdDeviation="4" result="blur"/>
@@ -815,7 +815,7 @@
                       <stop offset="0%" stop-color="#64D2FF"/><stop offset="100%" stop-color="#0A84FF"/>
                     </linearGradient>
                     <linearGradient id="dtGradForgetting" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#FFD60A"/><stop offset="100%" stop-color="#FF9F0A"/>
+                      <stop offset="0%" stop-color="#FF5A66"/><stop offset="100%" stop-color="#DC2626"/>
                     </linearGradient>
                     <linearGradient id="dtGradUnseen" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stop-color="#AEAEB2"/><stop offset="100%" stop-color="#636366"/>
@@ -824,11 +824,11 @@
 
                   <rect x="20" y="15" width="860" height="470" rx="30" class="dt-map-frame" />
                   <!-- Fondo con glow central -->
-                  <circle cx="450" cy="250" r="180" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+                  <circle cx="410" cy="270" r="190" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
 
                   <!-- Anillos orbitales decorativos -->
-                  <circle cx="450" cy="250" r="100" class="dt-orbit-ring" style="animation-delay: 0s"/>
-                  <circle cx="450" cy="250" r="180" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
+                  <circle cx="410" cy="270" r="116" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="410" cy="270" r="218" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
                   <text x="68" y="46" class="dt-zone-label">Consolidado</text>
                   <text x="780" y="46" class="dt-zone-label">Riesgo</text>
                   <text x="68" y="456" class="dt-zone-label">Nuevo</text>
@@ -866,6 +866,7 @@
                     :key="`dtnode-${idx}`"
                     class="dt-graph-node"
                     :class="{
+                      'dt-graph-node-main': node.id === 'overall',
                       'dt-graph-node-selected': selectedKnowledgeNode?.id === node.id,
                       'dt-graph-node-dimmed': isKnowledgeNodeDimmed(node),
                     }"
@@ -916,9 +917,9 @@
                     <!-- Indicador de retención circular -->
                     <text class="dt-retention-label" :y="node.size + 24" text-anchor="middle">{{ node.retention }}%</text>
                     <g class="dt-node-chip" :transform="`translate(${node.labelOffsetX}, ${node.labelOffsetY})`">
-                      <rect :x="-(node.labelWidth / 2)" y="-18" :width="node.labelWidth" height="36" rx="12" />
-                      <text y="-3" text-anchor="middle" class="dt-node-label">{{ node.shortName }}</text>
-                      <text y="11" text-anchor="middle" class="dt-node-hint">{{ node.level }}</text>
+                      <rect :x="-(node.labelWidth / 2)" y="-23" :width="node.labelWidth" height="46" rx="12" />
+                      <text y="-5" text-anchor="middle" class="dt-node-label">{{ node.shortName }}</text>
+                      <text y="13" text-anchor="middle" class="dt-node-hint">{{ node.level }}</text>
                     </g>
                   </g>
                 </svg>
@@ -5455,16 +5456,13 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
 
   // Posiciones predefinidas con margen amplio para nodos, halos y etiquetas.
   // viewBox expandido a 900x500 para mejor visualización
-  const centerX = 450
-  const centerY = 250
+  const centerX = 410
+  const centerY = 270
   const positions = [
-    { x: 540, y: 85, labelOffsetX: 0, labelOffsetY: 58, labelWidth: 140 },    // Superior derecha
-    { x: 750, y: 150, labelOffsetX: 0, labelOffsetY: -56, labelWidth: 140 },  // Derecha arriba
-    { x: 820, y: 280, labelOffsetX: -12, labelOffsetY: 58, labelWidth: 140 }, // Derecha centro
-    { x: 700, y: 410, labelOffsetX: 0, labelOffsetY: 56, labelWidth: 140 },   // Inferior derecha
-    { x: 200, y: 410, labelOffsetX: 0, labelOffsetY: 56, labelWidth: 140 },   // Inferior izquierda
-    { x: 80, y: 280, labelOffsetX: 0, labelOffsetY: 58, labelWidth: 140 },    // Izquierda centro
-    { x: 150, y: 130, labelOffsetX: 0, labelOffsetY: -56, labelWidth: 140 },  // Izquierda arriba
+    { x: 420, y: 92, labelOffsetX: -125, labelOffsetY: 62, labelWidth: 154 },
+    { x: 640, y: 160, labelOffsetX: 124, labelOffsetY: 0, labelWidth: 158 },
+    { x: 668, y: 286, labelOffsetX: 118, labelOffsetY: 0, labelWidth: 160 },
+    { x: 640, y: 398, labelOffsetX: 124, labelOffsetY: 0, labelWidth: 162 },
   ]
 
   // Nodo central: rendimiento general
@@ -5482,10 +5480,10 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     level: 'General',
     x: centerX,
     y: centerY,
-    size: 42,
+    size: 58,
     labelOffsetX: 0,
-    labelOffsetY: 95,
-    labelWidth: 145,
+    labelOffsetY: 124,
+    labelWidth: 168,
     status: overallStatus,
     retention: overallRetention,
     lastPractice: student.lastActivity,
@@ -5496,7 +5494,7 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   })
 
   // Generar nodos para cada curso
-  courses.slice(0, 7).forEach((course, idx) => {
+  courses.slice(0, positions.length).forEach((course, idx) => {
     const pos = positions[idx] || positions[idx % positions.length]
     const seed = getStableKnowledgeSeed(`${course.id}-${course.title}`)
     const accuracyBias = 0.88 + ((seed % 25) / 100)
@@ -5513,10 +5511,10 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       name: course.title,
       abbrev: course.title.slice(0, 2).toUpperCase(),
       shortName: compactKnowledgeName(course.title, `Curso ${idx + 1}`),
-      level: `${courseAccuracy}% precision`,
+      level: `${courseAccuracy}% precisión`,
       x: pos.x,
       y: pos.y,
-      size: 30,
+      size: idx === 0 ? 36 : 34,
       labelOffsetX: pos.labelOffsetX,
       labelOffsetY: pos.labelOffsetY,
       labelWidth: pos.labelWidth,
@@ -5552,7 +5550,7 @@ const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
       from: centerNode.id,
       to: node.id,
       path: `M ${centerNode.x} ${centerNode.y} Q ${Math.round(controlX)} ${Math.round(controlY)} ${node.x} ${node.y}`,
-      active: node.status === 'mastered' || node.status === 'progress',
+      active: node.status !== 'unseen',
       strength: Math.max(0.25, node.retention / 100),
     })
   })
@@ -8012,8 +8010,8 @@ watch(() => route.query, () => {
 }
 
 @keyframes dtOrbitRotateOld {
-  from { transform: rotate(0deg); transform-origin: 450px 250px; }
-  to { transform: rotate(360deg); transform-origin: 450px 250px; }
+  from { transform: rotate(0deg); transform-origin: 410px 270px; }
+  to { transform: rotate(360deg); transform-origin: 410px 270px; }
 }
 
 .dt-bg-glow {
@@ -8685,7 +8683,7 @@ watch(() => route.query, () => {
 
 .dt-orbit-ring {
   stroke: rgba(10, 132, 255, 0.13);
-  transform-origin: 450px 250px;
+  transform-origin: 410px 270px;
 }
 
 .dt-orbit-ring-wide {
@@ -8693,8 +8691,8 @@ watch(() => route.query, () => {
 }
 
 @keyframes dtOrbitRotate {
-  from { transform: rotate(0deg); transform-origin: 450px 250px; }
-  to { transform: rotate(360deg); transform-origin: 450px 250px; }
+  from { transform: rotate(0deg); transform-origin: 410px 270px; }
+  to { transform: rotate(360deg); transform-origin: 410px 270px; }
 }
 
 .dt-particles {
@@ -8702,7 +8700,10 @@ watch(() => route.query, () => {
 }
 
 .dt-conn-path {
-  opacity: 0.46;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.62;
   transition:
     opacity 0.2s ease,
     stroke-width 0.2s ease,
@@ -8711,7 +8712,7 @@ watch(() => route.query, () => {
 
 .dt-conn-active {
   stroke: url(#dtConnGrad);
-  filter: drop-shadow(0 0 7px rgba(100, 210, 255, 0.18));
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.22));
 }
 
 .dt-conn-inactive {
@@ -8745,8 +8746,8 @@ watch(() => route.query, () => {
 }
 
 .dt-node-focus {
-  fill: rgba(10, 132, 255, 0.09);
-  stroke: rgba(100, 210, 255, 0.36);
+  fill: rgba(16, 185, 129, 0.11);
+  stroke: rgba(110, 231, 183, 0.42);
   stroke-width: 1.2;
   stroke-dasharray: 5, 7;
   animation: dtFocusSpin 7s linear infinite;
@@ -8762,14 +8763,21 @@ watch(() => route.query, () => {
 .dt-node-aura {
   transform-box: fill-box;
   transform-origin: center;
+  fill: none;
+  stroke-width: 2.4;
+  opacity: 0.34;
+}
+
+.dt-aura-mastered {
+  stroke: #34D399;
 }
 
 .dt-aura-progress {
-  stroke: #0A84FF;
+  stroke: #38BDF8;
 }
 
 .dt-aura-forgetting {
-  stroke: #FF9F0A;
+  stroke: #FF453A;
   animation: dtAuraPulse 1.6s ease-in-out infinite;
 }
 
@@ -8779,7 +8787,7 @@ watch(() => route.query, () => {
 
 .dt-node-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: rgba(255, 255, 255, 0.12);
   stroke-width: 6;
 }
 
@@ -8793,7 +8801,7 @@ watch(() => route.query, () => {
 }
 
 .dt-node-core {
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.32));
   transition: filter 0.2s ease;
 }
 
@@ -8802,52 +8810,81 @@ watch(() => route.query, () => {
 }
 
 .dt-ring-progress {
-  stroke: #0A84FF;
+  stroke: #38BDF8;
 }
 
 .dt-ring-forgetting {
-  stroke: #FF9F0A;
+  stroke: #FF453A;
 }
 
 .dt-ring-unseen {
   stroke: #8E8E93;
 }
 
+.dt-graph-node-main .dt-node-aura {
+  stroke-width: 3;
+  opacity: 0.46;
+}
+
+.dt-graph-node-main .dt-node-track,
+.dt-graph-node-main .dt-node-ring {
+  stroke-width: 8;
+}
+
+.dt-graph-node-main .dt-node-core {
+  filter:
+    drop-shadow(0 0 24px rgba(52, 211, 153, 0.32))
+    drop-shadow(0 8px 22px rgba(0, 0, 0, 0.36));
+}
+
 .dt-node-chip rect {
-  fill: rgba(18, 18, 20, 0.85);
-  stroke: rgba(255, 255, 255, 0.15);
+  fill: rgba(8, 13, 24, 0.9);
+  stroke: rgba(226, 232, 240, 0.22);
   stroke-width: 1;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.28));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 .dt-node-label {
   fill: #F5F5F7;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: -0.01em;
   pointer-events: none;
 }
 
 .dt-node-hint {
-  fill: rgba(235, 235, 245, 0.6);
-  font-size: 9px;
+  fill: rgba(226, 232, 240, 0.68);
+  font-size: 10px;
   font-weight: 600;
   pointer-events: none;
 }
 
 .dt-node-text {
   fill: #fff;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+.dt-graph-node-main .dt-node-text {
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
 .dt-retention-label {
-  fill: rgba(235, 235, 245, 0.7);
-  font-size: 11px;
-  font-weight: 700;
+  fill: rgba(248, 250, 252, 0.92);
+  font-size: 13px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(2, 6, 23, 0.72);
+  stroke-width: 3px;
+}
+
+.dt-graph-node-main .dt-retention-label {
+  font-size: 15px;
 }
 
 .dt-map-footer {
