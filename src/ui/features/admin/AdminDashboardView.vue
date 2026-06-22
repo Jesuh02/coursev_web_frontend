@@ -787,7 +787,7 @@
                   </div>
                 </div>
 
-                <svg class="dt-graph-svg" viewBox="0 0 720 430" preserveAspectRatio="xMidYMid meet">
+                <svg class="dt-graph-svg" viewBox="0 0 760 455" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <!-- Gradientes -->
                     <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
@@ -822,16 +822,16 @@
                     </linearGradient>
                   </defs>
 
-                  <rect x="18" y="18" width="684" height="394" rx="30" class="dt-map-frame" />
+                  <rect x="24" y="18" width="712" height="418" rx="30" class="dt-map-frame" />
                   <!-- Fondo con glow central -->
-                  <circle cx="360" cy="220" r="176" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+                  <circle cx="380" cy="230" r="176" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
 
                   <!-- Anillos orbitales decorativos -->
-                  <circle cx="360" cy="220" r="88" class="dt-orbit-ring" style="animation-delay: 0s"/>
-                  <circle cx="360" cy="220" r="156" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
-                  <text x="64" y="74" class="dt-zone-label">Consolidado</text>
-                  <text x="544" y="74" class="dt-zone-label">Riesgo</text>
-                  <text x="64" y="376" class="dt-zone-label">Nuevo</text>
+                  <circle cx="380" cy="230" r="92" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="380" cy="230" r="164" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
+                  <text x="68" y="84" class="dt-zone-label">Consolidado</text>
+                  <text x="612" y="84" class="dt-zone-label">Riesgo</text>
+                  <text x="68" y="400" class="dt-zone-label">Nuevo</text>
 
                   <!-- Conexiones con curvas bezier -->
                   <g class="dt-connections">
@@ -864,10 +864,10 @@
                   <g
                     v-for="(node, idx) in knowledgeGraphNodes"
                     :key="`dtnode-${idx}`"
-                    class="dt-node"
+                    class="dt-graph-node"
                     :class="{
-                      'dt-node-selected': selectedKnowledgeNode?.id === node.id,
-                      'dt-node-dimmed': isKnowledgeNodeDimmed(node),
+                      'dt-graph-node-selected': selectedKnowledgeNode?.id === node.id,
+                      'dt-graph-node-dimmed': isKnowledgeNodeDimmed(node),
                     }"
                     :transform="`translate(${node.x}, ${node.y})`"
                     :style="{ animationDelay: `${idx * 80}ms` }"
@@ -875,6 +875,11 @@
                     @mouseleave="hoveredKnowledgeNodeId = null"
                     @click="selectKnowledgeNode(node)"
                   >
+                    <circle
+                      v-if="activeKnowledgeNodeId === node.id"
+                      :r="node.size + 21"
+                      class="dt-node-focus"
+                    />
                     <!-- Aura externa -->
                     <circle
                       :r="node.size + 13"
@@ -910,8 +915,8 @@
 
                     <!-- Indicador de retención circular -->
                     <text class="dt-retention-label" :y="node.size + 24" text-anchor="middle">{{ node.retention }}%</text>
-                    <g class="dt-node-chip" :transform="`translate(0, ${node.size + 43})`">
-                      <rect x="-58" y="-18" width="116" height="36" rx="12" />
+                    <g class="dt-node-chip" :transform="`translate(0, ${node.labelOffsetY})`">
+                      <rect :x="-(node.labelWidth / 2)" y="-18" :width="node.labelWidth" height="36" rx="12" />
                       <text y="-3" text-anchor="middle" class="dt-node-label">{{ node.shortName }}</text>
                       <text y="11" text-anchor="middle" class="dt-node-hint">{{ node.level }}</text>
                     </g>
@@ -5173,6 +5178,8 @@ interface KnowledgeNode {
   x: number
   y: number
   size: number
+  labelOffsetY: number
+  labelWidth: number
   status: KnowledgeStatus
   retention: number
   lastPractice: string | null
@@ -5247,9 +5254,12 @@ const compactKnowledgeName = (value: string, fallback = 'Nodo'): string => {
   const clean = String(value || fallback).replace(/\s+/g, ' ').trim()
   if (!clean) return fallback
   const words = clean.split(' ').filter(Boolean)
-  if (words.length <= 2) return clean.slice(0, 24)
-  return `${words.slice(0, 2).join(' ')}...`
+  const compact = words.length <= 2 ? clean : words.slice(0, 2).join(' ')
+  return compact.length > 18 ? `${compact.slice(0, 15)}...` : compact
 }
+
+const getKnowledgeLabelOffset = (y: number, centerY: number, size: number): number =>
+  y > centerY + 42 ? -(size + 50) : size + 48
 
 const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const student = selectedCognitiveStudent.value
@@ -5259,11 +5269,11 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const courses = student.courses
   const baseNodes: KnowledgeNode[] = []
 
-  // Posiciones predefinidas para el grafo (diseño radial - viewBox 360x360)
-  const centerX = 360
-  const centerY = 220
-  const radiusX = 245
-  const radiusY = 135
+  // Posiciones predefinidas con margen suficiente para nodos, halos y etiquetas.
+  const centerX = 380
+  const centerY = 230
+  const radiusX = 215
+  const radiusY = 122
   const positions = Array.from({ length: 8 }, (_, i) => {
     const angle = (i * Math.PI * 2) / 8 - Math.PI / 2 // Start from top
     return {
@@ -5288,6 +5298,8 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     x: centerX,
     y: centerY,
     size: 35,
+    labelOffsetY: 84,
+    labelWidth: 128,
     status: overallStatus,
     retention: overallRetention,
     lastPractice: student.lastActivity,
@@ -5319,6 +5331,8 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       x: pos.x,
       y: pos.y,
       size: 25,
+      labelOffsetY: getKnowledgeLabelOffset(pos.y, centerY, 25),
+      labelWidth: 132,
       status: courseStatus,
       retention: courseRetention,
       lastPractice: student.lastActivity,
@@ -5366,7 +5380,7 @@ const knowledgeGraphConnections = computed((): KnowledgeConnection[] => {
       connections.push({
         from: nodeA.id,
         to: nodeB.id,
-        path: `M ${nodeA.x} ${nodeA.y} Q 360 220 ${nodeB.x} ${nodeB.y}`,
+        path: `M ${nodeA.x} ${nodeA.y} Q ${centerNode.x} ${centerNode.y} ${nodeB.x} ${nodeB.y}`,
         active: nodeA.status !== 'unseen' && nodeB.status !== 'unseen' && avgRetention >= 55,
         strength: Math.max(0.2, avgRetention / 100),
       })
@@ -8400,7 +8414,8 @@ watch(() => route.query, () => {
 }
 
 .dt-graph-svg {
-  min-height: 430px;
+  min-height: 455px;
+  aspect-ratio: 760 / 455;
 }
 
 .dt-map-frame {
@@ -8419,7 +8434,7 @@ watch(() => route.query, () => {
 
 .dt-orbit-ring {
   stroke: rgba(10, 132, 255, 0.13);
-  transform-origin: 360px 220px;
+  transform-origin: 380px 230px;
 }
 
 .dt-orbit-ring-wide {
@@ -8427,8 +8442,8 @@ watch(() => route.query, () => {
 }
 
 @keyframes dtOrbitRotate {
-  from { transform: rotate(0deg); transform-origin: 360px 220px; }
-  to { transform: rotate(360deg); transform-origin: 360px 220px; }
+  from { transform: rotate(0deg); transform-origin: 380px 230px; }
+  to { transform: rotate(360deg); transform-origin: 380px 230px; }
 }
 
 .dt-particles {
@@ -8458,13 +8473,10 @@ watch(() => route.query, () => {
   filter: drop-shadow(0 0 10px rgba(100, 210, 255, 0.34));
 }
 
-.dt-node {
+.dt-graph-node {
+  cursor: pointer;
+  animation: dtNodeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   transition: opacity 0.2s ease;
-}
-
-.dt-node:hover,
-.dt-node-selected {
-  transform: none;
 }
 
 @keyframes dtNodeIn {
@@ -8472,13 +8484,28 @@ watch(() => route.query, () => {
   to { opacity: 1; }
 }
 
-.dt-node:hover .dt-node-core,
-.dt-node-selected .dt-node-core {
+.dt-graph-node:hover .dt-node-core,
+.dt-graph-node-selected .dt-node-core {
   filter: url(#dtNodeGlow) drop-shadow(0 0 16px rgba(10, 132, 255, 0.34));
 }
 
-.dt-node-dimmed {
+.dt-graph-node-dimmed {
   opacity: 0.34;
+}
+
+.dt-node-focus {
+  fill: rgba(10, 132, 255, 0.09);
+  stroke: rgba(100, 210, 255, 0.36);
+  stroke-width: 1.2;
+  stroke-dasharray: 5, 7;
+  animation: dtFocusSpin 7s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes dtFocusSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .dt-node-aura {
