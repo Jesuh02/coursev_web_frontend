@@ -545,6 +545,158 @@
       </template>
     </div>
 
+    <!-- Cognitive Digital Twin Tab -->
+    <div v-if="activeTab === 'cognitive'" class="tab-content cognitive-tab">
+      <div class="cognitive-hero">
+        <div class="cognitive-hero-content">
+          <div class="cognitive-icon-wrap">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.5 2.1-1.2 2.8L12 12l-2.8-3.2A4 4 0 0 1 12 2z"/>
+              <path d="M12 12v6"/>
+              <circle cx="12" cy="20" r="2"/>
+              <path d="M4.93 4.93a8 8 0 0 0 0 11.31"/>
+              <path d="M19.07 4.93a8 8 0 0 1 0 11.31"/>
+            </svg>
+          </div>
+          <div class="cognitive-hero-text">
+            <h2 class="cognitive-title">Gemelo Cognitivo</h2>
+            <p class="cognitive-subtitle">
+              Análisis avanzado del comportamiento de aprendizaje de cada estudiante.
+              Visualiza patrones, tendencias y optimiza la experiencia educativa.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cognitive-features">
+        <div class="cognitive-feature-card" @click="$router.push('/cognitive-analytics')">
+          <div class="feature-icon feature-icon-purple">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <h3 class="feature-title">Perfiles Cognitivos</h3>
+            <p class="feature-desc">
+              Visualiza el rendimiento individual de cada estudiante con métricas detalladas,
+              historial de sesiones y análisis de tendencias.
+            </p>
+          </div>
+          <div class="feature-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="cognitive-feature-card" @click="$router.push('/cognitive-analytics?sortBy=performance')">
+          <div class="feature-icon feature-icon-green">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <path d="M22 4L12 14.01l-3-3"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <h3 class="feature-title">Ranking de Rendimiento</h3>
+            <p class="feature-desc">
+              Identifica a los estudiantes con mejor desempeño y aquellos que
+              necesitan apoyo adicional.
+            </p>
+          </div>
+          <div class="feature-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="cognitive-feature-card" @click="$router.push('/cognitive-analytics?sortBy=improvement')">
+          <div class="feature-icon feature-icon-blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 6l-9.5 9.5-5-5L1 18"/>
+              <path d="M17 6h6v6"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <h3 class="feature-title">Análisis de Progreso</h3>
+            <p class="feature-desc">
+              Descubre qué estudiantes están mejorando y cuáles muestran
+              signos de estancamiento o declive.
+            </p>
+          </div>
+          <div class="feature-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="cognitive-feature-card" @click="$router.push('/cognitive-analytics?sortBy=sessions')">
+          <div class="feature-icon feature-icon-orange">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <h3 class="feature-title">Frecuencia de Estudio</h3>
+            <p class="feature-desc">
+              Analiza los patrones de estudio: horarios preferidos, frecuencia
+              de sesiones y engagement general.
+            </p>
+          </div>
+          <div class="feature-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="cognitive-insights">
+        <h3 class="insights-title">¿Qué puedes descubrir?</h3>
+        <div class="insights-grid">
+          <div class="insight-item">
+            <span class="insight-emoji">🎯</span>
+            <span class="insight-text">Precisión por estudiante</span>
+          </div>
+          <div class="insight-item">
+            <span class="insight-emoji">📈</span>
+            <span class="insight-text">Tendencias de mejora</span>
+          </div>
+          <div class="insight-item">
+            <span class="insight-emoji">⏰</span>
+            <span class="insight-text">Horarios óptimos</span>
+          </div>
+          <div class="insight-item">
+            <span class="insight-emoji">🧠</span>
+            <span class="insight-text">Nivel de habilidad</span>
+          </div>
+          <div class="insight-item">
+            <span class="insight-emoji">📊</span>
+            <span class="insight-text">Historial detallado</span>
+          </div>
+          <div class="insight-item">
+            <span class="insight-emoji">⚡</span>
+            <span class="insight-text">Tiempo de respuesta</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="cognitive-cta" @click="$router.push('/cognitive-analytics')">
+        <span>Explorar Gemelo Cognitivo</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14"/>
+          <path d="M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+
     <!-- Moderación Tab -->
     <div v-if="activeTab === 'moderation'" class="tab-content moderation-tab">
       <div class="moderation-summary-grid">
@@ -2495,6 +2647,7 @@ const issueAllCertificates = async () => {
 
 const allTabs = [
   { id: 'analytics', label: 'Analytics', adminOnly: false },
+  { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false },
   { id: 'moderation', label: 'Moderación', adminOnly: false },
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },
