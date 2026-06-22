@@ -372,7 +372,7 @@ import { useRoute } from 'vue-router'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
-import { api, tokenStorage, HttpError } from '@/infrastructure/api/httpClient'
+import { api, tokenStorage } from '@/infrastructure/api/httpClient'
 import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -453,6 +453,12 @@ const topicId   = computed(() => route.query.topicId  ? Number(route.query.topic
 const taskId    = computed(() => route.query.taskId    ? Number(route.query.taskId)   : null)
 const topicName = computed(() => (route.query.topicName as string) || '')
 const taskName  = computed(() => (route.query.taskName  as string) || '')
+const autoStart = computed(() => route.query.autoStart === 'true')
+const fromRecommendation = computed(() => route.query.fromRecommendation === 'true')
+const queryDifficulty = computed(() => {
+  const d = (route.query.difficulty as string || '').toUpperCase()
+  return ['EASY', 'INTERMEDIATE', 'HARD'].includes(d) ? d as DifficultyLevel : null
+})
 
 // ─── Math topic detection ───────────────────────────────────────────────────────
 // Math exercises (and their verification/conversion) are only enabled when the
@@ -3054,6 +3060,14 @@ async function saveReinforcementResult() {
       difficulty:     selectedDifficulty.value,
       durationSeconds,
     })
+
+    // If this session came from a recommendation, mark it as completed
+    if (fromRecommendation.value && topicId.value) {
+      try {
+        const recId = route.query.recommendationId as string || `rec_${topicId.value}`
+        await reinforcementAdapter.completeRecommendation(recId, topicId.value)
+      } catch { /* silent – main result was saved */ }
+    }
   } catch { /* silent – results UI still shown */ }
 }
 
@@ -3103,6 +3117,18 @@ watch([phase, voiceQuizMode], ([nextPhase, isVoice]) => {
 onMounted(() => {
   void initCoachSpline()
   ensureCoachSplineAnimation()
+
+  // Handle auto-start from recommendations
+  if (queryDifficulty.value) {
+    selectedDifficulty.value = queryDifficulty.value
+  }
+
+  if (autoStart.value && courseId.value) {
+    // Small delay to allow UI to render first
+    setTimeout(() => {
+      void startQuiz()
+    }, 300)
+  }
 })
 
 onUnmounted(() => {

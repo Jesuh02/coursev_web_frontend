@@ -19,6 +19,129 @@
       </div>
     </div>
 
+    <!-- ═══ Recommendations Section ═══ -->
+    <section v-if="recommendations.length > 0" class="recommendations-section">
+      <div class="rec-header">
+        <h3 class="rec-title">Recomendaciones</h3>
+        <span class="rec-badge">{{ recommendations.length }}</span>
+      </div>
+
+      <TransitionGroup name="rec-list" tag="div" class="rec-list">
+        <div
+          v-for="rec in recommendations"
+          :key="rec.id"
+          class="rec-card"
+          :class="[`priority-${rec.priority}`, { 'rec-completed': rec.status === 'completed' }]"
+        >
+          <!-- Priority indicator -->
+          <div class="rec-priority-bar" :class="`priority-${rec.priority}`" />
+
+          <!-- Problem section -->
+          <div class="rec-problem">
+            <div class="rec-problem-icon">
+              <svg v-if="rec.priority === 'high'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div class="rec-problem-content">
+              <span class="rec-label">Problema detectado</span>
+              <p class="rec-description">{{ rec.problem.description }}</p>
+              <div class="rec-tags">
+                <span class="rec-tag course">{{ rec.problem.courseName }}</span>
+                <span class="rec-tag topic">{{ rec.problem.topicName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics before -->
+          <div class="rec-metrics">
+            <div class="rec-metric">
+              <span class="metric-value" :class="getAccuracyClass(rec.before.accuracy)">{{ rec.before.accuracy }}%</span>
+              <span class="metric-label">Dominio actual</span>
+            </div>
+            <div class="rec-metric">
+              <span class="metric-value">{{ rec.before.avgGrade.toFixed(1) }}</span>
+              <span class="metric-label">Nota promedio</span>
+            </div>
+            <div class="rec-metric">
+              <span class="metric-value trend" :class="`trend-${rec.before.trend}`">
+                <svg v-if="rec.before.trend === 'improving'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <svg v-else-if="rec.before.trend === 'declining'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                <span v-else>—</span>
+              </span>
+              <span class="metric-label">Tendencia</span>
+            </div>
+          </div>
+
+          <!-- Intervention -->
+          <div class="rec-intervention">
+            <span class="rec-label">Intervención sugerida</span>
+            <p class="rec-intervention-text">{{ rec.intervention.description }}</p>
+          </div>
+
+          <!-- Completed results -->
+          <Transition name="results-fade">
+            <div v-if="rec.status === 'completed' && rec.after" class="rec-results">
+              <div class="results-comparison">
+                <div class="result-col before">
+                  <span class="result-header">Antes</span>
+                  <span class="result-value low">{{ rec.before.accuracy }}%</span>
+                </div>
+                <div class="result-arrow">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </div>
+                <div class="result-col after">
+                  <span class="result-header">Después</span>
+                  <span class="result-value high">{{ rec.after.accuracy }}%</span>
+                </div>
+              </div>
+              <div class="improvement-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                +{{ rec.after.accuracy - rec.before.accuracy }}% de mejora
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Action buttons -->
+          <div v-if="rec.status !== 'completed'" class="rec-actions">
+            <button class="rec-btn rec-btn-primary" @click="goToReinforcement(rec)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              Reforzar tema
+            </button>
+            <button class="rec-btn rec-btn-secondary" @click="goToLearning(rec)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Aprender
+            </button>
+          </div>
+        </div>
+      </TransitionGroup>
+
+      <!-- Empty state when loading -->
+      <div v-if="loadingRecommendations" class="rec-loading">
+        <div class="rec-skeleton" v-for="i in 2" :key="i">
+          <div class="skeleton-line w-60" />
+          <div class="skeleton-line w-full" />
+          <div class="skeleton-line w-40" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty state for recommendations -->
+    <section v-else-if="!loadingRecommendations && hasCheckedRecommendations" class="recommendations-empty">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <p class="empty-title">Todo en orden</p>
+      <p class="empty-sub">No hay recomendaciones pendientes. Sigue practicando para mantener tu nivel.</p>
+    </section>
+
     <div class="menu-section">
       <ProfileMenuCard>
         <ProfileMenuItem icon="book" label="Mis cursos" color="#007AFF" @click="$router.push('/explore')" />
@@ -151,6 +274,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { whatsappAdapter, HttpError } from '@/infrastructure/api'
+import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
+import type { Recommendation } from '@/domain/ports'
 import ProfileMenuCard from './components/ProfileMenuCard.vue'
 import ProfileMenuItem from './components/ProfileMenuItem.vue'
 
@@ -159,6 +284,13 @@ const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
 const user = computed(() => authStore.user)
 const subscriberCount = ref(0)
+
+// ═══════════════════════════════════════
+// Recommendations state
+// ═══════════════════════════════════════
+const recommendations = ref<Recommendation[]>([])
+const loadingRecommendations = ref(false)
+const hasCheckedRecommendations = ref(false)
 
 const subscriberCountLabel = computed(() => {
   const count = subscriberCount.value
@@ -420,6 +552,67 @@ function logout() {
   // authStore.logout() ya llama router.push('/login') internamente
   authStore.logout()
 }
+
+// ═══════════════════════════════════════
+// Recommendations functions
+// ═══════════════════════════════════════
+async function loadRecommendations() {
+  if (!authStore.isAuthenticated) return
+
+  loadingRecommendations.value = true
+  try {
+    const response = await reinforcementAdapter.getRecommendations(5)
+    if (response && response.recommendations) {
+      recommendations.value = response.recommendations
+    }
+  } catch (error) {
+    console.error('Error loading recommendations:', error)
+  } finally {
+    loadingRecommendations.value = false
+    hasCheckedRecommendations.value = true
+  }
+}
+
+function getAccuracyClass(accuracy: number): string {
+  if (accuracy >= 70) return 'accuracy-good'
+  if (accuracy >= 50) return 'accuracy-medium'
+  return 'accuracy-low'
+}
+
+function goToReinforcement(rec: Recommendation) {
+  const query = {
+    topicId: String(rec.problem.topicId),
+    topicName: rec.problem.topicName,
+    difficulty: rec.intervention.difficulty,
+    autoStart: 'true',
+    fromRecommendation: 'true',
+  }
+  router.push({
+    path: `/reinforcement/${rec.problem.courseId}`,
+    query,
+  })
+}
+
+function goToLearning(rec: Recommendation) {
+  const query: Record<string, string> = {
+    courseId: String(rec.problem.courseId),
+    topicId: String(rec.problem.topicId),
+    topicName: rec.problem.topicName,
+    fromRecommendation: 'true',
+  }
+  if (rec.problem.subjectId) {
+    query.subjectId = String(rec.problem.subjectId)
+  }
+  router.push({
+    path: '/learning/course-selection',
+    query,
+  })
+}
+
+// Load recommendations on mount
+onMounted(() => {
+  void loadRecommendations()
+})
 </script>
 
 <style scoped>
@@ -732,4 +925,438 @@ function logout() {
 .dialog-fade-leave-to { opacity: 0; }
 .dialog-fade-enter-from .wa-card,
 .dialog-fade-leave-to .wa-card { transform: scale(0.93); }
+
+/* ═══ Recommendations Section — Apple Aesthetic ═══ */
+.recommendations-section {
+  padding: 0 16px 24px;
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.rec-title {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: #f5f5f7;
+  margin: 0;
+}
+
+.rec-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(0, 113, 227, 0.15);
+  color: #0071e3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rec-card {
+  position: relative;
+  background: rgba(28, 28, 30, 0.95);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s ease;
+}
+
+.rec-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.rec-card.rec-completed {
+  opacity: 0.8;
+  border-color: rgba(48, 209, 88, 0.2);
+}
+
+.rec-priority-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+}
+
+.rec-priority-bar.priority-high {
+  background: linear-gradient(90deg, #FF453A, #FF6961);
+}
+
+.rec-priority-bar.priority-medium {
+  background: linear-gradient(90deg, #FF9F0A, #FFB340);
+}
+
+.rec-priority-bar.priority-low {
+  background: linear-gradient(90deg, #30D158, #4CD964);
+}
+
+/* Problem section */
+.rec-problem {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.rec-problem-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.priority-high .rec-problem-icon {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+}
+
+.priority-medium .rec-problem-icon {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+}
+
+.priority-low .rec-problem-icon {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+
+.rec-problem-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.rec-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #86868b;
+  margin-bottom: 6px;
+}
+
+.rec-description {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #f5f5f7;
+  margin: 0 0 10px;
+}
+
+.rec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rec-tag.course {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818CF8;
+}
+
+.rec-tag.topic {
+  background: rgba(34, 211, 238, 0.12);
+  color: #22D3EE;
+}
+
+/* Metrics */
+.rec-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+.rec-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-value {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f5f5f7;
+}
+
+.metric-value.accuracy-low { color: #FF453A; }
+.metric-value.accuracy-medium { color: #FF9F0A; }
+.metric-value.accuracy-good { color: #30D158; }
+
+.metric-value.trend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-value.trend-improving { color: #30D158; }
+.metric-value.trend-declining { color: #FF453A; }
+.metric-value.trend-stable { color: #86868b; }
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #86868b;
+  text-align: center;
+}
+
+/* Intervention */
+.rec-intervention {
+  margin-bottom: 18px;
+}
+
+.rec-intervention-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #a1a1a6;
+  margin: 0;
+}
+
+/* Results comparison */
+.rec-results {
+  background: rgba(48, 209, 88, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.results-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.result-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.result-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #86868b;
+}
+
+.result-value {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.result-value.low { color: #FF6961; }
+.result-value.high { color: #30D158; }
+
+.result-arrow {
+  color: #30D158;
+  animation: arrow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes arrow-pulse {
+  0%, 100% { opacity: 0.6; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(4px); }
+}
+
+.improvement-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Action buttons */
+.rec-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.rec-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rec-btn:active {
+  transform: scale(0.97);
+}
+
+.rec-btn-primary {
+  background: #0071e3;
+  color: #fff;
+  border: none;
+}
+
+.rec-btn-primary:hover {
+  background: #0077ED;
+}
+
+.rec-btn-secondary {
+  background: transparent;
+  color: #f5f5f7;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.rec-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Loading skeleton */
+.rec-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rec-skeleton {
+  background: rgba(28, 28, 30, 0.95);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-full { width: 100%; }
+.skeleton-line.w-40 { width: 40%; }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.recommendations-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(48, 209, 88, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #30D158;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #f5f5f7;
+  margin: 0 0 8px;
+}
+
+.empty-sub {
+  font-size: 14px;
+  color: #86868b;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 280px;
+}
+
+/* List transitions */
+.rec-list-enter-active,
+.rec-list-leave-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.rec-list-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.rec-list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.rec-list-move {
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Results fade transition */
+.results-fade-enter-active {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.results-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
 </style>

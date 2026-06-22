@@ -18,4 +18,7 @@ export const reinforcementAdapter: ReinforcementPort = {
   },
   getLearningContext: (data) => api.post('/reinforcement/learning-context', data),
   coachConversation: (data) => api.post('/reinforcement/coach', data),
+  getRecommendations: (limit = 5) => api.get(`/reinforcement/recommendations?limit=${limit}`),
+  completeRecommendation: (recommendationId, topicId) =>
+    api.post(`/reinforcement/recommendations/${recommendationId}/complete`, { topicId }),
 }

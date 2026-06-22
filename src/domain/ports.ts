@@ -243,6 +243,57 @@ export interface ReinforcementPort {
   getCognitiveAnalytics(courseId: number, options?: Record<string, unknown>): Promise<Record<string, unknown>>
   getLearningContext(data: Record<string, unknown>): Promise<Record<string, unknown>>
   coachConversation(data: Record<string, unknown>): Promise<Record<string, unknown>>
+  getRecommendations(limit?: number): Promise<RecommendationsResponse>
+  completeRecommendation(recommendationId: string, topicId: number): Promise<Record<string, unknown>>
+}
+
+export interface Recommendation {
+  id: string
+  type: string
+  status: string
+  priority: 'high' | 'medium' | 'low'
+  problem: {
+    description: string
+    topicId: number
+    topicName: string
+    courseId: number
+    courseName: string
+    subjectId: number | null
+    subjectName: string | null
+  }
+  before: {
+    accuracy: number
+    avgGrade: number
+    totalSessions: number
+    totalQuestions: number
+    trend: string
+  }
+  intervention: {
+    type: string
+    description: string
+    questionCount: number
+    difficulty: string
+    estimatedMinutes: number
+  }
+  actions: {
+    reinforcement: {
+      path: string
+      query: Record<string, string>
+    }
+    learning: {
+      path: string
+      query: Record<string, string>
+    }
+  }
+  createdAt: string
+}
+
+export interface RecommendationsResponse {
+  recommendations: Recommendation[]
+  hasData: boolean
+  totalWeakAreas?: number
+  analyzedSessions?: number
+  message?: string
 }
 
 export interface InstitucionPort {
