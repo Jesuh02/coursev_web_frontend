@@ -904,6 +904,7 @@ function startCoachDictation(autoSubmit = false) {
   coachRecognition.interimResults = false
   coachRecognition.onresult = (event: unknown) => {
     const transcript = extractSpeechTranscript(event)
+    console.log('[Coach Mic] Resultado de voz:', transcript)
     if (!transcript) return
     if (autoSubmit || voiceConversationMode.value) {
       void handleCoachVoiceTranscript(transcript)
@@ -966,15 +967,23 @@ function pickSpanishFemaleVoice(): SpeechSynthesisVoice | null {
 
 function finishCoachSpeech(token: number, resumeListening: boolean) {
   if (token !== coachSpeechToken) return
+  console.log('[Coach TTS] Termino de hablar, resumeListening:', resumeListening)
   isCoachSpeaking.value = false
   coachSpeechVolume = 0
   coachAudioElement = null
-  if (resumeListening) scheduleCoachListening(420)
+  if (resumeListening) {
+    console.log('[Coach TTS] Programando escucha en 420ms...')
+    scheduleCoachListening(420)
+  }
 }
 
 function speakCoachText(text: string, resumeListening = false) {
   const cleanText = text.replace(/\s+/g, ' ').trim()
-  if (!cleanText) return
+  console.log('[Coach TTS] Iniciando speech, texto:', cleanText.substring(0, 80) + '...')
+  if (!cleanText) {
+    console.log('[Coach TTS] Texto vacio, no se reproduce')
+    return
+  }
   const token = ++coachSpeechToken
   coachVoiceListeningWanted = resumeListening
   coachRecognition?.stop()
@@ -987,20 +996,26 @@ function speakCoachText(text: string, resumeListening = false) {
     coachAudioElement = null
   }
 
-  void speakCoachWithRemoteTts(cleanText, token, resumeListening).catch(() => {
+  console.log('[Coach TTS] Intentando TTS remoto...')
+  void speakCoachWithRemoteTts(cleanText, token, resumeListening).catch((err) => {
+    console.log('[Coach TTS] TTS remoto fallo:', err?.message || err, '- usando navegador')
     if (token === coachSpeechToken) speakCoachWithBrowserVoice(cleanText, token, resumeListening)
   })
 }
 
 async function speakCoachWithRemoteTts(text: string, token: number, resumeListening: boolean) {
+  console.log('[Coach TTS Remote] Iniciando, remoteTtsAvailable:', remoteTtsAvailable)
   if (remoteTtsAvailable === false) throw new Error('Remote TTS unavailable')
   isCoachSpeaking.value = true
   boostCoachSpeechVolume(0.66)
   if (remoteTtsAvailable === null) {
     try {
+      console.log('[Coach TTS Remote] Verificando capacidades TTS...')
       const capabilities = await api.get<TTSCapabilities>('/tts/capabilities')
       remoteTtsAvailable = capabilities?.available === true
-    } catch {
+      console.log('[Coach TTS Remote] TTS disponible:', remoteTtsAvailable)
+    } catch (err) {
+      console.log('[Coach TTS Remote] Error verificando TTS:', err)
       remoteTtsAvailable = false
     }
   }
@@ -1040,6 +1055,7 @@ async function speakCoachWithRemoteTts(text: string, token: number, resumeListen
 }
 
 function speakCoachWithBrowserVoice(text: string, token: number, resumeListening: boolean) {
+  console.log('[Coach TTS Browser] Usando voz del navegador')
   if (token !== coachSpeechToken) return
   const synth = window.speechSynthesis
   if (!synth || !text.trim()) {
@@ -2544,11 +2560,17 @@ function handleVoiceOrbClick() {
 
 async function handleCoachVoiceTranscript(transcript: string) {
   const content = transcript.trim()
-  if (!content || coachLoading.value) return
+  console.log('[Coach] Transcripcion recibida:', content)
+  if (!content || coachLoading.value) {
+    console.log('[Coach] Ignorando transcripcion (vacio o cargando)')
+    return
+  }
   if (isRepeatVoiceCommand(content)) {
+    console.log('[Coach] Comando de repetir detectado')
     repeatLastCoachQuestion()
     return
   }
+  console.log('[Coach] Enviando mensaje al backend...')
   await sendCoachMessage(content, { voiceMode: true, resumeListening: true })
 }
 
@@ -2604,7 +2626,9 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     }
     if (tokenStorage.userId) payload.userId = tokenStorage.userId
 
+    console.log('[Coach] Enviando peticion al backend...')
     const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
+    console.log('[Coach] Respuesta del backend:', response)
     const stance: CoachStance = response.stance || 'incorrect'
     const question = openCoachQuestion(response.question || '')
     coachLastQuestion.value = question
@@ -2619,8 +2643,12 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     coachMessages.value.push(assistantMessage)
     pulseCoachSpline()
 
-    if (!options.deferSpeech && (options.voiceMode || coachAutoSpeak.value)) {
-      speakCoachText(spokenCoachReply(assistantMessage), options.resumeListening === true)
+    const shouldSpeak = !options.deferSpeech && (options.voiceMode || coachAutoSpeak.value)
+    console.log('[Coach] Debe hablar?', shouldSpeak, 'voiceMode:', options.voiceMode, 'autoSpeak:', coachAutoSpeak.value)
+    if (shouldSpeak) {
+      const textToSpeak = spokenCoachReply(assistantMessage)
+      console.log('[Coach] Texto a hablar:', textToSpeak.substring(0, 100) + '...')
+      speakCoachText(textToSpeak, options.resumeListening === true)
     }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'No pude conversar con el coach.'
