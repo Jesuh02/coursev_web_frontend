@@ -9101,6 +9101,12 @@ watch(() => route.query, () => {
   .cognitive-toolbar {
     position: static;
     grid-template-columns: 1fr;
+    margin: 0 -20px 16px;
+    padding: 12px 20px 14px;
+  }
+
+  .cognitive-toolbar::before {
+    display: none;
   }
 
   .cognitive-refresh-btn {
@@ -9110,6 +9116,13 @@ watch(() => route.query, () => {
 
 @media (max-width: 520px) {
   .cognitive-tab {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cognitive-toolbar {
+    margin-left: -12px;
+    margin-right: -12px;
     padding-left: 12px;
     padding-right: 12px;
   }

@@ -4745,11 +4745,17 @@ function renderMarkdown(text: string): string {
 
 @media (max-width: 760px) {
   .class-radar-panel {
+    width: 100%;
     max-height: 90dvh;
+    margin: 0;
+    border-radius: 24px 24px 0 0;
   }
   .class-radar-layout {
     display: flex;
     flex-direction: column;
+  }
+  .class-radar-header {
+    padding: 16px 16px 12px;
   }
   .class-radar-courses {
     display: flex;
@@ -4762,9 +4768,20 @@ function renderMarkdown(text: string): string {
   }
   .class-radar-course {
     min-width: 190px;
+    margin-top: 0;
+  }
+  .class-radar-course + .class-radar-course {
+    margin-top: 0;
   }
   .class-radar-detail {
     padding: 12px;
+  }
+  .radar-ai-actions {
+    flex-wrap: wrap;
+  }
+  .radar-ai-action {
+    flex: 1 1 130px;
+    justify-content: center;
   }
   .radar-brief,
   .radar-students {
