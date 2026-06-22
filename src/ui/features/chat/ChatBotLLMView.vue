@@ -501,7 +501,7 @@
          CLASS RADAR OVERLAY
     ══════════════════════════════════════ -->
     <Transition name="sheet-up">
-      <div v-if="showClassRadarOverlay" class="sheet-backdrop" @click.self="closeClassRadarOverlay">
+      <div v-if="showClassRadarOverlay" class="sheet-backdrop class-radar-backdrop" @click.self="closeClassRadarOverlay">
         <div class="sheet-panel class-radar-panel">
           <div class="sheet-handle" />
           <div class="sheet-header class-radar-header">
@@ -3919,8 +3919,68 @@ function renderMarkdown(text: string): string {
   overflow: hidden;
 }
 
+.class-radar-backdrop {
+  background:
+    radial-gradient(1200px 560px at 50% 100%, rgba(20, 184, 166, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.48), rgba(3, 7, 18, 0.82));
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+}
+
 .class-radar-panel {
-  max-height: 86dvh;
+  position: relative;
+  isolation: isolate;
+  width: min(1180px, calc(100% - 22px));
+  max-height: 88dvh;
+  margin: 0 auto 10px;
+  border-radius: 28px 28px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 0;
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.92)),
+    rgba(15, 23, 42, 0.78);
+  box-shadow:
+    0 -28px 90px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  animation: radarPanelIn 0.46s cubic-bezier(0.2, 0.86, 0.24, 1) both;
+}
+
+.class-radar-panel::before,
+.class-radar-panel::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.class-radar-panel::before {
+  inset: 0;
+  background:
+    linear-gradient(115deg, rgba(125, 211, 252, 0.16), transparent 34%),
+    linear-gradient(235deg, rgba(52, 211, 153, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 24%);
+  opacity: 0.9;
+  animation: radarGlassFlow 10s ease-in-out infinite alternate;
+}
+
+.class-radar-panel::after {
+  top: 0;
+  left: 7%;
+  right: 7%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+}
+
+.class-radar-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.class-radar-panel .sheet-handle {
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.22), rgba(255, 255, 255, 0.56), rgba(52, 211, 153, 0.22));
+  box-shadow: 0 0 18px rgba(125, 211, 252, 0.32);
 }
 
 .sheet-handle {
@@ -3961,10 +4021,21 @@ function renderMarkdown(text: string): string {
 .class-radar-header {
   align-items: flex-start;
   gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.11);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.22));
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+.class-radar-header .sheet-title {
+  color: #F8FAFC;
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: 0;
 }
 .class-radar-subtitle {
-  margin: 3px 0 0;
-  color: #8696A0;
+  margin: 4px 0 0;
+  color: rgba(226, 232, 240, 0.68);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -3975,71 +4046,116 @@ function renderMarkdown(text: string): string {
   flex-shrink: 0;
 }
 .class-radar-refresh {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.07);
-  color: #9FB0BB;
+  background: rgba(255,255,255,0.08);
+  color: #BAE6FD;
+  border: 1px solid rgba(255,255,255,0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 .class-radar-refresh:disabled { opacity: 0.45; }
 .class-radar-refresh:not(:disabled):hover {
-  background: rgba(255,255,255,0.12);
-  color: #E9EDEF;
+  transform: translateY(-1px) rotate(18deg);
+  background: rgba(125, 211, 252, 0.16);
+  border-color: rgba(125, 211, 252, 0.28);
+  color: #F0F9FF;
 }
 .class-radar-loading,
 .class-radar-empty {
-  padding: 16px 0 28px;
+  padding: 20px 18px 34px;
 }
 .class-radar-layout {
   min-height: 0;
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 292px) minmax(0, 1fr);
   overflow: hidden;
 }
 .class-radar-courses {
   overflow-y: auto;
-  padding: 10px;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.34), rgba(2, 6, 23, 0.22));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+}
+.class-radar-courses::-webkit-scrollbar,
+.class-radar-detail::-webkit-scrollbar {
+  width: 8px;
+}
+.class-radar-courses::-webkit-scrollbar-thumb,
+.class-radar-detail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
 }
 .class-radar-course {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 11px 12px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 13px 14px;
+  border-radius: 16px;
   text-align: left;
-  color: #E9EDEF;
-  transition: background 0.15s, border-color 0.15s;
-  border: 1px solid transparent;
+  color: #F8FAFC;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: radarItemIn 0.4s ease both;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.class-radar-course + .class-radar-course {
+  margin-top: 8px;
+}
+.class-radar-course::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(125, 211, 252, 0.18), transparent 48%);
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 .class-radar-course:hover {
-  background: rgba(255,255,255,0.05);
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.075);
+  border-color: rgba(255,255,255,0.14);
+}
+.class-radar-course:hover::before,
+.class-radar-course--active::before {
+  opacity: 1;
 }
 .class-radar-course--active {
-  background: rgba(125, 211, 252, 0.08);
-  border-color: rgba(125, 211, 252, 0.24);
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(125, 211, 252, 0.36);
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255,255,255,0.12);
 }
 .class-radar-course-name {
+  position: relative;
+  z-index: 1;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 720;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .class-radar-course-meta {
+  position: relative;
+  z-index: 1;
   font-size: 11.5px;
-  color: #93A4AE;
+  color: rgba(226, 232, 240, 0.62);
 }
 .class-radar-detail {
   min-width: 0;
   overflow-y: auto;
-  padding: 14px;
+  padding: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
 }
 .radar-brief {
   display: flex;
@@ -4074,29 +4190,53 @@ function renderMarkdown(text: string): string {
 
 /* ─── AI Radar Card (Conversational style) ────────────────────── */
 .radar-ai-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045)),
+    linear-gradient(115deg, rgba(14, 165, 233, 0.16), rgba(16, 185, 129, 0.1) 54%, rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
   overflow: hidden;
   margin-bottom: 14px;
+  box-shadow:
+    0 22px 52px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: radarCardLift 0.5s cubic-bezier(0.2, 0.86, 0.24, 1) both;
+}
+.radar-ai-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.16) 46%, transparent 58%);
+  transform: translateX(-120%);
+  animation: radarSheen 6s ease-in-out infinite;
 }
 .radar-ai-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(2, 6, 23, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 .radar-ai-avatar {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  background: conic-gradient(from 180deg, #22D3EE, #34D399, #F59E0B, #22D3EE);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
+  color: #04111E;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.24);
+  animation: radarAvatarPulse 3.8s ease-in-out infinite;
 }
 .radar-ai-title {
   flex: 1;
@@ -4105,29 +4245,32 @@ function renderMarkdown(text: string): string {
 .radar-ai-name {
   display: block;
   font-size: 13px;
-  font-weight: 600;
-  color: #E5E7EB;
+  font-weight: 740;
+  color: #F8FAFC;
 }
 .radar-ai-label {
   display: block;
   font-size: 11px;
-  color: #9CA3AF;
+  color: rgba(226, 232, 240, 0.64);
   margin-top: 1px;
 }
 .radar-ai-refresh {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(139, 92, 246, 0.1);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.1);
+  color: #BAE6FD;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 .radar-ai-refresh:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.2);
+  transform: translateY(-1px);
+  background: rgba(125, 211, 252, 0.18);
+  color: #F0F9FF;
 }
 .radar-ai-refresh:disabled {
   opacity: 0.5;
@@ -4141,7 +4284,9 @@ function renderMarkdown(text: string): string {
   to { transform: rotate(360deg); }
 }
 .radar-ai-message {
-  padding: 14px 16px;
+  position: relative;
+  z-index: 1;
+  padding: 16px 18px;
 }
 .radar-ai-typing {
   display: inline-flex;
@@ -4152,7 +4297,7 @@ function renderMarkdown(text: string): string {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #A78BFA;
+  background: #67E8F9;
   animation: radar-typing-bounce 1.4s ease-in-out infinite;
 }
 .radar-ai-typing span:nth-child(1) { animation-delay: 0s; }
@@ -4162,41 +4307,82 @@ function renderMarkdown(text: string): string {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-4px); opacity: 1; }
 }
+
+@keyframes radarPanelIn {
+  from { transform: translateY(44px) scale(0.985); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes radarGlassFlow {
+  0% { transform: translate3d(-1.5%, 0, 0) scale(1); opacity: 0.72; }
+  50% { transform: translate3d(1.5%, -1%, 0) scale(1.015); opacity: 0.95; }
+  100% { transform: translate3d(0.5%, 1%, 0) scale(1.02); opacity: 0.8; }
+}
+
+@keyframes radarCardLift {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes radarItemIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes radarMetricIn {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes radarSheen {
+  0%, 56% { transform: translateX(-120%); opacity: 0; }
+  64% { opacity: 1; }
+  78%, 100% { transform: translateX(120%); opacity: 0; }
+}
+
+@keyframes radarAvatarPulse {
+  0%, 100% { transform: scale(1); filter: saturate(1); }
+  50% { transform: scale(1.04); filter: saturate(1.18); }
+}
 .radar-ai-placeholder {
   margin: 0;
   font-size: 12px;
-  color: #9CA3AF;
+  color: rgba(226, 232, 240, 0.66);
   font-style: italic;
 }
 .radar-ai-text {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #E5E7EB;
+  color: #E2E8F0;
 }
 .radar-ai-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid rgba(139, 92, 246, 0.1);
-  background: rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.22);
 }
 .radar-ai-action {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: 8px;
-  background: rgba(139, 92, 246, 0.12);
-  color: #C4B5FD;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #DDFBFF;
   font-size: 12px;
-  font-weight: 500;
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  transition: all 0.15s ease;
+  font-weight: 680;
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 .radar-ai-action:hover {
-  background: rgba(139, 92, 246, 0.2);
-  color: #DDD6FE;
+  transform: translateY(-1px);
+  background: rgba(125, 211, 252, 0.16);
+  border-color: rgba(125, 211, 252, 0.28);
+  color: #FFFFFF;
 }
 
 .radar-context-btn {
@@ -4224,15 +4410,26 @@ function renderMarkdown(text: string): string {
 .radar-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
 }
 .radar-metric {
   min-width: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  animation: radarMetricIn 0.42s ease both;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.radar-metric:nth-child(2) { animation-delay: 60ms; }
+.radar-metric:nth-child(3) { animation-delay: 120ms; }
+.radar-metric:nth-child(4) { animation-delay: 180ms; }
+.radar-metric:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.22);
+  background: linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055));
 }
 .radar-metric-value {
   display: block;
@@ -4252,19 +4449,48 @@ function renderMarkdown(text: string): string {
 .radar-insights {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
 }
 .radar-insight {
+  position: relative;
+  overflow: hidden;
   min-width: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  animation: radarItemIn 0.42s ease both;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
-.radar-insight--critical { border-color: rgba(251, 191, 36, 0.34); }
-.radar-insight--warning { border-color: rgba(125, 211, 252, 0.22); }
-.radar-insight--positive { border-color: rgba(52, 211, 153, 0.24); }
+.radar-insight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 42%);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.radar-insight:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045));
+}
+.radar-insight:hover::before {
+  opacity: 1;
+}
+.radar-insight:nth-child(2) { animation-delay: 40ms; }
+.radar-insight:nth-child(3) { animation-delay: 80ms; }
+.radar-insight:nth-child(4) { animation-delay: 120ms; }
+.radar-insight:nth-child(5) { animation-delay: 160ms; }
+.radar-insight:nth-child(6) { animation-delay: 200ms; }
+.radar-insight:nth-child(7) { animation-delay: 240ms; }
+.radar-insight:nth-child(8) { animation-delay: 280ms; }
+.radar-insight--critical { border-color: rgba(251, 191, 36, 0.38); }
+.radar-insight--warning { border-color: rgba(125, 211, 252, 0.28); }
+.radar-insight--positive { border-color: rgba(52, 211, 153, 0.3); }
+.radar-insight--neutral { border-color: rgba(148, 163, 184, 0.22); }
 .radar-insight-top {
   display: flex;
   align-items: baseline;
@@ -4277,7 +4503,7 @@ function renderMarkdown(text: string): string {
   font-weight: 700;
 }
 .radar-insight-value {
-  color: #DDE6EA;
+  color: #F8FAFC;
   font-size: 12px;
   font-weight: 700;
   text-align: right;
@@ -4288,7 +4514,7 @@ function renderMarkdown(text: string): string {
 }
 .radar-insight p {
   margin: 7px 0;
-  color: #A8B5BC;
+  color: rgba(226, 232, 240, 0.66);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -4301,14 +4527,15 @@ function renderMarkdown(text: string): string {
 .radar-students {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
 }
 .radar-students > div {
-  padding: 11px 12px;
-  border-radius: 12px;
-  background: rgba(0,0,0,0.14);
-  border: 1px solid rgba(255,255,255,0.05);
+  padding: 13px 14px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.24);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .radar-students-label {
   color: #93A4AE;

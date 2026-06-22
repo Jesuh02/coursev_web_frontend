@@ -787,7 +787,7 @@
                   </div>
                 </div>
 
-                <svg class="dt-graph-svg" viewBox="0 0 760 390" preserveAspectRatio="xMidYMid meet">
+                <svg class="dt-graph-svg" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <!-- Gradientes -->
                     <radialGradient id="dtCenterGlow" cx="50%" cy="50%" r="50%">
@@ -822,16 +822,16 @@
                     </linearGradient>
                   </defs>
 
-                  <rect x="20" y="10" width="720" height="372" rx="30" class="dt-map-frame" />
+                  <rect x="20" y="15" width="860" height="470" rx="30" class="dt-map-frame" />
                   <!-- Fondo con glow central -->
-                  <circle cx="315" cy="215" r="150" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
+                  <circle cx="450" cy="250" r="180" fill="url(#dtCenterGlow)" class="dt-bg-glow"/>
 
                   <!-- Anillos orbitales decorativos -->
-                  <circle cx="315" cy="215" r="82" class="dt-orbit-ring" style="animation-delay: 0s"/>
-                  <circle cx="315" cy="215" r="146" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
-                  <text x="68" y="36" class="dt-zone-label">Consolidado</text>
-                  <text x="646" y="36" class="dt-zone-label">Riesgo</text>
-                  <text x="68" y="344" class="dt-zone-label">Nuevo</text>
+                  <circle cx="450" cy="250" r="100" class="dt-orbit-ring" style="animation-delay: 0s"/>
+                  <circle cx="450" cy="250" r="180" class="dt-orbit-ring dt-orbit-ring-wide" style="animation-delay: 0.5s"/>
+                  <text x="68" y="46" class="dt-zone-label">Consolidado</text>
+                  <text x="780" y="46" class="dt-zone-label">Riesgo</text>
+                  <text x="68" y="456" class="dt-zone-label">Nuevo</text>
 
                   <!-- Conexiones con curvas bezier -->
                   <g class="dt-connections">
@@ -5453,17 +5453,18 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
   const courses = student.courses
   const baseNodes: KnowledgeNode[] = []
 
-  // Posiciones predefinidas con margen suficiente para nodos, halos y etiquetas.
-  const centerX = 315
-  const centerY = 215
+  // Posiciones predefinidas con margen amplio para nodos, halos y etiquetas.
+  // viewBox expandido a 900x500 para mejor visualización
+  const centerX = 450
+  const centerY = 250
   const positions = [
-    { x: 400, y: 86, labelOffsetX: 0, labelOffsetY: 54, labelWidth: 132 },
-    { x: 570, y: 128, labelOffsetX: 0, labelOffsetY: -52, labelWidth: 126 },
-    { x: 650, y: 222, labelOffsetX: -8, labelOffsetY: 54, labelWidth: 132 },
-    { x: 548, y: 306, labelOffsetX: 0, labelOffsetY: 52, labelWidth: 132 },
-    { x: 238, y: 306, labelOffsetX: 0, labelOffsetY: 52, labelWidth: 132 },
-    { x: 145, y: 220, labelOffsetX: 0, labelOffsetY: 54, labelWidth: 126 },
-    { x: 225, y: 122, labelOffsetX: 0, labelOffsetY: -52, labelWidth: 126 },
+    { x: 540, y: 85, labelOffsetX: 0, labelOffsetY: 58, labelWidth: 140 },    // Superior derecha
+    { x: 750, y: 150, labelOffsetX: 0, labelOffsetY: -56, labelWidth: 140 },  // Derecha arriba
+    { x: 820, y: 280, labelOffsetX: -12, labelOffsetY: 58, labelWidth: 140 }, // Derecha centro
+    { x: 700, y: 410, labelOffsetX: 0, labelOffsetY: 56, labelWidth: 140 },   // Inferior derecha
+    { x: 200, y: 410, labelOffsetX: 0, labelOffsetY: 56, labelWidth: 140 },   // Inferior izquierda
+    { x: 80, y: 280, labelOffsetX: 0, labelOffsetY: 58, labelWidth: 140 },    // Izquierda centro
+    { x: 150, y: 130, labelOffsetX: 0, labelOffsetY: -56, labelWidth: 140 },  // Izquierda arriba
   ]
 
   // Nodo central: rendimiento general
@@ -5481,10 +5482,10 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
     level: 'General',
     x: centerX,
     y: centerY,
-    size: 35,
+    size: 42,
     labelOffsetX: 0,
-    labelOffsetY: 84,
-    labelWidth: 128,
+    labelOffsetY: 95,
+    labelWidth: 145,
     status: overallStatus,
     retention: overallRetention,
     lastPractice: student.lastActivity,
@@ -5515,7 +5516,7 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       level: `${courseAccuracy}% precision`,
       x: pos.x,
       y: pos.y,
-      size: 25,
+      size: 30,
       labelOffsetX: pos.labelOffsetX,
       labelOffsetY: pos.labelOffsetY,
       labelWidth: pos.labelWidth,
@@ -7381,32 +7382,93 @@ watch(() => route.query, () => {
 .cognitive-toolbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 18;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(180px, 230px) minmax(180px, 220px) 44px;
-  gap: 10px;
+  grid-template-columns: minmax(280px, 1fr) minmax(190px, 240px) minmax(190px, 230px) 48px;
+  gap: 12px;
   align-items: stretch;
-  padding: 10px 0 14px;
-  background: rgba(0, 0, 0, 0.82);
-  backdrop-filter: saturate(180%) blur(18px);
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  margin: 0 -20px 16px;
+  padding: 12px 20px 13px;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.98), rgba(0, 0, 0, 0.82)),
+    rgba(0, 0, 0, 0.88);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.11);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: saturate(190%) blur(26px);
+  -webkit-backdrop-filter: saturate(190%) blur(26px);
+  animation: cognitiveToolbarIn 0.32s ease both;
+}
+
+.cognitive-toolbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -18px;
+  height: 18px;
+  background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.98));
+  pointer-events: none;
+}
+
+.cognitive-toolbar::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(90, 200, 250, 0.42), rgba(48, 209, 88, 0.28), transparent);
+  pointer-events: none;
+}
+
+.cognitive-toolbar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .cognitive-search-box,
 .cognitive-select-wrap {
   min-width: 0;
-  height: 44px;
-  border-radius: 14px;
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  background: rgba(28, 28, 30, 0.92);
-  color: #8E8E93;
+  height: 48px;
+  border-radius: 18px;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.045)),
+    rgba(28, 28, 30, 0.72);
+  color: #A1A1AA;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 10px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cognitive-search-box:hover,
+.cognitive-select-wrap:hover,
+.cognitive-search-box:focus-within,
+.cognitive-select-wrap:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(90, 200, 250, 0.36);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    rgba(28, 28, 30, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 12px 28px rgba(0, 0, 0, 0.3);
 }
 
 .cognitive-search-box {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.cognitive-search-box svg {
+  flex-shrink: 0;
+  color: rgba(235, 235, 245, 0.52);
+  transition: color 0.18s ease;
+}
+
+.cognitive-search-box:focus-within svg {
+  color: #5AC8FA;
 }
 
 .cognitive-search-box input {
@@ -7418,6 +7480,7 @@ watch(() => route.query, () => {
   background: transparent;
   color: #fff;
   font-size: 14px;
+  letter-spacing: 0;
 }
 
 .cognitive-search-box input::placeholder {
@@ -7428,12 +7491,12 @@ watch(() => route.query, () => {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  padding: 0 10px 0 12px;
+  gap: 10px;
+  padding: 0 12px 0 14px;
 }
 
 .cognitive-select-wrap span {
-  color: #636366;
+  color: rgba(235, 235, 245, 0.5);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -7448,7 +7511,8 @@ watch(() => route.query, () => {
   background: transparent;
   color: #fff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 680;
+  cursor: pointer;
 }
 
 .cognitive-select-wrap option {
@@ -7457,29 +7521,42 @@ watch(() => route.query, () => {
 }
 
 .cognitive-refresh-btn {
-  width: 44px;
-  height: 44px;
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
   color: #EBEBF5;
-  background: rgba(28, 28, 30, 0.92);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.045)),
+    rgba(28, 28, 30, 0.72);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 10px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .cognitive-refresh-btn:hover {
-  transform: translateY(-1px);
-  background: rgba(44, 44, 46, 0.96);
-  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px) rotate(16deg);
+  background:
+    linear-gradient(145deg, rgba(90, 200, 250, 0.16), rgba(48, 209, 88, 0.09)),
+    rgba(44, 44, 46, 0.88);
+  border-color: rgba(90, 200, 250, 0.34);
+  color: #FFFFFF;
 }
 
 .cognitive-refresh-btn.is-text {
   width: auto;
   padding: 0 16px;
   font-weight: 700;
+}
+
+@keyframes cognitiveToolbarIn {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .cognitive-workbench {
@@ -7901,8 +7978,8 @@ watch(() => route.query, () => {
 
 .dt-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -7934,9 +8011,9 @@ watch(() => route.query, () => {
   animation: dtOrbitRotate 60s linear infinite;
 }
 
-@keyframes dtOrbitRotate {
-  from { transform: rotate(0deg); transform-origin: 180px 180px; }
-  to { transform: rotate(360deg); transform-origin: 180px 180px; }
+@keyframes dtOrbitRotateOld {
+  from { transform: rotate(0deg); transform-origin: 450px 250px; }
+  to { transform: rotate(360deg); transform-origin: 450px 250px; }
 }
 
 .dt-bg-glow {
@@ -8529,11 +8606,12 @@ watch(() => route.query, () => {
 .dt-graph-canvas {
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 18%, rgba(10, 132, 255, 0.16), transparent 34%),
-    radial-gradient(circle at 74% 70%, rgba(48, 209, 88, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    radial-gradient(circle at 50% 50%, rgba(10, 132, 255, 0.12), transparent 45%),
+    radial-gradient(circle at 74% 70%, rgba(48, 209, 88, 0.06), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24) inset;
+  padding: 20px;
 }
 
 .dt-map-topline {
@@ -8586,8 +8664,9 @@ watch(() => route.query, () => {
 }
 
 .dt-graph-svg {
-  min-height: 390px;
-  aspect-ratio: 760 / 390;
+  min-height: 440px;
+  max-height: 520px;
+  aspect-ratio: 900 / 500;
 }
 
 .dt-map-frame {
@@ -8606,7 +8685,7 @@ watch(() => route.query, () => {
 
 .dt-orbit-ring {
   stroke: rgba(10, 132, 255, 0.13);
-  transform-origin: 315px 215px;
+  transform-origin: 450px 250px;
 }
 
 .dt-orbit-ring-wide {
@@ -8614,8 +8693,8 @@ watch(() => route.query, () => {
 }
 
 @keyframes dtOrbitRotate {
-  from { transform: rotate(0deg); transform-origin: 315px 215px; }
-  to { transform: rotate(360deg); transform-origin: 315px 215px; }
+  from { transform: rotate(0deg); transform-origin: 450px 250px; }
+  to { transform: rotate(360deg); transform-origin: 450px 250px; }
 }
 
 .dt-particles {
@@ -8700,12 +8779,22 @@ watch(() => route.query, () => {
 
 .dt-node-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.12);
-  stroke-width: 5;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 6;
 }
 
 .dt-node-ring {
-  stroke-width: 5;
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.dt-node-core {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s ease;
 }
 
 .dt-ring-mastered {
@@ -8725,24 +8814,40 @@ watch(() => route.query, () => {
 }
 
 .dt-node-chip rect {
-  fill: rgba(18, 18, 20, 0.68);
-  stroke: rgba(255, 255, 255, 0.13);
+  fill: rgba(18, 18, 20, 0.85);
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 .dt-node-label {
   fill: #F5F5F7;
-  font-size: 9.5px;
-  font-weight: 750;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   pointer-events: none;
 }
 
 .dt-node-hint {
-  fill: rgba(235, 235, 245, 0.52);
-  font-size: 8px;
-  font-weight: 650;
+  fill: rgba(235, 235, 245, 0.6);
+  font-size: 9px;
+  font-weight: 600;
   pointer-events: none;
+}
+
+.dt-node-text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dt-retention-label {
+  fill: rgba(235, 235, 245, 0.7);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .dt-map-footer {
@@ -8946,7 +9051,8 @@ watch(() => route.query, () => {
   }
 
   .dt-graph-svg {
-    min-height: 360px;
+    min-height: 320px;
+    max-height: 400px;
   }
 
   .dt-map-footer {
