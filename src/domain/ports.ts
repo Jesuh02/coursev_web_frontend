@@ -239,6 +239,7 @@ export interface ReinforcementPort {
   saveResult(data: Record<string, unknown>): Promise<void>
   getMyResults(): Promise<Record<string, unknown>[]>
   getResultsByCourse(courseId: number): Promise<Record<string, unknown>[]>
+  getCognitiveAnalytics(courseId: number, options?: Record<string, unknown>): Promise<Record<string, unknown>>
   getLearningContext(data: Record<string, unknown>): Promise<Record<string, unknown>>
   coachConversation(data: Record<string, unknown>): Promise<Record<string, unknown>>
 }

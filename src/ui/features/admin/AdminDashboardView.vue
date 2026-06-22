@@ -547,6 +547,211 @@
 
     <!-- Cognitive Digital Twin Tab -->
     <div v-if="activeTab === 'cognitive'" class="tab-content cognitive-tab">
+      <section class="cognitive-hero-panel">
+        <div class="cognitive-hero-copy">
+          <span class="cognitive-eyebrow">Gemelo Cognitivo</span>
+          <h2>Usuarios que han reforzado</h2>
+          <p>
+            Panel basado solo en sesiones reales de refuerzo: precision, errores,
+            tiempo por pregunta, horario de estudio, tendencia y riesgo de fatiga.
+          </p>
+        </div>
+        <div class="cognitive-signal" aria-hidden="true">
+          <div class="cognitive-signal-total">
+            <strong>{{ cognitiveTotalStudents }}</strong>
+            <span>usuarios</span>
+          </div>
+          <div class="cognitive-signal-bars">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <small>refuerzo activo</small>
+        </div>
+      </section>
+
+      <div v-if="cognitiveLoading" class="cognitive-loading">
+        <div class="spinner-lg"></div>
+        <p>Construyendo perfiles cognitivos...</p>
+      </div>
+
+      <div v-else-if="cognitiveLoadError" class="cognitive-empty">
+        <h3>No se pudo cargar el gemelo cognitivo</h3>
+        <p>{{ cognitiveLoadError }}</p>
+        <button class="cognitive-refresh-btn is-text" type="button" @click="loadCognitiveData">
+          Reintentar
+        </button>
+      </div>
+
+      <template v-else>
+        <section class="cognitive-kpi-grid">
+          <div class="cognitive-kpi">
+            <span class="cognitive-kpi-label">Usuarios reforzados</span>
+            <strong>{{ cognitiveTotalStudents }}</strong>
+            <small>{{ cognitiveTotalSessions }} sesiones guardadas</small>
+          </div>
+          <div class="cognitive-kpi">
+            <span class="cognitive-kpi-label">Precision media</span>
+            <strong>{{ cognitiveAverageAccuracy }}%</strong>
+            <small>{{ cognitiveAverageGrade }} nota promedio</small>
+          </div>
+          <div class="cognitive-kpi">
+            <span class="cognitive-kpi-label">Van bien</span>
+            <strong>{{ cognitiveStrongStudents }}</strong>
+            <small>rendimiento fuerte</small>
+          </div>
+          <div class="cognitive-kpi is-warning">
+            <span class="cognitive-kpi-label">Necesitan apoyo</span>
+            <strong>{{ cognitiveStudentsNeedingSupport }}</strong>
+            <small>fallos, baja precision o declive</small>
+          </div>
+        </section>
+
+        <section class="cognitive-toolbar">
+          <label class="cognitive-search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input v-model="cognitiveSearch" type="search" placeholder="Buscar nombre, username o curso" />
+          </label>
+
+          <label class="cognitive-select-wrap">
+            <span>Curso</span>
+            <select v-model="cognitiveCourseFilter">
+              <option value="all">Todos los cursos</option>
+              <option v-for="course in cognitiveCourseOptions" :key="course.id" :value="String(course.id)">
+                {{ course.title }}
+              </option>
+            </select>
+          </label>
+
+          <label class="cognitive-select-wrap">
+            <span>Orden</span>
+            <select v-model="cognitiveSortBy">
+              <option value="recent_activity">Actividad reciente</option>
+              <option value="performance">Mejor rendimiento</option>
+              <option value="sessions">Mas sesiones</option>
+              <option value="improvement">Mejora</option>
+              <option value="fatigue">Riesgo de fatiga</option>
+            </select>
+          </label>
+
+          <button class="cognitive-refresh-btn" type="button" title="Actualizar" @click="loadCognitiveData">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v7h-7" />
+            </svg>
+          </button>
+        </section>
+
+        <section v-if="filteredCognitiveStudents.length === 0" class="cognitive-empty">
+          <h3>Sin usuarios reforzados</h3>
+          <p>No hay sesiones en reinforcement_results para los filtros actuales.</p>
+        </section>
+
+        <section v-else class="cognitive-workbench">
+          <div class="cognitive-student-list">
+            <article
+              v-for="(student, index) in filteredCognitiveStudents"
+              :key="student.id"
+              class="cognitive-student-card"
+              :class="[getCognitiveStatusClass(student), { 'is-selected': selectedCognitiveStudent?.id === student.id }]"
+              :style="{ animationDelay: `${index * 45}ms` }"
+              @click="selectCognitiveStudent(student.id)"
+            >
+              <div class="cognitive-card-main">
+                <div class="cognitive-avatar-wrap">
+                  <img :src="resolveAvatar(student.avatar || '')" class="cognitive-avatar" alt="" @error="onAvatarError" />
+                  <span class="cognitive-avatar-status"></span>
+                </div>
+                <div class="cognitive-student-copy">
+                  <div class="cognitive-name-row">
+                    <h3>{{ student.fullName || student.username }}</h3>
+                    <span class="cognitive-status-badge">{{ getCognitiveStatusLabel(student) }}</span>
+                  </div>
+                  <p class="cognitive-username">@{{ student.username || 'sin_username' }}</p>
+                  <p class="cognitive-course-line">{{ student.courses.map(course => course.title).join(' / ') }}</p>
+                </div>
+              </div>
+
+              <div class="cognitive-metric-strip">
+                <span><strong>{{ student.performance.accuracy }}%</strong> precision</span>
+                <span><strong>{{ student.performance.avgGrade.toFixed(1) }}</strong> nota</span>
+                <span><strong>{{ student.performance.totalSessions }}</strong> sesiones</span>
+              </div>
+
+              <div class="cognitive-card-footer">
+                <div class="cognitive-mini-history" aria-hidden="true">
+                  <span
+                    v-for="(point, pointIndex) in student.recentHistory.slice(-8)"
+                    :key="`${student.id}-${point.date}-${pointIndex}`"
+                    :style="{ height: getCognitiveHistoryHeight(point.accuracy) }"
+                  ></span>
+                </div>
+                <span class="cognitive-last-seen">{{ formatReinforcementDate(student.lastActivity || '') }}</span>
+              </div>
+            </article>
+          </div>
+
+          <aside v-if="selectedCognitiveStudent" class="cognitive-detail-panel">
+            <div class="cognitive-detail-header">
+              <img :src="resolveAvatar(selectedCognitiveStudent.avatar || '')" class="cognitive-detail-avatar" alt="" @error="onAvatarError" />
+              <div>
+                <span class="cognitive-eyebrow">Perfil observado</span>
+                <h3>{{ selectedCognitiveStudent.fullName || selectedCognitiveStudent.username }}</h3>
+                <p>@{{ selectedCognitiveStudent.username }}</p>
+              </div>
+            </div>
+
+            <div class="cognitive-score-ring">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" pathLength="100" />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  pathLength="100"
+                  :stroke-dashoffset="100 - selectedCognitiveStudent.performance.accuracy"
+                />
+              </svg>
+              <div>
+                <strong>{{ selectedCognitiveStudent.performance.accuracy }}%</strong>
+                <span>{{ getCognitiveStatusLabel(selectedCognitiveStudent) }}</span>
+              </div>
+            </div>
+
+            <div class="cognitive-detail-grid">
+              <div>
+                <span>Responde en</span>
+                <strong>{{ formatCognitiveDuration(selectedCognitiveStudent.performance.avgTimePerQuestion) }}</strong>
+              </div>
+              <div>
+                <span>Errores</span>
+                <strong>{{ selectedCognitiveStudent.cognitiveInsights.errorRate ?? 0 }}%</strong>
+              </div>
+              <div>
+                <span>Horario fuerte</span>
+                <strong>{{ formatCognitiveHour(selectedCognitiveStudent.cognitiveInsights.preferredStudyHour) }}</strong>
+              </div>
+              <div>
+                <span>Consistencia</span>
+                <strong>{{ selectedCognitiveStudent.cognitiveInsights.consistency }}%</strong>
+              </div>
+            </div>
+
+            <div class="cognitive-recommendation">
+              <span>Lectura del sistema</span>
+              <p>{{ getCognitiveRecommendation(selectedCognitiveStudent) }}</p>
+            </div>
+          </aside>
+        </section>
+      </template>
+    </div>
+
+    <div v-if="activeTab === 'cognitive_legacy'" class="tab-content cognitive-tab">
       <div class="cognitive-hero">
         <div class="cognitive-hero-content">
           <div class="cognitive-icon-wrap">
@@ -2688,6 +2893,9 @@ watch(activeTab, (tab) => {
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
   }
+  if (tab === 'cognitive' && cognitiveStudents.value.length === 0 && !cognitiveLoading.value) {
+    loadCognitiveData()
+  }
 })
 
 // ─── User activation state ───────────────────────────────────────────────
@@ -3962,6 +4170,66 @@ interface ReinforcementResult {
   scorePercent: number
 }
 
+type CognitiveSortKey = 'recent_activity' | 'performance' | 'sessions' | 'improvement' | 'fatigue'
+type CognitivePerformanceStatus = 'strong' | 'steady' | 'needs_support'
+
+interface CognitiveCourseRef {
+  id: number
+  title: string
+}
+
+interface CognitiveInsights {
+  skillLevel: string
+  skillColor: string
+  trend: string
+  improvementRate: number
+  consistency: number
+  engagementLevel: string
+  preferredStudyHour: number | null
+  difficultyStats: Record<string, { total: number; correct: number }>
+  errorRate?: number
+  preferredDifficulty?: string | null
+  fatigueRiskScore?: number
+  fatigueLevel?: 'high' | 'medium' | 'low'
+  performanceStatus?: CognitivePerformanceStatus
+  recommendedAction?: string
+}
+
+interface CognitivePerformance {
+  accuracy: number
+  avgGrade: number
+  totalQuestions: number
+  totalCorrect: number
+  totalIncorrect: number
+  totalSessions: number
+  totalDuration: number
+  avgTimePerQuestion: number
+}
+
+interface CognitiveHistoryPoint {
+  date: string
+  grade: number
+  accuracy: number
+  questions: number
+}
+
+interface CognitiveStudentProfile {
+  id: number
+  username: string
+  email: string | null
+  avatar: string | null
+  fullName: string
+  firstName: string
+  lastName: string
+  performance: CognitivePerformance
+  cognitiveInsights: CognitiveInsights
+  lastActivity: string | null
+  daysSinceLastActivity: number
+  recentHistory: CognitiveHistoryPoint[]
+  firstSession: string | null
+  courses: CognitiveCourseRef[]
+}
+
 const reinforcementResults = ref<ReinforcementResult[]>([])
 const loadingReinforcement = ref(false)
 const reinforcementUserFilter = ref('')
@@ -4104,6 +4372,370 @@ const loadReinforcementData = async () => {
     loadingReinforcement.value = false
   }
 }
+
+const cognitiveStudents = ref<CognitiveStudentProfile[]>([])
+const cognitiveCourseOptions = ref<CognitiveCourseRef[]>([])
+const cognitiveLoading = ref(false)
+const cognitiveLoadError = ref('')
+const cognitiveSearch = ref('')
+const cognitiveCourseFilter = ref('all')
+const cognitiveSortBy = ref<CognitiveSortKey>('recent_activity')
+const selectedCognitiveStudentId = ref<number | null>(null)
+
+const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCourseRef): CognitiveStudentProfile => {
+  const performance = raw.performance || {}
+  const insights = raw.cognitiveInsights || {}
+  const totalQuestions = parseSafeNumber(performance.totalQuestions)
+  const totalCorrect = parseSafeNumber(performance.totalCorrect)
+  const totalIncorrect = parseSafeNumber(performance.totalIncorrect)
+  const totalDuration = parseSafeNumber(performance.totalDuration)
+  const totalSessions = parseSafeNumber(performance.totalSessions)
+
+  return {
+    id: parseSafeNumber(raw.id ?? raw.userId ?? raw.user_id),
+    username: String(raw.username ?? 'estudiante'),
+    email: typeof raw.email === 'string' ? raw.email : null,
+    avatar: typeof raw.avatar === 'string' ? raw.avatar : null,
+    fullName: String(raw.fullName || raw.full_name || raw.username || 'Estudiante'),
+    firstName: String(raw.firstName || ''),
+    lastName: String(raw.lastName || ''),
+    performance: {
+      accuracy: parseSafeNumber(performance.accuracy),
+      avgGrade: parseSafeNumber(performance.avgGrade),
+      totalQuestions,
+      totalCorrect,
+      totalIncorrect,
+      totalSessions,
+      totalDuration,
+      avgTimePerQuestion: parseSafeNumber(performance.avgTimePerQuestion),
+    },
+    cognitiveInsights: {
+      skillLevel: String(insights.skillLevel || 'beginner'),
+      skillColor: String(insights.skillColor || '#8E8E93'),
+      trend: String(insights.trend || 'stable'),
+      improvementRate: parseSafeNumber(insights.improvementRate),
+      consistency: parseSafeNumber(insights.consistency),
+      engagementLevel: String(insights.engagementLevel || 'medium'),
+      preferredStudyHour: Number.isInteger(Number(insights.preferredStudyHour)) ? Number(insights.preferredStudyHour) : null,
+      difficultyStats: (insights.difficultyStats || {}) as Record<string, { total: number; correct: number }>,
+      errorRate: Number.isFinite(Number(insights.errorRate)) ? Number(insights.errorRate) : undefined,
+      preferredDifficulty: typeof insights.preferredDifficulty === 'string' ? insights.preferredDifficulty : null,
+      fatigueRiskScore: Number.isFinite(Number(insights.fatigueRiskScore)) ? Number(insights.fatigueRiskScore) : undefined,
+      fatigueLevel: ['high', 'medium', 'low'].includes(String(insights.fatigueLevel)) ? insights.fatigueLevel : undefined,
+      performanceStatus: ['strong', 'steady', 'needs_support'].includes(String(insights.performanceStatus)) ? insights.performanceStatus : undefined,
+      recommendedAction: typeof insights.recommendedAction === 'string' ? insights.recommendedAction : undefined,
+    },
+    lastActivity: typeof raw.lastActivity === 'string' ? raw.lastActivity : null,
+    daysSinceLastActivity: parseSafeNumber(raw.daysSinceLastActivity),
+    recentHistory: Array.isArray(raw.recentHistory)
+      ? raw.recentHistory.map((point: any) => ({
+          date: String(point.date || ''),
+          grade: parseSafeNumber(point.grade),
+          accuracy: parseSafeNumber(point.accuracy),
+          questions: parseSafeNumber(point.questions),
+        }))
+      : [],
+    firstSession: typeof raw.firstSession === 'string' ? raw.firstSession : null,
+    courses: [course],
+  }
+}
+
+const getCognitiveSkillMeta = (accuracy: number) => {
+  if (accuracy >= 85) return { skillLevel: 'advanced', skillColor: '#30D158' }
+  if (accuracy >= 70) return { skillLevel: 'intermediate', skillColor: '#0A84FF' }
+  if (accuracy >= 50) return { skillLevel: 'developing', skillColor: '#FF9F0A' }
+  return { skillLevel: 'beginner', skillColor: '#FF453A' }
+}
+
+const buildCognitiveRecommendationText = (
+  status: CognitivePerformanceStatus,
+  fatigueLevel: 'high' | 'medium' | 'low',
+  preferredHour: number | null,
+  preferredDifficulty: string | null | undefined,
+  avgTimePerQuestion: number,
+  errorRate: number,
+) => {
+  const hourText = preferredHour !== null ? `${String(preferredHour).padStart(2, '0')}:00` : 'su horario de mayor actividad'
+  const difficultyText = preferredDifficulty ? preferredDifficulty.toLowerCase() : 'su nivel actual'
+
+  if (status === 'strong') return `Va bien: mantener retos ${difficultyText} cerca de ${hourText} y subir complejidad de forma gradual.`
+  if (fatigueLevel === 'high') return `Riesgo de fatiga: dividir sesiones, bajar carga textual y reforzar con ejemplos visuales cerca de ${hourText}.`
+  if (errorRate >= 45) return 'Necesita apoyo: revisar patrones de error antes de aumentar dificultad y usar retroalimentacion paso a paso.'
+  if (avgTimePerQuestion >= 75) return 'Respuesta lenta: priorizar ejercicios cortos, pistas tempranas y pausas entre bloques.'
+  return `En progreso: mantener practica guiada en ${difficultyText} y observar la proxima tendencia.`
+}
+
+const deriveCognitiveInsights = (
+  performance: CognitivePerformance,
+  history: CognitiveHistoryPoint[],
+  base: CognitiveInsights,
+): CognitiveInsights => {
+  const accuracy = performance.accuracy
+  const errorRate = performance.totalQuestions > 0
+    ? Math.round((performance.totalIncorrect / performance.totalQuestions) * 100)
+    : (base.errorRate ?? 0)
+  const grades = history.map(point => point.grade).filter(grade => Number.isFinite(grade))
+
+  let consistency = base.consistency || 100
+  if (grades.length >= 3) {
+    const mean = grades.reduce((acc, grade) => acc + grade, 0) / grades.length
+    const variance = grades.reduce((acc, grade) => acc + Math.pow(grade - mean, 2), 0) / grades.length
+    consistency = Math.max(0, Math.round(100 - Math.sqrt(variance) * 8))
+  }
+
+  let trend = base.trend || 'stable'
+  let improvementRate = base.improvementRate || 0
+  if (grades.length >= 6) {
+    const recent = grades.slice(-5)
+    const previous = grades.slice(-10, -5)
+    const recentAvg = recent.reduce((acc, grade) => acc + grade, 0) / recent.length
+    const previousAvg = previous.reduce((acc, grade) => acc + grade, 0) / previous.length
+    improvementRate = Math.round((recentAvg - previousAvg) * 10) / 10
+    trend = improvementRate > 0.5 ? 'improving' : improvementRate < -0.5 ? 'declining' : 'stable'
+  }
+
+  const avgTime = performance.avgTimePerQuestion
+  const fatigueRiskScore = Math.min(100, Math.round(
+    (base.fatigueRiskScore ?? 0) * 0.35 +
+    (avgTime > 75 ? 30 : avgTime > 45 ? 18 : 6) +
+    (trend === 'declining' ? 22 : trend === 'stable' ? 8 : 0) +
+    (errorRate > 45 ? 18 : errorRate > 30 ? 9 : 0)
+  ))
+  const fatigueLevel = fatigueRiskScore >= 68 ? 'high' : fatigueRiskScore >= 38 ? 'medium' : 'low'
+  const status: CognitivePerformanceStatus = accuracy >= 80 && performance.avgGrade >= 8 && trend !== 'declining'
+    ? 'strong'
+    : accuracy < 60 || performance.avgGrade < 6 || trend === 'declining'
+      ? 'needs_support'
+      : 'steady'
+
+  return {
+    ...base,
+    ...getCognitiveSkillMeta(accuracy),
+    trend,
+    improvementRate,
+    consistency,
+    errorRate,
+    fatigueRiskScore,
+    fatigueLevel,
+    performanceStatus: status,
+    recommendedAction: buildCognitiveRecommendationText(
+      status,
+      fatigueLevel,
+      base.preferredStudyHour,
+      base.preferredDifficulty,
+      avgTime,
+      errorRate,
+    ),
+  }
+}
+
+const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStudentProfile[] => {
+  const byUser = new Map<number, CognitiveStudentProfile>()
+
+  for (const item of items) {
+    if (!item.id) continue
+    const existing = byUser.get(item.id)
+    if (!existing) {
+      byUser.set(item.id, {
+        ...item,
+        courses: [...item.courses],
+        recentHistory: [...item.recentHistory].sort((a, b) => Date.parse(a.date) - Date.parse(b.date)).slice(-10),
+      })
+      continue
+    }
+
+    const existingPerf = existing.performance
+    const nextPerf = item.performance
+    const totalSessions = existingPerf.totalSessions + nextPerf.totalSessions
+    const totalQuestions = existingPerf.totalQuestions + nextPerf.totalQuestions
+    const totalCorrect = existingPerf.totalCorrect + nextPerf.totalCorrect
+    const totalIncorrect = existingPerf.totalIncorrect + nextPerf.totalIncorrect
+    const totalDuration = existingPerf.totalDuration + nextPerf.totalDuration
+    const avgGrade = totalSessions > 0
+      ? ((existingPerf.avgGrade * existingPerf.totalSessions) + (nextPerf.avgGrade * nextPerf.totalSessions)) / totalSessions
+      : Math.max(existingPerf.avgGrade, nextPerf.avgGrade)
+    const history = [...existing.recentHistory, ...item.recentHistory]
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+      .slice(-10)
+    const lastActivity = Date.parse(item.lastActivity || '') > Date.parse(existing.lastActivity || '')
+      ? item.lastActivity
+      : existing.lastActivity
+    const firstSession = Date.parse(item.firstSession || '') < Date.parse(existing.firstSession || '')
+      ? item.firstSession
+      : existing.firstSession
+
+    const courseMap = new Map<number, CognitiveCourseRef>()
+    ;[...existing.courses, ...item.courses].forEach(course => courseMap.set(course.id, course))
+
+    const performance: CognitivePerformance = {
+      accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : Math.max(existingPerf.accuracy, nextPerf.accuracy),
+      avgGrade: Math.round(avgGrade * 10) / 10,
+      totalQuestions,
+      totalCorrect,
+      totalIncorrect,
+      totalSessions,
+      totalDuration,
+      avgTimePerQuestion: totalQuestions > 0 ? Math.round(totalDuration / totalQuestions) : Math.max(existingPerf.avgTimePerQuestion, nextPerf.avgTimePerQuestion),
+    }
+
+    existing.performance = performance
+    existing.recentHistory = history
+    existing.lastActivity = lastActivity
+    existing.firstSession = firstSession
+    existing.daysSinceLastActivity = lastActivity ? Math.max(0, Math.floor((Date.now() - Date.parse(lastActivity)) / 86_400_000)) : existing.daysSinceLastActivity
+    existing.courses = [...courseMap.values()]
+    existing.cognitiveInsights = deriveCognitiveInsights(performance, history, existing.cognitiveInsights)
+  }
+
+  return [...byUser.values()].map(student => ({
+    ...student,
+    cognitiveInsights: deriveCognitiveInsights(student.performance, student.recentHistory, student.cognitiveInsights),
+  }))
+}
+
+const loadCognitiveData = async () => {
+  cognitiveLoading.value = true
+  cognitiveLoadError.value = ''
+  try {
+    const userId = authStore.user?.id
+    if (!userId) {
+      cognitiveStudents.value = []
+      return
+    }
+
+    let courses = await loadManageableCourses(userId)
+    if (courses.length === 0 && hasAdminRole.value) {
+      courses = await courseAdapter.getCourses(1, 300).catch(() => [])
+    }
+
+    const normalizedCourses = courses
+      .map((course: any) => ({
+        id: parseSafeNumber(course.id),
+        title: String(course.title || course.name || `Curso #${course.id}`),
+      }))
+      .filter(course => course.id > 0)
+
+    cognitiveCourseOptions.value = normalizedCourses
+
+    const settled = await Promise.allSettled(
+      normalizedCourses.map(async (course) => {
+        const response = await reinforcementAdapter.getCognitiveAnalytics(course.id, {
+          limit: 120,
+          sortBy: 'recent_activity',
+        })
+        const students = Array.isArray((response as any)?.students) ? (response as any).students : []
+        return students.map((student: Record<string, any>) => normalizeCognitiveStudent(student, course))
+      })
+    )
+
+    const items = settled.flatMap(result => result.status === 'fulfilled' ? result.value : [])
+    cognitiveStudents.value = mergeCognitiveStudents(items)
+    selectedCognitiveStudentId.value = null
+  } catch (error: any) {
+    console.error('Error loading cognitive analytics:', error)
+    cognitiveStudents.value = []
+    cognitiveLoadError.value = error?.message || 'No fue posible leer los resultados de refuerzo.'
+  } finally {
+    cognitiveLoading.value = false
+  }
+}
+
+const cognitiveStudentsForCourse = computed(() => {
+  if (cognitiveCourseFilter.value === 'all') return cognitiveStudents.value
+  const courseId = Number(cognitiveCourseFilter.value)
+  return cognitiveStudents.value.filter(student => student.courses.some(course => course.id === courseId))
+})
+
+const filteredCognitiveStudents = computed(() => {
+  const query = normalizeSearchText(cognitiveSearch.value)
+  const filtered = cognitiveStudentsForCourse.value.filter(student => {
+    if (!query) return true
+    return matchesFlexibleUserSearch(
+      query,
+      student.fullName,
+      student.username,
+      student.email,
+      student.courses.map(course => course.title).join(' '),
+    )
+  })
+
+  return [...filtered].sort((left, right) => {
+    if (cognitiveSortBy.value === 'performance') return right.performance.accuracy - left.performance.accuracy
+    if (cognitiveSortBy.value === 'sessions') return right.performance.totalSessions - left.performance.totalSessions
+    if (cognitiveSortBy.value === 'improvement') return right.cognitiveInsights.improvementRate - left.cognitiveInsights.improvementRate
+    if (cognitiveSortBy.value === 'fatigue') return (right.cognitiveInsights.fatigueRiskScore ?? 0) - (left.cognitiveInsights.fatigueRiskScore ?? 0)
+    return Date.parse(right.lastActivity || '') - Date.parse(left.lastActivity || '')
+  })
+})
+
+const selectedCognitiveStudent = computed(() =>
+  filteredCognitiveStudents.value.find(student => student.id === selectedCognitiveStudentId.value)
+  || filteredCognitiveStudents.value[0]
+  || null
+)
+
+const cognitiveTotalStudents = computed(() => filteredCognitiveStudents.value.length)
+const cognitiveTotalSessions = computed(() => filteredCognitiveStudents.value.reduce((acc, student) => acc + student.performance.totalSessions, 0))
+const cognitiveAverageAccuracy = computed(() => {
+  if (filteredCognitiveStudents.value.length === 0) return 0
+  const totalQuestions = filteredCognitiveStudents.value.reduce((acc, student) => acc + student.performance.totalQuestions, 0)
+  const totalCorrect = filteredCognitiveStudents.value.reduce((acc, student) => acc + student.performance.totalCorrect, 0)
+  return totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
+})
+const cognitiveAverageGrade = computed(() => {
+  if (filteredCognitiveStudents.value.length === 0) return '0.0'
+  const totalSessions = filteredCognitiveStudents.value.reduce((acc, student) => acc + student.performance.totalSessions, 0)
+  const weighted = filteredCognitiveStudents.value.reduce((acc, student) => acc + (student.performance.avgGrade * student.performance.totalSessions), 0)
+  return (totalSessions > 0 ? weighted / totalSessions : 0).toFixed(1)
+})
+const cognitiveStrongStudents = computed(() => filteredCognitiveStudents.value.filter(student => getCognitivePerformanceStatus(student) === 'strong').length)
+const cognitiveStudentsNeedingSupport = computed(() => filteredCognitiveStudents.value.filter(student => getCognitivePerformanceStatus(student) === 'needs_support').length)
+
+const getCognitivePerformanceStatus = (student: CognitiveStudentProfile): CognitivePerformanceStatus => {
+  if (student.cognitiveInsights.performanceStatus) return student.cognitiveInsights.performanceStatus
+  if (student.performance.accuracy >= 80 && student.performance.avgGrade >= 8 && student.cognitiveInsights.trend !== 'declining') return 'strong'
+  if (student.performance.accuracy < 60 || student.performance.avgGrade < 6 || student.cognitiveInsights.trend === 'declining') return 'needs_support'
+  return 'steady'
+}
+
+const getCognitiveStatusLabel = (student: CognitiveStudentProfile) => {
+  const status = getCognitivePerformanceStatus(student)
+  if (status === 'strong') return 'Va bien'
+  if (status === 'needs_support') return 'Necesita apoyo'
+  return 'En observacion'
+}
+
+const getCognitiveStatusClass = (student: CognitiveStudentProfile) => `status-${getCognitivePerformanceStatus(student)}`
+
+const selectCognitiveStudent = (studentId: number) => {
+  selectedCognitiveStudentId.value = studentId
+}
+
+const getCognitiveHistoryHeight = (accuracy: number) => `${Math.max(12, Math.min(100, Math.round(accuracy)))}%`
+
+const formatCognitiveDuration = (seconds: number) => {
+  const safe = Math.max(0, Math.round(seconds || 0))
+  if (safe < 60) return `${safe}s`
+  const minutes = Math.floor(safe / 60)
+  const rest = safe % 60
+  return rest ? `${minutes}m ${rest}s` : `${minutes}m`
+}
+
+const formatCognitiveHour = (hour: number | null | undefined) => {
+  if (!Number.isInteger(hour)) return 'Sin patron'
+  return `${String(hour).padStart(2, '0')}:00`
+}
+
+const getCognitiveRecommendation = (student: CognitiveStudentProfile) =>
+  student.cognitiveInsights.recommendedAction
+  || buildCognitiveRecommendationText(
+    getCognitivePerformanceStatus(student),
+    student.cognitiveInsights.fatigueLevel || 'low',
+    student.cognitiveInsights.preferredStudyHour,
+    student.cognitiveInsights.preferredDifficulty,
+    student.performance.avgTimePerQuestion,
+    student.cognitiveInsights.errorRate ?? 0,
+  )
 
 const expandedSections = ref({
   courses: true,
@@ -5297,6 +5929,7 @@ onMounted(async () => {
     promises.push(loadPendingSubmissions())
     promises.push(loadStudentProgressData())
     promises.push(loadReinforcementData())
+    promises.push(loadCognitiveData())
     promises.push(loadSubjectProgress())
   }
   Promise.allSettled(promises)
@@ -5450,7 +6083,752 @@ watch(() => route.query, () => {
   padding-bottom: 32px;
 }
 
+/* Cognitive Digital Twin */
+.cognitive-tab {
+  padding-top: 16px;
+  background: #000;
+}
+
+.cognitive-hero-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  margin-bottom: 14px;
+  border-radius: 24px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg, rgba(28, 28, 30, 0.96), rgba(10, 10, 12, 0.96));
+  overflow: hidden;
+  animation: fadeInUp 0.38s ease both;
+}
+
+.cognitive-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+}
+
+.cognitive-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5AC8FA;
+}
+
+.cognitive-hero-copy h2 {
+  margin: 8px 0 8px;
+  color: #fff;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.02;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.cognitive-hero-copy p {
+  max-width: 680px;
+  margin: 0;
+  color: rgba(235, 235, 245, 0.68);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.cognitive-signal {
+  justify-self: end;
+  width: 176px;
+  min-height: 148px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cognitive-signal-total strong {
+  display: block;
+  color: #fff;
+  font-size: 36px;
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.cognitive-signal-total span,
+.cognitive-signal small {
+  color: #8E8E93;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cognitive-signal-bars {
+  height: 40px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  align-items: end;
+}
+
+.cognitive-signal-bars span {
+  min-height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5AC8FA, #30D158);
+  animation: cognitiveBars 1.8s ease-in-out infinite;
+}
+
+.cognitive-signal-bars span:nth-child(1) { height: 38%; animation-delay: 0ms; }
+.cognitive-signal-bars span:nth-child(2) { height: 66%; animation-delay: 100ms; }
+.cognitive-signal-bars span:nth-child(3) { height: 48%; animation-delay: 200ms; }
+.cognitive-signal-bars span:nth-child(4) { height: 86%; animation-delay: 300ms; }
+.cognitive-signal-bars span:nth-child(5) { height: 58%; animation-delay: 400ms; }
+
+@keyframes cognitiveBars {
+  0%, 100% { transform: scaleY(0.78); opacity: 0.7; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.cognitive-orbit {
+  position: relative;
+  width: 156px;
+  aspect-ratio: 1;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+}
+
+.cognitive-orbit-ring {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(90, 200, 250, 0.26);
+  animation: cognitiveOrbit 9s linear infinite;
+}
+
+.cognitive-orbit-ring.ring-two {
+  inset: 24px;
+  border-color: rgba(48, 209, 88, 0.24);
+  animation-duration: 6.5s;
+  animation-direction: reverse;
+}
+
+.cognitive-orbit-core {
+  position: relative;
+  z-index: 1;
+  width: 98px;
+  height: 98px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.cognitive-orbit-core strong {
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.cognitive-orbit-core span {
+  margin-top: 4px;
+  color: #8E8E93;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@keyframes cognitiveOrbit {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(0.96); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+.cognitive-loading,
+.cognitive-empty {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  color: #8E8E93;
+}
+
+.cognitive-empty h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.cognitive-empty p,
+.cognitive-loading p {
+  margin: 0;
+  color: #8E8E93;
+  font-size: 13px;
+}
+
+.cognitive-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cognitive-kpi {
+  padding: 16px;
+  min-height: 104px;
+  border-radius: 18px;
+  background: rgba(28, 28, 30, 0.92);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  animation: fadeInUp 0.35s ease both;
+}
+
+.cognitive-kpi:nth-child(2) { animation-delay: 50ms; }
+.cognitive-kpi:nth-child(3) { animation-delay: 100ms; }
+.cognitive-kpi:nth-child(4) { animation-delay: 150ms; }
+
+.cognitive-kpi-label {
+  color: #8E8E93;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cognitive-kpi strong {
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.cognitive-kpi small {
+  color: rgba(235, 235, 245, 0.54);
+  font-size: 12px;
+}
+
+.cognitive-kpi.is-warning strong {
+  color: #FF9F0A;
+}
+
+.cognitive-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 230px) minmax(180px, 220px) 44px;
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px 0 14px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+}
+
+.cognitive-search-box,
+.cognitive-select-wrap {
+  min-width: 0;
+  height: 44px;
+  border-radius: 14px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(28, 28, 30, 0.92);
+  color: #8E8E93;
+}
+
+.cognitive-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.cognitive-search-box input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+}
+
+.cognitive-search-box input::placeholder {
+  color: rgba(235, 235, 245, 0.35);
+}
+
+.cognitive-select-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
+}
+
+.cognitive-select-wrap span {
+  color: #636366;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cognitive-select-wrap select {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cognitive-select-wrap option {
+  background: #1C1C1E;
+  color: #fff;
+}
+
+.cognitive-refresh-btn {
+  width: 44px;
+  height: 44px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #EBEBF5;
+  background: rgba(28, 28, 30, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.cognitive-refresh-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(44, 44, 46, 0.96);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.cognitive-refresh-btn.is-text {
+  width: auto;
+  padding: 0 16px;
+  font-weight: 700;
+}
+
+.cognitive-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 14px;
+  align-items: start;
+}
+
+.cognitive-student-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cognitive-student-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(28, 28, 30, 0.9);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  animation: cognitiveCardIn 0.36s ease both;
+  animation-delay: var(--row-delay, 0ms);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.cognitive-student-card:hover,
+.cognitive-student-card.is-selected {
+  transform: translateY(-2px);
+  background: rgba(36, 36, 38, 0.96);
+  border-color: rgba(90, 200, 250, 0.28);
+}
+
+.cognitive-student-card.status-strong { box-shadow: inset 3px 0 0 rgba(48, 209, 88, 0.85); }
+.cognitive-student-card.status-steady { box-shadow: inset 3px 0 0 rgba(10, 132, 255, 0.85); }
+.cognitive-student-card.status-needs_support { box-shadow: inset 3px 0 0 rgba(255, 159, 10, 0.9); }
+
+@keyframes cognitiveCardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cognitive-card-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cognitive-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cognitive-avatar,
+.cognitive-detail-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  background: #2C2C2E;
+}
+
+.cognitive-avatar {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cognitive-avatar-status {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #30D158;
+  border: 2px solid #1C1C1E;
+}
+
+.status-needs_support .cognitive-avatar-status { background: #FF9F0A; }
+.status-steady .cognitive-avatar-status { background: #0A84FF; }
+
+.cognitive-student-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.cognitive-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cognitive-name-row h3 {
+  min-width: 0;
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 720;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cognitive-status-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #D1D1D6;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.status-strong .cognitive-status-badge {
+  color: #30D158;
+  background: rgba(48, 209, 88, 0.12);
+}
+
+.status-needs_support .cognitive-status-badge {
+  color: #FF9F0A;
+  background: rgba(255, 159, 10, 0.13);
+}
+
+.cognitive-username,
+.cognitive-course-line {
+  margin: 3px 0 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cognitive-username {
+  color: #8E8E93;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cognitive-course-line {
+  color: rgba(235, 235, 245, 0.45);
+  font-size: 11.5px;
+}
+
+.cognitive-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cognitive-metric-strip span {
+  min-width: 0;
+  padding: 9px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #8E8E93;
+  font-size: 10.5px;
+  text-align: center;
+}
+
+.cognitive-metric-strip strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.cognitive-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.cognitive-mini-history {
+  height: 34px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.cognitive-mini-history span {
+  width: 5px;
+  min-height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5AC8FA, #30D158);
+  opacity: 0.92;
+}
+
+.cognitive-last-seen {
+  color: #636366;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cognitive-detail-panel {
+  position: sticky;
+  top: 72px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(28, 28, 30, 0.94);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  animation: fadeInUp 0.35s ease both;
+}
+
+.cognitive-detail-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cognitive-detail-avatar {
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cognitive-detail-header h3 {
+  margin: 4px 0 2px;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.cognitive-detail-header p {
+  margin: 0;
+  color: #8E8E93;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cognitive-score-ring {
+  position: relative;
+  width: 164px;
+  height: 164px;
+  margin: 18px auto;
+}
+
+.cognitive-score-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.cognitive-score-ring circle {
+  fill: none;
+  stroke-width: 10;
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.cognitive-score-ring circle:nth-child(2) {
+  stroke: #5AC8FA;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  transition: stroke-dashoffset 0.8s cubic-bezier(.4, 0, .2, 1);
+}
+
+.cognitive-score-ring > div {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cognitive-score-ring strong {
+  color: #fff;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.cognitive-score-ring span {
+  margin-top: 6px;
+  color: #8E8E93;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cognitive-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cognitive-detail-grid > div {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.cognitive-detail-grid span,
+.cognitive-recommendation span {
+  display: block;
+  color: #8E8E93;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cognitive-detail-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: #fff;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.cognitive-recommendation {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(10, 132, 255, 0.1);
+  border: 0.5px solid rgba(10, 132, 255, 0.18);
+}
+
+.cognitive-recommendation p {
+  margin: 8px 0 0;
+  color: rgba(235, 235, 245, 0.82);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ═══════ Analytics Stats Grid ═══════ */
+@media (max-width: 1120px) {
+  .cognitive-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .cognitive-detail-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .cognitive-hero-panel {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .cognitive-orbit {
+    justify-self: start;
+    width: 128px;
+  }
+
+  .cognitive-signal {
+    justify-self: stretch;
+    width: auto;
+  }
+
+  .cognitive-kpi-grid,
+  .cognitive-student-list {
+    grid-template-columns: 1fr;
+  }
+
+  .cognitive-toolbar {
+    position: static;
+    grid-template-columns: 1fr;
+  }
+
+  .cognitive-refresh-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .cognitive-tab {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cognitive-hero-copy h2 {
+    font-size: 30px;
+  }
+
+  .cognitive-name-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cognitive-status-badge {
+    align-self: flex-start;
+  }
+
+  .cognitive-metric-strip,
+  .cognitive-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .a-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
