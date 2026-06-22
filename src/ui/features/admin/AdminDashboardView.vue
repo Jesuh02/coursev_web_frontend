@@ -2646,6 +2646,145 @@
       </div>
     </div>
 
+    <!-- Educational Standards Tab -->
+    <div v-if="activeTab === 'standards' && canViewStandards" class="tab-content standards-tab">
+      <section class="standards-hero">
+        <div class="standards-hero-content">
+          <span class="standards-eyebrow">Interoperabilidad Educativa</span>
+          <h2>Estándares Abiertos</h2>
+          <p>Conecta tu plataforma con el ecosistema educativo global mediante estándares internacionales.</p>
+        </div>
+      </section>
+
+      <section class="standards-grid">
+        <!-- Caliper Analytics -->
+        <article class="standards-card">
+          <div class="standards-card-icon standards-icon-caliper">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3"/>
+              <path d="m7 14 4-4 4 4 6-6"/>
+            </svg>
+          </div>
+          <div class="standards-card-body">
+            <h3>Caliper Analytics</h3>
+            <p class="standards-card-desc">Framework de IMS Global para medir eventos de aprendizaje en tiempo real.</p>
+            <ul class="standards-features">
+              <li>Eventos de lectura, navegación y evaluación</li>
+              <li>Sensor API estandarizado</li>
+              <li>Integración con LRS</li>
+            </ul>
+            <div class="standards-card-footer">
+              <span class="standards-status standards-status-ready">Disponible</span>
+              <span class="standards-version">v1.2</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- xAPI -->
+        <article class="standards-card">
+          <div class="standards-card-icon standards-icon-xapi">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="m8 12 3 3 5-5"/>
+            </svg>
+          </div>
+          <div class="standards-card-body">
+            <h3>xAPI (Tin Can)</h3>
+            <p class="standards-card-desc">Registra experiencias de aprendizaje dentro y fuera de la aplicación.</p>
+            <ul class="standards-features">
+              <li>Statements Actor-Verb-Object</li>
+              <li>Learning Record Store (LRS)</li>
+              <li>Aprendizaje móvil y offline</li>
+            </ul>
+            <div class="standards-card-footer">
+              <span class="standards-status standards-status-ready">Disponible</span>
+              <span class="standards-version">v1.0.3</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- QTI -->
+        <article class="standards-card">
+          <div class="standards-card-icon standards-icon-qti">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 9h6"/>
+              <path d="M9 12h6"/>
+              <path d="M9 15h4"/>
+            </svg>
+          </div>
+          <div class="standards-card-body">
+            <h3>QTI</h3>
+            <p class="standards-card-desc">Exporta e importa preguntas y exámenes en formato estándar.</p>
+            <ul class="standards-features">
+              <li>Opción múltiple, ordenamiento, emparejamiento</li>
+              <li>Metadatos de dificultad y competencias</li>
+              <li>Banco de preguntas portátil</li>
+            </ul>
+            <div class="standards-card-footer">
+              <span class="standards-status standards-status-beta">En desarrollo</span>
+              <span class="standards-version">v2.2</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- OneRoster -->
+        <article class="standards-card">
+          <div class="standards-card-icon standards-icon-oneroster">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="standards-card-body">
+            <h3>OneRoster</h3>
+            <p class="standards-card-desc">Sincroniza estudiantes, cursos y calificaciones con sistemas externos.</p>
+            <ul class="standards-features">
+              <li>Importación de nóminas escolares</li>
+              <li>Sincronización de calificaciones</li>
+              <li>REST API y CSV bulk</li>
+            </ul>
+            <div class="standards-card-footer">
+              <span class="standards-status standards-status-ready">Disponible</span>
+              <span class="standards-version">v1.1</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- LTI -->
+        <article class="standards-card standards-card-featured">
+          <div class="standards-card-icon standards-icon-lti">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </div>
+          <div class="standards-card-body">
+            <h3>LTI</h3>
+            <p class="standards-card-desc">Conecta con Moodle, Canvas, Blackboard y cualquier LMS compatible.</p>
+            <ul class="standards-features">
+              <li>Single Sign-On integrado</li>
+              <li>Envío de calificaciones al gradebook</li>
+              <li>Deep linking de contenidos</li>
+            </ul>
+            <div class="standards-card-footer">
+              <span class="standards-status standards-status-ready">Disponible</span>
+              <span class="standards-version">v1.3</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="standards-info">
+        <div class="standards-info-card">
+          <h4>Certificación IMS Global</h4>
+          <p>Nuestra plataforma cumple con los estándares de interoperabilidad de IMS Global Learning Consortium, garantizando compatibilidad con miles de herramientas educativas en todo el mundo.</p>
+        </div>
+      </section>
+    </div>
+
     <div v-if="activeTab === 'institutions' && hasSuperAdminRole" class="tab-content institutions-tab">
       <div v-if="institutionsLoading" class="a-loading">
         <div class="spinner-lg"></div>
@@ -3160,6 +3299,7 @@ const canViewCertificates = computed(() => hasAdminRole.value)
 const canViewActivation = computed(() => hasAdminRole.value)
 const canManageRoles = computed(() => hasAdminRole.value)
 const hasSuperAdminRole = computed(() => roleIds.value.includes(4))
+const canViewStandards = computed(() => roleIds.value.includes(3) || roleIds.value.includes(4))
 const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
@@ -3281,6 +3421,7 @@ const issueAllCertificates = async () => {
 const allTabs = [
   { id: 'analytics', label: 'Analytics', adminOnly: false },
   { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false, cognitiveOnly: true },
+  { id: 'standards', label: 'Estándares', adminOnly: false, standardsOnly: true },
   { id: 'moderation', label: 'Moderación', adminOnly: false },
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },
@@ -3296,6 +3437,7 @@ const visibleTabs = computed(() => {
 
   return allTabs.filter((tab) => {
     if ((tab as any).cognitiveOnly) return canViewCognitive.value
+    if ((tab as any).standardsOnly) return canViewStandards.value
     if ((tab as any).superAdminOnly) return hasSuperAdminRole.value
     return !tab.adminOnly || hasAdminRole.value
   })
@@ -13760,5 +13902,283 @@ watch(() => route.query, () => {
   font-size: 11px;
   font-weight: 700;
   color: #EBEBF5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STANDARDS TAB — Apple Design System
+   Typography: SF Pro Display (600) / SF Pro Text (400)
+   Colors: Fog Canvas #f5f5f7, Apple Ink #1d1d1f, Electric Blue #0071e3
+   Border radius: 28px cards, no shadows
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.standards-tab {
+  padding: 0;
+  background: #0a0a0a;
+  min-height: 100vh;
+}
+
+.standards-hero {
+  padding: 48px 24px 40px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+}
+
+.standards-hero-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.standards-eyebrow {
+  display: inline-block;
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #0071e3;
+  margin-bottom: 12px;
+}
+
+.standards-hero h2 {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f5f5f7;
+  margin: 0 0 12px;
+  line-height: 1.1;
+}
+
+.standards-hero p {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  color: rgba(245, 245, 247, 0.6);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.standards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 0 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.standards-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 28px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.standards-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.standards-card-featured {
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.08) 0%, rgba(0, 113, 227, 0.02) 100%);
+  border-color: rgba(0, 113, 227, 0.2);
+}
+
+.standards-card-featured:hover {
+  border-color: rgba(0, 113, 227, 0.35);
+}
+
+.standards-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.standards-icon-caliper {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34C759;
+}
+
+.standards-icon-xapi {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007AFF;
+}
+
+.standards-icon-qti {
+  background: rgba(175, 82, 222, 0.12);
+  color: #AF52DE;
+}
+
+.standards-icon-oneroster {
+  background: rgba(255, 149, 0, 0.12);
+  color: #FF9500;
+}
+
+.standards-icon-lti {
+  background: rgba(0, 113, 227, 0.15);
+  color: #0071e3;
+}
+
+.standards-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.standards-card-body h3 {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #f5f5f7;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.standards-card-desc {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(245, 245, 247, 0.6);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.standards-features {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.standards-features li {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(245, 245, 247, 0.5);
+  padding-left: 18px;
+  position: relative;
+}
+
+.standards-features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(245, 245, 247, 0.25);
+}
+
+.standards-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.standards-status {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 980px;
+}
+
+.standards-status-ready {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34C759;
+}
+
+.standards-status-beta {
+  background: rgba(255, 159, 10, 0.12);
+  color: #FF9F0A;
+}
+
+.standards-version {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(245, 245, 247, 0.35);
+  letter-spacing: 0.02em;
+}
+
+.standards-info {
+  padding: 0 24px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.standards-info-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  padding: 24px 28px;
+  text-align: center;
+}
+
+.standards-info-card h4 {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #f5f5f7;
+  margin: 0 0 8px;
+}
+
+.standards-info-card p {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(245, 245, 247, 0.5);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* Standards responsive */
+@media (max-width: 768px) {
+  .standards-hero {
+    padding: 32px 20px 28px;
+  }
+
+  .standards-hero h2 {
+    font-size: 28px;
+  }
+
+  .standards-hero p {
+    font-size: 15px;
+  }
+
+  .standards-grid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 24px;
+    gap: 16px;
+  }
+
+  .standards-card {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .standards-card-body h3 {
+    font-size: 19px;
+  }
+
+  .standards-info {
+    padding: 0 16px 32px;
+  }
 }
 </style>
