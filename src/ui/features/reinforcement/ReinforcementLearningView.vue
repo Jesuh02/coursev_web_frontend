@@ -526,6 +526,7 @@ let coachVoiceRestartTimer: ReturnType<typeof setTimeout> | null = null
 let coachVoiceListeningWanted = false
 let coachVoiceDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let coachAccumulatedTranscript = ''
+let coachTranscriptFlushed = false // Prevent double-sending
 const COACH_VOICE_SILENCE_DELAY_MS = 4000 // 4 seconds of silence before sending
 let coachSplineViewer: HTMLElement | null = null
 let coachSplineLogoObserver: MutationObserver | null = null
@@ -898,6 +899,7 @@ function stopCoachListening() {
     coachVoiceDebounceTimer = null
   }
   coachAccumulatedTranscript = ''
+  coachTranscriptFlushed = false
   coachRecognition?.stop()
   coachListening.value = false
   stopCoachAudioMeter()
@@ -938,12 +940,19 @@ function clearCoachVoiceDebounce() {
 }
 
 function flushCoachAccumulatedTranscript(autoSubmit: boolean) {
+  // Prevent double-sending
+  if (coachTranscriptFlushed) {
+    console.log('[Coach Mic] Transcripcion ya enviada, ignorando...')
+    return
+  }
+
   const finalTranscript = coachAccumulatedTranscript.trim()
   coachAccumulatedTranscript = ''
   clearCoachVoiceDebounce()
 
   if (!finalTranscript) return
 
+  coachTranscriptFlushed = true // Mark as sent
   console.log('[Coach Mic] Enviando transcripcion acumulada:', finalTranscript)
   if (autoSubmit || voiceConversationMode.value) {
     void handleCoachVoiceTranscript(finalTranscript)
@@ -969,8 +978,9 @@ function startCoachDictation(autoSubmit = false) {
     return
   }
 
-  // Reset accumulated transcript
+  // Reset accumulated transcript and flags
   coachAccumulatedTranscript = ''
+  coachTranscriptFlushed = false
   clearCoachVoiceDebounce()
 
   coachRecognition = new Recognition()
@@ -1017,6 +1027,10 @@ function startCoachDictation(autoSubmit = false) {
       clearCoachVoiceDebounce()
       coachVoiceDebounceTimer = setTimeout(() => {
         console.log('[Coach Mic] 4 segundos de silencio, enviando mensaje...')
+        // Clear the debounce timer reference before stopping
+        coachVoiceDebounceTimer = null
+        // Stop wanting to listen so onend doesn't restart
+        coachVoiceListeningWanted = false
         // Stop recognition and send
         coachRecognition?.stop()
         flushCoachAccumulatedTranscript(autoSubmit)
@@ -1050,11 +1064,28 @@ function startCoachDictation(autoSubmit = false) {
   coachRecognition.onend = () => {
     coachListening.value = false
     stopCoachAudioMeter()
-    clearCoachVoiceDebounce()
-    // If there's accumulated transcript that wasn't sent, send it now
-    if (coachAccumulatedTranscript.trim()) {
+
+    // In continuous mode, browser may fire onend during pauses
+    // If debounce timer is running, restart recognition to keep listening
+    if (coachVoiceDebounceTimer && coachVoiceListeningWanted && voiceConversationMode.value && phase.value === 'voice' && !coachLoading.value && !isCoachSpeaking.value) {
+      // Restart recognition to keep listening while waiting for 4 sec silence
+      console.log('[Coach Mic] Reiniciando reconocimiento durante espera de silencio...')
+      try {
+        coachListening.value = true
+        coachRecognition?.start()
+        void startCoachAudioMeter()
+      } catch {
+        // If restart fails, let the debounce timer handle sending
+        console.log('[Coach Mic] No se pudo reiniciar, esperando timer...')
+      }
+      return
+    }
+
+    // If no debounce timer running and we have accumulated text, send it
+    if (!coachVoiceDebounceTimer && coachAccumulatedTranscript.trim()) {
       flushCoachAccumulatedTranscript(autoSubmit)
     }
+
     if (coachVoiceListeningWanted && voiceConversationMode.value && phase.value === 'voice' && !coachLoading.value && !isCoachSpeaking.value) {
       scheduleCoachListening(620)
     }
