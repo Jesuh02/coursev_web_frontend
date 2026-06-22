@@ -268,6 +268,12 @@ export interface Recommendation {
     totalQuestions: number
     trend: string
   }
+  after?: {
+    accuracy: number
+    avgGrade: number
+    totalSessions: number
+    totalQuestions: number
+  }
   intervention: {
     type: string
     description: string

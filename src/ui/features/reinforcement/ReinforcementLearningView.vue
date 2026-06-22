@@ -372,7 +372,7 @@ import { useRoute } from 'vue-router'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
-import { api, tokenStorage } from '@/infrastructure/api/httpClient'
+import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
