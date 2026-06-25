@@ -57,9 +57,15 @@
           <p class="row-title">{{ item.fileName || item.content || 'Archivo' }}</p>
           <p class="row-meta">{{ item.contentType }}</p>
         </div>
-        <a :href="getFileUrl(item)" target="_blank" rel="noopener" class="row-action">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </a>
+        <button
+          type="button"
+          class="row-action remove-btn"
+          :aria-label="`Eliminar ${item.fileName || item.content || 'archivo'}`"
+          :disabled="saving"
+          @click="removeContentItem(item.id)"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <!-- Pending files (not yet uploaded) -->
@@ -156,7 +162,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Topic, ContentItem, Task } from '@/domain/models'
-import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect, buildProxyFileUrl } from '@/infrastructure/api'
+import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect } from '@/infrastructure/api'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import { gradeSheetCache } from '@/infrastructure/api/gradeSheetCache'
 
@@ -226,6 +232,19 @@ function onImgSelected(e: Event) {
 
 function removePending(index: number) {
   pendingFiles.value.splice(index, 1)
+}
+
+async function removeContentItem(id: number) {
+  saving.value = true
+  errorMsg.value = ''
+  try {
+    await contentItemAdapter.delete(id)
+    contentItems.value = contentItems.value.filter(item => item.id !== id)
+  } catch {
+    errorMsg.value = 'No se pudo eliminar el contenido. Intenta de nuevo.'
+  } finally {
+    saving.value = false
+  }
 }
 
 function navigateToCreateTask() {
@@ -322,12 +341,6 @@ async function handleSave() {
   } finally {
     saving.value = false
   }
-}
-
-function getFileUrl(item: ContentItem): string {
-  if (!item.fileUri) return '#'
-  if (item.fileUri.startsWith('http')) return item.fileUri
-  return buildProxyFileUrl(item.fileUri)
 }
 
 function getIconClass(type: string): string {
