@@ -39,9 +39,15 @@
         </div>
         <div class="file-upload-editor" @click="formFileInputRef?.click()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-          <span>{{ formFile ? formFile.name : 'Agregar nuevo archivo' }}</span>
-          <button v-if="formFile" class="file-clear" @click.stop="formFile = null">✕</button>
-          <input ref="formFileInputRef" type="file" hidden @change="onFormFileSelected" />
+          <span>Agregar nuevo archivo</span>
+          <input ref="formFileInputRef" type="file" multiple hidden @change="onFormFileSelected" />
+        </div>
+        <div v-if="formFiles.length" class="pending-attachments">
+          <div v-for="(file, index) in formFiles" :key="`${file.name}-${file.lastModified}-${index}`" class="existing-attachment-row pending-attachment-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+            <span class="existing-attachment-name">{{ file.name }}</span>
+            <button class="file-clear" @click.stop="removeFormFile(index)">✕</button>
+          </div>
         </div>
 
         <p v-if="errorMsg" class="error-msg mt-16">{{ errorMsg }}</p>
@@ -161,12 +167,19 @@ const errorMsg = ref('')
 const formTitle = ref('')
 const formDescription = ref('')
 const formDueIso = ref<string | null>(null)
-const formFile = ref<File | null>(null)
+const formFiles = ref<File[]>([])
 const formFileInputRef = ref<HTMLInputElement | null>(null)
 const existingContentItems = ref<ContentItem[]>([])
 
 function onFormFileSelected(e: Event) {
-  formFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  formFiles.value = [...formFiles.value, ...files]
+  input.value = ''
+}
+
+function removeFormFile(index: number) {
+  formFiles.value = formFiles.value.filter((_, i) => i !== index)
 }
 
 function buildDueDateIso(): string | null {
@@ -199,15 +212,17 @@ async function handleSave() {
         topicId,
         dueDate: buildDueDateIso(),
       } as Partial<Task>)
-      if (formFile.value && created?.id) {
-        const { publicUrl } = await uploadFileDirect(formFile.value, 'content', () => {})
-        await contentItemAdapter.create({
-          taskId: created.id,
-          fileName: formFile.value.name,
-          fileUri: publicUrl,
-          content: formFile.value.name,
-          contentType: getContentType(formFile.value),
-        })
+      if (formFiles.value.length && created?.id) {
+        for (const file of formFiles.value) {
+          const { publicUrl } = await uploadFileDirect(file, 'content', () => {})
+          await contentItemAdapter.create({
+            taskId: created.id,
+            fileName: file.name,
+            fileUri: publicUrl,
+            content: file.name,
+            contentType: getContentType(file),
+          })
+        }
       }
       const courseId = route.params.courseId as string
       const subjectId = route.query.subjectId as string | undefined
@@ -222,15 +237,17 @@ async function handleSave() {
         description: formDescription.value.trim(),
         dueDate: buildDueDateIso(),
       } as Partial<Task>)
-      if (formFile.value) {
-        const { publicUrl } = await uploadFileDirect(formFile.value, 'content', () => {})
-        await contentItemAdapter.create({
-          taskId: taskId.value!,
-          fileName: formFile.value.name,
-          fileUri: publicUrl,
-          content: formFile.value.name,
-          contentType: getContentType(formFile.value),
-        })
+      if (formFiles.value.length) {
+        for (const file of formFiles.value) {
+          const { publicUrl } = await uploadFileDirect(file, 'content', () => {})
+          await contentItemAdapter.create({
+            taskId: taskId.value!,
+            fileName: file.name,
+            fileUri: publicUrl,
+            content: file.name,
+            contentType: getContentType(file),
+          })
+        }
       }
       // Navegar de vuelta con state para indicar edición de tarea
       const courseId = route.params.courseId as string
@@ -411,10 +428,14 @@ onMounted(async () => {
 .existing-attachments {
   display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
 }
+.pending-attachments {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 8px;
+}
 .existing-attachment-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
   border-radius: 8px; background: #1A1A1A; color: #ccc; font-size: 14px;
 }
+.pending-attachment-row { color: #8E8E93; }
 .existing-attachment-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .file-upload-editor {
