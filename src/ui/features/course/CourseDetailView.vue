@@ -182,7 +182,7 @@
             'topic-block--over': isDragMode && dragOverTopicIndex === index && draggedTopicIndex !== index,
           }"
           :data-topic-drag-index="index"
-          :draggable="isDragMode"
+          :draggable="isDragMode && canReorderCourseContent"
           @dragstart="onTopicDragStart(index, $event)"
           @dragenter.prevent="onTopicDragEnter(index)"
           @dragover.prevent
@@ -193,7 +193,7 @@
           @pointerdown="onTopicPointerDown(index, $event)"
         >
           <div class="topic-row">
-            <div v-if="isDragMode" class="drag-handle" aria-hidden="true">
+            <div v-if="isDragMode && canReorderCourseContent" class="drag-handle" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="5" r="1.6"/>
                 <circle cx="15" cy="5" r="1.6"/>
@@ -290,7 +290,7 @@
               }"
               :data-task-drag-topic="topic.id"
               :data-task-drag-index="taskIndex"
-              :draggable="isDragMode"
+              :draggable="isDragMode && canReorderCourseContent"
               @dragstart="onTaskDragStart(topic.id, taskIndex, $event)"
               @dragenter.prevent="onTaskDragEnter(topic.id, taskIndex)"
               @dragover.prevent
@@ -301,7 +301,7 @@
               @pointerdown="onTaskPointerDown(topic.id, taskIndex, $event)"
             >
               <div class="task-row">
-                <div v-if="isDragMode" class="drag-handle task-drag-handle" aria-hidden="true">
+                <div v-if="isDragMode && canReorderCourseContent" class="drag-handle task-drag-handle" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <circle cx="9" cy="5" r="1.6"/>
                     <circle cx="15" cy="5" r="1.6"/>
@@ -568,6 +568,9 @@ const canEditCourseSettings = computed(() => authStore.isAdmin || isCourseCreato
 const hasSubjectContentAccess = computed(() =>
   canEditCourseSettings.value || collaboratorAccess.value
 )
+const canReorderCourseContent = computed(() =>
+  !isViewingAsStudent.value && hasSubjectContentAccess.value && (authStore.isAdmin || authStore.isDocente)
+)
 
 // ── Enrollment flow ────────────────────────────────────────────────
 const enrollmentStatus = ref<string | null>(null) // 'approved' | 'pending' | 'rejected' | null
@@ -755,6 +758,7 @@ const hasReorderableTasks = computed(() =>
 )
 
 const canShowSortButton = computed(() => {
+  if (!canReorderCourseContent.value) return false
   if (!hasSubjectContentAccess.value || loading.value || activeTab.value === 'members') return false
   if (activeTab.value === 'docs') return topics.value.length > 1
   return hasReorderableTasks.value
@@ -894,7 +898,7 @@ function removePointerDragListeners() {
 }
 
 function onTopicPointerDown(index: number, event: PointerEvent) {
-  if (!isDragMode.value || activeTab.value !== 'docs') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'docs') return
   if (event.button !== 0) return
   event.preventDefault()
   pointerDragActive = true
@@ -906,7 +910,7 @@ function onTopicPointerDown(index: number, event: PointerEvent) {
 }
 
 function onTaskPointerDown(topicId: number, index: number, event: PointerEvent) {
-  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'tasks') return
   if (event.button !== 0) return
   event.preventDefault()
   pointerDragActive = true
@@ -919,7 +923,7 @@ function onTaskPointerDown(topicId: number, index: number, event: PointerEvent) 
 }
 
 function handlePointerDragMove(event: PointerEvent) {
-  if (!pointerDragActive || !pointerDragKind) return
+  if (!canReorderCourseContent.value || !pointerDragActive || !pointerDragKind) return
   event.preventDefault()
 
   if (pointerDragKind === 'topics') cacheTopicTouchRects()
@@ -939,6 +943,10 @@ function handlePointerDragMove(event: PointerEvent) {
 
 function handlePointerDragEnd(event: PointerEvent) {
   if (!pointerDragActive) return
+  if (!canReorderCourseContent.value) {
+    resetDragState()
+    return
+  }
   event.preventDefault()
   removePointerDragListeners()
 
@@ -972,18 +980,22 @@ function findDragHit(clientX: number, clientY: number): TouchDragRect | undefine
 }
 
 function onTopicDragStart(index: number, event: DragEvent) {
-  if (!isDragMode.value || activeTab.value !== 'docs') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'docs') return
   draggedTopicIndex.value = index
   event.dataTransfer?.setData('text/plain', String(index))
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
 }
 
 function onTopicDragEnter(index: number) {
-  if (!isDragMode.value || draggedTopicIndex.value === -1 || draggedTopicIndex.value === index) return
+  if (!canReorderCourseContent.value || !isDragMode.value || draggedTopicIndex.value === -1 || draggedTopicIndex.value === index) return
   dragOverTopicIndex.value = index
 }
 
 function onTopicDrop(index: number) {
+  if (!canReorderCourseContent.value) {
+    resetDragState()
+    return
+  }
   const from = draggedTopicIndex.value
   resetDragState()
   if (from === -1 || from === index) return
@@ -991,19 +1003,23 @@ function onTopicDrop(index: number) {
 }
 
 function onTaskDragStart(topicId: number, index: number, event: DragEvent) {
-  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'tasks') return
   draggedTask.value = { topicId, index }
   event.dataTransfer?.setData('text/plain', `${topicId}:${index}`)
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
 }
 
 function onTaskDragEnter(topicId: number, index: number) {
-  if (!isDragMode.value || !draggedTask.value) return
+  if (!canReorderCourseContent.value || !isDragMode.value || !draggedTask.value) return
   if (draggedTask.value.topicId !== topicId || draggedTask.value.index === index) return
   dragOverTask.value = { topicId, index }
 }
 
 function onTaskDrop(topicId: number, index: number) {
+  if (!canReorderCourseContent.value) {
+    resetDragState()
+    return
+  }
   const from = draggedTask.value
   resetDragState()
   if (!from || from.topicId !== topicId || from.index === index) return
@@ -1015,14 +1031,14 @@ function onDragEnd() {
 }
 
 function onTopicTouchStart(index: number) {
-  if (!isDragMode.value || activeTab.value !== 'docs') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'docs') return
   touchDragKind = 'topics'
   draggedTopicIndex.value = index
   cacheTopicTouchRects()
 }
 
 function onTaskTouchStart(topicId: number, index: number) {
-  if (!isDragMode.value || activeTab.value !== 'tasks') return
+  if (!canReorderCourseContent.value || !isDragMode.value || activeTab.value !== 'tasks') return
   touchDragKind = 'tasks'
   touchDragTopicId = topicId
   draggedTask.value = { topicId, index }
@@ -1030,7 +1046,7 @@ function onTaskTouchStart(topicId: number, index: number) {
 }
 
 function handleTouchMove(event: TouchEvent) {
-  if (!isDragMode.value || !touchDragKind) return
+  if (!canReorderCourseContent.value || !isDragMode.value || !touchDragKind) return
   const touch = event.touches[0]
   if (!touch) return
   event.preventDefault()
@@ -1061,6 +1077,10 @@ function handleTouchMove(event: TouchEvent) {
 
 function onTouchEnd() {
   if (!isDragMode.value) return
+  if (!canReorderCourseContent.value) {
+    resetDragState()
+    return
+  }
   const kind = touchDragKind
   const fromTopic = draggedTopicIndex.value
   const toTopic = dragOverTopicIndex.value
@@ -1079,6 +1099,7 @@ function onTouchEnd() {
 }
 
 function moveTopic(from: number, to: number) {
+  if (!canReorderCourseContent.value) return
   const next = [...topics.value]
   const [moved] = next.splice(from, 1)
   if (!moved) return
@@ -1088,6 +1109,7 @@ function moveTopic(from: number, to: number) {
 }
 
 function moveTask(topicId: number, from: number, to: number) {
+  if (!canReorderCourseContent.value) return
   const current = topicTasks.value[topicId] ?? []
   const next = [...current]
   const [moved] = next.splice(from, 1)
@@ -1099,6 +1121,7 @@ function moveTask(topicId: number, from: number, to: number) {
 }
 
 async function saveTopicOrder(orderedTopics: Topic[]) {
+  if (!canReorderCourseContent.value) return
   try {
     await Promise.all(
       orderedTopics.map((topic, index) => topicAdapter.updateTopic(topic.id, { orderIndex: index }))
@@ -1107,6 +1130,7 @@ async function saveTopicOrder(orderedTopics: Topic[]) {
 }
 
 async function saveTaskOrder(orderedTasks: Task[]) {
+  if (!canReorderCourseContent.value) return
   try {
     if (typeof taskAdapter.reorderTasks === 'function') {
       await taskAdapter.reorderTasks(orderedTasks.map((task, index) => ({ id: task.id, orderIndex: index })))
@@ -1646,10 +1670,22 @@ watch(viewAsRole, async (newRole) => {
 watch(isDragMode, (active) => {
   const el = courseDetailRef.value
   if (!el) return
+  if (active && !canReorderCourseContent.value) {
+    isDragMode.value = false
+    resetDragState()
+    return
+  }
   if (active) {
     el.addEventListener('touchmove', handleTouchMove, { passive: false })
   } else {
     el.removeEventListener('touchmove', handleTouchMove)
+    resetDragState()
+  }
+})
+
+watch(canReorderCourseContent, (canReorder) => {
+  if (!canReorder && isDragMode.value) {
+    isDragMode.value = false
     resetDragState()
   }
 })

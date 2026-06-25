@@ -36,7 +36,7 @@
           </Transition>
         </div>
         <button
-          v-if="canCreate && allSubjects.length > 1"
+          v-if="canReorderSubjects && allSubjects.length > 1"
           class="sort-btn"
           :class="{ 'sort-btn--active': isDragMode }"
           @click="toggleDragMode"
@@ -84,7 +84,7 @@
           'drag-item--dragging': isDragMode && draggedIndex === index,
           'drag-item--over': isDragMode && dragOverIndex === index && draggedIndex !== index,
         }"
-        :draggable="isDragMode"
+        :draggable="isDragMode && canReorderSubjects"
         @dragstart="onDragStart(index, $event)"
         @dragenter.prevent="onDragEnter(index)"
         @dragover.prevent
@@ -116,7 +116,7 @@
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
     </button>
 
-    <button v-if="isDragMode" class="drag-done-fab" @click="toggleDragMode">
+    <button v-if="isDragMode && canReorderSubjects" class="drag-done-fab" @click="toggleDragMode">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
       <span>Listo</span>
     </button>
@@ -230,6 +230,9 @@ const draggedIndex = ref(-1)
 const dragOverIndex = ref(-1)
 const subjectsGridRef = ref<HTMLElement | null>(null)
 const subjectsListRef = ref<HTMLElement | null>(null)
+const canReorderSubjects = computed(() =>
+  canCreate.value && (authStore.isAdmin || authStore.isDocente)
+)
 
 // Cache de rects para hit-testing táctil (no reactivo)
 let _touchItemRects: DOMRect[] = []
@@ -263,6 +266,7 @@ function _stopAutoScroll() {
 }
 
 function toggleDragMode() {
+  if (!canReorderSubjects.value) return
   isDragMode.value = !isDragMode.value
   draggedIndex.value = -1
   dragOverIndex.value = -1
@@ -271,7 +275,7 @@ function toggleDragMode() {
 
 // ── Touch handlers (móvil) ──
 function onTouchStart(index: number, event: TouchEvent) {
-  if (!isDragMode.value) return
+  if (!canReorderSubjects.value || !isDragMode.value) return
   draggedIndex.value = index
   // Cachear las posiciones de todos los drag-items al inicio del toque
   const items = subjectsGridRef.value?.querySelectorAll<HTMLElement>('.drag-item') ?? []
@@ -279,7 +283,7 @@ function onTouchStart(index: number, event: TouchEvent) {
 }
 
 function _handleTouchMove(event: TouchEvent) {
-  if (draggedIndex.value === -1) return
+  if (!canReorderSubjects.value || draggedIndex.value === -1) return
   event.preventDefault()
   const touch = event.touches[0]
   const cx = touch.clientX
@@ -314,6 +318,12 @@ function _handleTouchMove(event: TouchEvent) {
 
 function onTouchEnd() {
   if (!isDragMode.value) return
+  if (!canReorderSubjects.value) {
+    _stopAutoScroll()
+    draggedIndex.value = -1
+    dragOverIndex.value = -1
+    return
+  }
   _stopAutoScroll()
   const from = draggedIndex.value
   const to = dragOverIndex.value
@@ -331,6 +341,12 @@ function onTouchEnd() {
 // Adjuntar/quitar listener no-pasivo para poder llamar preventDefault en touchmove
 watch(isDragMode, (active) => {
   if (!subjectsGridRef.value) return
+  if (active && !canReorderSubjects.value) {
+    isDragMode.value = false
+    draggedIndex.value = -1
+    dragOverIndex.value = -1
+    return
+  }
   if (active) {
     subjectsGridRef.value.addEventListener('touchmove', _handleTouchMove, { passive: false })
   } else {
@@ -339,6 +355,7 @@ watch(isDragMode, (active) => {
 })
 
 function onDragStart(index: number, event: DragEvent) {
+  if (!canReorderSubjects.value || !isDragMode.value) return
   draggedIndex.value = index
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
@@ -346,11 +363,16 @@ function onDragStart(index: number, event: DragEvent) {
 }
 
 function onDragEnter(index: number) {
-  if (draggedIndex.value === -1 || draggedIndex.value === index) return
+  if (!canReorderSubjects.value || draggedIndex.value === -1 || draggedIndex.value === index) return
   dragOverIndex.value = index
 }
 
 function onDrop(index: number) {
+  if (!canReorderSubjects.value) {
+    draggedIndex.value = -1
+    dragOverIndex.value = -1
+    return
+  }
   const from = draggedIndex.value
   draggedIndex.value = -1
   dragOverIndex.value = -1
@@ -368,12 +390,22 @@ function onDragEnd() {
 }
 
 async function saveSubjectOrder(subjects: Subject[]) {
+  if (!canReorderSubjects.value) return
   try {
     await Promise.all(
       subjects.map((s, i) => subjectAdapter.updateSubject(s.id, { orderIndex: i }))
     )
   } catch { /* silent */ }
 }
+
+watch(canReorderSubjects, (canReorder) => {
+  if (!canReorder && isDragMode.value) {
+    isDragMode.value = false
+    draggedIndex.value = -1
+    dragOverIndex.value = -1
+    _stopAutoScroll()
+  }
+})
 
 function onCardClick(subject: Subject) {
   if (isDragMode.value) return
