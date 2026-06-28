@@ -2852,10 +2852,6 @@
         </article>
       </section>
     </div>
-          </article>
-        </div>
-      </section>
-    </div>
 
     <div v-if="activeTab === 'institutions' && hasSuperAdminRole" class="tab-content institutions-tab">
       <div v-if="institutionsLoading" class="a-loading">
@@ -14981,6 +14977,553 @@ watch(() => route.query, () => {
   .standards-info {
     grid-template-columns: 1fr;
     padding-bottom: 32px;
+  }
+}
+
+/* Institutional interoperability */
+.standards-tab {
+  padding: 24px;
+  min-height: 100vh;
+  background: #101215;
+  color: #F7F8FB;
+}
+
+.standards-tab *,
+.standards-tab *::before,
+.standards-tab *::after {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+.interop-hero,
+.interop-note,
+.interop-section,
+.interop-blueprint-card {
+  max-width: 1280px;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #171A20;
+}
+
+.interop-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 20px;
+  padding: 28px;
+}
+
+.interop-hero-copy {
+  min-width: 0;
+}
+
+.interop-eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #7DD3FC;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-hero h2,
+.interop-section-header h3,
+.interop-blueprint-card h4 {
+  margin: 0;
+  color: #FFFFFF;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.interop-hero h2 {
+  max-width: 860px;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.interop-hero p,
+.interop-section p,
+.interop-blueprint-card li {
+  color: rgba(247, 248, 251, 0.68);
+  line-height: 1.55;
+}
+
+.interop-hero p {
+  max-width: 820px;
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+
+.interop-role-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.interop-role-card {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-role-card span,
+.interop-module-phase,
+.interop-roadmap-list article > span {
+  color: #A7F3D0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interop-role-card strong {
+  display: block;
+  margin-top: 4px;
+  color: #FFFFFF;
+  font-size: 16px;
+}
+
+.interop-role-card p {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.interop-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #17120B;
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.interop-note strong {
+  flex: 0 0 auto;
+  color: #FBBF24;
+}
+
+.interop-note span {
+  color: rgba(255, 251, 235, 0.78);
+  line-height: 1.45;
+}
+
+.interop-section {
+  margin-top: 14px;
+  padding: 22px;
+}
+
+.interop-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.interop-section-header.compact {
+  margin-bottom: 14px;
+}
+
+.interop-section-header h3 {
+  font-size: 22px;
+}
+
+.interop-pill,
+.interop-status,
+.interop-actions span,
+.interop-filter-row span,
+.interop-export-row span,
+.interop-chip-grid span,
+.interop-module-list span {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.interop-pill {
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.interop-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.interop-table-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(110px, 0.45fr) minmax(240px, 1.25fr) minmax(80px, 0.35fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.interop-table-row:last-child {
+  border-bottom: 0;
+}
+
+.interop-table-head {
+  background: #111419;
+}
+
+.interop-table-head span {
+  color: rgba(247, 248, 251, 0.5);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-standard-row {
+  border-left: 4px solid var(--standard-accent);
+}
+
+.interop-name-cell {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.interop-mark {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: var(--standard-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.interop-name-cell strong,
+.interop-priority,
+.interop-module-card h4,
+.interop-metric-list strong,
+.interop-roadmap-list strong {
+  color: #FFFFFF;
+}
+
+.interop-name-cell strong {
+  display: block;
+  line-height: 1.2;
+}
+
+.interop-name-cell small,
+.interop-table-row p small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(247, 248, 251, 0.48);
+  font-size: 12px;
+}
+
+.interop-table-row p {
+  margin: 0;
+  color: rgba(247, 248, 251, 0.68);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.interop-status-design {
+  color: #BAE6FD;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+}
+
+.interop-status-next {
+  color: #FDE68A;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+}
+
+.interop-actions,
+.interop-chip-grid,
+.interop-filter-row,
+.interop-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.interop-actions span,
+.interop-chip-grid span {
+  color: rgba(247, 248, 251, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.interop-operational-grid,
+.interop-assurance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 14px;
+  max-width: 1280px;
+  margin: 14px auto 0;
+}
+
+.interop-events-panel,
+.interop-analytics-panel {
+  margin-top: 0;
+}
+
+.interop-schema {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-schema strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #FFFFFF;
+}
+
+.interop-schema div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.interop-schema code {
+  padding: 5px 7px;
+  border-radius: 6px;
+  color: #BFDBFE;
+  background: rgba(96, 165, 250, 0.1);
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+}
+
+.interop-json {
+  max-width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 8px;
+  color: #D1FAE5;
+  background: #0B1014;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.interop-filter-row span,
+.interop-export-row span {
+  color: #C4B5FD;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.interop-metric-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.interop-metric-list article {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-metric-list span {
+  color: #FBBF24;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interop-metric-list strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.interop-metric-list p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.interop-export-row {
+  margin-top: 12px;
+}
+
+.interop-module-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.interop-module-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-module-card h4 {
+  margin: 7px 0 8px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.interop-module-card p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.interop-module-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.interop-module-list strong {
+  flex-basis: 100%;
+  color: rgba(247, 248, 251, 0.82);
+  font-size: 12px;
+}
+
+.interop-module-list span {
+  color: rgba(247, 248, 251, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.interop-module-list.muted span {
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.interop-blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 1280px;
+  margin: 14px auto 0;
+}
+
+.interop-blueprint-card {
+  padding: 18px;
+}
+
+.interop-blueprint-card h4 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.interop-blueprint-card ul,
+.interop-check-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.interop-blueprint-card li,
+.interop-check-list li {
+  font-size: 13px;
+}
+
+.interop-roadmap-list {
+  display: grid;
+  gap: 10px;
+}
+
+.interop-roadmap-list article {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-roadmap-list p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.interop-check-list li {
+  color: rgba(247, 248, 251, 0.74);
+  line-height: 1.45;
+}
+
+@media (max-width: 1180px) {
+  .interop-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .interop-table-row {
+    grid-template-columns: minmax(180px, 1fr) minmax(100px, 0.45fr) minmax(220px, 1fr);
+  }
+
+  .interop-table-head span:nth-child(n+4),
+  .interop-table-row > *:nth-child(n+4) {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .standards-tab {
+    padding: 14px;
+  }
+
+  .interop-hero,
+  .interop-operational-grid,
+  .interop-assurance-grid,
+  .interop-blueprint-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-hero {
+    padding: 20px;
+  }
+
+  .interop-hero h2 {
+    font-size: 26px;
+  }
+
+  .interop-note,
+  .interop-section-header {
+    flex-direction: column;
+  }
+
+  .interop-table-head {
+    display: none;
+  }
+
+  .interop-table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-table-row > *:nth-child(n+4) {
+    display: block;
+  }
+
+  .interop-actions {
+    display: flex;
+  }
+
+  .interop-module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-roadmap-list article {
+    grid-template-columns: 1fr;
   }
 }
 </style>
