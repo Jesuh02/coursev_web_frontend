@@ -20,6 +20,7 @@ export interface ComicPanel {
 
 export interface ComicResult {
   jobId?: string
+  cached?: boolean
   title: string
   panels: ComicPanel[]
 }
@@ -39,6 +40,7 @@ export interface VideoSceneNote {
 export interface VideoLearningResult {
   jobId?: string
   status?: 'processing' | 'completed' | 'error'
+  cached?: boolean
   title: string
   summary?: string
   videoUrl?: string
@@ -58,8 +60,16 @@ export interface LearningContext {
 }
 
 export const learningAdapter = {
+  async getOrCreateComic(ctx: LearningContext): Promise<ComicResult> {
+    return api.postSlow<ComicResult>('/learning/comic', ctx, 600_000)
+  },
+
   async generateComic(ctx: LearningContext): Promise<ComicResult> {
     return api.postSlow<ComicResult>('/learning/comic', ctx, 600_000)
+  },
+
+  async getOrCreateVideo(ctx: LearningContext): Promise<VideoLearningResult> {
+    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 120_000)
   },
 
   async generateVideo(ctx: LearningContext): Promise<VideoLearningResult> {

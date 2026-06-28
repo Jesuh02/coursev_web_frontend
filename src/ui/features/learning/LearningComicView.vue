@@ -14,8 +14,8 @@
       <div class="gen-spinner" ref="spinnerEl">
         <span /><span /><span /><span />
       </div>
-      <p class="al-eyebrow" style="text-align:center;">Generando con IA</p>
-      <h2 class="gen-title">Componiendo tu comic...</h2>
+      <p class="al-eyebrow" style="text-align:center;">Contenido IA</p>
+      <h2 class="gen-title">Preparando tu comic...</h2>
       <p class="al-sub" style="text-align:center; max-width:360px;">
         Estamos enviando los materiales del tema al modelo de imagen y texto.
         Esto puede tardar unos segundos.
@@ -69,9 +69,9 @@
                 <span class="slide-section__label">Situacion en la historia</span>
                 <p class="slide-caption">{{ currentPanel.caption }}</p>
               </section>
-              <blockquote v-if="currentPanel.dialogue" class="slide-dialogue">
-                "{{ currentPanel.dialogue }}"
-              </blockquote>
+              <div v-if="currentPanel.dialogue" class="slide-dialogue" aria-label="Dialogo del panel">
+                <p>{{ currentPanel.dialogue }}</p>
+              </div>
               <div v-if="currentPanel.technicalDetail" class="slide-technical">
                 <div class="slide-technical__header">
                   <span class="slide-technical__dot"></span>
@@ -126,7 +126,7 @@
       </nav>
 
       <div class="footer-actions">
-        <button class="al-cta al-cta--ghost" @click="generate">Regenerar</button>
+        <button class="al-cta al-cta--ghost" @click="generate">Recargar</button>
         <button
           v-if="currentIdx === result.panels.length - 1"
           class="al-cta al-cta--accent"
@@ -165,6 +165,7 @@ let touchStartX = 0
 let mouseStartX = 0
 
 const generationSteps = [
+  'Buscando comic guardado en R2...',
   'Leyendo documentos del tema...',
   'Construyendo el guion con el modelo de texto...',
   'Traduciendo conceptos a alegorias de la vida real...',
@@ -234,7 +235,7 @@ async function generate() {
   await nextTick()
   startLoadingAnimations()
   try {
-    const data = await learningAdapter.generateComic({
+    const data = await learningAdapter.getOrCreateComic({
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
@@ -489,16 +490,36 @@ onMounted(generate)
   gap: 12px;
 }
 .slide-dialogue {
+  position: relative;
+  align-self: flex-start;
+  max-width: min(100%, 520px);
   font-family: var(--apple-font-display);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--apple-ink);
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: var(--apple-cloud);
-  border-left: 3px solid var(--apple-signal-blue);
+  margin: 0 0 8px 10px;
+  padding: 12px 15px;
+  border-radius: 16px 16px 16px 5px;
+  background: #fffdf8;
+  border: 2px solid rgba(24, 24, 27, 0.18);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   line-height: 1.4;
+}
+.slide-dialogue::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: 9px;
+  width: 18px;
+  height: 18px;
+  background: #fffdf8;
+  border-left: 2px solid rgba(24, 24, 27, 0.18);
+  border-bottom: 2px solid rgba(24, 24, 27, 0.18);
+  transform: rotate(45deg);
+}
+.slide-dialogue p {
+  position: relative;
+  margin: 0;
 }
 .slide-section {
   margin: 0;

@@ -80,12 +80,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
+const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
 
 // ── Typewriter ──
@@ -157,11 +158,63 @@ const steps = [
   { title: 'Disfruta', body: 'La IA usa los documentos del tema para componer la pieza final.' },
 ]
 
+function asPositiveNumber(value: unknown) {
+  const raw = Array.isArray(value) ? value[0] : value
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function selectedLearningTarget() {
+  const courseId = asPositiveNumber(route.query.courseId)
+  const topicId = asPositiveNumber(route.query.topicId)
+  const taskId = asPositiveNumber(route.query.taskId)
+  const query: Record<string, string> = {}
+
+  const passthrough = ['topicName', 'taskName', 'subjectId', 'fromRecommendation', 'fromConversationAnalysis']
+  for (const key of passthrough) {
+    const value = route.query[key]
+    if (typeof value === 'string' && value) query[key] = value
+  }
+
+  if (courseId && topicId && taskId) {
+    return {
+      path: `/learning/course/${courseId}/topic/${topicId}/task/${taskId}/mode`,
+      query,
+    }
+  }
+
+  if (courseId && topicId) {
+    return {
+      path: `/learning/course/${courseId}/topic/${topicId}/task-selection`,
+      query,
+    }
+  }
+
+  if (courseId) {
+    return {
+      path: `/learning/course/${courseId}/topic-selection`,
+      query,
+    }
+  }
+
+  return null
+}
+
+function redirectToSelectedLearning() {
+  const target = selectedLearningTarget()
+  if (!target) return false
+  router.replace(target)
+  return true
+}
+
 function start() {
+  if (redirectToSelectedLearning()) return
   router.push('/learning/course-selection')
 }
 
 onMounted(() => {
+  if (redirectToSelectedLearning()) return
+
   runTypewriter(180)
 
   // Hero entrance — staggered

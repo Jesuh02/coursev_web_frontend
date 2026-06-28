@@ -16,12 +16,13 @@
         <span class="render-frame__cell" />
         <span class="render-frame__cell render-frame__cell--tall" />
       </div>
-      <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
-      <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
+      <p class="al-eyebrow" style="text-align:center;">Contenido IA</p>
+      <h2 class="al-display" style="text-align:center; font-size: 28px;">Preparando tu video…</h2>
       <p class="al-sub" style="text-align:center;">
         Estamos convirtiendo el contenido del curso en escenas con analogias y contenido tecnico visible.
       </p>
       <ul class="gen-steps" ref="stepsEl">
+        <li>Buscando video guardado en R2…</li>
         <li>Extrayendo materiales del tema y la tarea…</li>
         <li>Construyendo guion y voz con el modelo de texto…</li>
         <li>Buscando metaforas cotidianas para explicar el concepto…</li>
@@ -116,7 +117,7 @@
           <span class="credits-banner__icon">⚡</span>
           <div>
             <strong>Créditos de OpenRouter agotados</strong>
-            <p>El modelo de video (Kling v3 Pro) requiere créditos en tu cuenta de OpenRouter. Se generó una presentación de imágenes como alternativa.</p>
+            <p>El modelo de video (Seedance 2.0) requiere créditos en tu cuenta de OpenRouter. Se generó una presentación de imágenes como alternativa.</p>
           </div>
           <a
             href="https://openrouter.ai/credits"
@@ -131,10 +132,10 @@
         <header class="head" ref="headEl">
           <p class="al-eyebrow">{{ result.slides && !result.videoUrl ? 'Presentación generada' : 'Video generado' }}</p>
           <h1 class="al-display">{{ result.title }}</h1>
-          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
+          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Seedance 2.0</p>
         </header>
         <div class="footer-actions">
-          <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
+          <button class="al-cta al-cta--accent" @click="generate">Recargar</button>
           <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Terminar</button>
         </div>
       </div>
@@ -208,7 +209,7 @@ async function generate() {
   await nextTick()
   startLoading()
   try {
-    const data = await learningAdapter.generateVideo({
+    const data = await learningAdapter.getOrCreateVideo({
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
@@ -230,7 +231,7 @@ async function generate() {
 }
 
 async function pollUntilReady(jobId: string) {
-  const maxAttempts = 100 // ~8.3 min at 5 s intervals — covers Kling v3 Pro generation time
+  const maxAttempts = 100 // ~8.3 min at 5 s intervals; covers Seedance 2.0 generation time
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise<void>((resolve) => setTimeout(resolve, 5_000))
     const job = await learningAdapter.pollVideoStatus(jobId)

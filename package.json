@@ -12,6 +12,8 @@
     "deploy:wrangler": "node scripts/wrangler-deploy-retry.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.2.9",
+    "@fontsource-variable/geist-mono": "^5.2.8",
     "@splinetool/runtime": "^1.12.97",
     "@vueuse/core": "^14.2.1",
     "animejs": "^4.4.1",

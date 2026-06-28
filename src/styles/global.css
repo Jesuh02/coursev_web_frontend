@@ -1,4 +1,9 @@
 :root {
+  --font-geist-sans: 'Geist Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-geist-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Roboto Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
   --bg-primary: #000000;
   --bg-secondary: #0A0A0F;
   --bg-card: #141414;
@@ -50,12 +55,35 @@
 
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+body.font-sans,
+body.font-sans * {
+  font-family: var(--font-sans) !important;
+}
+
+.font-mono,
+body.font-sans .font-mono,
+body.font-sans .font-mono *,
+body.font-sans code,
+body.font-sans code *,
+body.font-sans kbd,
+body.font-sans kbd *,
+body.font-sans pre,
+body.font-sans pre *,
+body.font-sans samp,
+body.font-sans samp * {
+  font-family: var(--font-mono) !important;
 }
 
 #app {

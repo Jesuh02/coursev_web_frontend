@@ -28,8 +28,8 @@
   --apple-accent-pink: #FF6E97;
 
   /* Typography */
-  --apple-font-display: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --apple-font-text: 'SF Pro Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --apple-font-display: var(--font-sans);
+  --apple-font-text: var(--font-sans);
 
   /* Radii */
   --apple-r-card: 28px;

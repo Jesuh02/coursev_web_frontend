@@ -2647,75 +2647,211 @@
       </div>
     </div>
 
-    <!-- Educational Standards Tab -->
+    <!-- Institutional Interoperability Tab -->
     <div v-if="activeTab === 'standards' && canViewStandards" class="tab-content standards-tab">
-      <section class="standards-hero">
-        <div class="standards-hero-copy">
-          <span class="standards-eyebrow">Interoperabilidad institucional</span>
-          <h2>8. Usar estándares educativos reales</h2>
+      <section class="interop-hero">
+        <div class="interop-hero-copy">
+          <span class="interop-eyebrow">Interoperabilidad institucional</span>
+          <h2>CourseV conectado con LMS, sistemas académicos y analítica de aprendizaje</h2>
           <p>
-            Para que CourseV no sea solo un proyecto con IA, sino una plataforma seria para
-            universidades e instituciones, el roadmap debe hablar el lenguaje de los LMS,
-            registros académicos y analítica de aprendizaje.
+            Módulo reservado para administración académica y superadministración. Presenta el
+            roadmap profesional para que CourseV integre Caliper, xAPI, QTI, OneRoster y LTI
+            sin declarar certificaciones que todavía no existan.
           </p>
         </div>
-        <div class="standards-hero-panel">
-          <span>Acceso estratégico</span>
-          <strong>Roles 3 y 4</strong>
-          <p>Vista reservada para administración académica y superadministración.</p>
+        <div class="interop-role-grid" aria-label="Permisos del módulo">
+          <article v-for="role in institutionalRoleScopes" :key="role.role" class="interop-role-card">
+            <span>{{ role.role }}</span>
+            <strong>{{ role.title }}</strong>
+            <p>{{ role.scope }}</p>
+          </article>
         </div>
       </section>
 
-      <section class="standards-matrix">
-        <div class="standards-matrix-header">
+      <section class="interop-note">
+        <strong>No declarar certificación sin proceso formal.</strong>
+        <span>
+          Esta vista separa capacidades en diseño, próximas integraciones y criterios certificables.
+          Usar estándares públicos no equivale a estar certificado por 1EdTech o por un LRS.
+        </span>
+      </section>
+
+      <section class="interop-section interop-map">
+        <div class="interop-section-header">
           <div>
-            <span class="standards-eyebrow">Mapa de estándares</span>
-            <h3>Qué habilita cada estándar en CourseV</h3>
+            <span class="interop-eyebrow">Mapa de estándares</span>
+            <h3>Estado, prioridad y uso real dentro de CourseV</h3>
           </div>
-          <span class="standards-pill">Roadmap institucional</span>
+          <span class="interop-pill">Roadmap institucional</span>
         </div>
 
-        <div class="standards-table" role="table" aria-label="Estándares educativos reales">
-          <div class="standards-table-row standards-table-head" role="row">
+        <div class="interop-table" role="table" aria-label="Mapa de estándares educativos">
+          <div class="interop-table-row interop-table-head" role="row">
             <span role="columnheader">Estándar</span>
-            <span role="columnheader">Para qué sirve</span>
-            <span role="columnheader">Por qué importa en tu app</span>
+            <span role="columnheader">Estado</span>
+            <span role="columnheader">Uso en CourseV</span>
+            <span role="columnheader">Prioridad</span>
+            <span role="columnheader">Responsable</span>
+            <span role="columnheader">Acciones</span>
           </div>
           <article
-            v-for="standard in educationalStandards"
+            v-for="standard in interoperabilityStandards"
             :key="standard.name"
-            class="standards-table-row standards-standard-row"
+            class="interop-table-row interop-standard-row"
             :style="{ '--standard-accent': standard.accent }"
             role="row"
           >
-            <div class="standards-name-cell" role="cell">
-              <span class="standards-mark">{{ standard.short }}</span>
+            <div class="interop-name-cell" role="cell">
+              <span class="interop-mark">{{ standard.short }}</span>
               <div>
                 <strong>{{ standard.name }}</strong>
                 <small>{{ standard.scope }}</small>
               </div>
             </div>
-            <p role="cell">{{ standard.purpose }}</p>
-            <p role="cell">{{ standard.importance }}</p>
+            <div role="cell">
+              <span class="interop-status" :class="`interop-status-${standard.stateTone}`">{{ standard.state }}</span>
+            </div>
+            <p role="cell">{{ standard.coursevUse }}</p>
+            <strong class="interop-priority" role="cell">{{ standard.priority }}</strong>
+            <p role="cell">
+              {{ standard.owner }}
+              <small>{{ standard.updated }}</small>
+            </p>
+            <div class="interop-actions" role="cell">
+              <span v-for="action in standard.actions" :key="`${standard.name}-${action}`">{{ action }}</span>
+            </div>
           </article>
         </div>
       </section>
 
-      <section class="standards-info">
-        <div class="standards-info-card">
-          <span class="standards-eyebrow">Criterio de producto</span>
-          <h4>De demo con IA a plataforma vendible</h4>
-          <p>
-            Caliper y xAPI hacen medible el aprendizaje; QTI vuelve portables los quizzes
-            generados por IA; OneRoster conecta matrícula, cursos y notas; LTI permite entrar
-            a Moodle, Canvas o Blackboard sin obligar a la institución a reemplazar todo.
-          </p>
+      <section class="interop-operational-grid">
+        <article class="interop-section interop-events-panel">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Eventos de aprendizaje</span>
+              <h3>Base para Caliper, xAPI y analítica interna</h3>
+            </div>
+          </div>
+          <div class="interop-chip-grid">
+            <span v-for="event in learningEventTypes" :key="event">{{ event }}</span>
+          </div>
+          <div class="interop-schema">
+            <strong>learning_events</strong>
+            <div>
+              <code v-for="field in learningEventSchema" :key="field">{{ field }}</code>
+            </div>
+          </div>
+          <pre class="interop-json">{{ learningEventExample }}</pre>
+        </article>
+
+        <article class="interop-section interop-analytics-panel">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Analítica institucional</span>
+              <h3>Decisiones académicas, no solo datos técnicos</h3>
+            </div>
+          </div>
+          <div class="interop-filter-row">
+            <span v-for="filter in analyticsFilters" :key="filter">{{ filter }}</span>
+          </div>
+          <div class="interop-metric-list">
+            <article v-for="metric in institutionalAnalytics" :key="metric.title">
+              <span>{{ metric.kpi }}</span>
+              <strong>{{ metric.title }}</strong>
+              <p>{{ metric.body }}</p>
+            </article>
+          </div>
+          <div class="interop-export-row">
+            <span>Exportación Excel</span>
+            <span>Exportación PDF</span>
+            <span>Alertas de riesgo académico</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="interop-section">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">Apartados del módulo</span>
+            <h3>Integraciones que necesita una venta institucional seria</h3>
+          </div>
         </div>
-        <div class="standards-next-grid">
-          <article v-for="item in standardsImplementationSteps" :key="item.title" class="standards-next-item">
-            <span>{{ item.step }}</span>
-            <h4>{{ item.title }}</h4>
-            <p>{{ item.body }}</p>
+        <div class="interop-module-grid">
+          <article
+            v-for="module in interoperabilityModules"
+            :key="module.title"
+            class="interop-module-card"
+          >
+            <div>
+              <span class="interop-module-phase">{{ module.phase }}</span>
+              <h4>{{ module.title }}</h4>
+              <p>{{ module.description }}</p>
+            </div>
+            <div class="interop-module-list">
+              <strong>Debe incluir</strong>
+              <span v-for="item in module.fields" :key="`${module.title}-${item}`">{{ item }}</span>
+            </div>
+            <div class="interop-module-list muted">
+              <strong>Flujos clave</strong>
+              <span v-for="item in module.capabilities" :key="`${module.title}-${item}`">{{ item }}</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="interop-blueprint-grid">
+        <article v-for="block in interoperabilityBlueprint" :key="block.title" class="interop-blueprint-card">
+          <span class="interop-eyebrow">{{ block.kicker }}</span>
+          <h4>{{ block.title }}</h4>
+          <ul>
+            <li v-for="item in block.items" :key="`${block.title}-${item}`">{{ item }}</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="interop-section interop-roadmap">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">MVP vendible</span>
+            <h3>Roadmap por fases</h3>
+          </div>
+        </div>
+        <div class="interop-roadmap-list">
+          <article v-for="phase in interoperabilityRoadmap" :key="phase.step">
+            <span>{{ phase.step }}</span>
+            <div>
+              <strong>{{ phase.title }}</strong>
+              <p>{{ phase.body }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="interop-assurance-grid">
+        <article class="interop-section">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Seguridad y privacidad</span>
+              <h3>Controles obligatorios</h3>
+            </div>
+          </div>
+          <ul class="interop-check-list">
+            <li v-for="item in interoperabilitySecurity" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article class="interop-section">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Criterios de aceptación</span>
+              <h3>Cuándo el módulo está listo para piloto</h3>
+            </div>
+          </div>
+          <ul class="interop-check-list">
+            <li v-for="item in interoperabilityAcceptance" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+      </section>
+    </div>
           </article>
         </div>
       </section>
@@ -3240,6 +3376,259 @@ const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
 
+const institutionalRoleScopes = [
+  {
+    role: 'Rol 3',
+    title: 'Administración académica',
+    scope: 'Analítica, eventos, importaciones, exportaciones, cursos institucionales e integraciones.',
+  },
+  {
+    role: 'Rol 4',
+    title: 'Superadministración',
+    scope: 'Estándares globales, credenciales, instituciones, LMS externos, auditoría y políticas de datos.',
+  },
+]
+
+const interoperabilityStandards = [
+  {
+    name: 'Caliper Analytics',
+    short: 'CA',
+    scope: 'Analítica de aprendizaje',
+    state: 'En diseño',
+    stateTone: 'design',
+    coursevUse: 'Eventos internos de lectura, entrega, quiz, refuerzo con IA, asistencia y uso de recursos.',
+    priority: 'Alta',
+    owner: 'Producto académico',
+    updated: 'Fase 1',
+    actions: ['Mapear eventos', 'Definir vocabulario', 'Validar reportes'],
+    accent: '#34D399',
+  },
+  {
+    name: 'xAPI',
+    short: 'xAPI',
+    scope: 'Experiencias dentro y fuera del LMS',
+    state: 'En diseño',
+    stateTone: 'design',
+    coursevUse: 'Actividades externas, WhatsApp, simulaciones, prácticas offline y experiencias con IA.',
+    priority: 'Alta',
+    owner: 'Integraciones',
+    updated: 'Fase 5',
+    actions: ['Configurar LRS', 'Probar statements', 'Auditar errores'],
+    accent: '#60A5FA',
+  },
+  {
+    name: 'QTI',
+    short: 'QTI',
+    scope: 'Evaluaciones portables',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'Bancos de preguntas, quizzes y evidencias generadas por IA exportables a otros LMS.',
+    priority: 'Media',
+    owner: 'Evaluación IA',
+    updated: 'Fase 2',
+    actions: ['Exportar paquetes', 'Importar QTI', 'Validar estructura'],
+    accent: '#A78BFA',
+  },
+  {
+    name: 'OneRoster',
+    short: 'OR',
+    scope: 'SIS y sistemas académicos',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'Usuarios, docentes, estudiantes, cursos, clases, matrículas, cohortes y calificaciones.',
+    priority: 'Alta',
+    owner: 'Datos institucionales',
+    updated: 'Fase 3',
+    actions: ['Importar CSV', 'Mapear campos', 'Detectar duplicados'],
+    accent: '#F59E0B',
+  },
+  {
+    name: 'LTI',
+    short: 'LTI',
+    scope: 'Conexión con LMS',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'CourseV como herramienta externa dentro de Moodle, Canvas o Blackboard.',
+    priority: 'Alta',
+    owner: 'Plataforma',
+    updated: 'Fase 4',
+    actions: ['Registrar LMS', 'Launch test', 'Grade passback'],
+    accent: '#22D3EE',
+  },
+]
+
+const learningEventTypes = [
+  'lesson_viewed',
+  'lesson_completed',
+  'resource_opened',
+  'quiz_started',
+  'quiz_submitted',
+  'evidence_submitted',
+  'ai_feedback_requested',
+  'ai_reinforcement_used',
+  'whatsapp_learning_interaction',
+  'course_completed',
+  'module_abandoned',
+  'assessment_failed',
+  'attendance_registered',
+]
+
+const learningEventSchema = [
+  'id',
+  'tenant_id',
+  'institution_id',
+  'user_id',
+  'role',
+  'course_id',
+  'module_id',
+  'lesson_id',
+  'event_type',
+  'event_source',
+  'event_payload',
+  'standard_target',
+  'created_at',
+]
+
+const learningEventExample = `{
+  "user_id": "student_123",
+  "course_id": "ml_python_32w",
+  "event_type": "lesson_completed",
+  "event_source": "coursev_web",
+  "standard_target": "caliper",
+  "event_payload": {
+    "lesson": "Validación de modelos",
+    "duration_seconds": 640,
+    "progress": 100
+  }
+}`
+
+const analyticsFilters = [
+  'Institución',
+  'Programa',
+  'Curso',
+  'Docente',
+  'Cohorte',
+  'Fecha',
+]
+
+const institutionalAnalytics = [
+  {
+    kpi: 'Riesgo',
+    title: 'Estudiantes que necesitan acompañamiento',
+    body: 'Cruza avance, bajo rendimiento, abandono de módulos y uso de refuerzo con IA.',
+  },
+  {
+    kpi: 'Abandono',
+    title: 'Módulos con mayor caída',
+    body: 'Detecta lecciones, evidencias o recursos donde se pierde la continuidad académica.',
+  },
+  {
+    kpi: 'Impacto',
+    title: 'Recursos y docentes con más actividad',
+    body: 'Mide qué materiales funcionan mejor y qué cursos generan más interacción real.',
+  },
+]
+
+const interoperabilityModules = [
+  {
+    phase: 'xAPI / Fase 5',
+    title: 'xAPI y LRS',
+    description: 'Conector para enviar statements de experiencias dentro y fuera de CourseV hacia un Learning Record Store.',
+    fields: ['Endpoint del LRS', 'API Key u OAuth', 'Prueba de conexión', 'Historial de statements', 'Errores de sincronización'],
+    capabilities: ['WhatsApp', 'Simulaciones', 'Actividades offline', 'Recursos externos', 'Interacción con IA'],
+  },
+  {
+    phase: 'QTI / Fase 2',
+    title: 'Banco de preguntas y QTI',
+    description: 'Portabilidad de preguntas, quizzes y evidencias generadas por IA sin encerrar el contenido en CourseV.',
+    fields: ['Curso', 'Módulo', 'Competencia', 'Dificultad', 'Historial de cambios', 'Validación del paquete'],
+    capabilities: ['Crear con IA', 'Exportar QTI', 'Importar QTI', 'Ver incompatibilidades', 'Enviar a LMS'],
+  },
+  {
+    phase: 'OneRoster / Fase 3',
+    title: 'OneRoster y sistema académico',
+    description: 'Importación inicial por CSV y base para sincronización REST de usuarios, cursos, matrículas y notas.',
+    fields: ['users.csv', 'courses.csv', 'classes.csv', 'enrollments.csv', 'academicSessions.csv', 'orgs.csv'],
+    capabilities: ['Validación previa', 'Detección de duplicados', 'Mapeo de campos', 'Vista de errores', 'Logs de importación'],
+  },
+  {
+    phase: 'LTI / Fase 4',
+    title: 'LTI y conexión con LMS',
+    description: 'CourseV como herramienta externa integrada en Moodle, Canvas o Blackboard sin reemplazar el LMS institucional.',
+    fields: ['Client ID', 'Deployment ID', 'Issuer URL', 'JWKS URL', 'Redirect URI', 'Launch URL'],
+    capabilities: ['Deep Linking', 'Grade Passback', 'Prueba de lanzamiento', 'Logs técnicos', 'Roles LMS'],
+  },
+  {
+    phase: 'Gobierno / Fase 1',
+    title: 'Auditoría, privacidad y seguridad',
+    description: 'Trazabilidad administrativa para datos de estudiantes, integraciones, IA, exportaciones e importaciones.',
+    fields: ['tenant_id', 'institution_id', 'campus_id', 'program_id', 'course_id', 'audit_actor_id'],
+    capabilities: ['Historial de accesos', 'Logs de exportación', 'Anonimización', 'Políticas de retención', 'Errores de integración'],
+  },
+]
+
+const interoperabilityBlueprint = [
+  {
+    kicker: 'Base de datos',
+    title: 'Modelo recomendado',
+    items: ['learning_events', 'integration_connections', 'qti_question_banks', 'oneroster_import_jobs', 'lti_platform_registrations', 'audit_logs'],
+  },
+  {
+    kicker: 'API',
+    title: 'Endpoints backend necesarios',
+    items: ['POST /learning-events', 'GET /institutional-analytics', 'POST /qti/export', 'POST /oneroster/import', 'POST /lti/platforms', 'GET /audit-logs'],
+  },
+  {
+    kicker: 'Frontend',
+    title: 'Componentes esperados',
+    items: ['Mapa de estándares', 'Eventos de aprendizaje', 'Analítica institucional', 'Configuración LRS', 'Importador OneRoster', 'Registro LTI', 'Panel de auditoría'],
+  },
+]
+
+const interoperabilityRoadmap = [
+  {
+    step: 'Fase 1',
+    title: 'Eventos internos + analítica + roles 3 y 4',
+    body: 'Primer MVP vendible: tracking interno, dashboards académicos, auditoría básica y control de acceso.',
+  },
+  {
+    step: 'Fase 2',
+    title: 'Exportación QTI de preguntas IA',
+    body: 'Hacer portable el banco de preguntas para Moodle, Canvas u otras plataformas.',
+  },
+  {
+    step: 'Fase 3',
+    title: 'Importación OneRoster por CSV',
+    body: 'Sincronizar estudiantes, docentes, cursos, clases y matrículas sin digitación manual.',
+  },
+  {
+    step: 'Fase 4',
+    title: 'LTI para Moodle o Canvas',
+    body: 'Permitir que CourseV viva dentro del LMS actual de la universidad.',
+  },
+  {
+    step: 'Fase 5',
+    title: 'xAPI + LRS',
+    body: 'Registrar WhatsApp, simulaciones y actividades externas como experiencias de aprendizaje.',
+  },
+]
+
+const interoperabilitySecurity = [
+  'Separación estricta por tenant, institución, sede, programa y curso.',
+  'Permisos diferenciados: rol 3 opera analítica e importaciones; rol 4 configura credenciales y políticas.',
+  'Anonimización para analítica institucional cuando no se necesita identificar estudiantes.',
+  'Auditoría de quién importó, exportó, sincronizó, modificó evaluaciones o generó preguntas con IA.',
+  'Retención de datos configurable por institución y registro de errores de integración.',
+]
+
+const interoperabilityAcceptance = [
+  'La pestaña no aparece para estudiantes ni roles fuera de 3 y 4.',
+  'El mapa muestra estado, prioridad y acciones sin usar la palabra certificado.',
+  'Cada evento de aprendizaje se puede vincular a tenant, usuario, curso, origen y estándar objetivo.',
+  'La analítica permite filtrar por institución, programa, curso, docente, cohorte y fecha.',
+  'QTI, OneRoster, LTI y xAPI quedan separados como fases con campos técnicos claros.',
+]
+
 const educationalStandards = [
   {
     name: 'Caliper',
@@ -3418,7 +3807,7 @@ const issueAllCertificates = async () => {
 const allTabs = [
   { id: 'analytics', label: 'Analytics', adminOnly: false },
   { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false, cognitiveOnly: true },
-  { id: 'standards', label: 'Estándares', adminOnly: false, standardsOnly: true },
+  { id: 'standards', label: 'Interoperabilidad', adminOnly: false, standardsOnly: true },
   { id: 'moderation', label: 'Moderación', adminOnly: false },
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },

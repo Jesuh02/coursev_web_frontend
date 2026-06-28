@@ -1,5 +1,5 @@
 <template>
-  <div class="rl-root" :class="{ 'is-voice-only': phase === 'voice' }">
+  <div class="rl-root" :class="{ 'is-voice-only': phase === 'voice', 'is-call-review': phase === 'analysis' }">
 
     <!-- ░░ Floating particles ░░ -->
     <div class="particles" aria-hidden="true">
@@ -86,6 +86,19 @@
 
         <button
           type="button"
+          class="voice-hangup-button"
+          aria-label="Finalizar conversacion"
+          title="Finalizar"
+          :disabled="conversationAnalysisLoading"
+          @click="finishVoiceConversation"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6.5 14.5c3.4-2.1 7.6-2.1 11 0l1.1.7c.8.5 1.1 1.5.7 2.4l-.6 1.2c-.3.6-.9.9-1.6.8l-3.1-.5c-.6-.1-1-.6-1.1-1.2l-.2-1.1a8.3 8.3 0 0 0-1.4 0l-.2 1.1c-.1.6-.5 1.1-1.1 1.2l-3.1.5c-.7.1-1.3-.2-1.6-.8l-.6-1.2c-.4-.9-.1-1.9.7-2.4l1.1-.7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <button
+          type="button"
           class="voice-orb-button"
           aria-label="Conversar por voz con IA"
           @click="handleVoiceOrbClick"
@@ -119,6 +132,64 @@
             <div class="wave-bar" v-for="i in 7" :key="i" :style="{ animationDelay: (i * 0.08) + 's' }" />
           </div>
         </Transition>
+      </div>
+    </Transition>
+
+    <Transition name="phase">
+      <div v-if="phase === 'analysis'" key="analysis" class="screen analysis-screen">
+        <div class="analysis-status">
+          {{ conversationAnalysisLoading ? 'Analizando tu conversacion...' : 'Analisis de conversacion' }}
+        </div>
+
+        <section class="analysis-hero" aria-live="polite">
+          <div class="analysis-score-ring" :style="analysisScoreStyle">
+            <span v-if="conversationAnalysisLoading" class="analysis-spinner" />
+            <span v-else>{{ conversationAnalysis?.score ?? 0 }}</span>
+          </div>
+          <div class="analysis-copy">
+            <p class="analysis-kicker">Resultado</p>
+            <h2>{{ analysisTargetLabel }}</h2>
+            <p>{{ conversationAnalysis?.suggestion || 'Estoy revisando tus respuestas y el hilo de la conversacion.' }}</p>
+          </div>
+        </section>
+
+        <p v-if="conversationAnalysisError" class="analysis-error">{{ conversationAnalysisError }}</p>
+
+        <template v-if="conversationAnalysis && !conversationAnalysisLoading">
+          <section class="analysis-panel">
+            <h3>Lo hiciste bien</h3>
+            <ul>
+              <li v-for="item in conversationAnalysis.didWell" :key="item">
+                <span class="analysis-check" aria-hidden="true">✓</span>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </section>
+
+          <section class="analysis-panel">
+            <h3>Oportunidades de mejora</h3>
+            <ul>
+              <li v-for="item in conversationAnalysis.opportunities" :key="item">
+                <span class="analysis-flag" aria-hidden="true">⚑</span>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </section>
+
+          <div class="analysis-actions">
+            <button
+              type="button"
+              class="analysis-learning-btn"
+              :disabled="!analysisLearningReady"
+              @click="goToWeakLearningMode"
+            >
+              Reforzar con video o comic
+            </button>
+            <button type="button" class="analysis-secondary-btn" @click="restart">
+              Nueva practica
+            </button>
+          </div>
+        </template>
       </div>
     </Transition>
 
@@ -368,12 +439,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Decimal from 'decimal.js'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
+import { saveConversationRecommendation, type ConversationRecommendation } from './conversationRecommendation'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface QuizQuestion {
@@ -405,6 +477,13 @@ interface CoachResponse {
   critique?: string
   question?: string
   confidence?: number
+}
+
+interface VoiceConversationAnalysis {
+  score: number
+  didWell: string[]
+  opportunities: string[]
+  suggestion: string
 }
 
 interface CoachSendOptions {
@@ -441,13 +520,14 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike
 
-type Phase = 'start' | 'voice' | 'loading' | 'quiz' | 'results'
+type Phase = 'start' | 'voice' | 'analysis' | 'loading' | 'quiz' | 'results'
 type Cell  = '' | 'X' | 'O'
 type WinnerType = 'player' | 'cpu' | null
 type DifficultyLevel = 'EASY' | 'INTERMEDIATE' | 'HARD'
 
 // ─── Route ─────────────────────────────────────────────────────────────────────
 const route     = useRoute()
+const router    = useRouter()
 const courseId  = computed(() => Number(route.params.courseId) || 0)
 const topicId   = computed(() => route.query.topicId  ? Number(route.query.topicId)  : null)
 const taskId    = computed(() => route.query.taskId    ? Number(route.query.taskId)   : null)
@@ -514,6 +594,9 @@ const voiceQuizMode = ref(false)
 const voiceConversationMode = ref(false)
 const coachLastQuestion = ref('')
 const coachSplineActive = computed(() => isCoachSpeaking.value || isSpeaking.value || coachListening.value || coachLoading.value || voiceConversationMode.value)
+const conversationAnalysis = ref<VoiceConversationAnalysis | null>(null)
+const conversationAnalysisLoading = ref(false)
+const conversationAnalysisError = ref('')
 const micVolumeLevel = ref(0)
 const micVolumeBars = computed(() => {
   const level = micVolumeLevel.value
@@ -549,6 +632,18 @@ let remoteTtsAvailable: boolean | null = null
 const COACH_SPLINE_SCENE_URL = 'https://prod.spline.design/g7wxPPP8P6KMYRcT/scene.splinecode'
 const SPLINE_VIEWER_SCRIPT_ID = 'spline-viewer-script'
 const SPLINE_VIEWER_SRC = 'https://unpkg.com/@splinetool/viewer@1.12.97/build/spline-viewer.js'
+
+const analysisScoreStyle = computed(() => {
+  const score = conversationAnalysis.value?.score ?? 0
+  return { '--analysis-score': `${Math.max(0, Math.min(100, score)) * 3.6}deg` }
+})
+
+const analysisTargetLabel = computed(() => {
+  const target = taskName.value || topicName.value || 'esta conversacion'
+  return conversationAnalysisLoading.value ? 'Revisando desempeno' : `Refuerza: ${target}`
+})
+
+const analysisLearningReady = computed(() => Boolean(courseId.value && topicId.value))
 
 // ─── TTS (Text-to-Speech) ──────────────────────────────────────────────────────
 const isSpeaking = ref(false)
@@ -2734,12 +2829,268 @@ async function handleCoachVoiceTranscript(transcript: string) {
 }
 
 function buildCoachHistoryPayload() {
-  return coachMessages.value.slice(-8).map(msg => ({
+  return buildCoachHistoryPayloadFrom(coachMessages.value)
+}
+
+function buildCoachHistoryPayloadFrom(messages: CoachMessage[]) {
+  return messages.slice(-12).map(msg => ({
     role: msg.role,
     content: msg.content,
     stance: msg.stance,
     question: msg.question,
   }))
+}
+
+function cleanFeedbackText(text = '') {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/^[-*•\d.\s]+/, '')
+    .trim()
+}
+
+function uniqueFeedback(items: string[], max = 3) {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const item of items.map(cleanFeedbackText).filter(Boolean)) {
+    const key = item.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(item)
+    if (result.length >= max) break
+  }
+  return result
+}
+
+function extractAnalysisSection(text: string, label: string, nextLabels: string[]) {
+  const lower = text.toLowerCase()
+  const start = lower.indexOf(label.toLowerCase())
+  if (start === -1) return ''
+  const bodyStart = start + label.length
+  let bodyEnd = text.length
+  for (const nextLabel of nextLabels) {
+    const next = lower.indexOf(nextLabel.toLowerCase(), bodyStart)
+    if (next !== -1 && next < bodyEnd) bodyEnd = next
+  }
+  return text.slice(bodyStart, bodyEnd).trim()
+}
+
+function parseAnalysisBullets(section: string) {
+  return uniqueFeedback(
+    section
+      .split(/\r?\n|(?=\s[-*•]\s)/)
+      .map(line => line.replace(/^[-*•\d.)\s]+/, '').trim())
+      .filter(Boolean),
+  )
+}
+
+function parseCoachAnalysisReply(text: string) {
+  const strengths = extractAnalysisSection(text, 'FORTALEZAS:', ['OPORTUNIDADES:', 'SUGERENCIA:'])
+  const opportunities = extractAnalysisSection(text, 'OPORTUNIDADES:', ['SUGERENCIA:'])
+  const suggestion = extractAnalysisSection(text, 'SUGERENCIA:', [])
+  return {
+    didWell: parseAnalysisBullets(strengths),
+    opportunities: parseAnalysisBullets(opportunities),
+    suggestion: cleanFeedbackText(suggestion),
+  }
+}
+
+function deriveConversationScore(messages: CoachMessage[]) {
+  const stanceScores: Record<CoachStance, number> = {
+    incorrect: 32,
+    partial: 62,
+    reasonable: 88,
+  }
+  const scored = messages
+    .filter((msg): msg is CoachMessage & { stance: CoachStance } => msg.role === 'assistant' && Boolean(msg.stance))
+    .map(msg => stanceScores[msg.stance])
+  if (!scored.length) {
+    const userTurns = messages.filter(msg => msg.role === 'user').length
+    return userTurns ? Math.min(55, 25 + userTurns * 10) : 0
+  }
+  return Math.round(scored.reduce((sum, score) => sum + score, 0) / scored.length)
+}
+
+function fallbackStrengths(messages: CoachMessage[]) {
+  const positives = messages
+    .filter(msg => msg.role === 'assistant' && msg.stance === 'reasonable')
+    .map(msg => msg.content)
+  const userTurns = messages.filter(msg => msg.role === 'user').length
+  return uniqueFeedback([
+    ...positives,
+    userTurns > 1 ? 'Mantuviste la conversacion activa y respondiste a varias preguntas del coach.' : '',
+    'Identificaste al menos una parte del tema y permitiste que el coach evaluara tu razonamiento.',
+  ])
+}
+
+function fallbackOpportunities(messages: CoachMessage[]) {
+  const critiques = messages
+    .filter(msg => msg.role === 'assistant' && msg.stance !== 'reasonable')
+    .flatMap(msg => [msg.critique || '', msg.question ? `Practica responder: ${msg.question}` : ''])
+  return uniqueFeedback([
+    ...critiques,
+    `Refuerza ${taskName.value || topicName.value || 'este tema'} antes de volver a practicar.`,
+  ])
+}
+
+function buildAnalysisPrompt(messages: CoachMessage[]) {
+  const transcript = messages
+    .map(msg => `${msg.role === 'user' ? 'Estudiante' : 'Coach'}: ${[msg.content, msg.critique, msg.question].filter(Boolean).join(' ')}`)
+    .join('\n')
+    .slice(-6000)
+
+  return [
+    'Analiza esta conversacion de refuerzo como tutor academico.',
+    'Evalua que hizo bien el estudiante, sus oportunidades de mejora y una sugerencia concreta para estudiar.',
+    'Responde exactamente con este formato:',
+    'FORTALEZAS:',
+    '- ...',
+    'OPORTUNIDADES:',
+    '- ...',
+    'SUGERENCIA:',
+    '...',
+    `Tema: ${topicName.value || 'no especificado'}`,
+    `Tarea: ${taskName.value || 'no especificada'}`,
+    'Transcripcion:',
+    transcript || 'La conversacion no tuvo respuestas suficientes del estudiante.',
+  ].join('\n')
+}
+
+function buildVoiceConversationAnalysis(messages: CoachMessage[], parsed: Partial<VoiceConversationAnalysis> = {}): VoiceConversationAnalysis {
+  const didWell = parsed.didWell?.length ? parsed.didWell : fallbackStrengths(messages)
+  const opportunities = parsed.opportunities?.length ? parsed.opportunities : fallbackOpportunities(messages)
+  const suggestion = parsed.suggestion
+    || `Estudia ${taskName.value || topicName.value || 'este tema'} con un recurso visual y vuelve a practicar despues.`
+  return {
+    score: deriveConversationScore(messages),
+    didWell: didWell.length ? didWell : ['Completaste una conversacion de practica con el coach.'],
+    opportunities: opportunities.length ? opportunities : [`Refuerza ${taskName.value || topicName.value || 'este tema'} antes de continuar.`],
+    suggestion,
+  }
+}
+
+function buildLearningQuery() {
+  const query: Record<string, string> = {
+    courseId: String(courseId.value),
+    topicId: topicId.value ? String(topicId.value) : '',
+    fromConversationAnalysis: 'true',
+  }
+  if (taskId.value) query.taskId = String(taskId.value)
+  if (topicName.value) query.topicName = topicName.value
+  if (taskName.value) query.taskName = taskName.value
+  if (route.query.subjectId) query.subjectId = String(route.query.subjectId)
+  Object.keys(query).forEach(key => { if (!query[key]) delete query[key] })
+  return query
+}
+
+function persistConversationAnalysisRecommendation(analysis: VoiceConversationAnalysis) {
+  if (!courseId.value || !topicId.value) return
+  const learningQuery = buildLearningQuery()
+  const reinforcementQuery: Record<string, string> = {
+    topicId: String(topicId.value),
+    topicName: topicName.value || 'Tema recomendado',
+    difficulty: selectedDifficulty.value,
+    autoStart: 'true',
+    fromRecommendation: 'true',
+  }
+  if (taskId.value) reinforcementQuery.taskId = String(taskId.value)
+  if (taskName.value) reinforcementQuery.taskName = taskName.value
+
+  const recommendation: ConversationRecommendation = {
+    id: `voice_${courseId.value}_${topicId.value}_${taskId.value || 'topic'}_${Date.now()}`,
+    type: 'conversation_analysis',
+    source: 'voice-analysis',
+    userId: tokenStorage.userId || null,
+    status: 'pending',
+    priority: analysis.score < 45 ? 'high' : analysis.score < 70 ? 'medium' : 'low',
+    problem: {
+      description: analysis.opportunities[0] || `Refuerza ${taskName.value || topicName.value || 'este tema'}.`,
+      topicId: topicId.value,
+      topicName: topicName.value || 'Tema recomendado',
+      taskId: taskId.value ?? null,
+      taskName: taskName.value || null,
+      courseId: courseId.value,
+      courseName: (route.query.courseName as string) || 'Curso seleccionado',
+      subjectId: route.query.subjectId ? Number(route.query.subjectId) : null,
+      subjectName: (route.query.subjectName as string) || null,
+    },
+    before: {
+      accuracy: analysis.score,
+      avgGrade: Number((analysis.score / 20).toFixed(1)),
+      totalSessions: 1,
+      totalQuestions: coachMessages.value.filter(msg => msg.role === 'user').length,
+      trend: 'stable',
+    },
+    intervention: {
+      type: 'learning_media',
+      description: analysis.suggestion,
+      questionCount: 0,
+      difficulty: selectedDifficulty.value,
+      estimatedMinutes: 8,
+    },
+    actions: {
+      reinforcement: {
+        path: `/reinforcement/${courseId.value}`,
+        query: reinforcementQuery,
+      },
+      learning: {
+        path: '/learning',
+        query: learningQuery,
+      },
+    },
+    analysis,
+    createdAt: new Date().toISOString(),
+  }
+  saveConversationRecommendation(recommendation)
+}
+
+async function analyzeVoiceConversation(messages: CoachMessage[]) {
+  conversationAnalysisLoading.value = true
+  conversationAnalysisError.value = ''
+  conversationAnalysis.value = null
+
+  try {
+    const payload: Record<string, unknown> = {
+      courseId: courseId.value,
+      topicId: topicId.value ?? undefined,
+      taskId: taskId.value ?? undefined,
+      difficulty: selectedDifficulty.value,
+      message: buildAnalysisPrompt(messages),
+      history: buildCoachHistoryPayloadFrom(messages),
+      conversational: true,
+      voiceMode: false,
+      personality: 'conversation_analyst',
+    }
+    if (tokenStorage.userId) payload.userId = tokenStorage.userId
+    const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
+    const parsed = parseCoachAnalysisReply([response.reply || '', response.critique || ''].filter(Boolean).join('\n'))
+    conversationAnalysis.value = buildVoiceConversationAnalysis(messages, parsed)
+  } catch {
+    conversationAnalysisError.value = 'No pude completar el analisis con IA. Te dejo una lectura basada en la conversacion.'
+    conversationAnalysis.value = buildVoiceConversationAnalysis(messages)
+  } finally {
+    conversationAnalysisLoading.value = false
+    if (conversationAnalysis.value) persistConversationAnalysisRecommendation(conversationAnalysis.value)
+  }
+}
+
+async function finishVoiceConversation() {
+  if (conversationAnalysisLoading.value) return
+  const snapshot = coachMessages.value.slice()
+  voiceConversationMode.value = false
+  stopCoachListening()
+  stopSpeaking()
+  coachLoading.value = false
+  phase.value = 'analysis'
+  await nextTick()
+  await analyzeVoiceConversation(snapshot)
+}
+
+function goToWeakLearningMode() {
+  if (!analysisLearningReady.value) return
+  router.push({
+    path: '/learning',
+    query: buildLearningQuery(),
+  })
 }
 
 async function askCoachStarter() {
@@ -2788,6 +3139,7 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     console.log('[Coach] Enviando peticion al backend...')
     const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
     console.log('[Coach] Respuesta del backend:', response)
+    if (options.voiceMode && !voiceConversationMode.value) return
     const stance: CoachStance = response.stance || 'incorrect'
     const question = openCoachQuestion(response.question || '')
     coachLastQuestion.value = question
@@ -2837,6 +3189,9 @@ async function startVoiceQuestionFlow() {
   coachInput.value = ''
   coachMessages.value = []
   coachLastQuestion.value = ''
+  conversationAnalysis.value = null
+  conversationAnalysisError.value = ''
+  conversationAnalysisLoading.value = false
   stopSpeaking()
   stopCoachListening()
   resetTriqui()
@@ -2876,6 +3231,9 @@ async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
   voiceQuizMode.value = voiceModeOrEvent === true
   voiceConversationMode.value = false
   coachLastQuestion.value = ''
+  conversationAnalysis.value = null
+  conversationAnalysisError.value = ''
+  conversationAnalysisLoading.value = false
   stopCoachListening()
   stopSpeaking()
 
@@ -3098,6 +3456,9 @@ function restart() {
   voiceQuizMode.value   = false
   voiceConversationMode.value = false
   coachLastQuestion.value = ''
+  conversationAnalysis.value = null
+  conversationAnalysisError.value = ''
+  conversationAnalysisLoading.value = false
   stopCoachListening()
   stopSpeaking()
   phase.value           = 'start'
@@ -3158,6 +3519,13 @@ onUnmounted(() => {
   background: #000;
 }
 
+.rl-root.is-call-review {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(48, 209, 88, 0.12), transparent 36%),
+    radial-gradient(ellipse at 12% 18%, rgba(0, 113, 227, 0.12), transparent 34%),
+    #050506;
+}
+
 .rl-root.is-voice-only .particles {
   display: none;
 }
@@ -3207,6 +3575,220 @@ onUnmounted(() => {
   z-index: 100;
 }
 
+.analysis-screen {
+  width: min(960px, calc(100% - 32px));
+  max-width: 960px;
+  min-height: calc(100vh - 72px);
+  padding: 36px 0 96px;
+  justify-content: center;
+  color: #f5f5f7;
+}
+
+.analysis-status {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(245, 245, 247, 0.72);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.analysis-hero {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) 1fr;
+  gap: 32px;
+  align-items: center;
+  padding: 28px;
+  border-radius: 24px;
+  background: rgba(18, 18, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.analysis-score-ring {
+  --analysis-score: 0deg;
+  width: min(240px, 58vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  background:
+    radial-gradient(circle at center, #111113 0 58%, transparent 59%),
+    conic-gradient(#30d158 var(--analysis-score), rgba(255, 255, 255, 0.08) 0);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 20px 60px rgba(48, 209, 88, 0.14);
+}
+
+.analysis-score-ring span:not(.analysis-spinner) {
+  font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: clamp(52px, 12vw, 92px);
+  font-weight: 750;
+  letter-spacing: 0;
+  color: #ffffff;
+}
+
+.analysis-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.16);
+  border-top-color: #30d158;
+  animation: analysisSpin 0.9s linear infinite;
+}
+
+.analysis-copy {
+  min-width: 0;
+}
+
+.analysis-kicker {
+  margin: 0 0 8px;
+  color: #30d158;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analysis-copy h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 1.04;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.analysis-copy p {
+  margin: 14px 0 0;
+  max-width: 620px;
+  color: rgba(245, 245, 247, 0.72);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.analysis-panel {
+  width: 100%;
+  padding: 24px 28px;
+  border-radius: 22px;
+  background: rgba(18, 18, 20, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.analysis-panel h3 {
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.analysis-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.analysis-panel li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  color: rgba(245, 245, 247, 0.82);
+  font-size: 15px;
+  line-height: 1.48;
+}
+
+.analysis-check,
+.analysis-flag {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.analysis-check {
+  color: #04150a;
+  background: #30d158;
+}
+
+.analysis-flag {
+  color: #d7c9ff;
+  background: rgba(125, 92, 255, 0.18);
+}
+
+.analysis-error {
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  color: #ffd6d1;
+  background: rgba(255, 69, 58, 0.12);
+  border: 1px solid rgba(255, 69, 58, 0.2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.analysis-actions {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.analysis-learning-btn,
+.analysis-secondary-btn {
+  min-height: 48px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: transform 0.16s ease, opacity 0.16s ease, background 0.2s ease;
+}
+
+.analysis-learning-btn {
+  flex: 1 1 260px;
+  color: #031108;
+  background: #30d158;
+}
+
+.analysis-secondary-btn {
+  flex: 0 1 180px;
+  color: #f5f5f7;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.analysis-learning-btn:disabled,
+.analysis-secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.analysis-learning-btn:active:not(:disabled),
+.analysis-secondary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+@keyframes analysisSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    VOICE STATUS INDICATOR
 ═══════════════════════════════════════════════════════════════════════════════ */
@@ -3254,6 +3836,47 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.12);
   animation: none;
+}
+
+.voice-hangup-button {
+  position: absolute;
+  left: 50%;
+  bottom: max(30px, env(safe-area-inset-bottom, 0px) + 24px);
+  z-index: 12;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff453a 0%, #d92d24 100%);
+  box-shadow:
+    0 16px 42px rgba(255, 69, 58, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.2s ease;
+}
+
+.voice-hangup-button:hover:not(:disabled) {
+  box-shadow:
+    0 20px 52px rgba(255, 69, 58, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.voice-hangup-button:active:not(:disabled) {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.voice-hangup-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.86);
+  outline-offset: 5px;
+}
+
+.voice-hangup-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 @keyframes statusPulse {
@@ -4555,5 +5178,43 @@ onUnmounted(() => {
   flex: 1;
   font-size: 14px;
   line-height: 1.4;
+}
+
+@media (max-width: 680px) {
+  .analysis-screen {
+    width: calc(100% - 28px);
+    min-height: auto;
+    padding-top: 24px;
+    justify-content: flex-start;
+  }
+
+  .analysis-hero {
+    grid-template-columns: 1fr;
+    padding: 22px;
+    gap: 22px;
+  }
+
+  .analysis-copy h2 {
+    font-size: 32px;
+  }
+
+  .analysis-panel {
+    padding: 20px;
+  }
+
+  .analysis-actions {
+    flex-direction: column;
+  }
+
+  .analysis-learning-btn,
+  .analysis-secondary-btn {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .voice-hangup-button {
+    width: 58px;
+    height: 58px;
+  }
 }
 </style>
