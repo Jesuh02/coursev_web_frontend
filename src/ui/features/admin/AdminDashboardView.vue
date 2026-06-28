@@ -2676,6 +2676,136 @@
         </span>
       </section>
 
+      <section class="interop-section interop-live-panel">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">Centro operativo</span>
+            <h3>Estándares con acciones, datos, estado automático e historial</h3>
+          </div>
+          <button class="interop-refresh-btn" :disabled="interoperabilityLoading" @click="loadInteroperabilityDashboard">
+            {{ interoperabilityLoading ? 'Actualizando...' : 'Actualizar datos' }}
+          </button>
+        </div>
+
+        <div v-if="interoperabilityError" class="interop-alert error">{{ interoperabilityError }}</div>
+        <div v-if="interoperabilityActionMessage" class="interop-alert success">{{ interoperabilityActionMessage }}</div>
+
+        <div v-if="interoperabilityDashboard" class="interop-summary-strip">
+          <span>Tenant: {{ interoperabilityDashboard.tenantId }}</span>
+          <span>{{ interoperabilityDashboard.summary.learningEvents }} eventos</span>
+          <span>{{ interoperabilityDashboard.summary.inTests }} en pruebas</span>
+          <span>{{ interoperabilityDashboard.summary.recentErrors }} errores recientes</span>
+          <span>{{ interoperabilityDashboard.dbPersistence ? 'Persistencia Supabase' : 'Fallback en memoria' }}</span>
+        </div>
+
+        <div v-if="interoperabilityLoading && !liveInteroperabilityStandards.length" class="interop-loading">
+          Cargando estándares operativos...
+        </div>
+
+        <div v-else class="interop-live-grid">
+          <article
+            v-for="standard in liveInteroperabilityStandards"
+            :key="standard.code"
+            class="interop-live-card"
+            :style="{ '--standard-accent': standard.accent }"
+          >
+            <header class="interop-live-card-head">
+              <span class="interop-mark">{{ standard.short }}</span>
+              <div>
+                <h4>{{ standard.name }}</h4>
+                <p>{{ standard.coursevUse }}</p>
+              </div>
+              <span class="interop-status" :class="`interop-status-${standard.stateTone}`">{{ standard.state }}</span>
+            </header>
+
+            <div class="interop-progress-row">
+              <div><span :style="{ width: `${standard.progress}%` }"></span></div>
+              <strong>{{ standard.progress }}%</strong>
+            </div>
+
+            <div class="interop-real-metrics">
+              <article v-for="metric in standard.metrics" :key="`${standard.code}-${metric.label}`">
+                <span>{{ metric.label }}</span>
+                <strong>{{ formatInteropMetric(metric.value) }}</strong>
+              </article>
+            </div>
+
+            <div v-if="standard.code === 'xapi'" class="interop-config-grid">
+              <label>
+                Endpoint LRS
+                <input v-model="xapiLrsEndpoint" type="url" placeholder="https://lrs.institucion.edu/xapi" />
+              </label>
+              <label>
+                Autenticación
+                <input v-model="xapiAuthMethod" type="text" placeholder="OAuth / API Key" />
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'qti'" class="interop-config-grid">
+              <label>
+                Curso opcional
+                <input v-model="qtiExportCourseId" inputmode="numeric" placeholder="ID de curso" />
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'oneroster'" class="interop-config-grid full">
+              <label>
+                users.csv para validar
+                <textarea v-model="oneRosterCsv" rows="4"></textarea>
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'lti'" class="interop-config-grid lti">
+              <label><span>LMS</span><input v-model="ltiProvider" /></label>
+              <label><span>Client ID</span><input v-model="ltiClientId" /></label>
+              <label><span>Deployment ID</span><input v-model="ltiDeploymentId" /></label>
+              <label><span>Issuer</span><input v-model="ltiIssuer" /></label>
+              <label><span>JWKS URL</span><input v-model="ltiJwksUrl" /></label>
+              <label><span>Redirect URI</span><input v-model="ltiRedirectUri" /></label>
+              <label><span>Launch URL</span><input v-model="ltiLaunchUrl" /></label>
+            </div>
+
+            <div class="interop-live-actions">
+              <button
+                v-for="action in standard.actions"
+                :key="`${standard.code}-${action.key}`"
+                :disabled="interoperabilityActionBusy[interopActionBusyKey(standard.code, action.key)]"
+                @click="runInteroperabilityAction(standard.code, action.key)"
+              >
+                {{ interoperabilityActionBusy[interopActionBusyKey(standard.code, action.key)] ? 'Ejecutando...' : action.label }}
+              </button>
+            </div>
+
+            <div class="interop-health" :class="`interop-health-${standard.health.tone}`">
+              <strong>{{ standard.health.label }}</strong>
+              <span>{{ standard.health.detail }}</span>
+            </div>
+
+            <div class="interop-checklist-live">
+              <strong>Checklist funcional</strong>
+              <label v-for="item in standard.checklist" :key="`${standard.code}-${item.itemKey}`">
+                <input
+                  type="checkbox"
+                  :checked="item.done"
+                  @change="toggleInteroperabilityChecklist(standard.code, item.itemKey, $event)"
+                />
+                <span>{{ item.label }}</span>
+                <small>{{ item.source === 'auto' ? 'auto' : 'manual' }}</small>
+              </label>
+            </div>
+
+            <div class="interop-history-live">
+              <strong>Historial</strong>
+              <p v-if="!standard.history.length">Sin acciones registradas todavía.</p>
+              <p v-for="entry in standard.history.slice(0, 3)" :key="entry.id || `${standard.code}-${entry.createdAt}`">
+                <span>{{ formatInteropDate(entry.createdAt) }}</span>
+                {{ entry.summary }}
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section class="interop-section interop-map">
         <div class="interop-section-header">
           <div>
@@ -3238,6 +3368,7 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
+import { interoperabilityAdapter, type InteroperabilityDashboard, type InteroperabilityStandard } from '@/infrastructure/api/interoperabilityAdapter'
 import { BarChart, AreaChart, LegendPosition } from 'vue-chrts'
 import type { BulletLegendItemInterface } from 'vue-chrts'
 
@@ -3371,6 +3502,29 @@ const canViewStandards = computed(() => roleIds.value.includes(3) || roleIds.val
 const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
+
+const interoperabilityDashboard = ref<InteroperabilityDashboard | null>(null)
+const interoperabilityLoading = ref(false)
+const interoperabilityError = ref('')
+const interoperabilityActionMessage = ref('')
+const interoperabilityActionBusy = ref<Record<string, boolean>>({})
+const qtiExportCourseId = ref('')
+const xapiLrsEndpoint = ref('https://example.com/')
+const xapiAuthMethod = ref('OAuth/API Key')
+const ltiProvider = ref('Moodle')
+const ltiClientId = ref('coursev-client-demo')
+const ltiDeploymentId = ref('coursev-deployment-demo')
+const ltiIssuer = ref('https://moodle.example.edu')
+const ltiJwksUrl = ref('https://moodle.example.edu/mod/lti/certs.php')
+const ltiRedirectUri = ref('https://coursev.app/api/v1/interoperability/lti/redirect')
+const ltiLaunchUrl = ref('https://coursev.app/lti/launch')
+const oneRosterCsv = ref(`sourcedId,username,givenName,familyName,role,email
+student-001,ana.rojas,Ana,Rojas,student,ana.rojas@universidad.edu
+teacher-001,carlos.perez,Carlos,Perez,teacher,carlos.perez@universidad.edu`)
+
+const liveInteroperabilityStandards = computed<InteroperabilityStandard[]>(() =>
+  interoperabilityDashboard.value?.standards ?? []
+)
 
 const institutionalRoleScopes = [
   {
@@ -3625,6 +3779,132 @@ const interoperabilityAcceptance = [
   'QTI, OneRoster, LTI y xAPI quedan separados como fases con campos técnicos claros.',
 ]
 
+async function loadInteroperabilityDashboard() {
+  if (!canViewStandards.value) return
+  interoperabilityLoading.value = true
+  interoperabilityError.value = ''
+  try {
+    interoperabilityDashboard.value = await interoperabilityAdapter.getDashboard()
+  } catch (error: any) {
+    console.error('Error loading interoperability dashboard:', error)
+    interoperabilityError.value = error?.message || 'No se pudo cargar interoperabilidad institucional.'
+  } finally {
+    interoperabilityLoading.value = false
+  }
+}
+
+function formatInteropMetric(value: unknown) {
+  if (value === null || value === undefined || value === '') return 'Sin datos'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  return String(value)
+}
+
+function formatInteropDate(value?: string | null) {
+  if (!value) return 'Sin historial'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin historial'
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function interopActionBusyKey(standardCode: string, action: string) {
+  return `${standardCode}:${action}`
+}
+
+function buildInteropActionPayload(standardCode: string, action: string) {
+  if (standardCode === 'caliper') {
+    return {
+      eventType: 'lesson_completed',
+      lesson: 'Validación de modelos',
+    }
+  }
+  if (standardCode === 'xapi') {
+    return {
+      endpoint: xapiLrsEndpoint.value.trim(),
+      authMethod: xapiAuthMethod.value.trim() || 'OAuth/API Key',
+    }
+  }
+  if (standardCode === 'qti') {
+    return {
+      courseId: Number(qtiExportCourseId.value) || undefined,
+    }
+  }
+  if (standardCode === 'oneroster') {
+    return {
+      files: {
+        'users.csv': oneRosterCsv.value,
+      },
+      dryRun: action !== 'import_oneroster_csv',
+    }
+  }
+  if (standardCode === 'lti') {
+    return {
+      provider: ltiProvider.value.trim() || 'Moodle',
+      clientId: ltiClientId.value.trim(),
+      deploymentId: ltiDeploymentId.value.trim(),
+      issuer: ltiIssuer.value.trim(),
+      jwksUrl: ltiJwksUrl.value.trim(),
+      redirectUri: ltiRedirectUri.value.trim(),
+      launchUrl: ltiLaunchUrl.value.trim(),
+      linkedCourses: 1,
+    }
+  }
+  return {}
+}
+
+function downloadInteropContent(fileName: string, mimeType: string, content: string) {
+  const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName || `coursev-interoperability-${Date.now()}.txt`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function runInteroperabilityAction(standardCode: string, action: string) {
+  const key = interopActionBusyKey(standardCode, action)
+  interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: true }
+  interoperabilityActionMessage.value = ''
+  interoperabilityError.value = ''
+  try {
+    const result = await interoperabilityAdapter.runAction(
+      standardCode,
+      action,
+      buildInteropActionPayload(standardCode, action),
+    )
+    if (result.content) {
+      downloadInteropContent(result.fileName || 'coursev-export.txt', result.mimeType || 'text/plain', result.content)
+    }
+    if (result.dashboard) interoperabilityDashboard.value = result.dashboard
+    else await loadInteroperabilityDashboard()
+    interoperabilityActionMessage.value = result.summary || 'Acción ejecutada.'
+  } catch (error: any) {
+    console.error('Error running interoperability action:', error)
+    interoperabilityError.value = error?.message || 'No se pudo ejecutar la acción.'
+  } finally {
+    interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: false }
+  }
+}
+
+async function toggleInteroperabilityChecklist(standardCode: string, itemKey: string, event: Event) {
+  const input = event.target as HTMLInputElement | null
+  if (!input) return
+  interoperabilityError.value = ''
+  try {
+    interoperabilityDashboard.value = await interoperabilityAdapter.toggleChecklist(standardCode, itemKey, input.checked)
+  } catch (error: any) {
+    input.checked = !input.checked
+    interoperabilityError.value = error?.message || 'No se pudo actualizar el requisito.'
+  }
+}
+
 const educationalStandards = [
   {
     name: 'Caliper',
@@ -3845,6 +4125,9 @@ watch(activeTab, (tab) => {
   }
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
+  }
+  if (tab === 'standards' && canViewStandards.value && !interoperabilityDashboard.value && !interoperabilityLoading.value) {
+    loadInteroperabilityDashboard()
   }
   if (tab === 'cognitive' && canViewCognitive.value && cognitiveStudents.value.length === 0 && !cognitiveLoading.value) {
     loadCognitiveData()
