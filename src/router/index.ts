@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
 
   // Auth
   { path: '/login', name: 'login', component: () => import('@/ui/features/auth/LoginView.vue'), meta: { hideNav: true } },
+  { path: '/acceso/:code?', name: 'sessionLink', component: () => import('@/ui/features/auth/SessionLinkView.vue'), meta: { hideNav: true } },
   { path: '/register', name: 'register', component: () => import('@/ui/features/auth/RegisterView.vue'), meta: { hideNav: true } },
   { path: '/splash', name: 'splash', component: () => import('@/ui/features/auth/SplashView.vue'), meta: { hideNav: true } },
 
@@ -120,7 +121,7 @@ const router = createRouter({
   routes,
 })
 
-const PUBLIC_ROUTES = new Set(['login', 'register', 'splash', 'coursevAiOnboarding'])
+const PUBLIC_ROUTES = new Set(['login', 'sessionLink', 'register', 'splash', 'coursevAiOnboarding'])
 
 // Guard: redirect unauthenticated users to /login for any non-public route
 router.beforeEach((to, _from, next) => {
