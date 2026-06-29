@@ -2654,8 +2654,8 @@
           <span class="interop-eyebrow">Interoperabilidad institucional</span>
           <h2>CourseV conectado con LMS, sistemas académicos y analítica de aprendizaje</h2>
           <p>
-            Módulo reservado para administración académica y superadministración. Presenta el
-            roadmap profesional para que CourseV integre Caliper, xAPI, QTI, OneRoster y LTI
+            Módulo reservado para administración académica y superadministración. Opera
+            eventos, exportaciones, validaciones, configuraciones y auditoría para que CourseV integre Caliper, xAPI, QTI, OneRoster y LTI
             sin declarar certificaciones que todavía no existan.
           </p>
         </div>
@@ -2695,7 +2695,7 @@
           <span>{{ interoperabilityDashboard.summary.learningEvents }} eventos</span>
           <span>{{ interoperabilityDashboard.summary.inTests }} en pruebas</span>
           <span>{{ interoperabilityDashboard.summary.recentErrors }} errores recientes</span>
-          <span>{{ interoperabilityDashboard.dbPersistence ? 'Persistencia Supabase' : 'Fallback en memoria' }}</span>
+          <span>{{ interoperabilityDashboard.dbPersistence ? 'Persistencia Supabase' : 'Sin persistencia: ejecutar migración SQL' }}</span>
         </div>
 
         <div v-if="interoperabilityLoading && !liveInteroperabilityStandards.length" class="interop-loading">
@@ -2751,7 +2751,19 @@
             <div v-if="standard.code === 'oneroster'" class="interop-config-grid full">
               <label>
                 users.csv para validar
-                <textarea v-model="oneRosterCsv" rows="4"></textarea>
+                <textarea v-model="oneRosterUsersCsv" rows="4"></textarea>
+              </label>
+              <label>
+                courses.csv para validar
+                <textarea v-model="oneRosterCoursesCsv" rows="3"></textarea>
+              </label>
+              <label>
+                classes.csv para validar
+                <textarea v-model="oneRosterClassesCsv" rows="3"></textarea>
+              </label>
+              <label>
+                enrollments.csv para validar
+                <textarea v-model="oneRosterEnrollmentsCsv" rows="3"></textarea>
               </label>
             </div>
 
@@ -2825,7 +2837,7 @@
             <span role="columnheader">Acciones</span>
           </div>
           <article
-            v-for="standard in interoperabilityStandards"
+            v-for="standard in interoperabilityMapStandards"
             :key="standard.name"
             class="interop-table-row interop-standard-row"
             :style="{ '--standard-accent': standard.accent }"
@@ -3578,9 +3590,16 @@ const ltiIssuer = ref('https://moodle.example.edu')
 const ltiJwksUrl = ref('https://moodle.example.edu/mod/lti/certs.php')
 const ltiRedirectUri = ref('https://coursev.app/api/v1/interoperability/lti/redirect')
 const ltiLaunchUrl = ref('https://coursev.app/lti/launch')
-const oneRosterCsv = ref(`sourcedId,username,givenName,familyName,role,email
+const oneRosterUsersCsv = ref(`sourcedId,username,givenName,familyName,role,email
 student-001,ana.rojas,Ana,Rojas,student,ana.rojas@universidad.edu
 teacher-001,carlos.perez,Carlos,Perez,teacher,carlos.perez@universidad.edu`)
+const oneRosterCoursesCsv = ref(`sourcedId,title
+course-ml-python,Machine Learning con Python`)
+const oneRosterClassesCsv = ref(`sourcedId,courseSourcedId,title
+class-ml-python-a,course-ml-python,Grupo A`)
+const oneRosterEnrollmentsCsv = ref(`classSourcedId,userSourcedId,role
+class-ml-python-a,student-001,student
+class-ml-python-a,teacher-001,teacher`)
 
 const liveInteroperabilityStandards = computed<InteroperabilityStandard[]>(() =>
   interoperabilityDashboard.value?.standards ?? []
@@ -3625,7 +3644,7 @@ const interoperabilityStandards = [
     scope: 'Experiencias dentro y fuera del LMS',
     state: 'En diseño',
     stateTone: 'design',
-    coursevUse: 'Actividades externas, WhatsApp, simulaciones, prácticas offline y experiencias con IA.',
+    coursevUse: 'Simulaciones, prácticas presenciales, actividades offline, recursos externos y experiencias con IA.',
     priority: 'Alta',
     owner: 'Integraciones',
     updated: 'Fase 5',
@@ -3673,6 +3692,23 @@ const interoperabilityStandards = [
   },
 ]
 
+const interoperabilityMapStandards = computed(() => {
+  if (!liveInteroperabilityStandards.value.length) return interoperabilityStandards
+  return liveInteroperabilityStandards.value.map((standard) => ({
+    name: standard.name,
+    short: standard.short,
+    scope: standard.area,
+    state: standard.state,
+    stateTone: standard.stateTone,
+    coursevUse: standard.coursevUse,
+    priority: standard.priority,
+    owner: standard.owner,
+    updated: formatInteropDate(standard.updated),
+    actions: standard.actions.map((action) => action.label),
+    accent: standard.accent,
+  }))
+})
+
 const learningEventTypes = [
   'lesson_viewed',
   'lesson_completed',
@@ -3682,7 +3718,8 @@ const learningEventTypes = [
   'evidence_submitted',
   'ai_feedback_requested',
   'ai_reinforcement_used',
-  'whatsapp_learning_interaction',
+  'simulation_completed',
+  'offline_practice_completed',
   'course_completed',
   'module_abandoned',
   'assessment_failed',
@@ -3751,7 +3788,7 @@ const interoperabilityModules = [
     title: 'xAPI y LRS',
     description: 'Conector para enviar statements de experiencias dentro y fuera de CourseV hacia un Learning Record Store.',
     fields: ['Endpoint del LRS', 'API Key u OAuth', 'Prueba de conexión', 'Historial de statements', 'Errores de sincronización'],
-    capabilities: ['WhatsApp', 'Simulaciones', 'Actividades offline', 'Recursos externos', 'Interacción con IA'],
+    capabilities: ['Simulaciones', 'Prácticas presenciales', 'Actividades offline', 'Recursos externos', 'Interacción con IA'],
   },
   {
     phase: 'QTI / Fase 2',
@@ -3825,7 +3862,7 @@ const interoperabilityRoadmap = [
   {
     step: 'Fase 5',
     title: 'xAPI + LRS',
-    body: 'Registrar WhatsApp, simulaciones y actividades externas como experiencias de aprendizaje.',
+    body: 'Registrar simulaciones, prácticas presenciales, actividades offline y recursos externos como experiencias de aprendizaje.',
   },
 ]
 
@@ -3902,7 +3939,10 @@ function buildInteropActionPayload(standardCode: string, action: string) {
   if (standardCode === 'oneroster') {
     return {
       files: {
-        'users.csv': oneRosterCsv.value,
+        'users.csv': oneRosterUsersCsv.value,
+        'courses.csv': oneRosterCoursesCsv.value,
+        'classes.csv': oneRosterClassesCsv.value,
+        'enrollments.csv': oneRosterEnrollmentsCsv.value,
       },
       dryRun: action !== 'import_oneroster_csv',
     }
@@ -3996,7 +4036,7 @@ const educationalStandards = [
     name: 'xAPI',
     short: 'xAPI',
     scope: 'Experiencias dentro y fuera del LMS',
-    purpose: 'Registrar aprendizaje dentro y fuera de la app: WhatsApp, simulaciones, actividades offline o recursos externos.',
+    purpose: 'Registrar aprendizaje dentro y fuera de la app: simulaciones, prácticas presenciales, actividades offline o recursos externos.',
     importance: 'Medir rutas reales de aprendizaje más allá de CourseV y consolidarlas en un LRS.',
     accent: '#60A5FA',
   },
@@ -4030,7 +4070,7 @@ const standardsImplementationSteps = [
   {
     step: '01',
     title: 'Instrumentar eventos',
-    body: 'Modelar lectura, entrega, refuerzo, quiz, asistencia y WhatsApp como eventos trazables.',
+    body: 'Modelar lectura, entrega, refuerzo, quiz, asistencia, simulaciones y prácticas externas como eventos trazables.',
   },
   {
     step: '02',
