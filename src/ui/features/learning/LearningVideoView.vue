@@ -198,6 +198,20 @@ function formatDuration(s: number) {
   return `${m}:${String(r).padStart(2, '0')}`
 }
 
+function queryStringValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
+
+function learningDifficulty(): string {
+  const value = queryStringValue(route.query.difficulty).toUpperCase()
+  return ['EASY', 'INTERMEDIATE', 'HARD'].includes(value) ? value : 'HARD'
+}
+
+function learningTargetCount(): number {
+  const n = Number(queryStringValue(route.query.targetCount))
+  return Number.isFinite(n) && n > 0 ? Math.max(10, Math.trunc(n)) : 10
+}
+
 async function generate() {
   if (isGenerating.value) return
   isGenerating.value = true
@@ -213,6 +227,8 @@ async function generate() {
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
+      difficulty: learningDifficulty(),
+      targetCount: learningTargetCount(),
     })
     if (data.status === 'processing' && data.jobId) {
       await pollUntilReady(data.jobId)

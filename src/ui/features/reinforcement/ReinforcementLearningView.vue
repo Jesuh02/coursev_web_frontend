@@ -2973,6 +2973,8 @@ function buildLearningQuery() {
     courseId: String(courseId.value),
     topicId: topicId.value ? String(topicId.value) : '',
     fromConversationAnalysis: 'true',
+    difficulty: selectedDifficulty.value,
+    targetCount: '10',
   }
   if (taskId.value) query.taskId = String(taskId.value)
   if (topicName.value) query.topicName = topicName.value

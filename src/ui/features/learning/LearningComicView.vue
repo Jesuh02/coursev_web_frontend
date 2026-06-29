@@ -167,6 +167,7 @@ let mouseStartX = 0
 const generationSteps = [
   'Buscando comic guardado en R2...',
   'Leyendo documentos del tema...',
+  'Alineando el contenido con la evaluacion de refuerzo...',
   'Construyendo el guion con el modelo de texto...',
   'Traduciendo conceptos a alegorias de la vida real...',
   'Integrando codigo, diagramas o datos del tema cuando aplica...',
@@ -177,6 +178,20 @@ const generationSteps = [
 const currentPanel = computed(() =>
   result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
+
+function queryStringValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
+
+function learningDifficulty(): string {
+  const value = queryStringValue(route.query.difficulty).toUpperCase()
+  return ['EASY', 'INTERMEDIATE', 'HARD'].includes(value) ? value : 'HARD'
+}
+
+function learningTargetCount(): number {
+  const n = Number(queryStringValue(route.query.targetCount))
+  return Number.isFinite(n) && n > 0 ? Math.max(10, Math.trunc(n)) : 10
+}
 
 function detectCodeLanguage(code: string | undefined): string {
   if (!code) return 'Codigo'
@@ -239,6 +254,8 @@ async function generate() {
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
+      difficulty: learningDifficulty(),
+      targetCount: learningTargetCount(),
     })
     result.value = data
     status.value = 'ready'

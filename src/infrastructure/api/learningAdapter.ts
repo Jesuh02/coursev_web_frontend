@@ -57,6 +57,8 @@ export interface LearningContext {
   courseId: number
   topicId: number
   taskId: number
+  difficulty?: string
+  targetCount?: number
 }
 
 export const learningAdapter = {
