@@ -6,7 +6,7 @@
       <span v-for="p in particles" :key="p.id" class="particle" :style="p.style" />
     </div>
 
-    <!-- ░░ Top bar ░░ -->
+    <!-- ░░ Top barrrr ░░ -->
     <TopBar title="Refuerzo de Aprendizaje" @back="$router.back()" />
 
     <!-- ════════════════════════════════════ START ════════════════════════════════════ -->
