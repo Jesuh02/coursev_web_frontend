@@ -19,45 +19,79 @@
       </div>
     </div>
 
-    <!-- ═══ Recommendations Section ═══ -->
-    <section v-if="recommendations.length > 0" class="recommendations-section">
-      <div class="rec-header">
-        <h3 class="rec-title">Recomendaciones</h3>
-        <span class="rec-badge">{{ recommendations.length }}</span>
-      </div>
+    <!-- Recommendations Section -->
+    <section
+      v-if="recommendations.length > 0"
+      class="recommendations-section"
+      :class="{ 'is-collapsed': !recommendationsExpanded }"
+      aria-labelledby="profile-recommendations-title"
+    >
+      <button
+        class="rec-header"
+        type="button"
+        :aria-expanded="recommendationsExpanded"
+        aria-controls="profile-recommendations-panel"
+        @click="recommendationsExpanded = !recommendationsExpanded"
+      >
+        <div class="rec-heading-copy">
+          <span class="rec-eyebrow">Plan personalizado</span>
+          <span id="profile-recommendations-title" class="rec-title">Recomendaciones</span>
+        </div>
+        <div class="rec-header-actions">
+          <span class="rec-badge">
+            {{ recommendations.length }} {{ recommendations.length === 1 ? 'activa' : 'activas' }}
+          </span>
+          <span class="rec-toggle-label">{{ recommendationsExpanded ? 'Ocultar' : 'Desplegar' }}</span>
+          <svg
+            class="rec-chevron"
+            :class="{ 'is-open': recommendationsExpanded }"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </button>
 
-      <TransitionGroup name="rec-list" tag="div" class="rec-list">
-        <div
+      <TransitionGroup
+        v-show="recommendationsExpanded"
+        id="profile-recommendations-panel"
+        name="rec-list"
+        tag="div"
+        class="rec-list"
+      >
+        <article
           v-for="rec in recommendations"
           :key="rec.id"
           class="rec-card"
           :class="[`priority-${rec.priority}`, { 'rec-completed': rec.status === 'completed' }]"
         >
-          <!-- Priority indicator -->
-          <div class="rec-priority-bar" :class="`priority-${rec.priority}`" />
-
-          <!-- Problem section -->
-          <div class="rec-problem">
-            <div class="rec-problem-icon">
-              <svg v-if="rec.priority === 'high'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
+          <div class="rec-main">
+            <div class="rec-card-heading">
+              <div class="rec-priority">
+                <span class="rec-priority-dot" aria-hidden="true" />
+                <span>{{ getPriorityLabel(rec.priority) }}</span>
+              </div>
+              <span v-if="rec.status === 'completed'" class="rec-status">Completada</span>
             </div>
+
             <div class="rec-problem-content">
-              <span class="rec-label">Problema detectado</span>
               <p class="rec-description">{{ rec.problem.description }}</p>
               <div class="rec-tags">
                 <span class="rec-tag course">{{ rec.problem.courseName }}</span>
                 <span class="rec-tag topic">{{ rec.problem.topicName }}</span>
+                <span v-if="rec.problem.taskName" class="rec-tag task">{{ rec.problem.taskName }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Metrics before -->
           <div class="rec-metrics">
             <div class="rec-metric">
               <span class="metric-value" :class="getAccuracyClass(rec.before.accuracy)">{{ rec.before.accuracy }}%</span>
@@ -71,13 +105,12 @@
               <span class="metric-value trend" :class="`trend-${rec.before.trend}`">
                 <svg v-if="rec.before.trend === 'improving'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                 <svg v-else-if="rec.before.trend === 'declining'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
-                <span v-else>—</span>
+                <span v-else>Estable</span>
               </span>
               <span class="metric-label">Tendencia</span>
             </div>
           </div>
 
-          <!-- Intervention -->
           <div class="rec-intervention">
             <span class="rec-label">Intervención sugerida</span>
             <p class="rec-intervention-text">{{ rec.intervention.description }}</p>
@@ -117,11 +150,11 @@
               Aprender
             </button>
           </div>
-        </div>
+        </article>
       </TransitionGroup>
 
       <!-- Empty state when loading -->
-      <div v-if="loadingRecommendations" class="rec-loading">
+      <div v-if="loadingRecommendations && recommendationsExpanded" class="rec-loading">
         <div class="rec-skeleton" v-for="i in 2" :key="i">
           <div class="skeleton-line w-60" />
           <div class="skeleton-line w-full" />
@@ -276,6 +309,7 @@ import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { whatsappAdapter, HttpError } from '@/infrastructure/api'
 import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
 import type { Recommendation } from '@/domain/ports'
+import { getConversationRecommendations, type ConversationRecommendation } from '@/ui/features/reinforcement/conversationRecommendation'
 import ProfileMenuCard from './components/ProfileMenuCard.vue'
 import ProfileMenuItem from './components/ProfileMenuItem.vue'
 
@@ -288,9 +322,27 @@ const subscriberCount = ref(0)
 // ═══════════════════════════════════════
 // Recommendations state
 // ═══════════════════════════════════════
-const recommendations = ref<Recommendation[]>([])
+type ProfileRecommendation = (Recommendation | ConversationRecommendation) & {
+  problem: Recommendation['problem'] & {
+    taskId?: number | null
+    taskName?: string | null
+  }
+}
+
+const backendRecommendations = ref<ProfileRecommendation[]>([])
+const conversationRecommendations = ref<ConversationRecommendation[]>([])
 const loadingRecommendations = ref(false)
 const hasCheckedRecommendations = ref(false)
+const recommendationsExpanded = ref(false)
+
+const recommendations = computed<ProfileRecommendation[]>(() => {
+  const byId = new Map<string, ProfileRecommendation>()
+  for (const rec of conversationRecommendations.value) byId.set(rec.id, rec)
+  for (const rec of backendRecommendations.value) {
+    if (!byId.has(rec.id)) byId.set(rec.id, rec)
+  }
+  return Array.from(byId.values())
+})
 
 const subscriberCountLabel = computed(() => {
   const count = subscriberCount.value
@@ -543,6 +595,8 @@ onMounted(() => {
 watch(
   () => user.value?.id,
   (userId) => {
+    recommendationsExpanded.value = false
+    loadConversationRecommendations()
     void loadSubscriberCount(userId)
   },
   { immediate: true },
@@ -559,11 +613,12 @@ function logout() {
 async function loadRecommendations() {
   if (!authStore.isAuthenticated) return
 
+  recommendationsExpanded.value = false
   loadingRecommendations.value = true
   try {
     const response = await reinforcementAdapter.getRecommendations(5)
     if (response && response.recommendations) {
-      recommendations.value = response.recommendations
+      backendRecommendations.value = response.recommendations as ProfileRecommendation[]
     }
   } catch (error) {
     console.error('Error loading recommendations:', error)
@@ -573,44 +628,61 @@ async function loadRecommendations() {
   }
 }
 
+function loadConversationRecommendations() {
+  conversationRecommendations.value = getConversationRecommendations(user.value?.id ?? null)
+}
+
 function getAccuracyClass(accuracy: number): string {
   if (accuracy >= 70) return 'accuracy-good'
   if (accuracy >= 50) return 'accuracy-medium'
   return 'accuracy-low'
 }
 
-function goToReinforcement(rec: Recommendation) {
-  const query = {
+function getPriorityLabel(priority: Recommendation['priority']): string {
+  switch (priority) {
+    case 'high': return 'Alta prioridad'
+    case 'medium': return 'Prioridad media'
+    default: return 'Prioridad baja'
+  }
+}
+
+function goToReinforcement(rec: ProfileRecommendation) {
+  const query: Record<string, string> = {
     topicId: String(rec.problem.topicId),
     topicName: rec.problem.topicName,
     difficulty: rec.intervention.difficulty,
     autoStart: 'true',
     fromRecommendation: 'true',
   }
+  if (rec.problem.taskId) query.taskId = String(rec.problem.taskId)
+  if (rec.problem.taskName) query.taskName = rec.problem.taskName
   router.push({
     path: `/reinforcement/${rec.problem.courseId}`,
     query,
   })
 }
 
-function goToLearning(rec: Recommendation) {
+function goToLearning(rec: ProfileRecommendation) {
   const query: Record<string, string> = {
     courseId: String(rec.problem.courseId),
     topicId: String(rec.problem.topicId),
     topicName: rec.problem.topicName,
     fromRecommendation: 'true',
   }
+  if (rec.problem.taskId) query.taskId = String(rec.problem.taskId)
+  if (rec.problem.taskName) query.taskName = rec.problem.taskName
   if (rec.problem.subjectId) {
     query.subjectId = String(rec.problem.subjectId)
   }
   router.push({
-    path: '/learning/course-selection',
+    path: '/learning',
     query,
   })
 }
 
 // Load recommendations on mount
 onMounted(() => {
+  loadConversationRecommendations()
   void loadRecommendations()
 })
 </script>
@@ -926,242 +998,341 @@ onMounted(() => {
 .dialog-fade-enter-from .wa-card,
 .dialog-fade-leave-to .wa-card { transform: scale(0.93); }
 
-/* ═══ Recommendations Section — Apple Aesthetic ═══ */
+/* Recommendations Section */
 .recommendations-section {
-  padding: 0 16px 24px;
+  padding: 0 16px 22px;
 }
 
 .rec-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: rgba(28, 28, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.rec-header:hover {
+  background: rgba(34, 34, 38, 0.9);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.rec-header:focus-visible {
+  outline: 2px solid rgba(245, 245, 247, 0.75);
+  outline-offset: 2px;
+}
+
+.recommendations-section.is-collapsed .rec-header {
+  margin-bottom: 0;
+}
+
+.rec-heading-copy {
+  min-width: 0;
+}
+
+.rec-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.rec-toggle-label {
+  color: #f5f5f7;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rec-chevron {
+  color: #d1d1d6;
+  transition: transform 0.18s ease;
+}
+
+.rec-chevron.is-open {
+  transform: rotate(180deg);
 }
 
 .rec-title {
+  display: block;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: -0.012em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
   color: #f5f5f7;
   margin: 0;
+}
+
+.rec-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .rec-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: rgba(0, 113, 227, 0.15);
-  color: #0071e3;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d1d1d6;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .rec-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .rec-card {
   position: relative;
-  background: rgba(28, 28, 30, 0.95);
-  border-radius: 20px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(28, 28, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              box-shadow 0.3s ease;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .rec-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: rgba(34, 34, 38, 0.9);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
 }
 
 .rec-card.rec-completed {
-  opacity: 0.8;
-  border-color: rgba(48, 209, 88, 0.2);
+  opacity: 0.86;
+  border-color: rgba(48, 209, 88, 0.22);
 }
 
-.rec-priority-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 20px 20px 0 0;
-}
-
-.rec-priority-bar.priority-high {
-  background: linear-gradient(90deg, #FF453A, #FF6961);
-}
-
-.rec-priority-bar.priority-medium {
-  background: linear-gradient(90deg, #FF9F0A, #FFB340);
-}
-
-.rec-priority-bar.priority-low {
-  background: linear-gradient(90deg, #30D158, #4CD964);
-}
-
-/* Problem section */
-.rec-problem {
+.rec-main {
   display: flex;
-  gap: 14px;
-  margin-bottom: 18px;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.rec-problem-icon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.rec-card-heading {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.priority-high .rec-problem-icon {
-  background: rgba(255, 69, 58, 0.15);
-  color: #FF453A;
+.rec-priority,
+.rec-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: #b8b8bf;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
-.priority-medium .rec-problem-icon {
-  background: rgba(255, 159, 10, 0.15);
-  color: #FF9F0A;
+.rec-priority {
+  gap: 7px;
 }
 
-.priority-low .rec-problem-icon {
-  background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+.rec-priority-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+}
+
+.priority-high .rec-priority {
+  color: #ff6961;
+}
+
+.priority-medium .rec-priority {
+  color: #ffb340;
+}
+
+.priority-low .rec-priority {
+  color: #32d583;
+}
+
+.rec-status {
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(48, 209, 88, 0.1);
+  color: #32d583;
 }
 
 .rec-problem-content {
-  flex: 1;
   min-width: 0;
 }
 
 .rec-label {
   display: block;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: #86868b;
-  margin-bottom: 6px;
+  color: #7d7d85;
+  margin-bottom: 7px;
 }
 
 .rec-description {
   font-size: 15px;
-  font-weight: 400;
-  line-height: 1.45;
+  font-weight: 600;
+  line-height: 1.4;
   color: #f5f5f7;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
 }
 
 .rec-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .rec-tag {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rec-tag.course {
-  background: rgba(99, 102, 241, 0.12);
-  color: #818CF8;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7d7dc;
 }
 
 .rec-tag.topic {
-  background: rgba(34, 211, 238, 0.12);
-  color: #22D3EE;
+  background: rgba(255, 255, 255, 0.04);
+  color: #a9a9b1;
 }
 
-/* Metrics */
+.rec-tag.task {
+  background: rgba(48, 209, 88, 0.12);
+  color: #30d158;
+}
+
 .rec-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 14px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 16px;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .rec-metric {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 8px;
+  gap: 5px;
+}
+
+.rec-metric:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .metric-value {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
   color: #f5f5f7;
+  line-height: 1;
+  text-align: center;
 }
 
-.metric-value.accuracy-low { color: #FF453A; }
-.metric-value.accuracy-medium { color: #FF9F0A; }
-.metric-value.accuracy-good { color: #30D158; }
+.metric-value.accuracy-low { color: #ff6961; }
+.metric-value.accuracy-medium { color: #ffb340; }
+.metric-value.accuracy-good { color: #32d583; }
 
 .metric-value.trend {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 20px;
+  color: #a9a9b1;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.metric-value.trend-improving { color: #30D158; }
-.metric-value.trend-declining { color: #FF453A; }
-.metric-value.trend-stable { color: #86868b; }
+.metric-value.trend svg {
+  width: 17px;
+  height: 17px;
+}
+
+.metric-value.trend-improving { color: #32d583; }
+.metric-value.trend-declining { color: #ff6961; }
+.metric-value.trend-stable { color: #a9a9b1; }
 
 .metric-label {
   font-size: 11px;
-  font-weight: 500;
-  color: #86868b;
+  font-weight: 600;
+  color: #8e8e93;
   text-align: center;
+  line-height: 1.15;
 }
 
-/* Intervention */
 .rec-intervention {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .rec-intervention-text {
   font-size: 14px;
-  line-height: 1.5;
-  color: #a1a1a6;
+  line-height: 1.45;
+  color: #c7c7cc;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
-/* Results comparison */
 .rec-results {
-  background: rgba(48, 209, 88, 0.08);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border: 1px solid rgba(48, 209, 88, 0.18);
+  background: rgba(48, 209, 88, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
 }
 
 .results-comparison {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 10px;
 }
 
 .result-col {
@@ -1173,30 +1344,24 @@ onMounted(() => {
 
 .result-header {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #86868b;
+  letter-spacing: 0;
+  color: #8e8e93;
 }
 
 .result-value {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
-.result-value.low { color: #FF6961; }
-.result-value.high { color: #30D158; }
+.result-value.low { color: #ff6961; }
+.result-value.high { color: #32d583; }
 
 .result-arrow {
-  color: #30D158;
-  animation: arrow-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes arrow-pulse {
-  0%, 100% { opacity: 0.6; transform: translateX(0); }
-  50% { opacity: 1; transform: translateX(4px); }
+  color: #32d583;
 }
 
 .improvement-badge {
@@ -1204,70 +1369,76 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: rgba(48, 209, 88, 0.1);
+  color: #32d583;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Action buttons */
 .rec-actions {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .rec-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 46px;
-  border-radius: 12px;
+  gap: 7px;
+  min-width: 0;
+  height: 42px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.rec-btn svg {
+  flex: 0 0 auto;
 }
 
 .rec-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .rec-btn-primary {
-  background: #0071e3;
-  color: #fff;
+  background: #f5f5f7;
   border: none;
+  color: #111114;
 }
 
 .rec-btn-primary:hover {
-  background: #0077ED;
+  background: #ffffff;
 }
 
 .rec-btn-secondary {
-  background: transparent;
-  color: #f5f5f7;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e5e5ea;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .rec-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 /* Loading skeleton */
 .rec-loading {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .rec-skeleton {
-  background: rgba(28, 28, 30, 0.95);
-  border-radius: 20px;
-  padding: 20px;
+  background: rgba(28, 28, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1298,36 +1469,61 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 16px;
+  margin: 0 16px 22px;
+  padding: 24px 18px;
   text-align: center;
+  background: rgba(28, 28, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(48, 209, 88, 0.1);
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: rgba(48, 209, 88, 0.09);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #30D158;
-  margin-bottom: 16px;
+  color: #32d583;
+  margin-bottom: 14px;
+}
+
+.empty-icon svg {
+  width: 28px;
+  height: 28px;
 }
 
 .empty-title {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #f5f5f7;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .empty-sub {
   font-size: 14px;
-  color: #86868b;
-  line-height: 1.5;
+  color: #a1a1a6;
+  line-height: 1.45;
   margin: 0;
-  max-width: 280px;
+  max-width: 300px;
+}
+
+@media (max-width: 380px) {
+  .rec-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rec-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .rec-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* List transitions */

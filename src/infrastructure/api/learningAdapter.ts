@@ -18,9 +18,25 @@ export interface ComicPanel {
   technicalDetail?: string
 }
 
+export interface LearningEvaluationQuestionType {
+  type: 'fill_in_blank' | 'ordering' | 'multiple_choice' | string
+  label: string
+  goal?: string
+}
+
+export interface LearningEvaluationPrep {
+  difficulty: string
+  targetCount: number
+  domain?: string
+  questionTypes: LearningEvaluationQuestionType[]
+  focusAreas: string[]
+}
+
 export interface ComicResult {
   jobId?: string
+  cached?: boolean
   title: string
+  evaluationPrep?: LearningEvaluationPrep
   panels: ComicPanel[]
 }
 
@@ -39,11 +55,13 @@ export interface VideoSceneNote {
 export interface VideoLearningResult {
   jobId?: string
   status?: 'processing' | 'completed' | 'error'
+  cached?: boolean
   title: string
   summary?: string
   videoUrl?: string
   posterUrl?: string
   durationSeconds?: number
+  evaluationPrep?: LearningEvaluationPrep
   slides?: VideoSlide[]
   technicalHighlights?: string[]
   sceneNotes?: VideoSceneNote[]
@@ -55,11 +73,21 @@ export interface LearningContext {
   courseId: number
   topicId: number
   taskId: number
+  difficulty?: string
+  targetCount?: number
 }
 
 export const learningAdapter = {
+  async getOrCreateComic(ctx: LearningContext): Promise<ComicResult> {
+    return api.postSlow<ComicResult>('/learning/comic', ctx, 600_000)
+  },
+
   async generateComic(ctx: LearningContext): Promise<ComicResult> {
     return api.postSlow<ComicResult>('/learning/comic', ctx, 600_000)
+  },
+
+  async getOrCreateVideo(ctx: LearningContext): Promise<VideoLearningResult> {
+    return api.postSlow<VideoLearningResult>('/learning/video', ctx, 120_000)
   },
 
   async generateVideo(ctx: LearningContext): Promise<VideoLearningResult> {

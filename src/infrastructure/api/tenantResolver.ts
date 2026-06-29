@@ -111,6 +111,16 @@ export async function resolveGoogleLogin(
 }
 
 /**
+ * Resolves a shared session link code without exposing a password in the URL.
+ * If the same link matches more than one tenant, prefer INCAT and continue
+ * without showing the normal tenant picker because this route is meant to be
+ * a one-click entry point.
+ */
+export async function resolveSessionLink(code: string): Promise<TenantLoginResult> {
+  return probeAllServers('/auth/session-link', { code }, { preferFirstMatch: true })
+}
+
+/**
  * Commits a previously resolved match: stores the tenant selection and
  * switches the HTTP client base URL to that tenant's server.
  *
@@ -146,6 +156,7 @@ export function parseInstitutionSuspendedMeta(message: string): { institutionId?
 async function probeAllServers(
   path: string,
   body: Record<string, unknown>,
+  options: { preferFirstMatch?: boolean } = {},
 ): Promise<TenantLoginResult> {
   const servers = getDistinctServerUrls()
   const settled = await Promise.allSettled(servers.map(url => probeSingleServer(url, path, body)))
@@ -217,6 +228,11 @@ async function probeAllServers(
   const unique = [...byTenant.values()]
 
   if (unique.length > 1) {
+    if (options.preferFirstMatch) {
+      const preferred = unique.find(m => m.tenant.id === 'incat') ?? unique[0]
+      setSelectedTenant(preferred.tenant.id, preferred.issuingServerUrl)
+      return preferred
+    }
     const hashes = unique.map(m => m.personaCedulaHash).filter(Boolean)
     const uniqueHashes = [...new Set(hashes)]
     // All cedula hashes are identical → same person in multiple institutions → show picker

@@ -2647,77 +2647,339 @@
       </div>
     </div>
 
-    <!-- Educational Standards Tab -->
+    <!-- Institutional Interoperability Tab -->
     <div v-if="activeTab === 'standards' && canViewStandards" class="tab-content standards-tab">
-      <section class="standards-hero">
-        <div class="standards-hero-copy">
-          <span class="standards-eyebrow">Interoperabilidad institucional</span>
-          <h2>8. Usar estándares educativos reales</h2>
+      <section class="interop-hero">
+        <div class="interop-hero-copy">
+          <span class="interop-eyebrow">Interoperabilidad institucional</span>
+          <h2>CourseV conectado con LMS, sistemas académicos y analítica de aprendizaje</h2>
           <p>
-            Para que CourseV no sea solo un proyecto con IA, sino una plataforma seria para
-            universidades e instituciones, el roadmap debe hablar el lenguaje de los LMS,
-            registros académicos y analítica de aprendizaje.
+            Módulo reservado para administración académica y superadministración. Presenta el
+            roadmap profesional para que CourseV integre Caliper, xAPI, QTI, OneRoster y LTI
+            sin declarar certificaciones que todavía no existan.
           </p>
         </div>
-        <div class="standards-hero-panel">
-          <span>Acceso estratégico</span>
-          <strong>Roles 3 y 4</strong>
-          <p>Vista reservada para administración académica y superadministración.</p>
+        <div class="interop-role-grid" aria-label="Permisos del módulo">
+          <article v-for="role in institutionalRoleScopes" :key="role.role" class="interop-role-card">
+            <span>{{ role.role }}</span>
+            <strong>{{ role.title }}</strong>
+            <p>{{ role.scope }}</p>
+          </article>
         </div>
       </section>
 
-      <section class="standards-matrix">
-        <div class="standards-matrix-header">
+      <section class="interop-note">
+        <strong>No declarar certificación sin proceso formal.</strong>
+        <span>
+          Esta vista separa capacidades en diseño, próximas integraciones y criterios certificables.
+          Usar estándares públicos no equivale a estar certificado por 1EdTech o por un LRS.
+        </span>
+      </section>
+
+      <section class="interop-section interop-live-panel">
+        <div class="interop-section-header">
           <div>
-            <span class="standards-eyebrow">Mapa de estándares</span>
-            <h3>Qué habilita cada estándar en CourseV</h3>
+            <span class="interop-eyebrow">Centro operativo</span>
+            <h3>Estándares con acciones, datos, estado automático e historial</h3>
           </div>
-          <span class="standards-pill">Roadmap institucional</span>
+          <button class="interop-refresh-btn" :disabled="interoperabilityLoading" @click="loadInteroperabilityDashboard">
+            {{ interoperabilityLoading ? 'Actualizando...' : 'Actualizar datos' }}
+          </button>
         </div>
 
-        <div class="standards-table" role="table" aria-label="Estándares educativos reales">
-          <div class="standards-table-row standards-table-head" role="row">
+        <div v-if="interoperabilityError" class="interop-alert error">{{ interoperabilityError }}</div>
+        <div v-if="interoperabilityActionMessage" class="interop-alert success">{{ interoperabilityActionMessage }}</div>
+
+        <div v-if="interoperabilityDashboard" class="interop-summary-strip">
+          <span>Tenant: {{ interoperabilityDashboard.tenantId }}</span>
+          <span>{{ interoperabilityDashboard.summary.learningEvents }} eventos</span>
+          <span>{{ interoperabilityDashboard.summary.inTests }} en pruebas</span>
+          <span>{{ interoperabilityDashboard.summary.recentErrors }} errores recientes</span>
+          <span>{{ interoperabilityDashboard.dbPersistence ? 'Persistencia Supabase' : 'Fallback en memoria' }}</span>
+        </div>
+
+        <div v-if="interoperabilityLoading && !liveInteroperabilityStandards.length" class="interop-loading">
+          Cargando estándares operativos...
+        </div>
+
+        <div v-else class="interop-live-grid">
+          <article
+            v-for="standard in liveInteroperabilityStandards"
+            :key="standard.code"
+            class="interop-live-card"
+            :style="{ '--standard-accent': standard.accent }"
+          >
+            <header class="interop-live-card-head">
+              <span class="interop-mark">{{ standard.short }}</span>
+              <div>
+                <h4>{{ standard.name }}</h4>
+                <p>{{ standard.coursevUse }}</p>
+              </div>
+              <span class="interop-status" :class="`interop-status-${standard.stateTone}`">{{ standard.state }}</span>
+            </header>
+
+            <div class="interop-progress-row">
+              <div><span :style="{ width: `${standard.progress}%` }"></span></div>
+              <strong>{{ standard.progress }}%</strong>
+            </div>
+
+            <div class="interop-real-metrics">
+              <article v-for="metric in standard.metrics" :key="`${standard.code}-${metric.label}`">
+                <span>{{ metric.label }}</span>
+                <strong>{{ formatInteropMetric(metric.value) }}</strong>
+              </article>
+            </div>
+
+            <div v-if="standard.code === 'xapi'" class="interop-config-grid">
+              <label>
+                Endpoint LRS
+                <input v-model="xapiLrsEndpoint" type="url" placeholder="https://lrs.institucion.edu/xapi" />
+              </label>
+              <label>
+                Autenticación
+                <input v-model="xapiAuthMethod" type="text" placeholder="OAuth / API Key" />
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'qti'" class="interop-config-grid">
+              <label>
+                Curso opcional
+                <input v-model="qtiExportCourseId" inputmode="numeric" placeholder="ID de curso" />
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'oneroster'" class="interop-config-grid full">
+              <label>
+                users.csv para validar
+                <textarea v-model="oneRosterCsv" rows="4"></textarea>
+              </label>
+            </div>
+
+            <div v-if="standard.code === 'lti'" class="interop-config-grid lti">
+              <label><span>LMS</span><input v-model="ltiProvider" /></label>
+              <label><span>Client ID</span><input v-model="ltiClientId" /></label>
+              <label><span>Deployment ID</span><input v-model="ltiDeploymentId" /></label>
+              <label><span>Issuer</span><input v-model="ltiIssuer" /></label>
+              <label><span>JWKS URL</span><input v-model="ltiJwksUrl" /></label>
+              <label><span>Redirect URI</span><input v-model="ltiRedirectUri" /></label>
+              <label><span>Launch URL</span><input v-model="ltiLaunchUrl" /></label>
+            </div>
+
+            <div class="interop-live-actions">
+              <button
+                v-for="action in standard.actions"
+                :key="`${standard.code}-${action.key}`"
+                :disabled="interoperabilityActionBusy[interopActionBusyKey(standard.code, action.key)]"
+                @click="runInteroperabilityAction(standard.code, action.key)"
+              >
+                {{ interoperabilityActionBusy[interopActionBusyKey(standard.code, action.key)] ? 'Ejecutando...' : action.label }}
+              </button>
+            </div>
+
+            <div class="interop-health" :class="`interop-health-${standard.health.tone}`">
+              <strong>{{ standard.health.label }}</strong>
+              <span>{{ standard.health.detail }}</span>
+            </div>
+
+            <div class="interop-checklist-live">
+              <strong>Checklist funcional</strong>
+              <label v-for="item in standard.checklist" :key="`${standard.code}-${item.itemKey}`">
+                <input
+                  type="checkbox"
+                  :checked="item.done"
+                  @change="toggleInteroperabilityChecklist(standard.code, item.itemKey, $event)"
+                />
+                <span>{{ item.label }}</span>
+                <small>{{ item.source === 'auto' ? 'auto' : 'manual' }}</small>
+              </label>
+            </div>
+
+            <div class="interop-history-live">
+              <strong>Historial</strong>
+              <p v-if="!standard.history.length">Sin acciones registradas todavía.</p>
+              <p v-for="entry in standard.history.slice(0, 3)" :key="entry.id || `${standard.code}-${entry.createdAt}`">
+                <span>{{ formatInteropDate(entry.createdAt) }}</span>
+                {{ entry.summary }}
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="interop-section interop-map">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">Mapa de estándares</span>
+            <h3>Estado, prioridad y uso real dentro de CourseV</h3>
+          </div>
+          <span class="interop-pill">Roadmap institucional</span>
+        </div>
+
+        <div class="interop-table" role="table" aria-label="Mapa de estándares educativos">
+          <div class="interop-table-row interop-table-head" role="row">
             <span role="columnheader">Estándar</span>
-            <span role="columnheader">Para qué sirve</span>
-            <span role="columnheader">Por qué importa en tu app</span>
+            <span role="columnheader">Estado</span>
+            <span role="columnheader">Uso en CourseV</span>
+            <span role="columnheader">Prioridad</span>
+            <span role="columnheader">Responsable</span>
+            <span role="columnheader">Acciones</span>
           </div>
           <article
-            v-for="standard in educationalStandards"
+            v-for="standard in interoperabilityStandards"
             :key="standard.name"
-            class="standards-table-row standards-standard-row"
+            class="interop-table-row interop-standard-row"
             :style="{ '--standard-accent': standard.accent }"
             role="row"
           >
-            <div class="standards-name-cell" role="cell">
-              <span class="standards-mark">{{ standard.short }}</span>
+            <div class="interop-name-cell" role="cell">
+              <span class="interop-mark">{{ standard.short }}</span>
               <div>
                 <strong>{{ standard.name }}</strong>
                 <small>{{ standard.scope }}</small>
               </div>
             </div>
-            <p role="cell">{{ standard.purpose }}</p>
-            <p role="cell">{{ standard.importance }}</p>
+            <div role="cell">
+              <span class="interop-status" :class="`interop-status-${standard.stateTone}`">{{ standard.state }}</span>
+            </div>
+            <p role="cell">{{ standard.coursevUse }}</p>
+            <strong class="interop-priority" role="cell">{{ standard.priority }}</strong>
+            <p role="cell">
+              {{ standard.owner }}
+              <small>{{ standard.updated }}</small>
+            </p>
+            <div class="interop-actions" role="cell">
+              <span v-for="action in standard.actions" :key="`${standard.name}-${action}`">{{ action }}</span>
+            </div>
           </article>
         </div>
       </section>
 
-      <section class="standards-info">
-        <div class="standards-info-card">
-          <span class="standards-eyebrow">Criterio de producto</span>
-          <h4>De demo con IA a plataforma vendible</h4>
-          <p>
-            Caliper y xAPI hacen medible el aprendizaje; QTI vuelve portables los quizzes
-            generados por IA; OneRoster conecta matrícula, cursos y notas; LTI permite entrar
-            a Moodle, Canvas o Blackboard sin obligar a la institución a reemplazar todo.
-          </p>
+      <section class="interop-operational-grid">
+        <article class="interop-section interop-events-panel">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Eventos de aprendizaje</span>
+              <h3>Base para Caliper, xAPI y analítica interna</h3>
+            </div>
+          </div>
+          <div class="interop-chip-grid">
+            <span v-for="event in learningEventTypes" :key="event">{{ event }}</span>
+          </div>
+          <div class="interop-schema">
+            <strong>learning_events</strong>
+            <div>
+              <code v-for="field in learningEventSchema" :key="field">{{ field }}</code>
+            </div>
+          </div>
+          <pre class="interop-json">{{ learningEventExample }}</pre>
+        </article>
+
+        <article class="interop-section interop-analytics-panel">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Analítica institucional</span>
+              <h3>Decisiones académicas, no solo datos técnicos</h3>
+            </div>
+          </div>
+          <div class="interop-filter-row">
+            <span v-for="filter in analyticsFilters" :key="filter">{{ filter }}</span>
+          </div>
+          <div class="interop-metric-list">
+            <article v-for="metric in institutionalAnalytics" :key="metric.title">
+              <span>{{ metric.kpi }}</span>
+              <strong>{{ metric.title }}</strong>
+              <p>{{ metric.body }}</p>
+            </article>
+          </div>
+          <div class="interop-export-row">
+            <span>Exportación Excel</span>
+            <span>Exportación PDF</span>
+            <span>Alertas de riesgo académico</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="interop-section">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">Apartados del módulo</span>
+            <h3>Integraciones que necesita una venta institucional seria</h3>
+          </div>
         </div>
-        <div class="standards-next-grid">
-          <article v-for="item in standardsImplementationSteps" :key="item.title" class="standards-next-item">
-            <span>{{ item.step }}</span>
-            <h4>{{ item.title }}</h4>
-            <p>{{ item.body }}</p>
+        <div class="interop-module-grid">
+          <article
+            v-for="module in interoperabilityModules"
+            :key="module.title"
+            class="interop-module-card"
+          >
+            <div>
+              <span class="interop-module-phase">{{ module.phase }}</span>
+              <h4>{{ module.title }}</h4>
+              <p>{{ module.description }}</p>
+            </div>
+            <div class="interop-module-list">
+              <strong>Debe incluir</strong>
+              <span v-for="item in module.fields" :key="`${module.title}-${item}`">{{ item }}</span>
+            </div>
+            <div class="interop-module-list muted">
+              <strong>Flujos clave</strong>
+              <span v-for="item in module.capabilities" :key="`${module.title}-${item}`">{{ item }}</span>
+            </div>
           </article>
         </div>
+      </section>
+
+      <section class="interop-blueprint-grid">
+        <article v-for="block in interoperabilityBlueprint" :key="block.title" class="interop-blueprint-card">
+          <span class="interop-eyebrow">{{ block.kicker }}</span>
+          <h4>{{ block.title }}</h4>
+          <ul>
+            <li v-for="item in block.items" :key="`${block.title}-${item}`">{{ item }}</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="interop-section interop-roadmap">
+        <div class="interop-section-header">
+          <div>
+            <span class="interop-eyebrow">MVP vendible</span>
+            <h3>Roadmap por fases</h3>
+          </div>
+        </div>
+        <div class="interop-roadmap-list">
+          <article v-for="phase in interoperabilityRoadmap" :key="phase.step">
+            <span>{{ phase.step }}</span>
+            <div>
+              <strong>{{ phase.title }}</strong>
+              <p>{{ phase.body }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="interop-assurance-grid">
+        <article class="interop-section">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Seguridad y privacidad</span>
+              <h3>Controles obligatorios</h3>
+            </div>
+          </div>
+          <ul class="interop-check-list">
+            <li v-for="item in interoperabilitySecurity" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article class="interop-section">
+          <div class="interop-section-header compact">
+            <div>
+              <span class="interop-eyebrow">Criterios de aceptación</span>
+              <h3>Cuándo el módulo está listo para piloto</h3>
+            </div>
+          </div>
+          <ul class="interop-check-list">
+            <li v-for="item in interoperabilityAcceptance" :key="item">{{ item }}</li>
+          </ul>
+        </article>
       </section>
     </div>
 
@@ -3106,6 +3368,7 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
+import { interoperabilityAdapter, type InteroperabilityDashboard, type InteroperabilityStandard } from '@/infrastructure/api/interoperabilityAdapter'
 import { BarChart, AreaChart, LegendPosition } from 'vue-chrts'
 import type { BulletLegendItemInterface } from 'vue-chrts'
 
@@ -3239,6 +3502,408 @@ const canViewStandards = computed(() => roleIds.value.includes(3) || roleIds.val
 const shouldUseCompactTabs = computed(() => isRole1Only.value)
 
 const activeTab = ref('analytics')
+
+const interoperabilityDashboard = ref<InteroperabilityDashboard | null>(null)
+const interoperabilityLoading = ref(false)
+const interoperabilityError = ref('')
+const interoperabilityActionMessage = ref('')
+const interoperabilityActionBusy = ref<Record<string, boolean>>({})
+const qtiExportCourseId = ref('')
+const xapiLrsEndpoint = ref('https://example.com/')
+const xapiAuthMethod = ref('OAuth/API Key')
+const ltiProvider = ref('Moodle')
+const ltiClientId = ref('coursev-client-demo')
+const ltiDeploymentId = ref('coursev-deployment-demo')
+const ltiIssuer = ref('https://moodle.example.edu')
+const ltiJwksUrl = ref('https://moodle.example.edu/mod/lti/certs.php')
+const ltiRedirectUri = ref('https://coursev.app/api/v1/interoperability/lti/redirect')
+const ltiLaunchUrl = ref('https://coursev.app/lti/launch')
+const oneRosterCsv = ref(`sourcedId,username,givenName,familyName,role,email
+student-001,ana.rojas,Ana,Rojas,student,ana.rojas@universidad.edu
+teacher-001,carlos.perez,Carlos,Perez,teacher,carlos.perez@universidad.edu`)
+
+const liveInteroperabilityStandards = computed<InteroperabilityStandard[]>(() =>
+  interoperabilityDashboard.value?.standards ?? []
+)
+
+const institutionalRoleScopes = [
+  {
+    role: 'Rol 3',
+    title: 'Administración académica',
+    scope: 'Analítica, eventos, importaciones, exportaciones, cursos institucionales e integraciones.',
+  },
+  {
+    role: 'Rol 4',
+    title: 'Superadministración',
+    scope: 'Estándares globales, credenciales, instituciones, LMS externos, auditoría y políticas de datos.',
+  },
+]
+
+const interoperabilityStandards = [
+  {
+    name: 'Caliper Analytics',
+    short: 'CA',
+    scope: 'Analítica de aprendizaje',
+    state: 'En diseño',
+    stateTone: 'design',
+    coursevUse: 'Eventos internos de lectura, entrega, quiz, refuerzo con IA, asistencia y uso de recursos.',
+    priority: 'Alta',
+    owner: 'Producto académico',
+    updated: 'Fase 1',
+    actions: ['Mapear eventos', 'Definir vocabulario', 'Validar reportes'],
+    accent: '#34D399',
+  },
+  {
+    name: 'xAPI',
+    short: 'xAPI',
+    scope: 'Experiencias dentro y fuera del LMS',
+    state: 'En diseño',
+    stateTone: 'design',
+    coursevUse: 'Actividades externas, WhatsApp, simulaciones, prácticas offline y experiencias con IA.',
+    priority: 'Alta',
+    owner: 'Integraciones',
+    updated: 'Fase 5',
+    actions: ['Configurar LRS', 'Probar statements', 'Auditar errores'],
+    accent: '#60A5FA',
+  },
+  {
+    name: 'QTI',
+    short: 'QTI',
+    scope: 'Evaluaciones portables',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'Bancos de preguntas, quizzes y evidencias generadas por IA exportables a otros LMS.',
+    priority: 'Media',
+    owner: 'Evaluación IA',
+    updated: 'Fase 2',
+    actions: ['Exportar paquetes', 'Importar QTI', 'Validar estructura'],
+    accent: '#A78BFA',
+  },
+  {
+    name: 'OneRoster',
+    short: 'OR',
+    scope: 'SIS y sistemas académicos',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'Usuarios, docentes, estudiantes, cursos, clases, matrículas, cohortes y calificaciones.',
+    priority: 'Alta',
+    owner: 'Datos institucionales',
+    updated: 'Fase 3',
+    actions: ['Importar CSV', 'Mapear campos', 'Detectar duplicados'],
+    accent: '#F59E0B',
+  },
+  {
+    name: 'LTI',
+    short: 'LTI',
+    scope: 'Conexión con LMS',
+    state: 'Próximo',
+    stateTone: 'next',
+    coursevUse: 'CourseV como herramienta externa dentro de Moodle, Canvas o Blackboard.',
+    priority: 'Alta',
+    owner: 'Plataforma',
+    updated: 'Fase 4',
+    actions: ['Registrar LMS', 'Launch test', 'Grade passback'],
+    accent: '#22D3EE',
+  },
+]
+
+const learningEventTypes = [
+  'lesson_viewed',
+  'lesson_completed',
+  'resource_opened',
+  'quiz_started',
+  'quiz_submitted',
+  'evidence_submitted',
+  'ai_feedback_requested',
+  'ai_reinforcement_used',
+  'whatsapp_learning_interaction',
+  'course_completed',
+  'module_abandoned',
+  'assessment_failed',
+  'attendance_registered',
+]
+
+const learningEventSchema = [
+  'id',
+  'tenant_id',
+  'institution_id',
+  'user_id',
+  'role',
+  'course_id',
+  'module_id',
+  'lesson_id',
+  'event_type',
+  'event_source',
+  'event_payload',
+  'standard_target',
+  'created_at',
+]
+
+const learningEventExample = `{
+  "user_id": "student_123",
+  "course_id": "ml_python_32w",
+  "event_type": "lesson_completed",
+  "event_source": "coursev_web",
+  "standard_target": "caliper",
+  "event_payload": {
+    "lesson": "Validación de modelos",
+    "duration_seconds": 640,
+    "progress": 100
+  }
+}`
+
+const analyticsFilters = [
+  'Institución',
+  'Programa',
+  'Curso',
+  'Docente',
+  'Cohorte',
+  'Fecha',
+]
+
+const institutionalAnalytics = [
+  {
+    kpi: 'Riesgo',
+    title: 'Estudiantes que necesitan acompañamiento',
+    body: 'Cruza avance, bajo rendimiento, abandono de módulos y uso de refuerzo con IA.',
+  },
+  {
+    kpi: 'Abandono',
+    title: 'Módulos con mayor caída',
+    body: 'Detecta lecciones, evidencias o recursos donde se pierde la continuidad académica.',
+  },
+  {
+    kpi: 'Impacto',
+    title: 'Recursos y docentes con más actividad',
+    body: 'Mide qué materiales funcionan mejor y qué cursos generan más interacción real.',
+  },
+]
+
+const interoperabilityModules = [
+  {
+    phase: 'xAPI / Fase 5',
+    title: 'xAPI y LRS',
+    description: 'Conector para enviar statements de experiencias dentro y fuera de CourseV hacia un Learning Record Store.',
+    fields: ['Endpoint del LRS', 'API Key u OAuth', 'Prueba de conexión', 'Historial de statements', 'Errores de sincronización'],
+    capabilities: ['WhatsApp', 'Simulaciones', 'Actividades offline', 'Recursos externos', 'Interacción con IA'],
+  },
+  {
+    phase: 'QTI / Fase 2',
+    title: 'Banco de preguntas y QTI',
+    description: 'Portabilidad de preguntas, quizzes y evidencias generadas por IA sin encerrar el contenido en CourseV.',
+    fields: ['Curso', 'Módulo', 'Competencia', 'Dificultad', 'Historial de cambios', 'Validación del paquete'],
+    capabilities: ['Crear con IA', 'Exportar QTI', 'Importar QTI', 'Ver incompatibilidades', 'Enviar a LMS'],
+  },
+  {
+    phase: 'OneRoster / Fase 3',
+    title: 'OneRoster y sistema académico',
+    description: 'Importación inicial por CSV y base para sincronización REST de usuarios, cursos, matrículas y notas.',
+    fields: ['users.csv', 'courses.csv', 'classes.csv', 'enrollments.csv', 'academicSessions.csv', 'orgs.csv'],
+    capabilities: ['Validación previa', 'Detección de duplicados', 'Mapeo de campos', 'Vista de errores', 'Logs de importación'],
+  },
+  {
+    phase: 'LTI / Fase 4',
+    title: 'LTI y conexión con LMS',
+    description: 'CourseV como herramienta externa integrada en Moodle, Canvas o Blackboard sin reemplazar el LMS institucional.',
+    fields: ['Client ID', 'Deployment ID', 'Issuer URL', 'JWKS URL', 'Redirect URI', 'Launch URL'],
+    capabilities: ['Deep Linking', 'Grade Passback', 'Prueba de lanzamiento', 'Logs técnicos', 'Roles LMS'],
+  },
+  {
+    phase: 'Gobierno / Fase 1',
+    title: 'Auditoría, privacidad y seguridad',
+    description: 'Trazabilidad administrativa para datos de estudiantes, integraciones, IA, exportaciones e importaciones.',
+    fields: ['tenant_id', 'institution_id', 'campus_id', 'program_id', 'course_id', 'audit_actor_id'],
+    capabilities: ['Historial de accesos', 'Logs de exportación', 'Anonimización', 'Políticas de retención', 'Errores de integración'],
+  },
+]
+
+const interoperabilityBlueprint = [
+  {
+    kicker: 'Base de datos',
+    title: 'Modelo recomendado',
+    items: ['learning_events', 'integration_connections', 'qti_question_banks', 'oneroster_import_jobs', 'lti_platform_registrations', 'audit_logs'],
+  },
+  {
+    kicker: 'API',
+    title: 'Endpoints backend necesarios',
+    items: ['POST /learning-events', 'GET /institutional-analytics', 'POST /qti/export', 'POST /oneroster/import', 'POST /lti/platforms', 'GET /audit-logs'],
+  },
+  {
+    kicker: 'Frontend',
+    title: 'Componentes esperados',
+    items: ['Mapa de estándares', 'Eventos de aprendizaje', 'Analítica institucional', 'Configuración LRS', 'Importador OneRoster', 'Registro LTI', 'Panel de auditoría'],
+  },
+]
+
+const interoperabilityRoadmap = [
+  {
+    step: 'Fase 1',
+    title: 'Eventos internos + analítica + roles 3 y 4',
+    body: 'Primer MVP vendible: tracking interno, dashboards académicos, auditoría básica y control de acceso.',
+  },
+  {
+    step: 'Fase 2',
+    title: 'Exportación QTI de preguntas IA',
+    body: 'Hacer portable el banco de preguntas para Moodle, Canvas u otras plataformas.',
+  },
+  {
+    step: 'Fase 3',
+    title: 'Importación OneRoster por CSV',
+    body: 'Sincronizar estudiantes, docentes, cursos, clases y matrículas sin digitación manual.',
+  },
+  {
+    step: 'Fase 4',
+    title: 'LTI para Moodle o Canvas',
+    body: 'Permitir que CourseV viva dentro del LMS actual de la universidad.',
+  },
+  {
+    step: 'Fase 5',
+    title: 'xAPI + LRS',
+    body: 'Registrar WhatsApp, simulaciones y actividades externas como experiencias de aprendizaje.',
+  },
+]
+
+const interoperabilitySecurity = [
+  'Separación estricta por tenant, institución, sede, programa y curso.',
+  'Permisos diferenciados: rol 3 opera analítica e importaciones; rol 4 configura credenciales y políticas.',
+  'Anonimización para analítica institucional cuando no se necesita identificar estudiantes.',
+  'Auditoría de quién importó, exportó, sincronizó, modificó evaluaciones o generó preguntas con IA.',
+  'Retención de datos configurable por institución y registro de errores de integración.',
+]
+
+const interoperabilityAcceptance = [
+  'La pestaña no aparece para estudiantes ni roles fuera de 3 y 4.',
+  'El mapa muestra estado, prioridad y acciones sin usar la palabra certificado.',
+  'Cada evento de aprendizaje se puede vincular a tenant, usuario, curso, origen y estándar objetivo.',
+  'La analítica permite filtrar por institución, programa, curso, docente, cohorte y fecha.',
+  'QTI, OneRoster, LTI y xAPI quedan separados como fases con campos técnicos claros.',
+]
+
+async function loadInteroperabilityDashboard() {
+  if (!canViewStandards.value) return
+  interoperabilityLoading.value = true
+  interoperabilityError.value = ''
+  try {
+    interoperabilityDashboard.value = await interoperabilityAdapter.getDashboard()
+  } catch (error: any) {
+    console.error('Error loading interoperability dashboard:', error)
+    interoperabilityError.value = error?.message || 'No se pudo cargar interoperabilidad institucional.'
+  } finally {
+    interoperabilityLoading.value = false
+  }
+}
+
+function formatInteropMetric(value: unknown) {
+  if (value === null || value === undefined || value === '') return 'Sin datos'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  return String(value)
+}
+
+function formatInteropDate(value?: string | null) {
+  if (!value) return 'Sin historial'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin historial'
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function interopActionBusyKey(standardCode: string, action: string) {
+  return `${standardCode}:${action}`
+}
+
+function buildInteropActionPayload(standardCode: string, action: string) {
+  if (standardCode === 'caliper') {
+    return {
+      eventType: 'lesson_completed',
+      lesson: 'Validación de modelos',
+    }
+  }
+  if (standardCode === 'xapi') {
+    return {
+      endpoint: xapiLrsEndpoint.value.trim(),
+      authMethod: xapiAuthMethod.value.trim() || 'OAuth/API Key',
+    }
+  }
+  if (standardCode === 'qti') {
+    return {
+      courseId: Number(qtiExportCourseId.value) || undefined,
+    }
+  }
+  if (standardCode === 'oneroster') {
+    return {
+      files: {
+        'users.csv': oneRosterCsv.value,
+      },
+      dryRun: action !== 'import_oneroster_csv',
+    }
+  }
+  if (standardCode === 'lti') {
+    return {
+      provider: ltiProvider.value.trim() || 'Moodle',
+      clientId: ltiClientId.value.trim(),
+      deploymentId: ltiDeploymentId.value.trim(),
+      issuer: ltiIssuer.value.trim(),
+      jwksUrl: ltiJwksUrl.value.trim(),
+      redirectUri: ltiRedirectUri.value.trim(),
+      launchUrl: ltiLaunchUrl.value.trim(),
+      linkedCourses: 1,
+    }
+  }
+  return {}
+}
+
+function downloadInteropContent(fileName: string, mimeType: string, content: string) {
+  const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName || `coursev-interoperability-${Date.now()}.txt`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function runInteroperabilityAction(standardCode: string, action: string) {
+  const key = interopActionBusyKey(standardCode, action)
+  interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: true }
+  interoperabilityActionMessage.value = ''
+  interoperabilityError.value = ''
+  try {
+    const result = await interoperabilityAdapter.runAction(
+      standardCode,
+      action,
+      buildInteropActionPayload(standardCode, action),
+    )
+    if (result.content) {
+      downloadInteropContent(result.fileName || 'coursev-export.txt', result.mimeType || 'text/plain', result.content)
+    }
+    if (result.dashboard) interoperabilityDashboard.value = result.dashboard
+    else await loadInteroperabilityDashboard()
+    interoperabilityActionMessage.value = result.summary || 'Acción ejecutada.'
+  } catch (error: any) {
+    console.error('Error running interoperability action:', error)
+    interoperabilityError.value = error?.message || 'No se pudo ejecutar la acción.'
+  } finally {
+    interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: false }
+  }
+}
+
+async function toggleInteroperabilityChecklist(standardCode: string, itemKey: string, event: Event) {
+  const input = event.target as HTMLInputElement | null
+  if (!input) return
+  interoperabilityError.value = ''
+  try {
+    interoperabilityDashboard.value = await interoperabilityAdapter.toggleChecklist(standardCode, itemKey, input.checked)
+  } catch (error: any) {
+    input.checked = !input.checked
+    interoperabilityError.value = error?.message || 'No se pudo actualizar el requisito.'
+  }
+}
 
 const educationalStandards = [
   {
@@ -3418,7 +4083,7 @@ const issueAllCertificates = async () => {
 const allTabs = [
   { id: 'analytics', label: 'Analytics', adminOnly: false },
   { id: 'cognitive', label: 'Gemelo Cognitivo', adminOnly: false, cognitiveOnly: true },
-  { id: 'standards', label: 'Estándares', adminOnly: false, standardsOnly: true },
+  { id: 'standards', label: 'Interoperabilidad', adminOnly: false, standardsOnly: true },
   { id: 'moderation', label: 'Moderación', adminOnly: false },
   { id: 'roles', label: 'Roles', adminOnly: false },
   { id: 'certificates', label: 'Certificados', adminOnly: true },
@@ -3460,6 +4125,9 @@ watch(activeTab, (tab) => {
   }
   if (tab === 'institutions' && institutions.value.length === 0 && !institutionsLoading.value) {
     loadInstitutions()
+  }
+  if (tab === 'standards' && canViewStandards.value && !interoperabilityDashboard.value && !interoperabilityLoading.value) {
+    loadInteroperabilityDashboard()
   }
   if (tab === 'cognitive' && canViewCognitive.value && cognitiveStudents.value.length === 0 && !cognitiveLoading.value) {
     loadCognitiveData()
@@ -14592,6 +15260,879 @@ watch(() => route.query, () => {
   .standards-info {
     grid-template-columns: 1fr;
     padding-bottom: 32px;
+  }
+}
+
+/* Institutional interoperability */
+.standards-tab {
+  padding: 24px;
+  min-height: 100vh;
+  background: #101215;
+  color: #F7F8FB;
+}
+
+.standards-tab *,
+.standards-tab *::before,
+.standards-tab *::after {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+.interop-hero,
+.interop-note,
+.interop-section,
+.interop-blueprint-card {
+  max-width: 1280px;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #171A20;
+}
+
+.interop-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 20px;
+  padding: 28px;
+}
+
+.interop-hero-copy {
+  min-width: 0;
+}
+
+.interop-eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #7DD3FC;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-hero h2,
+.interop-section-header h3,
+.interop-blueprint-card h4 {
+  margin: 0;
+  color: #FFFFFF;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.interop-hero h2 {
+  max-width: 860px;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.interop-hero p,
+.interop-section p,
+.interop-blueprint-card li {
+  color: rgba(247, 248, 251, 0.68);
+  line-height: 1.55;
+}
+
+.interop-hero p {
+  max-width: 820px;
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+
+.interop-role-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.interop-role-card {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-role-card span,
+.interop-module-phase,
+.interop-roadmap-list article > span {
+  color: #A7F3D0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interop-role-card strong {
+  display: block;
+  margin-top: 4px;
+  color: #FFFFFF;
+  font-size: 16px;
+}
+
+.interop-role-card p {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.interop-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #17120B;
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.interop-note strong {
+  flex: 0 0 auto;
+  color: #FBBF24;
+}
+
+.interop-note span {
+  color: rgba(255, 251, 235, 0.78);
+  line-height: 1.45;
+}
+
+.interop-section {
+  margin-top: 14px;
+  padding: 22px;
+}
+
+.interop-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.interop-section-header.compact {
+  margin-bottom: 14px;
+}
+
+.interop-section-header h3 {
+  font-size: 22px;
+}
+
+.interop-pill,
+.interop-status,
+.interop-actions span,
+.interop-filter-row span,
+.interop-export-row span,
+.interop-chip-grid span,
+.interop-module-list span {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.interop-pill {
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.interop-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.interop-table-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(110px, 0.45fr) minmax(240px, 1.25fr) minmax(80px, 0.35fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.interop-table-row:last-child {
+  border-bottom: 0;
+}
+
+.interop-table-head {
+  background: #111419;
+}
+
+.interop-table-head span {
+  color: rgba(247, 248, 251, 0.5);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-standard-row {
+  border-left: 4px solid var(--standard-accent);
+}
+
+.interop-name-cell {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.interop-mark {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: var(--standard-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.interop-name-cell strong,
+.interop-priority,
+.interop-module-card h4,
+.interop-metric-list strong,
+.interop-roadmap-list strong {
+  color: #FFFFFF;
+}
+
+.interop-name-cell strong {
+  display: block;
+  line-height: 1.2;
+}
+
+.interop-name-cell small,
+.interop-table-row p small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(247, 248, 251, 0.48);
+  font-size: 12px;
+}
+
+.interop-table-row p {
+  margin: 0;
+  color: rgba(247, 248, 251, 0.68);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.interop-status-design {
+  color: #BAE6FD;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+}
+
+.interop-status-next {
+  color: #FDE68A;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+}
+
+.interop-status-active {
+  color: #BBF7D0;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+}
+
+.interop-status-test {
+  color: #C4B5FD;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.24);
+}
+
+.interop-status-development {
+  color: #FDE68A;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+}
+
+.interop-status-certifiable {
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.24);
+}
+
+.interop-status-idle {
+  color: rgba(247, 248, 251, 0.68);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.interop-actions,
+.interop-chip-grid,
+.interop-filter-row,
+.interop-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.interop-actions span,
+.interop-chip-grid span {
+  color: rgba(247, 248, 251, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.interop-operational-grid,
+.interop-assurance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 14px;
+  max-width: 1280px;
+  margin: 14px auto 0;
+}
+
+.interop-events-panel,
+.interop-analytics-panel {
+  margin-top: 0;
+}
+
+.interop-schema {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-schema strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #FFFFFF;
+}
+
+.interop-schema div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.interop-schema code {
+  padding: 5px 7px;
+  border-radius: 6px;
+  color: #BFDBFE;
+  background: rgba(96, 165, 250, 0.1);
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+}
+
+.interop-json {
+  max-width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 8px;
+  color: #D1FAE5;
+  background: #0B1014;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.interop-filter-row span,
+.interop-export-row span {
+  color: #C4B5FD;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.interop-metric-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.interop-metric-list article {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-metric-list span {
+  color: #FBBF24;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interop-metric-list strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.interop-metric-list p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.interop-export-row {
+  margin-top: 12px;
+}
+
+.interop-module-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.interop-module-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-module-card h4 {
+  margin: 7px 0 8px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.interop-module-card p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.interop-module-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.interop-module-list strong {
+  flex-basis: 100%;
+  color: rgba(247, 248, 251, 0.82);
+  font-size: 12px;
+}
+
+.interop-module-list span {
+  color: rgba(247, 248, 251, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.interop-module-list.muted span {
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.interop-blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 1280px;
+  margin: 14px auto 0;
+}
+
+.interop-blueprint-card {
+  padding: 18px;
+}
+
+.interop-blueprint-card h4 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.interop-blueprint-card ul,
+.interop-check-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.interop-blueprint-card li,
+.interop-check-list li {
+  font-size: 13px;
+}
+
+.interop-roadmap-list {
+  display: grid;
+  gap: 10px;
+}
+
+.interop-roadmap-list article {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-roadmap-list p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.interop-check-list li {
+  color: rgba(247, 248, 251, 0.74);
+  line-height: 1.45;
+}
+
+.interop-refresh-btn,
+.interop-live-actions button {
+  min-height: 34px;
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  border-radius: 8px;
+  color: #E0F2FE;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.interop-refresh-btn {
+  padding: 0 12px;
+}
+
+.interop-refresh-btn:disabled,
+.interop-live-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.interop-alert {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.interop-alert.error {
+  color: #FECACA;
+  background: rgba(239, 68, 68, 0.13);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+}
+
+.interop-alert.success {
+  color: #BBF7D0;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.interop-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.interop-summary-strip span {
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: rgba(247, 248, 251, 0.74);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.interop-loading {
+  padding: 18px;
+  border-radius: 8px;
+  color: rgba(247, 248, 251, 0.64);
+  background: #111419;
+}
+
+.interop-live-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.interop-live-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--standard-accent);
+  border-radius: 8px;
+  background: #111419;
+}
+
+.interop-live-card-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.interop-live-card-head h4 {
+  margin: 0;
+  color: #FFFFFF;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.interop-live-card-head p {
+  margin: 5px 0 0;
+  color: rgba(247, 248, 251, 0.62);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.interop-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.interop-progress-row > div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.interop-progress-row span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--standard-accent);
+}
+
+.interop-progress-row strong {
+  color: #FFFFFF;
+  font-size: 12px;
+  text-align: right;
+}
+
+.interop-real-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.interop-real-metrics article {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.interop-real-metrics span {
+  display: block;
+  color: rgba(247, 248, 251, 0.48);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.interop-real-metrics strong {
+  display: block;
+  margin-top: 3px;
+  color: #FFFFFF;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.interop-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.interop-config-grid.full,
+.interop-config-grid.lti {
+  grid-template-columns: 1fr;
+}
+
+.interop-config-grid label {
+  display: grid;
+  gap: 5px;
+  color: rgba(247, 248, 251, 0.54);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.interop-config-grid input,
+.interop-config-grid textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #FFFFFF;
+  background: #0B1014;
+  font: inherit;
+  font-size: 12px;
+}
+
+.interop-config-grid input {
+  height: 34px;
+  padding: 0 9px;
+}
+
+.interop-config-grid textarea {
+  padding: 9px;
+  resize: vertical;
+}
+
+.interop-live-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.interop-live-actions button {
+  padding: 0 10px;
+}
+
+.interop-health {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.interop-health strong {
+  color: #FFFFFF;
+  font-size: 13px;
+}
+
+.interop-health span {
+  color: rgba(247, 248, 251, 0.62);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.interop-health-success {
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.interop-health-warning {
+  border: 1px solid rgba(245, 158, 11, 0.24);
+}
+
+.interop-health-test {
+  border: 1px solid rgba(96, 165, 250, 0.24);
+}
+
+.interop-checklist-live,
+.interop-history-live {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.interop-checklist-live > strong,
+.interop-history-live > strong {
+  color: #FFFFFF;
+  font-size: 13px;
+}
+
+.interop-checklist-live label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  color: rgba(247, 248, 251, 0.74);
+  font-size: 12px;
+}
+
+.interop-checklist-live input {
+  width: 16px;
+  height: 16px;
+  accent-color: #22C55E;
+}
+
+.interop-checklist-live small {
+  color: rgba(247, 248, 251, 0.42);
+}
+
+.interop-history-live p {
+  margin: 0;
+  color: rgba(247, 248, 251, 0.62);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.interop-history-live p span {
+  color: #7DD3FC;
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .interop-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .interop-table-row {
+    grid-template-columns: minmax(180px, 1fr) minmax(100px, 0.45fr) minmax(220px, 1fr);
+  }
+
+  .interop-live-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-table-head span:nth-child(n+4),
+  .interop-table-row > *:nth-child(n+4) {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .standards-tab {
+    padding: 14px;
+  }
+
+  .interop-hero,
+  .interop-operational-grid,
+  .interop-assurance-grid,
+  .interop-blueprint-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-hero {
+    padding: 20px;
+  }
+
+  .interop-hero h2 {
+    font-size: 26px;
+  }
+
+  .interop-note,
+  .interop-section-header {
+    flex-direction: column;
+  }
+
+  .interop-table-head {
+    display: none;
+  }
+
+  .interop-table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-table-row > *:nth-child(n+4) {
+    display: block;
+  }
+
+  .interop-actions {
+    display: flex;
+  }
+
+  .interop-module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-roadmap-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .interop-live-card-head,
+  .interop-real-metrics,
+  .interop-config-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

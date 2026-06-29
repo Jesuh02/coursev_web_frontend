@@ -14,8 +14,8 @@
       <div class="gen-spinner" ref="spinnerEl">
         <span /><span /><span /><span />
       </div>
-      <p class="al-eyebrow" style="text-align:center;">Generando con IA</p>
-      <h2 class="gen-title">Componiendo tu comic...</h2>
+      <p class="al-eyebrow" style="text-align:center;">Contenido IA</p>
+      <h2 class="gen-title">Preparando tu comic...</h2>
       <p class="al-sub" style="text-align:center; max-width:360px;">
         Estamos enviando los materiales del tema al modelo de imagen y texto.
         Esto puede tardar unos segundos.
@@ -44,6 +44,19 @@
         <h1 class="comic-title-text">{{ result.title }}</h1>
       </div>
 
+      <section v-if="evaluationPrep" class="prep-strip" aria-label="Preparacion para refuerzo">
+        <div class="prep-strip__summary">
+          <span class="prep-strip__eyebrow">Preparacion para refuerzo</span>
+          <strong>{{ evaluationPrep.targetCount }} preguntas {{ evaluationPrep.difficulty }}</strong>
+        </div>
+        <div class="prep-strip__chips">
+          <span v-for="item in evaluationQuestionTypes" :key="item.type">{{ item.label }}</span>
+        </div>
+        <div class="prep-strip__focus">
+          <span v-for="item in evaluationFocusAreas" :key="item">{{ item }}</span>
+        </div>
+      </section>
+
       <div
         class="slide-viewport"
         @touchstart.passive="onTouchStart"
@@ -69,9 +82,9 @@
                 <span class="slide-section__label">Situacion en la historia</span>
                 <p class="slide-caption">{{ currentPanel.caption }}</p>
               </section>
-              <blockquote v-if="currentPanel.dialogue" class="slide-dialogue">
-                "{{ currentPanel.dialogue }}"
-              </blockquote>
+              <div v-if="currentPanel.dialogue" class="slide-dialogue" aria-label="Dialogo del panel">
+                <p>{{ currentPanel.dialogue }}</p>
+              </div>
               <div v-if="currentPanel.technicalDetail" class="slide-technical">
                 <div class="slide-technical__header">
                   <span class="slide-technical__dot"></span>
@@ -126,7 +139,7 @@
       </nav>
 
       <div class="footer-actions">
-        <button class="al-cta al-cta--ghost" @click="generate">Regenerar</button>
+        <button class="al-cta al-cta--ghost" @click="generate">Recargar</button>
         <button
           v-if="currentIdx === result.panels.length - 1"
           class="al-cta al-cta--accent"
@@ -165,7 +178,9 @@ let touchStartX = 0
 let mouseStartX = 0
 
 const generationSteps = [
+  'Buscando comic guardado en R2...',
   'Leyendo documentos del tema...',
+  'Alineando el contenido con la evaluacion de refuerzo...',
   'Construyendo el guion con el modelo de texto...',
   'Traduciendo conceptos a alegorias de la vida real...',
   'Integrando codigo, diagramas o datos del tema cuando aplica...',
@@ -176,6 +191,40 @@ const generationSteps = [
 const currentPanel = computed(() =>
   result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
+
+const fallbackQuestionTypes = [
+  { type: 'fill_in_blank', label: 'Completar espacios' },
+  { type: 'ordering', label: 'Ordenar flujos' },
+  { type: 'multiple_choice', label: 'Decisiones profesionales' },
+]
+
+const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+  difficulty: learningDifficulty(),
+  targetCount: learningTargetCount(),
+  questionTypes: fallbackQuestionTypes,
+  focusAreas: [
+    'Conceptos que se completan',
+    'Secuencias que se ordenan',
+    'Consecuencias que se justifican',
+  ],
+})
+
+const evaluationQuestionTypes = computed(() => evaluationPrep.value.questionTypes.slice(0, 3))
+const evaluationFocusAreas = computed(() => evaluationPrep.value.focusAreas.slice(0, 4))
+
+function queryStringValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
+
+function learningDifficulty(): string {
+  const value = queryStringValue(route.query.difficulty).toUpperCase()
+  return ['EASY', 'INTERMEDIATE', 'HARD'].includes(value) ? value : 'HARD'
+}
+
+function learningTargetCount(): number {
+  const n = Number(queryStringValue(route.query.targetCount))
+  return Number.isFinite(n) && n > 0 ? Math.max(10, Math.trunc(n)) : 10
+}
 
 function detectCodeLanguage(code: string | undefined): string {
   if (!code) return 'Codigo'
@@ -234,10 +283,12 @@ async function generate() {
   await nextTick()
   startLoadingAnimations()
   try {
-    const data = await learningAdapter.generateComic({
+    const data = await learningAdapter.getOrCreateComic({
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
+      difficulty: learningDifficulty(),
+      targetCount: learningTargetCount(),
     })
     result.value = data
     status.value = 'ready'
@@ -423,6 +474,74 @@ onMounted(generate)
   text-overflow: ellipsis;
 }
 
+.prep-strip {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) 1fr;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: var(--apple-cloud);
+  border-bottom: 1px solid var(--apple-border);
+}
+.prep-strip__summary {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.prep-strip__eyebrow {
+  color: var(--apple-signal-blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.prep-strip__summary strong {
+  color: var(--apple-ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+.prep-strip__chips,
+.prep-strip__focus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.prep-strip__chips::-webkit-scrollbar,
+.prep-strip__focus::-webkit-scrollbar {
+  display: none;
+}
+.prep-strip__chips span,
+.prep-strip__focus span {
+  flex: 0 0 auto;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.prep-strip__chips span {
+  padding: 6px 9px;
+  color: #0b5cab;
+  background: rgba(0, 113, 227, 0.1);
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  font-weight: 700;
+}
+.prep-strip__focus {
+  grid-column: 2;
+}
+.prep-strip__focus span {
+  padding: 5px 8px;
+  color: var(--apple-graphite);
+  background: var(--apple-snow);
+  border: 1px solid var(--apple-border);
+  font-weight: 600;
+}
+
 .slide-viewport {
   flex: 1;
   position: relative;
@@ -489,16 +608,36 @@ onMounted(generate)
   gap: 12px;
 }
 .slide-dialogue {
+  position: relative;
+  align-self: flex-start;
+  max-width: min(100%, 520px);
   font-family: var(--apple-font-display);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--apple-ink);
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: var(--apple-cloud);
-  border-left: 3px solid var(--apple-signal-blue);
+  margin: 0 0 8px 10px;
+  padding: 12px 15px;
+  border-radius: 16px 16px 16px 5px;
+  background: #fffdf8;
+  border: 2px solid rgba(24, 24, 27, 0.18);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   line-height: 1.4;
+}
+.slide-dialogue::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: 9px;
+  width: 18px;
+  height: 18px;
+  background: #fffdf8;
+  border-left: 2px solid rgba(24, 24, 27, 0.18);
+  border-bottom: 2px solid rgba(24, 24, 27, 0.18);
+  transform: rotate(45deg);
+}
+.slide-dialogue p {
+  position: relative;
+  margin: 0;
 }
 .slide-section {
   margin: 0;
@@ -668,9 +807,20 @@ onMounted(generate)
 @media (min-width: 600px) {
   .comic-header { padding: 6px 28px 5px; }
   .comic-title-text { font-size: 18px; }
+  .prep-strip { padding: 10px 28px; }
   .slide-text { padding: 12px 28px 10px; }
   .nav-bar { padding: 8px 28px; }
   .footer-actions { padding: 8px 28px 16px; }
+}
+
+@media (max-width: 599px) {
+  .prep-strip {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .prep-strip__focus {
+    grid-column: 1;
+  }
 }
 
 @media (min-width: 860px) {

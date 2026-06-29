@@ -16,12 +16,13 @@
         <span class="render-frame__cell" />
         <span class="render-frame__cell render-frame__cell--tall" />
       </div>
-      <p class="al-eyebrow" style="text-align:center;">Render con IA</p>
-      <h2 class="al-display" style="text-align:center; font-size: 28px;">Componiendo tu video…</h2>
+      <p class="al-eyebrow" style="text-align:center;">Contenido IA</p>
+      <h2 class="al-display" style="text-align:center; font-size: 28px;">Preparando tu video…</h2>
       <p class="al-sub" style="text-align:center;">
         Estamos convirtiendo el contenido del curso en escenas con analogias y contenido tecnico visible.
       </p>
       <ul class="gen-steps" ref="stepsEl">
+        <li>Buscando video guardado en R2…</li>
         <li>Extrayendo materiales del tema y la tarea…</li>
         <li>Construyendo guion y voz con el modelo de texto…</li>
         <li>Buscando metaforas cotidianas para explicar el concepto…</li>
@@ -76,6 +77,19 @@
       </div>
 
       <aside v-if="sidePanelVisible" class="media-side" aria-label="Explicacion de la escena">
+        <section v-if="evaluationPrep" class="side-section side-section--prep">
+          <p class="side-label">Preparacion para refuerzo</p>
+          <div class="eval-prep__header">
+            <strong>{{ evaluationPrep.targetCount }} preguntas {{ evaluationPrep.difficulty }}</strong>
+            <span v-if="evaluationPrep.domain">{{ evaluationPrep.domain }}</span>
+          </div>
+          <div class="eval-prep__chips">
+            <span v-for="item in evaluationQuestionTypes" :key="item.type">{{ item.label }}</span>
+          </div>
+          <ul class="eval-prep__focus">
+            <li v-for="item in evaluationFocusAreas" :key="item">{{ item }}</li>
+          </ul>
+        </section>
         <template v-if="currentSlideNote">
           <section class="side-section">
             <p class="side-label">Situacion</p>
@@ -116,7 +130,7 @@
           <span class="credits-banner__icon">⚡</span>
           <div>
             <strong>Créditos de OpenRouter agotados</strong>
-            <p>El modelo de video (Kling v3 Pro) requiere créditos en tu cuenta de OpenRouter. Se generó una presentación de imágenes como alternativa.</p>
+            <p>El modelo de video (Seedance 2.0) requiere créditos en tu cuenta de OpenRouter. Se generó una presentación de imágenes como alternativa.</p>
           </div>
           <a
             href="https://openrouter.ai/credits"
@@ -131,10 +145,10 @@
         <header class="head" ref="headEl">
           <p class="al-eyebrow">{{ result.slides && !result.videoUrl ? 'Presentación generada' : 'Video generado' }}</p>
           <h1 class="al-display">{{ result.title }}</h1>
-          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Kling v3 Pro</p>
+          <p v-if="result.durationSeconds" class="al-sub">{{ formatDuration(result.durationSeconds) }} · IA · OpenRouter · Seedance 2.0</p>
         </header>
         <div class="footer-actions">
-          <button class="al-cta al-cta--accent" @click="generate">Regenerar</button>
+          <button class="al-cta al-cta--accent" @click="generate">Recargar</button>
           <button class="al-cta al-cta--ghost" @click="$router.push('/video')">Terminar</button>
         </div>
       </div>
@@ -184,7 +198,28 @@ const currentSlideNote = computed(() => {
 
 const visibleSceneNotes = computed(() => (result.value?.sceneNotes ?? []).slice(0, 3))
 
+const fallbackQuestionTypes = [
+  { type: 'fill_in_blank', label: 'Completar espacios' },
+  { type: 'ordering', label: 'Ordenar flujos' },
+  { type: 'multiple_choice', label: 'Decisiones profesionales' },
+]
+
+const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+  difficulty: learningDifficulty(),
+  targetCount: learningTargetCount(),
+  questionTypes: fallbackQuestionTypes,
+  focusAreas: [
+    'Conceptos que se completan',
+    'Secuencias que se ordenan',
+    'Consecuencias que se justifican',
+  ],
+})
+
+const evaluationQuestionTypes = computed(() => evaluationPrep.value.questionTypes.slice(0, 3))
+const evaluationFocusAreas = computed(() => evaluationPrep.value.focusAreas.slice(0, 5))
+
 const sidePanelVisible = computed(() => Boolean(
+  evaluationPrep.value ||
   currentSlideNote.value?.narration ||
   currentSlideNote.value?.technicalDetail ||
   result.value?.summary ||
@@ -195,6 +230,20 @@ const sidePanelVisible = computed(() => Boolean(
 function formatDuration(s: number) {
   const m = Math.floor(s / 60), r = Math.round(s % 60)
   return `${m}:${String(r).padStart(2, '0')}`
+}
+
+function queryStringValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
+
+function learningDifficulty(): string {
+  const value = queryStringValue(route.query.difficulty).toUpperCase()
+  return ['EASY', 'INTERMEDIATE', 'HARD'].includes(value) ? value : 'HARD'
+}
+
+function learningTargetCount(): number {
+  const n = Number(queryStringValue(route.query.targetCount))
+  return Number.isFinite(n) && n > 0 ? Math.max(10, Math.trunc(n)) : 10
 }
 
 async function generate() {
@@ -208,10 +257,12 @@ async function generate() {
   await nextTick()
   startLoading()
   try {
-    const data = await learningAdapter.generateVideo({
+    const data = await learningAdapter.getOrCreateVideo({
       courseId: Number(route.params.courseId),
       topicId: Number(route.params.topicId),
       taskId: Number(route.params.taskId),
+      difficulty: learningDifficulty(),
+      targetCount: learningTargetCount(),
     })
     if (data.status === 'processing' && data.jobId) {
       await pollUntilReady(data.jobId)
@@ -230,7 +281,7 @@ async function generate() {
 }
 
 async function pollUntilReady(jobId: string) {
-  const maxAttempts = 100 // ~8.3 min at 5 s intervals — covers Kling v3 Pro generation time
+  const maxAttempts = 100 // ~8.3 min at 5 s intervals; covers Seedance 2.0 generation time
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise<void>((resolve) => setTimeout(resolve, 5_000))
     const job = await learningAdapter.pollVideoStatus(jobId)
@@ -474,6 +525,9 @@ onMounted(generate)
 .side-section:last-child {
   margin-bottom: 0;
 }
+.side-section--prep {
+  background: rgba(0, 113, 227, 0.07);
+}
 .side-label {
   display: flex;
   align-items: center;
@@ -498,6 +552,54 @@ onMounted(generate)
   color: var(--apple-ink);
   font-size: 14px;
   line-height: 1.7;
+}
+.eval-prep__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.eval-prep__header strong {
+  color: var(--apple-ink);
+  font-size: 14px;
+  line-height: 1.3;
+}
+.eval-prep__header span {
+  flex: 0 0 auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apple-signal-blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.eval-prep__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.eval-prep__chips span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #0b5cab;
+  background: rgba(0, 113, 227, 0.1);
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.eval-prep__focus {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--apple-graphite);
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 .side-stack {
   display: grid;
