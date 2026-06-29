@@ -225,7 +225,7 @@
               :key="item.id"
               class="content-row"
               type="button"
-              @click="downloadContentItem(item)"
+              @click="openPreview(previewFileFromContentItem(item))"
             >
               <div class="ci-icon" :class="item.contentType">
                 <svg v-if="item.contentType === 'video'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -342,7 +342,7 @@
                   :key="ci.id"
                   class="attachment-link"
                   type="button"
-                  @click="downloadContentItem(ci)"
+                  @click="openPreview(previewFileFromContentItem(ci))"
                 >📎 {{ ci.fileName || ci.content }}</button>
               </div>
               <button
@@ -487,6 +487,8 @@
         </div>
       </div>
     </Teleport>
+
+    <FilePreviewModal :file="previewFile" @close="closePreview" />
   </div>
 </template>
 
@@ -497,14 +499,17 @@ import type { Course, Topic, Task, ContentItem, Progress, GuestEntry } from '@/d
 import { useCourseStore } from '@/stores/courseStore'
 import {
   topicAdapter, taskAdapter, contentItemAdapter,
-  submissionAdapter, resolveImageUrl, buildProxyFileUrl, collaboratorAdapter, subjectAdapter,
-  courseAdapter, userAdapter, tokenStorage,
+  submissionAdapter, resolveImageUrl, collaboratorAdapter, subjectAdapter,
+  courseAdapter, userAdapter,
 } from '@/infrastructure/api'
 import { subjectCollaboratorAdapter } from '@/infrastructure/api/subjectAdapter'
 import { useAuthStore } from '@/stores/authStore'
 import { extractEnrollmentStatus, progressAdapter } from '@/infrastructure/api/progressAdapter'
 import { useNotificationStore } from '@/stores/notificationStore'
 import GradePanel from './GradePanel.vue'
+import FilePreviewModal from '@/ui/shared/filePreview/FilePreviewModal.vue'
+import { previewFileFromContentItem } from '@/ui/shared/filePreview/filePreview'
+import { useFilePreview } from '@/ui/shared/filePreview/useFilePreview'
 
 defineOptions({ name: 'CourseDetailView' })
 
@@ -518,6 +523,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
 const notifStore = useNotificationStore()
+const { previewFile, openPreview, closePreview } = useFilePreview()
 
 const courseId = computed(() => route.params.id as string)
 const subjectId = computed(() => route.query.subjectId ? Number(route.query.subjectId) : null)
@@ -1246,52 +1252,6 @@ async function loadStudentProgress(cid: number) {
     console.error('Error loading student progress:', e)
   } finally {
     progressLoading.value = false
-  }
-}
-
-function getFileUrl(item: ContentItem): string {
-  const uri = item.fileUri || item.content || ''
-  if (!uri) return '#'
-  if (uri.startsWith('http')) return uri
-  return buildProxyFileUrl(uri)
-}
-
-function getDownloadFileName(item: ContentItem): string {
-  const candidate = (item.fileName || item.content || '').trim()
-  return candidate || `archivo-${item.id}`
-}
-
-async function downloadContentItem(item: ContentItem) {
-  const fileUrl = getFileUrl(item)
-  if (fileUrl === '#') return
-
-  const downloadName = getDownloadFileName(item)
-  const token = tokenStorage.token
-
-  try {
-    const response = await fetch(fileUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    if (!response.ok) throw new Error(`Download failed: ${response.status}`)
-
-    const blob = await response.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = objectUrl
-    link.download = downloadName
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(objectUrl)
-  } catch (error) {
-    console.error('Error downloading file:', error)
-    const fallbackLink = document.createElement('a')
-    fallbackLink.href = fileUrl
-    fallbackLink.target = '_blank'
-    fallbackLink.rel = 'noopener'
-    document.body.appendChild(fallbackLink)
-    fallbackLink.click()
-    fallbackLink.remove()
   }
 }
 

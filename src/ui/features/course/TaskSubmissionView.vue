@@ -157,12 +157,12 @@
           <div v-if="sub.file_name || (sub.additionalFiles ?? sub.additional_files)?.length" class="submission-files-list">
             <p v-if="sub.file_name" class="file-row-teacher">
               📎
-              <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
+              <button v-if="sub.file_uri" type="button" class="file-link" @click="openPreview(previewFileFromSubmission(sub))">{{ sub.file_name }}</button>
               <span v-else>{{ sub.file_name }}</span>
             </p>
             <p v-for="(af, i) in (sub.additionalFiles ?? sub.additional_files ?? [])" :key="i" class="file-row-teacher">
               📎
-              <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener" class="file-link">{{ af.fileName }}</a>
+              <button v-if="af.fileUri" type="button" class="file-link" @click="openPreview(previewFileFromSubmissionFile(af, i, sub.id))">{{ af.fileName }}</button>
               <span v-else>{{ af.fileName }}</span>
             </p>
           </div>
@@ -243,17 +243,16 @@
         <div v-if="taskGuides.length" class="task-guides-section card-enter" style="animation-delay: 0.04s">
           <h3 class="section-title">Guías de la tarea</h3>
           <div class="task-guides-list">
-            <a
+            <button
               v-for="item in taskGuides"
               :key="item.id"
               class="task-guide-link"
-              :href="getContentItemUrl(item)"
-              target="_blank"
-              rel="noopener"
+              type="button"
+              @click="openPreview(previewFileFromContentItem(item))"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
               <span>{{ getContentItemLabel(item) }}</span>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -312,11 +311,11 @@
           <div class="detail-card">
             <div class="submission-files-list">
               <p v-if="submission?.file_name" class="file-row">
-                📎 <a v-if="submission.file_uri" :href="getFileUrl(submission)" target="_blank" rel="noopener">{{ submission.file_name }}</a>
+                📎 <button v-if="submission.file_uri" type="button" class="file-link" @click="openPreview(previewFileFromSubmission(submission))">{{ submission.file_name }}</button>
                 <span v-else>{{ submission.file_name }}</span>
               </p>
               <p v-for="(af, i) in (submission?.additionalFiles ?? submission?.additional_files ?? [])" :key="i" class="file-row">
-                📎 <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener">{{ af.fileName }}</a>
+                📎 <button v-if="af.fileUri" type="button" class="file-link" @click="openPreview(previewFileFromSubmissionFile(af, i, submission?.id ?? 'current'))">{{ af.fileName }}</button>
                 <span v-else>{{ af.fileName }}</span>
               </p>
               <p v-if="!submission?.file_name && !(submission?.additionalFiles?.length) && !(submission?.additional_files?.length)" class="detail-text">Entrega enviada</p>
@@ -438,12 +437,12 @@
             <div v-if="sub.file_name || (sub.additionalFiles ?? sub.additional_files)?.length" class="submission-files-list">
               <p v-if="sub.file_name" class="file-row-teacher">
                 📎
-                <a v-if="sub.file_uri" :href="getFileUrl(sub)" target="_blank" rel="noopener" class="file-link">{{ sub.file_name }}</a>
+                <button v-if="sub.file_uri" type="button" class="file-link" @click="openPreview(previewFileFromSubmission(sub))">{{ sub.file_name }}</button>
                 <span v-else>{{ sub.file_name }}</span>
               </p>
               <p v-for="(af, i) in (sub.additionalFiles ?? sub.additional_files ?? [])" :key="i" class="file-row-teacher">
                 📎
-                <a v-if="af.fileUri" :href="resolveFileUrl(af.fileUri)" target="_blank" rel="noopener" class="file-link">{{ af.fileName }}</a>
+                <button v-if="af.fileUri" type="button" class="file-link" @click="openPreview(previewFileFromSubmissionFile(af, i, sub.id))">{{ af.fileName }}</button>
                 <span v-else>{{ af.fileName }}</span>
               </p>
             </div>
@@ -501,6 +500,7 @@
         </div>
       </div>
     </div>
+    <FilePreviewModal :file="previewFile" @close="closePreview" />
   </div>
 </template>
 
@@ -508,13 +508,17 @@
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import type { ContentItem, Task, TaskSubmission } from '@/domain/models'
-import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, contentItemAdapter, buildProxyFileUrl, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
+import { taskAdapter, submissionAdapter, topicAdapter, subjectAdapter, courseAdapter, collaboratorAdapter, contentItemAdapter, tokenStorage, uploadFileDirect } from '@/infrastructure/api'
 import { api } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
+import FilePreviewModal from '@/ui/shared/filePreview/FilePreviewModal.vue'
+import { previewFileFromContentItem, previewFileFromSubmission, previewFileFromSubmissionFile } from '@/ui/shared/filePreview/filePreview'
+import { useFilePreview } from '@/ui/shared/filePreview/useFilePreview'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { previewFile, openPreview, closePreview } = useFilePreview()
 
 // ── Role switcher: admin viewing as student ────────────────────────
 const viewAsRole = computed(() => Number(route.query.viewAsRole ?? 0))
@@ -646,24 +650,8 @@ type TopicLookup = {
   subjectId?: number | null
 }
 
-function resolveFileUrl(uri: string | null | undefined): string {
-  if (!uri || uri.startsWith('file:///')) return '#'
-  if (uri.startsWith('http')) return uri
-  return buildProxyFileUrl(uri)
-}
-
-function getContentItemUrl(item: ContentItem): string {
-  return resolveFileUrl(item.fileUri || item.content)
-}
-
 function getContentItemLabel(item: ContentItem): string {
   return item.fileName || item.content || `guia-${item.id}`
-}
-
-function getFileUrl(sub: TaskSubmission): string {
-  if (!sub.file_uri || sub.file_uri.startsWith('file:///')) return '#'
-  if (sub.file_uri.startsWith('http')) return sub.file_uri
-  return buildProxyFileUrl(sub.file_uri)
 }
 
 function formatDate(dateStr: string): string {
@@ -1270,7 +1258,16 @@ onMounted(async () => {
 .grade-badge.pending { color: #FF9500; background: rgba(255,149,0,0.12); }
 
 .file-row-teacher { font-size: 13px; color: #ccc; }
-.file-link { color: #00D4FF; text-decoration: none; }
+.file-link {
+  border: 0;
+  background: transparent;
+  color: #00D4FF;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  text-decoration: none;
+}
 .file-link:hover { text-decoration: underline; }
 
 .existing-feedback {
@@ -1380,11 +1377,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
   background: #1C1C1E;
   border: 1px solid rgba(0,212,255,0.16);
   color: #E5F8FF;
+  cursor: pointer;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.3;
