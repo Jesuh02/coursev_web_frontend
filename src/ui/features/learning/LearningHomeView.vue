@@ -170,7 +170,18 @@ function selectedLearningTarget() {
   const taskId = asPositiveNumber(route.query.taskId)
   const query: Record<string, string> = {}
 
-  const passthrough = ['topicName', 'taskName', 'subjectId', 'fromRecommendation', 'fromConversationAnalysis']
+  const passthrough = [
+    'topicName',
+    'taskName',
+    'courseName',
+    'subjectId',
+    'subjectName',
+    'difficulty',
+    'targetCount',
+    'recommendationId',
+    'fromRecommendation',
+    'fromConversationAnalysis',
+  ]
   for (const key of passthrough) {
     const value = route.query[key]
     if (typeof value === 'string' && value) query[key] = value

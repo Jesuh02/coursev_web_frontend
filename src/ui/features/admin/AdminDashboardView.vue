@@ -2865,6 +2865,28 @@
           <div class="interop-chip-grid">
             <span v-for="event in learningEventTypes" :key="event">{{ event }}</span>
           </div>
+          <div class="interop-panel-actions">
+            <button
+              :disabled="interoperabilityActionBusy[interopActionBusyKey('caliper', 'record_sample_event')]"
+              @click="runInteroperabilityAction('caliper', 'record_sample_event')"
+            >
+              {{ interoperabilityActionBusy[interopActionBusyKey('caliper', 'record_sample_event')] ? 'Registrando...' : 'Registrar evento Caliper' }}
+            </button>
+            <button
+              :disabled="interoperabilityActionBusy[interopActionBusyKey('caliper', 'export_analytics')]"
+              @click="runInteroperabilityAction('caliper', 'export_analytics')"
+            >
+              {{ interoperabilityActionBusy[interopActionBusyKey('caliper', 'export_analytics')] ? 'Exportando...' : 'Descargar eventos CSV' }}
+            </button>
+          </div>
+          <div class="interop-event-feed">
+            <strong>Eventos recientes reales</strong>
+            <p v-if="!recentLearningEvents.length">Todavia no hay eventos cargados desde el backend.</p>
+            <p v-for="event in recentLearningEvents.slice(0, 4)" :key="event.id || `${event.eventType}-${event.createdAt}`">
+              <span>{{ formatInteropDate(event.createdAt) }}</span>
+              {{ event.eventType }} desde {{ event.eventSource }} para {{ event.standardTarget }}
+            </p>
+          </div>
           <div class="interop-schema">
             <strong>learning_events</strong>
             <div>
@@ -2891,10 +2913,48 @@
               <p>{{ metric.body }}</p>
             </article>
           </div>
+          <div v-if="interoperabilityDashboard" class="interop-live-analytics">
+            <article>
+              <span>Estandares</span>
+              <strong>{{ interoperabilityDashboard.summary.standards }}</strong>
+            </article>
+            <article>
+              <span>Activos</span>
+              <strong>{{ interoperabilityDashboard.summary.active }}</strong>
+            </article>
+            <article>
+              <span>En pruebas</span>
+              <strong>{{ interoperabilityDashboard.summary.inTests }}</strong>
+            </article>
+            <article>
+              <span>Errores</span>
+              <strong>{{ interoperabilityDashboard.summary.recentErrors }}</strong>
+            </article>
+          </div>
+          <div class="interop-event-feed compact">
+            <strong>Auditoria reciente</strong>
+            <p v-if="!recentInteroperabilityHistory.length">Sin acciones operativas registradas todavia.</p>
+            <p
+              v-for="entry in recentInteroperabilityHistory.slice(0, 4)"
+              :key="entry.id || `${entry.standardCode}-${entry.action}-${entry.createdAt}`"
+            >
+              <span>{{ formatInteropDate(entry.createdAt) }}</span>
+              {{ entry.standardCode }} / {{ entry.action }}: {{ entry.summary }}
+            </p>
+          </div>
           <div class="interop-export-row">
-            <span>Exportación Excel</span>
-            <span>Exportación PDF</span>
-            <span>Alertas de riesgo académico</span>
+            <button
+              :disabled="interoperabilityActionBusy[interopActionBusyKey('caliper', 'export_analytics')]"
+              @click="runInteroperabilityAction('caliper', 'export_analytics')"
+            >
+              Exportar analitica CSV
+            </button>
+            <button :disabled="interoperabilityLoading" @click="downloadInteroperabilitySnapshot">
+              Descargar snapshot JSON
+            </button>
+            <button :disabled="interoperabilityLoading" @click="loadInteroperabilityDashboard">
+              Recalcular estado
+            </button>
           </div>
         </article>
       </section>
@@ -3525,6 +3585,12 @@ teacher-001,carlos.perez,Carlos,Perez,teacher,carlos.perez@universidad.edu`)
 const liveInteroperabilityStandards = computed<InteroperabilityStandard[]>(() =>
   interoperabilityDashboard.value?.standards ?? []
 )
+const recentLearningEvents = computed(() =>
+  interoperabilityDashboard.value?.recentEvents ?? []
+)
+const recentInteroperabilityHistory = computed(() =>
+  interoperabilityDashboard.value?.recentHistory ?? []
+)
 
 const institutionalRoleScopes = [
   {
@@ -3866,6 +3932,18 @@ function downloadInteropContent(fileName: string, mimeType: string, content: str
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+async function downloadInteroperabilitySnapshot() {
+  if (!interoperabilityDashboard.value) {
+    await loadInteroperabilityDashboard()
+  }
+  if (!interoperabilityDashboard.value) return
+  downloadInteropContent(
+    `coursev-interoperability-snapshot-${Date.now()}.json`,
+    'application/json;charset=utf-8',
+    JSON.stringify(interoperabilityDashboard.value, null, 2),
+  )
 }
 
 async function runInteroperabilityAction(standardCode: string, action: string) {
@@ -15631,6 +15709,46 @@ watch(() => route.query, () => {
   line-height: 1.5;
 }
 
+.interop-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.interop-event-feed {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.14);
+  border-radius: 8px;
+  background: #0B1014;
+}
+
+.interop-event-feed.compact {
+  border-color: rgba(167, 139, 250, 0.18);
+}
+
+.interop-event-feed strong {
+  color: #FFFFFF;
+  font-size: 13px;
+}
+
+.interop-event-feed p {
+  margin: 0;
+  color: rgba(247, 248, 251, 0.72);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.interop-event-feed p span {
+  display: inline-block;
+  margin-right: 6px;
+  color: #7DD3FC;
+  font-weight: 800;
+}
+
 .interop-filter-row span,
 .interop-export-row span {
   color: #C4B5FD;
@@ -15666,7 +15784,39 @@ watch(() => route.query, () => {
   font-size: 13px;
 }
 
+.interop-live-analytics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.interop-live-analytics article {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #0B1014;
+}
+
+.interop-live-analytics span {
+  display: block;
+  color: rgba(247, 248, 251, 0.6);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-live-analytics strong {
+  display: block;
+  margin-top: 4px;
+  color: #FFFFFF;
+  font-size: 18px;
+}
+
 .interop-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 12px;
 }
 
@@ -15776,7 +15926,9 @@ watch(() => route.query, () => {
 }
 
 .interop-refresh-btn,
-.interop-live-actions button {
+.interop-live-actions button,
+.interop-panel-actions button,
+.interop-export-row button {
   min-height: 34px;
   border: 1px solid rgba(125, 211, 252, 0.26);
   border-radius: 8px;
@@ -15787,12 +15939,16 @@ watch(() => route.query, () => {
   cursor: pointer;
 }
 
-.interop-refresh-btn {
+.interop-refresh-btn,
+.interop-panel-actions button,
+.interop-export-row button {
   padding: 0 12px;
 }
 
 .interop-refresh-btn:disabled,
-.interop-live-actions button:disabled {
+.interop-live-actions button:disabled,
+.interop-panel-actions button:disabled,
+.interop-export-row button:disabled {
   opacity: 0.55;
   cursor: wait;
 }
@@ -16131,6 +16287,7 @@ watch(() => route.query, () => {
 
   .interop-live-card-head,
   .interop-real-metrics,
+  .interop-live-analytics,
   .interop-config-grid {
     grid-template-columns: 1fr;
   }

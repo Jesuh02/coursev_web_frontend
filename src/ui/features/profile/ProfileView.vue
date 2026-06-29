@@ -662,22 +662,72 @@ function goToReinforcement(rec: ProfileRecommendation) {
   })
 }
 
-function goToLearning(rec: ProfileRecommendation) {
+function stringQueryValue(value: unknown): string {
+  if (Array.isArray(value)) return String(value[0] ?? '')
+  return String(value ?? '')
+}
+
+function positiveId(...values: unknown[]): number | null {
+  for (const value of values) {
+    const n = Number(stringQueryValue(value))
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n)
+  }
+  return null
+}
+
+function firstText(...values: unknown[]): string {
+  for (const value of values) {
+    const text = stringQueryValue(value).trim()
+    if (text) return text
+  }
+  return ''
+}
+
+function buildRecommendationLearningTarget(rec: ProfileRecommendation) {
+  const learningQuery = rec.actions?.learning?.query ?? {}
+  const reinforcementQuery = rec.actions?.reinforcement?.query ?? {}
+  const courseId = positiveId(rec.problem.courseId, learningQuery.courseId, reinforcementQuery.courseId)
+  const topicId = positiveId(rec.problem.topicId, learningQuery.topicId, reinforcementQuery.topicId)
+  const taskId = positiveId(rec.problem.taskId, learningQuery.taskId, reinforcementQuery.taskId)
+  const targetCount = positiveId(learningQuery.targetCount, reinforcementQuery.targetCount, rec.intervention.questionCount) ?? 10
+
   const query: Record<string, string> = {
-    courseId: String(rec.problem.courseId),
-    topicId: String(rec.problem.topicId),
-    topicName: rec.problem.topicName,
+    ...learningQuery,
+    courseId: String(courseId ?? rec.problem.courseId),
+    topicId: String(topicId ?? rec.problem.topicId),
+    topicName: firstText(learningQuery.topicName, reinforcementQuery.topicName, rec.problem.topicName),
+    difficulty: firstText(learningQuery.difficulty, reinforcementQuery.difficulty, rec.intervention.difficulty, 'HARD'),
+    targetCount: String(Math.max(10, targetCount)),
     fromRecommendation: 'true',
+    recommendationId: rec.id,
   }
-  if (rec.problem.taskId) query.taskId = String(rec.problem.taskId)
-  if (rec.problem.taskName) query.taskName = rec.problem.taskName
-  if (rec.problem.subjectId) {
-    query.subjectId = String(rec.problem.subjectId)
-  }
-  router.push({
-    path: '/learning',
-    query,
+
+  if (taskId) query.taskId = String(taskId)
+  const taskName = firstText(learningQuery.taskName, reinforcementQuery.taskName, rec.problem.taskName)
+  if (taskName) query.taskName = taskName
+  if (rec.problem.subjectId) query.subjectId = String(rec.problem.subjectId)
+  if (rec.problem.courseName) query.courseName = rec.problem.courseName
+  if (rec.problem.subjectName) query.subjectName = rec.problem.subjectName
+
+  Object.keys(query).forEach((key) => {
+    if (!query[key]) delete query[key]
   })
+
+  return { courseId, topicId, taskId, query }
+}
+
+function goToLearning(rec: ProfileRecommendation) {
+  const { courseId, topicId, taskId, query } = buildRecommendationLearningTarget(rec)
+
+  if (courseId && topicId && taskId) {
+    router.push({
+      path: `/learning/course/${courseId}/topic/${topicId}/task/${taskId}/mode`,
+      query,
+    })
+    return
+  }
+
+  router.push({ path: '/learning', query })
 }
 
 // Load recommendations on mount

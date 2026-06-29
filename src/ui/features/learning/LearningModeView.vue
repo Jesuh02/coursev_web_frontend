@@ -80,7 +80,10 @@ const videoCardEl = ref<HTMLElement | null>(null)
 
 function go(kind: 'comic' | 'video') {
   const c = route.params.courseId, t = route.params.topicId, k = route.params.taskId
-  router.push(`/learning/course/${c}/topic/${t}/task/${k}/${kind}`)
+  router.push({
+    path: `/learning/course/${c}/topic/${t}/task/${k}/${kind}`,
+    query: route.query,
+  })
 }
 
 onMounted(() => {
