@@ -161,7 +161,7 @@ import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import { learningAdapter, type VideoLearningResult } from '@/infrastructure/api/learningAdapter'
+import { learningAdapter, type LearningEvaluationPrep, type VideoLearningResult } from '@/infrastructure/api/learningAdapter'
 import { useTheme } from '@/composables/useTheme'
 
 const route = useRoute()
@@ -204,7 +204,7 @@ const fallbackQuestionTypes = [
   { type: 'multiple_choice', label: 'Decisiones profesionales' },
 ]
 
-const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+const evaluationPrep = computed<LearningEvaluationPrep>(() => result.value?.evaluationPrep ?? {
   difficulty: learningDifficulty(),
   targetCount: learningTargetCount(),
   questionTypes: fallbackQuestionTypes,
