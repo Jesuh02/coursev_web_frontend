@@ -44,6 +44,19 @@
         <h1 class="comic-title-text">{{ result.title }}</h1>
       </div>
 
+      <section v-if="evaluationPrep" class="prep-strip" aria-label="Preparacion para refuerzo">
+        <div class="prep-strip__summary">
+          <span class="prep-strip__eyebrow">Preparacion para refuerzo</span>
+          <strong>{{ evaluationPrep.targetCount }} preguntas {{ evaluationPrep.difficulty }}</strong>
+        </div>
+        <div class="prep-strip__chips">
+          <span v-for="item in evaluationQuestionTypes" :key="item.type">{{ item.label }}</span>
+        </div>
+        <div class="prep-strip__focus">
+          <span v-for="item in evaluationFocusAreas" :key="item">{{ item }}</span>
+        </div>
+      </section>
+
       <div
         class="slide-viewport"
         @touchstart.passive="onTouchStart"
@@ -178,6 +191,26 @@ const generationSteps = [
 const currentPanel = computed(() =>
   result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
+
+const fallbackQuestionTypes = [
+  { type: 'fill_in_blank', label: 'Completar espacios' },
+  { type: 'ordering', label: 'Ordenar flujos' },
+  { type: 'multiple_choice', label: 'Decisiones profesionales' },
+]
+
+const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+  difficulty: learningDifficulty(),
+  targetCount: learningTargetCount(),
+  questionTypes: fallbackQuestionTypes,
+  focusAreas: [
+    'Conceptos que se completan',
+    'Secuencias que se ordenan',
+    'Consecuencias que se justifican',
+  ],
+})
+
+const evaluationQuestionTypes = computed(() => evaluationPrep.value.questionTypes.slice(0, 3))
+const evaluationFocusAreas = computed(() => evaluationPrep.value.focusAreas.slice(0, 4))
 
 function queryStringValue(value: unknown): string {
   return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
@@ -439,6 +472,74 @@ onMounted(generate)
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.prep-strip {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) 1fr;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: var(--apple-cloud);
+  border-bottom: 1px solid var(--apple-border);
+}
+.prep-strip__summary {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.prep-strip__eyebrow {
+  color: var(--apple-signal-blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.prep-strip__summary strong {
+  color: var(--apple-ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+.prep-strip__chips,
+.prep-strip__focus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.prep-strip__chips::-webkit-scrollbar,
+.prep-strip__focus::-webkit-scrollbar {
+  display: none;
+}
+.prep-strip__chips span,
+.prep-strip__focus span {
+  flex: 0 0 auto;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.prep-strip__chips span {
+  padding: 6px 9px;
+  color: #0b5cab;
+  background: rgba(0, 113, 227, 0.1);
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  font-weight: 700;
+}
+.prep-strip__focus {
+  grid-column: 2;
+}
+.prep-strip__focus span {
+  padding: 5px 8px;
+  color: var(--apple-graphite);
+  background: var(--apple-snow);
+  border: 1px solid var(--apple-border);
+  font-weight: 600;
 }
 
 .slide-viewport {
@@ -706,9 +807,20 @@ onMounted(generate)
 @media (min-width: 600px) {
   .comic-header { padding: 6px 28px 5px; }
   .comic-title-text { font-size: 18px; }
+  .prep-strip { padding: 10px 28px; }
   .slide-text { padding: 12px 28px 10px; }
   .nav-bar { padding: 8px 28px; }
   .footer-actions { padding: 8px 28px 16px; }
+}
+
+@media (max-width: 599px) {
+  .prep-strip {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .prep-strip__focus {
+    grid-column: 1;
+  }
 }
 
 @media (min-width: 860px) {

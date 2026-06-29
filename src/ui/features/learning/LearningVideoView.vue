@@ -77,6 +77,19 @@
       </div>
 
       <aside v-if="sidePanelVisible" class="media-side" aria-label="Explicacion de la escena">
+        <section v-if="evaluationPrep" class="side-section side-section--prep">
+          <p class="side-label">Preparacion para refuerzo</p>
+          <div class="eval-prep__header">
+            <strong>{{ evaluationPrep.targetCount }} preguntas {{ evaluationPrep.difficulty }}</strong>
+            <span v-if="evaluationPrep.domain">{{ evaluationPrep.domain }}</span>
+          </div>
+          <div class="eval-prep__chips">
+            <span v-for="item in evaluationQuestionTypes" :key="item.type">{{ item.label }}</span>
+          </div>
+          <ul class="eval-prep__focus">
+            <li v-for="item in evaluationFocusAreas" :key="item">{{ item }}</li>
+          </ul>
+        </section>
         <template v-if="currentSlideNote">
           <section class="side-section">
             <p class="side-label">Situacion</p>
@@ -185,7 +198,28 @@ const currentSlideNote = computed(() => {
 
 const visibleSceneNotes = computed(() => (result.value?.sceneNotes ?? []).slice(0, 3))
 
+const fallbackQuestionTypes = [
+  { type: 'fill_in_blank', label: 'Completar espacios' },
+  { type: 'ordering', label: 'Ordenar flujos' },
+  { type: 'multiple_choice', label: 'Decisiones profesionales' },
+]
+
+const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+  difficulty: learningDifficulty(),
+  targetCount: learningTargetCount(),
+  questionTypes: fallbackQuestionTypes,
+  focusAreas: [
+    'Conceptos que se completan',
+    'Secuencias que se ordenan',
+    'Consecuencias que se justifican',
+  ],
+})
+
+const evaluationQuestionTypes = computed(() => evaluationPrep.value.questionTypes.slice(0, 3))
+const evaluationFocusAreas = computed(() => evaluationPrep.value.focusAreas.slice(0, 5))
+
 const sidePanelVisible = computed(() => Boolean(
+  evaluationPrep.value ||
   currentSlideNote.value?.narration ||
   currentSlideNote.value?.technicalDetail ||
   result.value?.summary ||
@@ -491,6 +525,9 @@ onMounted(generate)
 .side-section:last-child {
   margin-bottom: 0;
 }
+.side-section--prep {
+  background: rgba(0, 113, 227, 0.07);
+}
 .side-label {
   display: flex;
   align-items: center;
@@ -515,6 +552,54 @@ onMounted(generate)
   color: var(--apple-ink);
   font-size: 14px;
   line-height: 1.7;
+}
+.eval-prep__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.eval-prep__header strong {
+  color: var(--apple-ink);
+  font-size: 14px;
+  line-height: 1.3;
+}
+.eval-prep__header span {
+  flex: 0 0 auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apple-signal-blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.eval-prep__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.eval-prep__chips span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #0b5cab;
+  background: rgba(0, 113, 227, 0.1);
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.eval-prep__focus {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--apple-graphite);
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 .side-stack {
   display: grid;

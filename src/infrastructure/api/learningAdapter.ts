@@ -18,10 +18,25 @@ export interface ComicPanel {
   technicalDetail?: string
 }
 
+export interface LearningEvaluationQuestionType {
+  type: 'fill_in_blank' | 'ordering' | 'multiple_choice' | string
+  label: string
+  goal?: string
+}
+
+export interface LearningEvaluationPrep {
+  difficulty: string
+  targetCount: number
+  domain?: string
+  questionTypes: LearningEvaluationQuestionType[]
+  focusAreas: string[]
+}
+
 export interface ComicResult {
   jobId?: string
   cached?: boolean
   title: string
+  evaluationPrep?: LearningEvaluationPrep
   panels: ComicPanel[]
 }
 
@@ -46,6 +61,7 @@ export interface VideoLearningResult {
   videoUrl?: string
   posterUrl?: string
   durationSeconds?: number
+  evaluationPrep?: LearningEvaluationPrep
   slides?: VideoSlide[]
   technicalHighlights?: string[]
   sceneNotes?: VideoSceneNote[]
