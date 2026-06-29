@@ -2689,6 +2689,24 @@
 
         <div v-if="interoperabilityError" class="interop-alert error">{{ interoperabilityError }}</div>
         <div v-if="interoperabilityActionMessage" class="interop-alert success">{{ interoperabilityActionMessage }}</div>
+        <div v-if="lastInteroperabilityActionResult" class="interop-result-panel">
+          <div>
+            <span>Resultado API</span>
+            <strong :class="`interop-result-${lastInteroperabilityActionResult.status}`">
+              {{ lastInteroperabilityActionResult.status }}
+            </strong>
+            <p>{{ lastInteroperabilityActionResult.summary }}</p>
+          </div>
+          <div v-if="lastInteroperabilityMetrics.length" class="interop-result-metrics">
+            <article v-for="[key, value] in lastInteroperabilityMetrics" :key="key">
+              <span>{{ key }}</span>
+              <strong>{{ formatInteropMetric(value) }}</strong>
+            </article>
+          </div>
+          <ul v-if="lastInteroperabilityErrors.length" class="interop-result-errors">
+            <li v-for="error in lastInteroperabilityErrors" :key="error">{{ error }}</li>
+          </ul>
+        </div>
 
         <div v-if="interoperabilityDashboard" class="interop-summary-strip">
           <span>Tenant: {{ interoperabilityDashboard.tenantId }}</span>
@@ -2741,14 +2759,40 @@
               </label>
             </div>
 
-            <div v-if="standard.code === 'qti'" class="interop-config-grid">
+            <div v-if="standard.code === 'qti'" class="interop-config-grid full">
               <label>
-                Curso opcional
+                Curso para exportar o asociar importacion
                 <input v-model="qtiExportCourseId" inputmode="numeric" placeholder="ID de curso" />
+              </label>
+              <label>
+                Paquete QTI externo (.xml)
+                <input type="file" accept=".xml,.qti,text/xml,application/xml" @change="readInteroperabilityFile($event, 'qti')" />
+              </label>
+              <label>
+                XML QTI para validar/importar
+                <textarea v-model="qtiImportXml" rows="6" spellcheck="false"></textarea>
               </label>
             </div>
 
             <div v-if="standard.code === 'oneroster'" class="interop-config-grid full">
+              <div class="interop-file-grid">
+                <label>
+                  Cargar users.csv
+                  <input type="file" accept=".csv,text/csv" @change="readInteroperabilityFile($event, 'oneroster-users')" />
+                </label>
+                <label>
+                  Cargar courses.csv
+                  <input type="file" accept=".csv,text/csv" @change="readInteroperabilityFile($event, 'oneroster-courses')" />
+                </label>
+                <label>
+                  Cargar classes.csv
+                  <input type="file" accept=".csv,text/csv" @change="readInteroperabilityFile($event, 'oneroster-classes')" />
+                </label>
+                <label>
+                  Cargar enrollments.csv
+                  <input type="file" accept=".csv,text/csv" @change="readInteroperabilityFile($event, 'oneroster-enrollments')" />
+                </label>
+              </div>
               <label>
                 users.csv para validar
                 <textarea v-model="oneRosterUsersCsv" rows="4"></textarea>
@@ -2877,7 +2921,40 @@
           <div class="interop-chip-grid">
             <span v-for="event in learningEventTypes" :key="event">{{ event }}</span>
           </div>
+          <div class="interop-config-grid full interop-event-form">
+            <div class="interop-file-grid">
+              <label>
+                Tipo de evento
+                <input v-model="learningEventTypeInput" list="learning-event-types" />
+              </label>
+              <label>
+                Origen
+                <input v-model="learningEventSourceInput" placeholder="coursev_web" />
+              </label>
+              <label>
+                Usuario
+                <input v-model="learningEventUserIdInput" inputmode="numeric" placeholder="ID opcional" />
+              </label>
+              <label>
+                Curso
+                <input v-model="learningEventCourseIdInput" inputmode="numeric" placeholder="ID opcional" />
+              </label>
+            </div>
+            <datalist id="learning-event-types">
+              <option v-for="event in learningEventTypes" :key="`option-${event}`" :value="event" />
+            </datalist>
+            <label>
+              Payload JSON
+              <textarea v-model="learningEventPayloadInput" rows="5" spellcheck="false"></textarea>
+            </label>
+          </div>
           <div class="interop-panel-actions">
+            <button
+              :disabled="interoperabilityActionBusy[interopActionBusyKey('caliper', 'record_custom_event')]"
+              @click="recordCustomLearningEvent"
+            >
+              {{ interoperabilityActionBusy[interopActionBusyKey('caliper', 'record_custom_event')] ? 'Registrando...' : 'Registrar evento real' }}
+            </button>
             <button
               :disabled="interoperabilityActionBusy[interopActionBusyKey('caliper', 'record_sample_event')]"
               @click="runInteroperabilityAction('caliper', 'record_sample_event')"
@@ -3440,7 +3517,12 @@ import { api, HttpError, tokenStorage } from '@/infrastructure/api/httpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { institucionAdapter, type InstitutionAdmin, type InstitutionPayment } from '@/infrastructure/api/institucionAdapter'
-import { interoperabilityAdapter, type InteroperabilityDashboard, type InteroperabilityStandard } from '@/infrastructure/api/interoperabilityAdapter'
+import {
+  interoperabilityAdapter,
+  type InteroperabilityActionResult,
+  type InteroperabilityDashboard,
+  type InteroperabilityStandard,
+} from '@/infrastructure/api/interoperabilityAdapter'
 import { BarChart, AreaChart, LegendPosition } from 'vue-chrts'
 import type { BulletLegendItemInterface } from 'vue-chrts'
 
@@ -3580,7 +3662,17 @@ const interoperabilityLoading = ref(false)
 const interoperabilityError = ref('')
 const interoperabilityActionMessage = ref('')
 const interoperabilityActionBusy = ref<Record<string, boolean>>({})
+const lastInteroperabilityActionResult = ref<InteroperabilityActionResult | null>(null)
 const qtiExportCourseId = ref('')
+const qtiImportXml = ref(`<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop>
+  <assessment ident="coursev-import-demo" title="Banco externo">
+    <assessmentItem identifier="q1" title="Pregunta de ejemplo">
+      <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string"/>
+      <itemBody><p>Pregunta importada desde QTI.</p></itemBody>
+    </assessmentItem>
+  </assessment>
+</questestinterop>`)
 const xapiLrsEndpoint = ref('https://example.com/')
 const xapiAuthMethod = ref('OAuth/API Key')
 const ltiProvider = ref('Moodle')
@@ -3600,6 +3692,15 @@ class-ml-python-a,course-ml-python,Grupo A`)
 const oneRosterEnrollmentsCsv = ref(`classSourcedId,userSourcedId,role
 class-ml-python-a,student-001,student
 class-ml-python-a,teacher-001,teacher`)
+const learningEventTypeInput = ref('lesson_completed')
+const learningEventUserIdInput = ref('')
+const learningEventCourseIdInput = ref('')
+const learningEventSourceInput = ref('coursev_web')
+const learningEventPayloadInput = ref(`{
+  "lesson": "Validacion de modelos",
+  "duration_seconds": 640,
+  "progress": 100
+}`)
 
 const liveInteroperabilityStandards = computed<InteroperabilityStandard[]>(() =>
   interoperabilityDashboard.value?.standards ?? []
@@ -3609,6 +3710,12 @@ const recentLearningEvents = computed(() =>
 )
 const recentInteroperabilityHistory = computed(() =>
   interoperabilityDashboard.value?.recentHistory ?? []
+)
+const lastInteroperabilityMetrics = computed(() =>
+  Object.entries(lastInteroperabilityActionResult.value?.metrics ?? {})
+)
+const lastInteroperabilityErrors = computed(() =>
+  lastInteroperabilityActionResult.value?.errors ?? []
 )
 
 const institutionalRoleScopes = [
@@ -3661,7 +3768,7 @@ const interoperabilityStandards = [
     priority: 'Media',
     owner: 'Evaluación IA',
     updated: 'Fase 2',
-    actions: ['Exportar paquetes', 'Importar QTI', 'Validar estructura'],
+    actions: ['Exportar paquetes', 'Validar estructura', 'Importar QTI'],
     accent: '#A78BFA',
   },
   {
@@ -3674,7 +3781,7 @@ const interoperabilityStandards = [
     priority: 'Alta',
     owner: 'Datos institucionales',
     updated: 'Fase 3',
-    actions: ['Importar CSV', 'Mapear campos', 'Detectar duplicados'],
+    actions: ['Validar CSV', 'Confirmar importacion', 'Detectar duplicados'],
     accent: '#F59E0B',
   },
   {
@@ -3899,6 +4006,7 @@ async function loadInteroperabilityDashboard() {
 function formatInteropMetric(value: unknown) {
   if (value === null || value === undefined || value === '') return 'Sin datos'
   if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
 
@@ -3918,6 +4026,38 @@ function interopActionBusyKey(standardCode: string, action: string) {
   return `${standardCode}:${action}`
 }
 
+function readInteroperabilityFile(event: Event, target: string) {
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    const content = String(reader.result || '')
+    if (target === 'qti') qtiImportXml.value = content
+    if (target === 'oneroster-users') oneRosterUsersCsv.value = content
+    if (target === 'oneroster-courses') oneRosterCoursesCsv.value = content
+    if (target === 'oneroster-classes') oneRosterClassesCsv.value = content
+    if (target === 'oneroster-enrollments') oneRosterEnrollmentsCsv.value = content
+    interoperabilityActionMessage.value = `${file.name} cargado para validacion.`
+    lastInteroperabilityActionResult.value = null
+  }
+  reader.onerror = () => {
+    interoperabilityError.value = `No se pudo leer ${file.name}.`
+  }
+  reader.readAsText(file)
+}
+
+function parseLearningEventPayload() {
+  try {
+    return learningEventPayloadInput.value.trim()
+      ? JSON.parse(learningEventPayloadInput.value)
+      : {}
+  } catch {
+    throw new Error('Payload JSON invalido para el evento de aprendizaje.')
+  }
+}
+
 function buildInteropActionPayload(standardCode: string, action: string) {
   if (standardCode === 'caliper') {
     return {
@@ -3932,9 +4072,14 @@ function buildInteropActionPayload(standardCode: string, action: string) {
     }
   }
   if (standardCode === 'qti') {
-    return {
+    const payload: Record<string, unknown> = {
       courseId: Number(qtiExportCourseId.value) || undefined,
     }
+    if (action === 'validate_qti' || action === 'import_qti') {
+      payload.xml = qtiImportXml.value
+      payload.source = 'coursev_admin_upload'
+    }
+    return payload
   }
   if (standardCode === 'oneroster') {
     return {
@@ -3944,7 +4089,7 @@ function buildInteropActionPayload(standardCode: string, action: string) {
         'classes.csv': oneRosterClassesCsv.value,
         'enrollments.csv': oneRosterEnrollmentsCsv.value,
       },
-      dryRun: action !== 'import_oneroster_csv',
+      dryRun: action !== 'commit_oneroster_csv',
     }
   }
   if (standardCode === 'lti') {
@@ -3986,26 +4131,68 @@ async function downloadInteroperabilitySnapshot() {
   )
 }
 
+async function recordCustomLearningEvent() {
+  const key = interopActionBusyKey('caliper', 'record_custom_event')
+  interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: true }
+  interoperabilityActionMessage.value = ''
+  interoperabilityError.value = ''
+  lastInteroperabilityActionResult.value = null
+  try {
+    const event = await interoperabilityAdapter.recordEvent({
+      eventType: learningEventTypeInput.value.trim() || 'lesson_completed',
+      eventSource: learningEventSourceInput.value.trim() || 'coursev_web',
+      standardTarget: 'caliper',
+      userId: Number(learningEventUserIdInput.value) || undefined,
+      courseId: Number(learningEventCourseIdInput.value) || undefined,
+      eventPayload: parseLearningEventPayload(),
+    })
+    interoperabilityActionMessage.value = `Evento ${event.eventType} registrado desde ${event.eventSource}.`
+    lastInteroperabilityActionResult.value = {
+      status: 'success',
+      summary: interoperabilityActionMessage.value,
+      metrics: {
+        eventType: event.eventType,
+        eventSource: event.eventSource,
+        standardTarget: event.standardTarget,
+        courseId: event.courseId ?? null,
+        userId: event.userId ?? null,
+      },
+    }
+    await loadInteroperabilityDashboard()
+  } catch (error: any) {
+    console.error('Error recording learning event:', error)
+    interoperabilityError.value = error?.message || 'No se pudo registrar el evento.'
+  } finally {
+    interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: false }
+  }
+}
+
 async function runInteroperabilityAction(standardCode: string, action: string) {
   const key = interopActionBusyKey(standardCode, action)
   interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: true }
   interoperabilityActionMessage.value = ''
   interoperabilityError.value = ''
+  lastInteroperabilityActionResult.value = null
   try {
     const result = await interoperabilityAdapter.runAction(
       standardCode,
       action,
       buildInteropActionPayload(standardCode, action),
     )
+    lastInteroperabilityActionResult.value = result
     if (result.content) {
       downloadInteropContent(result.fileName || 'coursev-export.txt', result.mimeType || 'text/plain', result.content)
     }
     if (result.dashboard) interoperabilityDashboard.value = result.dashboard
     else await loadInteroperabilityDashboard()
-    interoperabilityActionMessage.value = result.summary || 'Acción ejecutada.'
+    if (result.status === 'error') {
+      interoperabilityError.value = result.summary || 'La accion termino con errores.'
+    } else {
+      interoperabilityActionMessage.value = result.summary || 'Accion ejecutada.'
+    }
   } catch (error: any) {
     console.error('Error running interoperability action:', error)
-    interoperabilityError.value = error?.message || 'No se pudo ejecutar la acción.'
+    interoperabilityError.value = error?.message || 'No se pudo ejecutar la accion.'
   } finally {
     interoperabilityActionBusy.value = { ...interoperabilityActionBusy.value, [key]: false }
   }
@@ -16013,6 +16200,80 @@ watch(() => route.query, () => {
   border: 1px solid rgba(34, 197, 94, 0.22);
 }
 
+.interop-result-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 8px;
+  background: #0B1014;
+}
+
+.interop-result-panel > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.interop-result-panel span {
+  color: rgba(247, 248, 251, 0.52);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.interop-result-panel strong {
+  color: #FFFFFF;
+  overflow-wrap: anywhere;
+}
+
+.interop-result-panel p {
+  margin: 0;
+  color: rgba(247, 248, 251, 0.72);
+  font-size: 13px;
+}
+
+.interop-result-success {
+  color: #BBF7D0 !important;
+}
+
+.interop-result-error {
+  color: #FECACA !important;
+}
+
+.interop-result-warning {
+  color: #FDE68A !important;
+}
+
+.interop-result-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.interop-result-metrics article {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.interop-result-metrics strong {
+  display: block;
+  margin-top: 4px;
+  color: #FFFFFF;
+  font-size: 12px;
+}
+
+.interop-result-errors {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: #FECACA;
+  font-size: 12px;
+}
+
 .interop-summary-strip {
   display: flex;
   flex-wrap: wrap;
@@ -16140,6 +16401,16 @@ watch(() => route.query, () => {
   grid-template-columns: 1fr;
 }
 
+.interop-event-form {
+  margin-top: 14px;
+}
+
+.interop-file-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .interop-config-grid label {
   display: grid;
   gap: 5px;
@@ -16163,6 +16434,12 @@ watch(() => route.query, () => {
 .interop-config-grid input {
   height: 34px;
   padding: 0 9px;
+}
+
+.interop-config-grid input[type="file"] {
+  height: auto;
+  padding: 8px;
+  color: rgba(247, 248, 251, 0.72);
 }
 
 .interop-config-grid textarea {
@@ -16328,7 +16605,9 @@ watch(() => route.query, () => {
   .interop-live-card-head,
   .interop-real-metrics,
   .interop-live-analytics,
-  .interop-config-grid {
+  .interop-config-grid,
+  .interop-file-grid,
+  .interop-result-metrics {
     grid-template-columns: 1fr;
   }
 }
