@@ -198,7 +198,7 @@ const currentSlideNote = computed(() => {
 
 const visibleSceneNotes = computed(() => (result.value?.sceneNotes ?? []).slice(0, 3))
 
-const fallbackQuestionTypes = [
+const fallbackQuestionTypes: LearningEvaluationPrep['questionTypes'] = [
   { type: 'fill_in_blank', label: 'Completar espacios' },
   { type: 'ordering', label: 'Ordenar flujos' },
   { type: 'multiple_choice', label: 'Decisiones profesionales' },
@@ -207,6 +207,7 @@ const fallbackQuestionTypes = [
 const evaluationPrep = computed<LearningEvaluationPrep>(() => result.value?.evaluationPrep ?? {
   difficulty: learningDifficulty(),
   targetCount: learningTargetCount(),
+  domain: '',
   questionTypes: fallbackQuestionTypes,
   focusAreas: [
     'Conceptos que se completan',

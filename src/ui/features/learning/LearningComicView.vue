@@ -156,7 +156,7 @@ import { onMounted, ref, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { animate, utils } from 'animejs'
 import TopBar from '@/ui/shared/components/TopBar.vue'
-import { learningAdapter, type ComicResult } from '@/infrastructure/api/learningAdapter'
+import { learningAdapter, type ComicResult, type LearningEvaluationPrep } from '@/infrastructure/api/learningAdapter'
 import { useTheme } from '@/composables/useTheme'
 
 const route = useRoute()
@@ -192,15 +192,16 @@ const currentPanel = computed(() =>
   result.value?.panels[currentIdx.value] ?? { imageUrl: '', caption: '', dialogue: undefined, technicalDetail: undefined }
 )
 
-const fallbackQuestionTypes = [
+const fallbackQuestionTypes: LearningEvaluationPrep['questionTypes'] = [
   { type: 'fill_in_blank', label: 'Completar espacios' },
   { type: 'ordering', label: 'Ordenar flujos' },
   { type: 'multiple_choice', label: 'Decisiones profesionales' },
 ]
 
-const evaluationPrep = computed(() => result.value?.evaluationPrep ?? {
+const evaluationPrep = computed<LearningEvaluationPrep>(() => result.value?.evaluationPrep ?? {
   difficulty: learningDifficulty(),
   targetCount: learningTargetCount(),
+  domain: '',
   questionTypes: fallbackQuestionTypes,
   focusAreas: [
     'Conceptos que se completan',
