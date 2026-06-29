@@ -253,8 +253,8 @@ const suspendedServerUrl = ref('')
 const paymentLoading = ref(false)
 const suspendedUserIsAdmin = ref(false)
 
-function normalizeLoginPassword(password: string): string {
-  return password.replace(/\s+/g, '')
+function normalizeLoginCredential(value: string): string {
+  return value.replace(/\s+/g, '')
 }
 
 function getGoogleAccounts() {
@@ -416,12 +416,13 @@ async function handleLogin(username: string, password: string) {
   loading.value = true
   error.value = ''
   showPaymentSection.value = false
-  const normalizedPassword = normalizeLoginPassword(password)
+  const normalizedUsername = normalizeLoginCredential(username)
+  const normalizedPassword = normalizeLoginCredential(password)
   // Guardar credenciales por si se necesita retry con cédula
-  pendingUsername.value = username
+  pendingUsername.value = normalizedUsername
   pendingPassword.value = normalizedPassword
   try {
-    const result = await resolveLogin(username, normalizedPassword)
+    const result = await resolveLogin(normalizedUsername, normalizedPassword)
     await authStore.commitAuth(result)
     router.push('/video')
   } catch (e) {
