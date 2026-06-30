@@ -32,6 +32,12 @@
           </template>
 
           <img v-else-if="file.kind === 'image' && objectUrl" class="fp-image" :src="objectUrl" :alt="file.name" />
+          <VideoPreviewPlayer
+            v-else-if="file.kind === 'video' && objectUrl"
+            :src="objectUrl"
+            :name="file.name"
+            @download="downloadFile"
+          />
           <iframe v-else-if="(file.kind === 'pdf' || file.kind === 'office') && objectUrl" class="fp-frame" :src="objectUrl" title="Vista previa del documento" />
           <section v-else-if="file.kind === 'spreadsheet'" class="fp-sheet">
             <div v-if="spreadsheet.sheets.length > 1" class="fp-sheet-tabs">
@@ -80,6 +86,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { filePreviewAdapter } from '@/infrastructure/api'
 import type { PreviewFile } from './filePreview'
 import { downloadPreviewFile, fetchPreviewBlob, resolvePreviewFileUrl } from './filePreview'
+import VideoPreviewPlayer from './VideoPreviewPlayer.vue'
 
 const props = defineProps<{
   file: PreviewFile | null
@@ -191,11 +198,6 @@ async function loadPreview(file: PreviewFile) {
   spreadsheet.value = { sheets: [] }
   activeSheetIndex.value = 0
 
-  if (file.kind === 'video') {
-    error.value = 'La vista previa de videos se implementara en una fase posterior.'
-    return
-  }
-
   if (file.kind === 'unsupported') {
     error.value = 'Este formato no se puede previsualizar todavia.'
     return
@@ -222,6 +224,11 @@ async function loadPreview(file: PreviewFile) {
     }
 
     if (source.kind === 'image') {
+      objectUrl.value = source.url
+      return
+    }
+
+    if (source.kind === 'video') {
       objectUrl.value = source.url
       return
     }

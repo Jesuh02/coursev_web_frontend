@@ -19,7 +19,7 @@ const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 's
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'csv', 'json', 'log'])
 const OFFICE_EXTENSIONS = new Set(['doc', 'docx', 'ppt', 'pptx', 'xls'])
 const SPREADSHEET_EXTENSIONS = new Set(['xlsx'])
-const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov', 'avi', 'mkv'])
+const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'ogg', 'ogv', 'mov', 'avi', 'mkv'])
 
 export function resolvePreviewFileUrl(uri: string | null | undefined): string {
   if (!uri || uri.startsWith('file:///')) return ''
