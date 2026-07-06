@@ -46,7 +46,12 @@
       <div
         v-for="item in contentItems"
         :key="item.id"
-        class="list-row"
+        class="list-row content-preview-row"
+        role="button"
+        tabindex="0"
+        @click="openPreview(previewFileFromContentItem(item))"
+        @keydown.enter.prevent="openPreview(previewFileFromContentItem(item))"
+        @keydown.space.prevent="openPreview(previewFileFromContentItem(item))"
       >
         <div class="row-icon" :class="getIconClass(item.contentType)">
           <svg v-if="item.contentType === 'video'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -62,7 +67,8 @@
           class="row-action remove-btn"
           :aria-label="`Eliminar ${item.fileName || item.content || 'archivo'}`"
           :disabled="saving"
-          @click="removeContentItem(item.id)"
+          @click.stop="removeContentItem(item.id)"
+          @keydown.stop
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -155,6 +161,7 @@
       <!-- bottom spacer -->
       <div style="height: 32px" />
     </div>
+    <FilePreviewModal :file="previewFile" @close="closePreview" />
   </div>
 </template>
 
@@ -165,9 +172,13 @@ import type { Topic, ContentItem, Task } from '@/domain/models'
 import { topicAdapter, contentItemAdapter, taskAdapter, uploadFileDirect } from '@/infrastructure/api'
 import { periodAdapter } from '@/infrastructure/api/periodAdapter'
 import { gradeSheetCache } from '@/infrastructure/api/gradeSheetCache'
+import FilePreviewModal from '@/ui/shared/filePreview/FilePreviewModal.vue'
+import { previewFileFromContentItem } from '@/ui/shared/filePreview/filePreview'
+import { useFilePreview } from '@/ui/shared/filePreview/useFilePreview'
 
 const route = useRoute()
 const router = useRouter()
+const { previewFile, openPreview, closePreview } = useFilePreview()
 
 const topic = ref<Topic | null>(null)
 const contentItems = ref<ContentItem[]>([])
@@ -531,6 +542,14 @@ onMounted(async () => {
 
 .list-row.clickable { cursor: pointer; }
 .list-row.clickable:active { background: #222; }
+.list-row.content-preview-row {
+  cursor: pointer;
+}
+.list-row.content-preview-row:hover,
+.list-row.content-preview-row:focus-visible {
+  background: rgba(255,255,255,0.08);
+  outline: none;
+}
 
 .pending-row { opacity: 0.85; border: 1px dashed rgba(6,182,212,0.3); }
 

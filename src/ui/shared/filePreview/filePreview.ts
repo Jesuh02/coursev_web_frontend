@@ -20,6 +20,16 @@ const TEXT_EXTENSIONS = new Set(['txt', 'md', 'csv', 'json', 'log'])
 const OFFICE_EXTENSIONS = new Set(['doc', 'docx', 'ppt', 'pptx', 'xls'])
 const SPREADSHEET_EXTENSIONS = new Set(['xlsx'])
 const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'ogg', 'ogv', 'mov', 'avi', 'mkv'])
+const OFFICE_MIME_TYPES = new Set([
+  'application/msword',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+])
+const SPREADSHEET_MIME_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+])
 
 export function resolvePreviewFileUrl(uri: string | null | undefined): string {
   if (!uri || uri.startsWith('file:///')) return ''
@@ -36,8 +46,12 @@ function extensionFrom(name: string, url: string): string {
 }
 
 function kindFrom(extension: string, contentType?: string | null): PreviewKind {
-  if (contentType === 'image' || IMAGE_EXTENSIONS.has(extension)) return 'image'
-  if (contentType === 'video' || VIDEO_EXTENSIONS.has(extension)) return 'video'
+  const normalizedType = (contentType ?? '').split(';')[0].trim().toLowerCase()
+  if (normalizedType === 'image' || normalizedType.startsWith('image/') || IMAGE_EXTENSIONS.has(extension)) return 'image'
+  if (normalizedType === 'video' || normalizedType.startsWith('video/') || VIDEO_EXTENSIONS.has(extension)) return 'video'
+  if (normalizedType === 'application/pdf') return 'pdf'
+  if (SPREADSHEET_MIME_TYPES.has(normalizedType)) return 'spreadsheet'
+  if (OFFICE_MIME_TYPES.has(normalizedType)) return 'office'
   if (extension === 'pdf') return 'pdf'
   if (TEXT_EXTENSIONS.has(extension)) return 'text'
   if (SPREADSHEET_EXTENSIONS.has(extension)) return 'spreadsheet'

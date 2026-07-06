@@ -31,10 +31,19 @@
 
         <p class="field-label mt-16">Documentos adjuntos</p>
         <div v-if="existingContentItems.length" class="existing-attachments">
-          <div v-for="ci in existingContentItems" :key="ci.id" class="existing-attachment-row">
+          <div
+            v-for="ci in existingContentItems"
+            :key="ci.id"
+            class="existing-attachment-row existing-attachment-row--preview"
+            role="button"
+            tabindex="0"
+            @click="openPreview(previewFileFromContentItem(ci))"
+            @keydown.enter.prevent="openPreview(previewFileFromContentItem(ci))"
+            @keydown.space.prevent="openPreview(previewFileFromContentItem(ci))"
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
             <span class="existing-attachment-name">{{ ci.fileName || ci.content }}</span>
-            <button class="file-clear" @click.stop="deleteContentItem(ci.id)">✕</button>
+            <button class="file-clear" type="button" @click.stop="deleteContentItem(ci.id)" @keydown.stop>✕</button>
           </div>
         </div>
         <div class="file-upload-editor" @click="formFileInputRef?.click()">
@@ -74,6 +83,19 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               Sin fecha límite
             </span>
+          </div>
+          <div v-if="existingContentItems.length" class="task-materials">
+            <p class="task-materials-title">Archivos adjuntos</p>
+            <button
+              v-for="ci in existingContentItems"
+              :key="ci.id"
+              class="task-material-link"
+              type="button"
+              @click="openPreview(previewFileFromContentItem(ci))"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+              <span>{{ ci.fileName || ci.content }}</span>
+            </button>
           </div>
         </div>
 
@@ -131,6 +153,7 @@
         </div>
       </div>
     </template>
+    <FilePreviewModal :file="previewFile" @close="closePreview" />
   </div>
 </template>
 
@@ -143,10 +166,14 @@ import { useAuthStore } from '@/stores/authStore'
 import TopBar from '@/ui/shared/components/TopBar.vue'
 import AppButton from '@/ui/shared/components/AppButton.vue'
 import { Calendar, CalendarSelectionMode } from '@/ui/shared/components/Calendar'
+import FilePreviewModal from '@/ui/shared/filePreview/FilePreviewModal.vue'
+import { previewFileFromContentItem } from '@/ui/shared/filePreview/filePreview'
+import { useFilePreview } from '@/ui/shared/filePreview/useFilePreview'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { previewFile, openPreview, closePreview } = useFilePreview()
 
 const taskId = computed(() => {
   const raw = route.params.taskId
@@ -379,6 +406,7 @@ onMounted(async () => {
   }
   if (!isEditorMode.value && taskId.value) {
     try { task.value = await taskAdapter.getTaskById(taskId.value) } catch { /* empty */ }
+    try { existingContentItems.value = await contentItemAdapter.getByTask(taskId.value) } catch { /* empty */ }
     try { existingSubmission.value = await submissionAdapter.getSubmissionByUserAndTask(taskId.value) } catch { /* empty */ }
   }
 })
@@ -435,6 +463,18 @@ onMounted(async () => {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
   border-radius: 8px; background: #1A1A1A; color: #ccc; font-size: 14px;
 }
+.existing-attachment-row--preview {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.existing-attachment-row--preview:hover,
+.existing-attachment-row--preview:focus-visible {
+  background: #222;
+  outline: none;
+}
 .pending-attachment-row { color: #8E8E93; }
 .existing-attachment-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -479,6 +519,46 @@ onMounted(async () => {
 .task-title { font-size: 22px; font-weight: 700; color: #fff; }
 .task-desc { font-size: 14px; color: #8E8E93; margin-top: 6px; line-height: 1.5; }
 .task-meta-row { display: flex; gap: 8px; margin-top: 12px; }
+.task-materials {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.task-materials-title {
+  margin: 0;
+  color: #f5f5f7;
+  font-size: 13px;
+  font-weight: 700;
+}
+.task-material-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(191,90,242,0.22);
+  border-radius: 10px;
+  background: rgba(191,90,242,0.08);
+  color: #f5f5f7;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.task-material-link span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-material-link:hover,
+.task-material-link:focus-visible {
+  border-color: rgba(191,90,242,0.45);
+  background: rgba(191,90,242,0.14);
+  outline: none;
+}
 .meta-chip {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
   border-radius: 20px; background: rgba(255,255,255,0.06); color: #8E8E93;
