@@ -550,10 +550,10 @@
       <section class="cognitive-hero-panel">
         <div class="cognitive-hero-copy">
           <span class="cognitive-eyebrow">Gemelo Cognitivo</span>
-          <h2>Usuarios que han reforzado</h2>
+          <h2>Usuarios con actividad cognitiva</h2>
           <p>
-            Panel basado solo en sesiones reales de refuerzo: precision, errores,
-            tiempo por pregunta, horario de estudio, tendencia y riesgo de fatiga.
+            Panel basado en sesiones reales de refuerzo y entregas de tareas:
+            precision, errores, tiempo por pregunta, horario de estudio, tendencia y riesgo de fatiga.
           </p>
         </div>
         <div class="cognitive-signal" aria-hidden="true">
@@ -568,7 +568,7 @@
             <span></span>
             <span></span>
           </div>
-          <small>refuerzo activo</small>
+          <small>actividad registrada</small>
         </div>
       </section>
 
@@ -588,9 +588,9 @@
       <template v-else>
         <section class="cognitive-kpi-grid">
           <div class="cognitive-kpi">
-            <span class="cognitive-kpi-label">Usuarios reforzados</span>
+            <span class="cognitive-kpi-label">Usuarios observados</span>
             <strong>{{ cognitiveTotalStudents }}</strong>
-            <small>{{ cognitiveTotalSessions }} sesiones guardadas</small>
+            <small>{{ cognitiveTotalSessions }} actividades guardadas</small>
           </div>
           <div class="cognitive-kpi">
             <span class="cognitive-kpi-label">Precision media</span>
@@ -633,7 +633,7 @@
             <select v-model="cognitiveSortBy">
               <option value="recent_activity">Actividad reciente</option>
               <option value="performance">Mejor rendimiento</option>
-              <option value="sessions">Mas sesiones</option>
+              <option value="sessions">Mas actividad</option>
               <option value="improvement">Mejora</option>
               <option value="fatigue">Riesgo de fatiga</option>
             </select>
@@ -648,8 +648,8 @@
         </section>
 
         <section v-if="filteredCognitiveStudents.length === 0" class="cognitive-empty">
-          <h3>Sin usuarios reforzados</h3>
-          <p>No hay sesiones en reinforcement_results para los filtros actuales.</p>
+          <h3>Sin actividad cognitiva</h3>
+          <p>No hay refuerzos ni entregas de tareas para los filtros actuales.</p>
         </section>
 
         <section v-else class="cognitive-workbench">
@@ -680,7 +680,7 @@
               <div class="cognitive-metric-strip">
                 <span><strong>{{ student.performance.accuracy }}%</strong> precision</span>
                 <span><strong>{{ student.performance.avgGrade.toFixed(1) }}</strong> nota</span>
-                <span><strong>{{ student.performance.totalSessions }}</strong> sesiones</span>
+                <span><strong>{{ student.performance.totalSessions }}</strong> actividades</span>
               </div>
 
               <div class="cognitive-card-footer">
@@ -6008,6 +6008,132 @@ const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCo
   }
 }
 
+const parseCognitiveTimestamp = (...values: unknown[]): number => {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value > 10_000_000_000 ? value : value * 1000
+    }
+    if (typeof value === 'string' && value.trim()) {
+      const numeric = Number(value)
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return numeric > 10_000_000_000 ? numeric : numeric * 1000
+      }
+      const parsed = Date.parse(value)
+      if (!Number.isNaN(parsed)) return parsed
+    }
+  }
+  return 0
+}
+
+const normalizeTaskGradeToTen = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null
+  const grade = Number(value)
+  if (!Number.isFinite(grade)) return null
+  if (grade <= 5) return Math.max(0, Math.min(10, grade * 2))
+  return Math.max(0, Math.min(10, grade))
+}
+
+const normalizeTaskSubmissionStudent = (
+  raw: Record<string, any>,
+  course: CognitiveCourseRef,
+  profile?: Record<string, any> | null,
+): CognitiveStudentProfile | null => {
+  const id = parseSafeNumber(
+    raw.studentId
+      ?? raw.student_id
+      ?? raw.userId
+      ?? raw.user_id
+      ?? raw.usuario_id
+      ?? raw.usuarios?.id
+      ?? raw.users?.id
+  )
+  if (!id) return null
+
+  const normalizedGrade = normalizeTaskGradeToTen(raw.grade ?? raw.calificacion ?? raw.score ?? raw.averageGrade)
+  const grade = normalizedGrade ?? 7
+  const accuracy = Math.round(grade * 10)
+  const totalQuestions = 10
+  const totalCorrect = Math.round((accuracy / 100) * totalQuestions)
+  const totalIncorrect = Math.max(0, totalQuestions - totalCorrect)
+  const timestamp = parseCognitiveTimestamp(
+    raw.submissionDate,
+    raw.submission_date,
+    raw.createdAt,
+    raw.created_at,
+    raw.updatedAt,
+    raw.updated_at,
+  )
+  const activityDate = timestamp > 0 ? new Date(timestamp).toISOString() : new Date().toISOString()
+  const persona = profile?.persona && typeof profile.persona === 'object' ? profile.persona : null
+  const firstName = String(raw.studentFirstName ?? persona?.nombres ?? '')
+  const lastName = String(raw.studentLastName ?? persona?.apellidos ?? '')
+  const profileFullName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const rawFullName = String(raw.studentFullName ?? raw.fullName ?? raw.full_name ?? '').trim()
+  const username = String(raw.studentUsername ?? raw.username ?? raw.usuarios?.username ?? raw.users?.username ?? profile?.username ?? `estudiante_${id}`)
+
+  return {
+    id,
+    username,
+    email: typeof raw.studentEmail === 'string'
+      ? raw.studentEmail
+      : typeof profile?.email === 'string'
+        ? profile.email
+        : null,
+    avatar: typeof raw.studentAvatar === 'string'
+      ? raw.studentAvatar
+      : typeof raw.avatar === 'string'
+        ? raw.avatar
+        : typeof raw.usuarios?.avatar === 'string'
+          ? raw.usuarios.avatar
+          : typeof raw.users?.avatar === 'string'
+            ? raw.users.avatar
+            : typeof profile?.avatar === 'string'
+              ? profile.avatar
+              : null,
+    fullName: rawFullName || profileFullName || username || `Estudiante #${id}`,
+    firstName,
+    lastName,
+    performance: {
+      accuracy,
+      avgGrade: Math.round(grade * 10) / 10,
+      totalQuestions,
+      totalCorrect,
+      totalIncorrect,
+      totalSessions: 1,
+      totalDuration: 0,
+      avgTimePerQuestion: 0,
+    },
+    cognitiveInsights: {
+      skillLevel: 'developing',
+      skillColor: '#0A84FF',
+      trend: 'stable',
+      improvementRate: 0,
+      consistency: normalizedGrade === null ? 70 : 100,
+      engagementLevel: 'medium',
+      preferredStudyHour: timestamp > 0 ? new Date(timestamp).getHours() : null,
+      difficultyStats: {},
+      errorRate: totalQuestions > 0 ? Math.round((totalIncorrect / totalQuestions) * 100) : 0,
+      preferredDifficulty: 'tarea general',
+      fatigueRiskScore: 10,
+      fatigueLevel: 'low',
+      performanceStatus: 'steady',
+      recommendedAction: normalizedGrade === null
+        ? 'Actividad registrada por entrega de tarea: esperar calificacion para afinar precision, errores y riesgo.'
+        : undefined,
+    },
+    lastActivity: activityDate,
+    daysSinceLastActivity: timestamp > 0 ? Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000)) : 0,
+    recentHistory: [{
+      date: activityDate,
+      grade,
+      accuracy,
+      questions: totalQuestions,
+    }],
+    firstSession: activityDate,
+    courses: [course],
+  }
+}
+
 const getCognitiveSkillMeta = (accuracy: number) => {
   if (accuracy >= 85) return { skillLevel: 'advanced', skillColor: '#30D158' }
   if (accuracy >= 70) return { skillLevel: 'intermediate', skillColor: '#0A84FF' }
@@ -6125,10 +6251,14 @@ const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStud
     const history = [...existing.recentHistory, ...item.recentHistory]
       .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
       .slice(-10)
-    const lastActivity = Date.parse(item.lastActivity || '') > Date.parse(existing.lastActivity || '')
+    const itemLastActivityTime = Date.parse(item.lastActivity || '')
+    const existingLastActivityTime = Date.parse(existing.lastActivity || '')
+    const lastActivity = item.lastActivity && (!existing.lastActivity || itemLastActivityTime > existingLastActivityTime)
       ? item.lastActivity
       : existing.lastActivity
-    const firstSession = Date.parse(item.firstSession || '') < Date.parse(existing.firstSession || '')
+    const itemFirstSessionTime = Date.parse(item.firstSession || '')
+    const existingFirstSessionTime = Date.parse(existing.firstSession || '')
+    const firstSession = item.firstSession && (!existing.firstSession || itemFirstSessionTime < existingFirstSessionTime)
       ? item.firstSession
       : existing.firstSession
 
@@ -6160,6 +6290,16 @@ const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStud
     cognitiveInsights: deriveCognitiveInsights(student.performance, student.recentHistory, student.cognitiveInsights),
   }))
 }
+
+const getCognitiveSubmissionStudentId = (raw: Record<string, any>): number => parseSafeNumber(
+  raw.studentId
+    ?? raw.student_id
+    ?? raw.userId
+    ?? raw.user_id
+    ?? raw.usuario_id
+    ?? raw.usuarios?.id
+    ?? raw.users?.id
+)
 
 const loadCognitiveData = async () => {
   cognitiveLoading.value = true
@@ -6197,22 +6337,63 @@ const loadCognitiveData = async () => {
 
     const settled = await Promise.allSettled(
       normalizedCourses.map(async (course) => {
-        const response = await reinforcementAdapter.getCognitiveAnalytics(course.id, {
-          limit: 120,
-          sortBy: 'recent_activity',
-        })
-        const students = Array.isArray((response as any)?.students) ? (response as any).students : []
-        return students.map((student: Record<string, any>) => normalizeCognitiveStudent(student, course))
+        const [analyticsResponse, submissionRows] = await Promise.all([
+          reinforcementAdapter.getCognitiveAnalytics(course.id, {
+            limit: 120,
+            sortBy: 'recent_activity',
+          }).catch((error) => {
+            console.warn('Error loading cognitive reinforcement analytics:', course.id, error)
+            return { students: [] }
+          }),
+          submissionAdapter.getSubmissionByCourse(course.id).catch((error) => {
+            console.warn('Error loading cognitive task submissions:', course.id, error)
+            return []
+          }),
+        ])
+        const students = Array.isArray((analyticsResponse as any)?.students) ? (analyticsResponse as any).students : []
+        const submissions = Array.isArray(submissionRows) ? submissionRows : []
+        return {
+          course,
+          reinforcementStudents: students.map((student: Record<string, any>) => normalizeCognitiveStudent(student, course)),
+          submissions: submissions.map((submission: any) => ({ course, submission: submission as Record<string, any> })),
+        }
       })
     )
 
-    const items = settled.flatMap(result => result.status === 'fulfilled' ? result.value : [])
-    cognitiveStudents.value = mergeCognitiveStudents(items)
+    const courseResults = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+    const reinforcementItems = courseResults.flatMap(result => result.reinforcementStudents)
+    const submissionRefs = courseResults.flatMap(result => result.submissions)
+
+    const submissionStudentIds = [...new Set(
+      submissionRefs
+        .map(({ submission }) => getCognitiveSubmissionStudentId(submission))
+        .filter(id => id > 0)
+    )]
+    const profileRows = submissionStudentIds.length > 0
+      ? await userAdapter.getUsersByIds(submissionStudentIds).catch(() => [])
+      : []
+    const profilesById = new Map<number, Record<string, any>>()
+    if (Array.isArray(profileRows)) {
+      for (const profile of profileRows) {
+        const profileId = parseSafeNumber((profile as any)?.id ?? (profile as any)?.userId ?? (profile as any)?.user_id)
+        if (profileId > 0) profilesById.set(profileId, profile as Record<string, any>)
+      }
+    }
+
+    const submissionItems = submissionRefs
+      .map(({ course, submission }) => normalizeTaskSubmissionStudent(
+        submission,
+        course,
+        profilesById.get(getCognitiveSubmissionStudentId(submission)),
+      ))
+      .filter((student): student is CognitiveStudentProfile => Boolean(student))
+
+    cognitiveStudents.value = mergeCognitiveStudents([...reinforcementItems, ...submissionItems])
     selectedCognitiveStudentId.value = null
   } catch (error: any) {
     console.error('Error loading cognitive analytics:', error)
     cognitiveStudents.value = []
-    cognitiveLoadError.value = error?.message || 'No fue posible leer los resultados de refuerzo.'
+    cognitiveLoadError.value = error?.message || 'No fue posible leer los refuerzos y entregas de tareas.'
   } finally {
     cognitiveLoading.value = false
   }
