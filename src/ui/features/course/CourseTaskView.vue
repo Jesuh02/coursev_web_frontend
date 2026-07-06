@@ -345,16 +345,16 @@ async function submitTask() {
   submitError.value = ''
   uploadProgress.value = 0
   try {
-    const uploadResults: { key: string }[] = []
+    const uploadResults: { key: string; publicUrl: string }[] = []
     if (selectedFiles.value.length > 0) {
       try {
         for (const file of selectedFiles.value) {
-          const { key } = await uploadFileDirect(
+          const { key, publicUrl } = await uploadFileDirect(
             file,
             'submissions',
             (pct) => { uploadProgress.value = pct },
           )
-          uploadResults.push({ key })
+          uploadResults.push({ key, publicUrl })
         }
       } catch {
         submitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
@@ -371,8 +371,10 @@ async function submitTask() {
       const [firstFile, ...restFiles] = selectedFiles.value
       payload.file_key = first.key
       payload.file_name = firstFile.name
+      payload.fileUri = first.publicUrl || first.key
+      payload.fileName = firstFile.name
       if (rest.length > 0) {
-        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.publicUrl || r.key, fileName: restFiles[i].name }))
       }
     }
     const result = await submissionAdapter.submitWork(payload)

@@ -31,6 +31,26 @@ const SPREADSHEET_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ])
 
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function pickString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = stringValue(value)
+    if (text) return text
+  }
+  return null
+}
+
+function pickPreviewUri(...values: unknown[]): string {
+  const candidates = values.map(stringValue).filter((value): value is string => Boolean(value))
+  if (candidates.length === 0) return ''
+  return candidates.find(value => /\.r2\.(cloudflarestorage\.com|dev)/i.test(value))
+    ?? candidates.find(value => /^https?:\/\//i.test(value))
+    ?? candidates[0]
+}
+
 export function resolvePreviewFileUrl(uri: string | null | undefined): string {
   if (!uri || uri.startsWith('file:///')) return ''
   if (/^https?:\/\//i.test(uri)) return uri
@@ -60,8 +80,9 @@ function kindFrom(extension: string, contentType?: string | null): PreviewKind {
 }
 
 export function previewFileFromContentItem(item: ContentItem): PreviewFile | null {
-  const name = item.fileName || item.content || `archivo-${item.id}`
-  const originalUri = item.fileUri || item.content || ''
+  const raw = item as ContentItem & Record<string, unknown>
+  const name = pickString(raw.fileName, raw.file_name, raw.content) || `archivo-${item.id}`
+  const originalUri = pickPreviewUri(raw.fileUri, raw.file_uri, raw.fileUrl, raw.file_url, raw.body, raw.content)
   const url = resolvePreviewFileUrl(originalUri)
   if (!url) return null
   const extension = extensionFrom(name, url)
@@ -78,8 +99,9 @@ export function previewFileFromContentItem(item: ContentItem): PreviewFile | nul
 }
 
 export function previewFileFromSubmission(submission: TaskSubmission): PreviewFile | null {
-  const name = submission.file_name || `entrega-${submission.id}`
-  const originalUri = submission.file_uri || ''
+  const raw = submission as TaskSubmission & Record<string, unknown>
+  const name = pickString(raw.fileName, raw.file_name, raw.name) || `entrega-${submission.id}`
+  const originalUri = pickPreviewUri(raw.fileUri, raw.file_uri, raw.publicUrl, raw.url)
   const url = resolvePreviewFileUrl(originalUri)
   if (!url) return null
   const extension = extensionFrom(name, url)
@@ -96,8 +118,9 @@ export function previewFileFromSubmission(submission: TaskSubmission): PreviewFi
 }
 
 export function previewFileFromSubmissionFile(file: TaskSubmissionFile, index: number, ownerId: string | number): PreviewFile | null {
-  const name = file.fileName || `archivo-${index + 1}`
-  const originalUri = file.fileUri || ''
+  const raw = file as TaskSubmissionFile & Record<string, unknown>
+  const name = pickString(raw.fileName, raw.file_name, raw.name) || `archivo-${index + 1}`
+  const originalUri = pickPreviewUri(raw.fileUri, raw.file_uri, raw.publicUrl, raw.url)
   const url = resolvePreviewFileUrl(originalUri)
   if (!url) return null
   const extension = extensionFrom(name, url)

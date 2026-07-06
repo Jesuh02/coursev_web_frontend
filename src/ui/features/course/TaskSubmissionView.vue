@@ -804,11 +804,11 @@ async function resubmitWork() {
   resubmitting.value = true
   resubmitError.value = ''
   try {
-    const uploadResults: { key: string }[] = []
+    const uploadResults: { key: string; publicUrl: string }[] = []
     try {
       for (const file of resubmitFiles.value) {
-        const { key } = await uploadFileDirect(file, 'submissions', () => {})
-        uploadResults.push({ key })
+        const { key, publicUrl } = await uploadFileDirect(file, 'submissions', () => {})
+        uploadResults.push({ key, publicUrl })
       }
     } catch {
       resubmitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
@@ -818,10 +818,10 @@ async function resubmitWork() {
     const [first, ...rest] = uploadResults
     const [firstFile, ...restFiles] = resubmitFiles.value
     const payload: Record<string, unknown> = { taskId: task.value.id }
-    payload.fileUri = first.key
+    payload.fileUri = first.publicUrl || first.key
     payload.fileName = firstFile.name
     if (rest.length > 0) {
-      payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+      payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.publicUrl || r.key, fileName: restFiles[i].name }))
     }
     submission.value = await submissionAdapter.submitWork(payload)
     isEditingSubmission.value = false
@@ -856,12 +856,12 @@ async function submitWork() {
   submitting.value = true
   submitError.value = ''
   try {
-    const uploadResults: { key: string }[] = []
+    const uploadResults: { key: string; publicUrl: string }[] = []
     if (selectedFiles.value.length > 0) {
       try {
         for (const file of selectedFiles.value) {
-          const { key } = await uploadFileDirect(file, 'submissions', () => {})
-          uploadResults.push({ key })
+          const { key, publicUrl } = await uploadFileDirect(file, 'submissions', () => {})
+          uploadResults.push({ key, publicUrl })
         }
       } catch {
         submitError.value = 'Error de red al subir archivos. Verifica tu conexión.'
@@ -874,10 +874,10 @@ async function submitWork() {
     if (uploadResults.length > 0) {
       const [first, ...rest] = uploadResults
       const [firstFile, ...restFiles] = selectedFiles.value
-      payload.fileUri = first.key
+      payload.fileUri = first.publicUrl || first.key
       payload.fileName = firstFile.name
       if (rest.length > 0) {
-        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.key, fileName: restFiles[i].name }))
+        payload.additionalFiles = rest.map((r, i) => ({ fileUri: r.publicUrl || r.key, fileName: restFiles[i].name }))
       }
     }
     submitError.value = ''

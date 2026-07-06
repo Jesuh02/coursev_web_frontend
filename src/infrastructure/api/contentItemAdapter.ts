@@ -10,10 +10,22 @@ interface RawContentItem {
   content: string
   title?: string
   body?: string
-  file_uri: string | null
-  file_name: string | null
+  file_uri?: string | null
+  fileUri?: string | null
+  file_url?: string | null
+  fileUrl?: string | null
+  file_name?: string | null
+  fileName?: string | null
   order_index: number
   created_at: string | null
+}
+
+function pickFileUri(...values: Array<string | null | undefined>): string | null {
+  const candidates = values.map(value => value?.trim()).filter((value): value is string => Boolean(value))
+  if (candidates.length === 0) return null
+  return candidates.find(value => /\.r2\.(cloudflarestorage\.com|dev)/i.test(value))
+    ?? candidates.find(value => /^https?:\/\//i.test(value))
+    ?? candidates[0]
 }
 
 function mapContentItem(raw: RawContentItem): ContentItem {
@@ -23,8 +35,8 @@ function mapContentItem(raw: RawContentItem): ContentItem {
     topicId: raw.topic_id,
     contentType: raw.content_type ?? 'document',
     content: raw.title || raw.content || '',
-    fileUri: raw.file_uri || raw.body || null,
-    fileName: raw.file_name,
+    fileUri: pickFileUri(raw.fileUri, raw.file_uri, raw.fileUrl, raw.file_url, raw.body),
+    fileName: raw.fileName ?? raw.file_name ?? null,
     orderIndex: raw.order_index ?? 0,
     createdAt: raw.created_at,
   }

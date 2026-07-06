@@ -133,6 +133,8 @@ export interface Subject {
 export interface TaskSubmissionFile {
   fileUri: string | null
   fileName: string | null
+  file_uri?: string | null
+  file_name?: string | null
 }
 
 export interface TaskSubmission {
@@ -142,6 +144,8 @@ export interface TaskSubmission {
   studentId?: number
   file_uri: string | null
   file_name: string | null
+  fileUri?: string | null
+  fileName?: string | null
   additionalFiles?: TaskSubmissionFile[] | null
   additional_files?: TaskSubmissionFile[] | null
   submission_date: number | null
