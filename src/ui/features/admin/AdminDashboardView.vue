@@ -1155,6 +1155,58 @@
                 </div>
               </div>
 
+              <!-- Rendimiento por Materia -->
+              <div v-if="selectedCognitiveStudent && selectedCognitiveStudent.coursePerformance.size > 0" class="dt-courses-card">
+                <h4>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                  Rendimiento por Materia
+                </h4>
+                <div class="dt-course-list">
+                  <div
+                    v-for="[courseId, courseData] in selectedCognitiveStudent.coursePerformance"
+                    :key="courseId"
+                    class="dt-course-item"
+                    :class="`dt-course-${courseData.dominance}`"
+                  >
+                    <div class="dt-course-header">
+                      <span class="dt-course-title">{{ courseData.courseTitle }}</span>
+                      <span class="dt-course-badge" :class="`dt-badge-${courseData.dominance}`">
+                        {{ getDominanceLabel(courseData.dominance) }}
+                      </span>
+                    </div>
+                    <div class="dt-course-metrics">
+                      <div class="dt-course-metric">
+                        <span class="dt-course-metric-value">{{ courseData.tasksSubmitted }}</span>
+                        <span class="dt-course-metric-label">Tareas</span>
+                      </div>
+                      <div class="dt-course-metric">
+                        <span class="dt-course-metric-value">{{ courseData.avgGrade.toFixed(1) }}</span>
+                        <span class="dt-course-metric-label">Nota</span>
+                      </div>
+                      <div class="dt-course-metric">
+                        <span class="dt-course-metric-value">{{ courseData.accuracy }}%</span>
+                        <span class="dt-course-metric-label">Precisión</span>
+                      </div>
+                    </div>
+                    <div class="dt-course-progress">
+                      <div class="dt-course-progress-bar">
+                        <div
+                          class="dt-course-progress-fill"
+                          :class="`dt-fill-${courseData.dominance}`"
+                          :style="{ width: `${courseData.accuracy}%` }"
+                        ></div>
+                      </div>
+                      <span class="dt-course-last-activity">
+                        {{ formatKnowledgeDate(courseData.lastActivity) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Alerta de repaso -->
               <div v-if="knowledgeReviewRecommendation" class="dt-alert">
                 <div class="dt-alert-icon">
@@ -5719,6 +5771,19 @@ interface CognitiveCourseRef {
   title: string
 }
 
+interface CoursePerformanceData {
+  courseId: number
+  courseTitle: string
+  tasksSubmitted: number
+  tasksGraded: number
+  avgGrade: number
+  accuracy: number
+  lastActivity: string | null
+  daysSinceActivity: number
+  dominance: 'mastered' | 'progress' | 'developing' | 'needs_support'
+  history: CognitiveHistoryPoint[]
+}
+
 interface CognitiveInsights {
   skillLevel: string
   skillColor: string
@@ -5769,6 +5834,7 @@ interface CognitiveStudentProfile {
   recentHistory: CognitiveHistoryPoint[]
   firstSession: string | null
   courses: CognitiveCourseRef[]
+  coursePerformance: Map<number, CoursePerformanceData>
 }
 
 const reinforcementResults = ref<ReinforcementResult[]>([])
@@ -5950,6 +6016,14 @@ const loadCognitiveAccess = async () => {
   }
 }
 
+const calculateCourseDominance = (accuracy: number, tasksGraded: number, avgGrade: number): CoursePerformanceData['dominance'] => {
+  if (tasksGraded === 0) return 'developing'
+  if (accuracy >= 85 && avgGrade >= 8) return 'mastered'
+  if (accuracy >= 70 && avgGrade >= 6.5) return 'progress'
+  if (accuracy >= 50 && avgGrade >= 5) return 'developing'
+  return 'needs_support'
+}
+
 const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCourseRef): CognitiveStudentProfile => {
   const performance = raw.performance || {}
   const insights = raw.cognitiveInsights || {}
@@ -5958,6 +6032,31 @@ const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCo
   const totalIncorrect = parseSafeNumber(performance.totalIncorrect)
   const totalDuration = parseSafeNumber(performance.totalDuration)
   const totalSessions = parseSafeNumber(performance.totalSessions)
+  const accuracy = parseSafeNumber(performance.accuracy)
+  const avgGrade = parseSafeNumber(performance.avgGrade)
+  const lastActivity = typeof raw.lastActivity === 'string' ? raw.lastActivity : null
+  const daysSinceLastActivity = parseSafeNumber(raw.daysSinceLastActivity)
+
+  const coursePerformance = new Map<number, CoursePerformanceData>()
+  coursePerformance.set(course.id, {
+    courseId: course.id,
+    courseTitle: course.title,
+    tasksSubmitted: totalSessions,
+    tasksGraded: totalSessions,
+    avgGrade,
+    accuracy,
+    lastActivity,
+    daysSinceActivity: daysSinceLastActivity,
+    dominance: calculateCourseDominance(accuracy, totalSessions, avgGrade),
+    history: Array.isArray(raw.recentHistory)
+      ? raw.recentHistory.map((point: any) => ({
+          date: String(point.date || ''),
+          grade: parseSafeNumber(point.grade),
+          accuracy: parseSafeNumber(point.accuracy),
+          questions: parseSafeNumber(point.questions),
+        }))
+      : [],
+  })
 
   return {
     id: parseSafeNumber(raw.id ?? raw.userId ?? raw.user_id),
@@ -5968,8 +6067,8 @@ const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCo
     firstName: String(raw.firstName || ''),
     lastName: String(raw.lastName || ''),
     performance: {
-      accuracy: parseSafeNumber(performance.accuracy),
-      avgGrade: parseSafeNumber(performance.avgGrade),
+      accuracy,
+      avgGrade,
       totalQuestions,
       totalCorrect,
       totalIncorrect,
@@ -5993,8 +6092,8 @@ const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCo
       performanceStatus: ['strong', 'steady', 'needs_support'].includes(String(insights.performanceStatus)) ? insights.performanceStatus : undefined,
       recommendedAction: typeof insights.recommendedAction === 'string' ? insights.recommendedAction : undefined,
     },
-    lastActivity: typeof raw.lastActivity === 'string' ? raw.lastActivity : null,
-    daysSinceLastActivity: parseSafeNumber(raw.daysSinceLastActivity),
+    lastActivity,
+    daysSinceLastActivity,
     recentHistory: Array.isArray(raw.recentHistory)
       ? raw.recentHistory.map((point: any) => ({
           date: String(point.date || ''),
@@ -6005,6 +6104,7 @@ const normalizeCognitiveStudent = (raw: Record<string, any>, course: CognitiveCo
       : [],
     firstSession: typeof raw.firstSession === 'string' ? raw.firstSession : null,
     courses: [course],
+    coursePerformance,
   }
 }
 
@@ -6131,6 +6231,28 @@ const normalizeTaskSubmissionStudent = (
     }],
     firstSession: activityDate,
     courses: [course],
+    coursePerformance: (() => {
+      const map = new Map<number, CoursePerformanceData>()
+      const daysSince = timestamp > 0 ? Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000)) : 0
+      map.set(course.id, {
+        courseId: course.id,
+        courseTitle: course.title,
+        tasksSubmitted: 1,
+        tasksGraded: normalizedGrade !== null ? 1 : 0,
+        avgGrade: Math.round(grade * 10) / 10,
+        accuracy,
+        lastActivity: activityDate,
+        daysSinceActivity: daysSince,
+        dominance: calculateCourseDominance(accuracy, normalizedGrade !== null ? 1 : 0, grade),
+        history: [{
+          date: activityDate,
+          grade,
+          accuracy,
+          questions: totalQuestions,
+        }],
+      })
+      return map
+    })(),
   }
 }
 
@@ -6223,6 +6345,49 @@ const deriveCognitiveInsights = (
   }
 }
 
+const mergeCoursePerformance = (
+  existing: Map<number, CoursePerformanceData>,
+  incoming: Map<number, CoursePerformanceData>
+): Map<number, CoursePerformanceData> => {
+  const merged = new Map(existing)
+  for (const [courseId, incomingData] of incoming) {
+    const existingData = merged.get(courseId)
+    if (!existingData) {
+      merged.set(courseId, { ...incomingData, history: [...incomingData.history] })
+      continue
+    }
+    const tasksSubmitted = existingData.tasksSubmitted + incomingData.tasksSubmitted
+    const tasksGraded = existingData.tasksGraded + incomingData.tasksGraded
+    const avgGrade = tasksGraded > 0
+      ? ((existingData.avgGrade * existingData.tasksGraded) + (incomingData.avgGrade * incomingData.tasksGraded)) / tasksGraded
+      : Math.max(existingData.avgGrade, incomingData.avgGrade)
+    const accuracy = tasksGraded > 0
+      ? ((existingData.accuracy * existingData.tasksGraded) + (incomingData.accuracy * incomingData.tasksGraded)) / tasksGraded
+      : Math.max(existingData.accuracy, incomingData.accuracy)
+    const history = [...existingData.history, ...incomingData.history]
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+      .slice(-10)
+    const existingTime = Date.parse(existingData.lastActivity || '')
+    const incomingTime = Date.parse(incomingData.lastActivity || '')
+    const lastActivity = incomingTime > existingTime ? incomingData.lastActivity : existingData.lastActivity
+    const daysSinceActivity = lastActivity ? Math.max(0, Math.floor((Date.now() - Date.parse(lastActivity)) / 86_400_000)) : 0
+
+    merged.set(courseId, {
+      courseId,
+      courseTitle: existingData.courseTitle || incomingData.courseTitle,
+      tasksSubmitted,
+      tasksGraded,
+      avgGrade: Math.round(avgGrade * 10) / 10,
+      accuracy: Math.round(accuracy),
+      lastActivity,
+      daysSinceActivity,
+      dominance: calculateCourseDominance(accuracy, tasksGraded, avgGrade),
+      history,
+    })
+  }
+  return merged
+}
+
 const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStudentProfile[] => {
   const byUser = new Map<number, CognitiveStudentProfile>()
 
@@ -6234,6 +6399,7 @@ const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStud
         ...item,
         courses: [...item.courses],
         recentHistory: [...item.recentHistory].sort((a, b) => Date.parse(a.date) - Date.parse(b.date)).slice(-10),
+        coursePerformance: new Map(item.coursePerformance),
       })
       continue
     }
@@ -6283,6 +6449,7 @@ const mergeCognitiveStudents = (items: CognitiveStudentProfile[]): CognitiveStud
     existing.daysSinceLastActivity = lastActivity ? Math.max(0, Math.floor((Date.now() - Date.parse(lastActivity)) / 86_400_000)) : existing.daysSinceLastActivity
     existing.courses = [...courseMap.values()]
     existing.cognitiveInsights = deriveCognitiveInsights(performance, history, existing.cognitiveInsights)
+    existing.coursePerformance = mergeCoursePerformance(existing.coursePerformance, item.coursePerformance)
   }
 
   return [...byUser.values()].map(student => ({
@@ -6523,6 +6690,10 @@ interface KnowledgeNode {
   lastPractice: string | null
   practiceCount: number
   prediction: KnowledgePrediction | null
+  dominance?: 'mastered' | 'progress' | 'developing' | 'needs_support'
+  dominanceLabel?: string
+  courseAccuracy?: number
+  courseGrade?: number
 }
 
 interface KnowledgeConnection {
@@ -6643,25 +6814,35 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       : null,
   })
 
-  // Generar nodos para cada curso
+  // Generar nodos para cada curso usando datos reales de coursePerformance
   courses.slice(0, positions.length).forEach((course, idx) => {
     const pos = positions[idx] || positions[idx % positions.length]
-    const seed = getStableKnowledgeSeed(`${course.id}-${course.title}`)
-    const accuracyBias = 0.88 + ((seed % 25) / 100)
-    const courseAccuracy = clampKnowledgeValue(Math.round(accuracy * accuracyBias))
-    const sessionBias = 0.85 + (((seed >> 3) % 35) / 100)
-    const dayBias = (seed % 5) - 2
-    const courseSessions = Math.max(1, Math.round((sessions / Math.max(1, courses.length)) * sessionBias))
-    const courseDays = Math.max(0, daysSinceLast + dayBias)
-    const courseRetention = calculateEbbinghausRetention(courseDays, courseSessions)
-    const courseStatus = getKnowledgeStatus(courseRetention, courseDays, courseSessions > 0)
+    const courseData = student.coursePerformance.get(course.id)
+
+    // Usar datos reales si existen, o fallback a cálculo estimado
+    const courseAccuracy = courseData?.accuracy ?? accuracy
+    const courseTasks = courseData?.tasksSubmitted ?? Math.max(1, Math.round(sessions / Math.max(1, courses.length)))
+    const courseGrade = courseData?.avgGrade ?? (accuracy / 10)
+    const courseDays = courseData?.daysSinceActivity ?? daysSinceLast
+    const courseDominance = courseData?.dominance ?? 'progress'
+
+    const courseRetention = calculateEbbinghausRetention(courseDays, courseTasks)
+    const courseStatus = getKnowledgeStatus(courseRetention, courseDays, courseTasks > 0)
+
+    // Convertir dominancia a etiqueta visual
+    const dominanceLabels: Record<string, string> = {
+      mastered: 'Dominado',
+      progress: 'En progreso',
+      developing: 'Desarrollando',
+      needs_support: 'Necesita apoyo',
+    }
 
     baseNodes.push({
       id: `course-${course.id}`,
       name: course.title,
       abbrev: course.title.slice(0, 2).toUpperCase(),
       shortName: compactKnowledgeName(course.title, `Curso ${idx + 1}`),
-      level: `${courseAccuracy}% precisión`,
+      level: `${courseTasks} tareas · ${courseGrade.toFixed(1)} nota`,
       x: pos.x,
       y: pos.y,
       size: idx === 0 ? 36 : 34,
@@ -6670,11 +6851,15 @@ const knowledgeGraphNodes = computed((): KnowledgeNode[] => {
       labelWidth: pos.labelWidth,
       status: courseStatus,
       retention: courseRetention,
-      lastPractice: student.lastActivity,
-      practiceCount: courseSessions,
+      lastPractice: courseData?.lastActivity ?? student.lastActivity,
+      practiceCount: courseTasks,
       prediction: courseStatus === 'forgetting' || courseStatus === 'progress'
-        ? predictForgettingDate(courseRetention, courseSessions)
+        ? predictForgettingDate(courseRetention, courseTasks)
         : null,
+      dominance: courseDominance,
+      dominanceLabel: dominanceLabels[courseDominance] || 'En progreso',
+      courseAccuracy,
+      courseGrade,
     })
   })
 
@@ -6746,6 +6931,16 @@ const getKnowledgeStatusLabel = (status: KnowledgeStatus): string => {
     unseen: 'No visto',
   }
   return labels[status] || 'Desconocido'
+}
+
+const getDominanceLabel = (dominance: CoursePerformanceData['dominance']): string => {
+  const labels: Record<CoursePerformanceData['dominance'], string> = {
+    mastered: 'Dominado',
+    progress: 'En progreso',
+    developing: 'Desarrollando',
+    needs_support: 'Necesita apoyo',
+  }
+  return labels[dominance] || 'Sin datos'
 }
 
 const knowledgeStatusOrder: KnowledgeStatus[] = ['mastered', 'progress', 'forgetting', 'unseen']
@@ -9730,6 +9925,178 @@ watch(() => route.query, () => {
   font-size: 13px;
   color: rgba(235, 235, 245, 0.8);
   line-height: 1.5;
+}
+
+/* Rendimiento por Materia */
+.dt-courses-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dt-courses-card h4 {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(235, 235, 245, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dt-courses-card h4 svg {
+  color: #64D2FF;
+}
+
+.dt-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dt-course-item {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.dt-course-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dt-course-item.dt-course-mastered {
+  border-left: 3px solid #30D158;
+}
+
+.dt-course-item.dt-course-progress {
+  border-left: 3px solid #0A84FF;
+}
+
+.dt-course-item.dt-course-developing {
+  border-left: 3px solid #FF9F0A;
+}
+
+.dt-course-item.dt-course-needs_support {
+  border-left: 3px solid #FF453A;
+}
+
+.dt-course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dt-course-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(235, 235, 245, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.dt-course-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dt-course-badge.dt-badge-mastered {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+
+.dt-course-badge.dt-badge-progress {
+  background: rgba(10, 132, 255, 0.15);
+  color: #0A84FF;
+}
+
+.dt-course-badge.dt-badge-developing {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+}
+
+.dt-course-badge.dt-badge-needs_support {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+}
+
+.dt-course-metrics {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.dt-course-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dt-course-metric-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(235, 235, 245, 0.95);
+}
+
+.dt-course-metric-label {
+  font-size: 10px;
+  color: rgba(235, 235, 245, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dt-course-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dt-course-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dt-course-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.dt-course-progress-fill.dt-fill-mastered {
+  background: linear-gradient(90deg, #30D158, #34D399);
+}
+
+.dt-course-progress-fill.dt-fill-progress {
+  background: linear-gradient(90deg, #0A84FF, #64D2FF);
+}
+
+.dt-course-progress-fill.dt-fill-developing {
+  background: linear-gradient(90deg, #FF9F0A, #FBBF24);
+}
+
+.dt-course-progress-fill.dt-fill-needs_support {
+  background: linear-gradient(90deg, #FF453A, #FF6B6B);
+}
+
+.dt-course-last-activity {
+  font-size: 10px;
+  color: rgba(235, 235, 245, 0.5);
+  white-space: nowrap;
 }
 
 /* Professional cognitive map refinement */
