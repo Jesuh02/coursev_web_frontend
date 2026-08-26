@@ -30,3 +30,11 @@ tsc_b_errors.txt
 institucionesdb.json
 CONTEXTO_LOCAL_COURSEV.txt
 .codex_tmp/sign-video/test.mp4
+
+# Docker
+.docker/
+docker-data/
+.docker-data/
+docker-compose.override.yml
+docker-compose.yml.save
+*.docker-compose.yml.save
