@@ -33,6 +33,10 @@
       <span v-else>Ingresar &nbsp;→</span>
     </button>
 
+    <a class="btn-register" href="https://captacion-coursev.vercel.app/reg-est-c9k4">
+      Registrarse
+    </a>
+
     <div class="separator-dot"></div>
 
     <slot name="google-button">
@@ -151,6 +155,32 @@ function onSubmit() {
 
 .btn-login:disabled {
   opacity: 0.6;
+}
+
+.btn-register {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--purple-light);
+  color: var(--purple-light);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.btn-register:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: var(--purple-primary);
+  color: var(--text-primary);
+}
+
+.btn-register:active {
+  transform: scale(0.98);
 }
 
 .separator-dot {
