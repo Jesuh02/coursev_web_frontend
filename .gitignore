@@ -41,3 +41,7 @@ docker-compose.yml.save
 docker-compose.yml
 Dockerfile
 .dockerignore
+
+# Graphify (Knowledge graph outputs & local virtualenv)
+graphify-out/
+.venv-graphify/
