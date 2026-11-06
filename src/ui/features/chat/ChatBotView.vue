@@ -2,7 +2,7 @@
   <div class="chatbot-view">
     <div class="chat-header">
       <button class="header-btn" @click="$router.back()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
       </button>
       <div class="bot-info">
         <div class="bot-avatar">
@@ -46,7 +46,7 @@
           <h3 class="welcome-title">Asistente IA</h3>
           <p class="welcome-desc">Hazme preguntas sobre tus cursos, tareas y materias, o pídeme que cree un curso completo.</p>
           <button class="cw-hint-btn" @click="sendQuickPrompt('Créame un curso de Programación Web, nivel básico, 8 semanas')">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             Crear un curso con IA
           </button>
         </template>
@@ -99,7 +99,7 @@
       class="scroll-btn"
       @click="scrollToBottom"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
     </button>
 
     <div v-if="isCourseMode" class="course-mode-banner">
@@ -117,13 +117,13 @@
 
     <div class="input-area">
       <button class="sl-btn" :class="{ 'sl-btn--active': isCourseMode }" @click="toggleCourseMode" title="Crear curso con IA">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isCourseMode ? '#BF5AF2' : '#8E8E93'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isCourseMode ? 'var(--purple-light)' : 'var(--text-muted)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
       </button>
       <button class="sl-btn" :class="{ 'sl-btn--active': isSignLangMode }" @click="openSignLang" title="Lenguaje de señas">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isSignLangMode ? '#BF5AF2' : '#8E8E93'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isSignLangMode ? 'var(--purple-light)' : 'var(--text-muted)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
       </button>
       <button class="mic-btn" @click="toggleVoice">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isRecording ? '#FF453A' : '#8E8E93'" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="isRecording ? 'var(--color-danger)' : 'var(--text-muted)'" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
       </button>
       <input
         v-model="inputText"
@@ -141,11 +141,11 @@
       <div class="sl-modal">
         <div class="sl-modal-header">
           <div class="sl-modal-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
             Lenguaje de Señas
           </div>
           <button class="sl-close-btn" @click="closeSignLang">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <video ref="slVideo" class="sl-video" autoplay muted playsinline />
@@ -1116,7 +1116,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #000;
+  background: var(--bg-primary);
 }
 
 .chat-header {
@@ -1124,7 +1124,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #0D0D0D;
+  background: var(--bg-primary);
   flex-shrink: 0;
 }
 
@@ -1155,15 +1155,15 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   background: #10A37F;
-  border: 2px solid #0D0D0D;
+  border: 2px solid var(--border-color);
 }
 
-.bot-name { font-size: 15px; font-weight: 600; color: #E8E8E8; }
-.bot-model { font-size: 11px; color: #666; }
+.bot-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.bot-model { font-size: 11px; color: var(--text-muted); }
 
 .chat-divider {
   height: 1px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--text-primary-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1190,26 +1190,26 @@ onUnmounted(() => {
   width: 60px;
   height: 60px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-input) 100%);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin-bottom: 16px;
 }
 
 .welcome-title {
   font-size: 21px;
   font-weight: 700;
-  color: #F5F5F7;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
 }
 
 .welcome-desc {
   font-size: 14px;
-  color: #636366;
+  color: var(--text-muted);
   margin-top: 6px;
   max-width: 280px;
   line-height: 1.55;
@@ -1219,7 +1219,7 @@ onUnmounted(() => {
   display: flex;
   gap: 4px;
   padding: 12px 16px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 18px;
   align-self: flex-start;
   width: fit-content;
@@ -1249,7 +1249,7 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #333;
+  background: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1260,8 +1260,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #0D0D0D;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  background: var(--bg-primary);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1278,13 +1278,13 @@ onUnmounted(() => {
   flex: 1;
   padding: 10px 14px;
   border-radius: 20px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
-.message-input::placeholder { color: #666; }
+.message-input::placeholder { color: var(--text-muted); }
 
 .send-btn {
   width: 36px;
@@ -1294,7 +1294,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-on-accent);
   flex-shrink: 0;
   transition: opacity 0.15s;
 }
@@ -1317,7 +1317,7 @@ onUnmounted(() => {
   height: 22px;
   border-radius: 7px;
   background: rgba(191, 90, 242, 0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1327,7 +1327,7 @@ onUnmounted(() => {
 .cm-text {
   flex: 1;
   font-size: 11.5px;
-  color: #C7A0E8;
+  color: var(--purple-light);
   line-height: 1.3;
   letter-spacing: 0.1px;
 }
@@ -1344,7 +1344,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
-.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
+.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: var(--purple-light); }
 
 /* ── Sign Language ── */
 .sl-btn {
@@ -1371,7 +1371,7 @@ onUnmounted(() => {
 }
 
 .sl-modal {
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 480px;
@@ -1393,14 +1393,14 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .sl-close-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--text-primary-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1425,7 +1425,7 @@ onUnmounted(() => {
 .sl-letter-badge {
   font-size: 28px;
   font-weight: 900;
-  color: #BF5AF2;
+  color: var(--purple-light);
   width: 44px;
   height: 44px;
   border-radius: 12px;
@@ -1435,19 +1435,19 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-.sl-conf-label { font-size: 13px; color: #8E8E93; }
-.sl-hint { font-size: 13px; color: #636366; font-style: italic; }
+.sl-conf-label { font-size: 13px; color: var(--text-muted); }
+.sl-hint { font-size: 13px; color: var(--text-muted); font-style: italic; }
 
 .sl-accumulated {
   min-height: 40px;
   padding: 10px 14px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(var(--text-primary-rgb), 0.05);
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(var(--border-rgb), 0.07);
 }
 
-.sl-accumulated-text { font-size: 18px; color: #fff; font-weight: 600; letter-spacing: 3px; }
-.sl-accumulated-empty { font-size: 14px; color: #555; }
+.sl-accumulated-text { font-size: 18px; color: var(--text-primary); font-weight: 600; letter-spacing: 3px; }
+.sl-accumulated-empty { font-size: 14px; color: var(--text-muted); }
 
 .sl-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -1456,8 +1456,8 @@ onUnmounted(() => {
   min-width: 70px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.07);
-  color: #ccc;
+  background: rgba(var(--text-primary-rgb), 0.07);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   display: flex;
@@ -1466,19 +1466,19 @@ onUnmounted(() => {
   gap: 6px;
   transition: background 0.15s;
 }
-.sl-ctrl-btn:hover:not(:disabled) { background: rgba(255,255,255,0.13); }
+.sl-ctrl-btn:hover:not(:disabled) { background: rgba(var(--text-primary-rgb), 0.13); }
 .sl-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
 
 .sl-ctrl-capture {
   background: rgba(191,90,242,0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
   border: 1px solid rgba(191,90,242,0.3);
 }
 .sl-ctrl-capture:hover:not(:disabled) { background: rgba(191,90,242,0.25); }
 
 .sl-ctrl-insert {
   background: rgba(48,209,88,0.12);
-  color: #30D158;
+  color: var(--color-success);
   border: 1px solid rgba(48,209,88,0.25);
 }
 .sl-ctrl-insert:hover:not(:disabled) { background: rgba(48,209,88,0.2); }
@@ -1500,7 +1500,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #BF5AF2;
+  color: var(--purple-light);
   margin-bottom: 16px;
   box-shadow: 0 8px 24px rgba(191, 90, 242, 0.15);
 }
@@ -1508,7 +1508,7 @@ onUnmounted(() => {
 .cw-title {
   font-size: 22px;
   font-weight: 700;
-  color: #F5F5F7;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
   text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
@@ -1517,7 +1517,7 @@ onUnmounted(() => {
 
 .cw-desc {
   font-size: 14px;
-  color: #636366;
+  color: var(--text-muted);
   max-width: 300px;
   line-height: 1.55;
   text-align: center;
@@ -1537,27 +1537,27 @@ onUnmounted(() => {
   gap: 10px;
   text-align: left;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(var(--text-primary-rgb), 0.03);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
   border-radius: 14px;
-  color: #AEAEB2;
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   line-height: 1.4;
 }
-.cw-chip svg { color: #48484A; flex-shrink: 0; transition: color 0.15s; }
+.cw-chip svg { color: var(--text-muted); flex-shrink: 0; transition: color 0.15s; }
 .cw-chip:hover {
   background: rgba(191, 90, 242, 0.07);
   border-color: rgba(191, 90, 242, 0.16);
-  color: #E5E5EA;
+  color: var(--text-primary);
 }
-.cw-chip:hover svg { color: #BF5AF2; }
+.cw-chip:hover svg { color: var(--purple-light); }
 
 .cw-or {
   font-size: 12px;
-  color: #3A3A3C;
+  color: var(--text-muted);
   margin-top: 12px;
   text-align: center;
 }
@@ -1571,7 +1571,7 @@ onUnmounted(() => {
   border-radius: 100px;
   background: rgba(191, 90, 242, 0.08);
   border: 1px solid rgba(191, 90, 242, 0.16);
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;

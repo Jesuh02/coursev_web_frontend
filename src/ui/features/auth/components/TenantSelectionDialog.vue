@@ -122,14 +122,14 @@ defineEmits<{ select: [match: TenantLoginResult]; close: [] }>()
   width: 100%;
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   color: var(--text-secondary, #a0a0b0);
   font-size: 14px;
   transition: background 0.2s;
 }
 
 .btn-cancel:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(var(--border-rgb), 0.05);
 }
 
 @keyframes fade-in {

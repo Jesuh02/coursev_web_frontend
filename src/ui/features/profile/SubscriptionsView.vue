@@ -4,7 +4,7 @@
     <div class="sv-topbar">
       <template v-if="isSearchActive">
         <button class="sv-icon-btn" @click="isSearchActive = false; searchQuery = ''" aria-label="Cerrar búsqueda">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <input
           v-model="searchQuery"
@@ -14,16 +14,16 @@
           autocomplete="off"
         />
         <button v-if="searchQuery" class="sv-icon-btn" @click="searchQuery = ''" aria-label="Limpiar">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </template>
       <template v-else>
         <button class="sv-icon-btn" @click="$router.back()" aria-label="Volver">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <span class="sv-title">Todas las suscripciones</span>
         <button class="sv-icon-btn" @click="isSearchActive = true" aria-label="Buscar">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
       </template>
     </div>
@@ -55,7 +55,7 @@
       </template>
 
       <div v-else class="sv-center sv-empty">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <p>{{ errorMessage ?? (searchQuery ? 'Sin resultados' : 'No tienes suscripciones aún') }}</p>
       </div>
     </div>
@@ -112,8 +112,8 @@ onMounted(async () => {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: #000;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -123,7 +123,7 @@ onMounted(async () => {
   align-items: center;
   height: 56px;
   padding: 0 4px 0 4px;
-  background: #000;
+  background: var(--bg-primary);
   gap: 4px;
 }
 
@@ -131,7 +131,7 @@ onMounted(async () => {
   flex: 1;
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   padding-left: 4px;
 }
 
@@ -149,18 +149,18 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.sv-icon-btn:hover { background: rgba(255,255,255,0.08); }
+.sv-icon-btn:hover { background: rgba(var(--text-primary-rgb), 0.08); }
 
 .sv-search-inline {
   flex: 1;
   background: transparent;
   border: none;
   outline: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
-.sv-search-inline::placeholder { color: #808080; }
+.sv-search-inline::placeholder { color: var(--text-muted); }
 
 /* Sort chip */
 .sv-sort-row {
@@ -169,8 +169,8 @@ onMounted(async () => {
 
 .sv-sort-chip {
   display: inline-block;
-  background: #222;
-  color: #fff;
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-size: 14px;
   padding: 5px 12px;
   border-radius: 8px;
@@ -191,15 +191,15 @@ onMounted(async () => {
 }
 
 .sv-empty {
-  color: #888;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
 .sv-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: #A259FF;
+  border: 3px solid rgba(var(--text-primary-rgb), 0.1);
+  border-top-color: var(--purple-glow);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -216,8 +216,8 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 
-.sv-item:hover { background: rgba(255,255,255,0.04); }
-.sv-item:active { background: rgba(255,255,255,0.08); }
+.sv-item:hover { background: rgba(var(--text-primary-rgb), 0.04); }
+.sv-item:active { background: rgba(var(--text-primary-rgb), 0.08); }
 
 .sv-item-info {
   display: flex;
@@ -230,7 +230,7 @@ onMounted(async () => {
 .sv-item-name {
   font-size: 16px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,6 +238,6 @@ onMounted(async () => {
 
 .sv-item-handle {
   font-size: 14px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 </style>

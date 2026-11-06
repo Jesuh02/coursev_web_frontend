@@ -3,7 +3,7 @@
     <div class="card-thumb">
       <img v-if="thumb" :src="thumb" :alt="course.title" />
       <div v-else class="thumb-placeholder">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /></svg>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /></svg>
       </div>
     </div>
     <div class="card-body">
@@ -57,7 +57,7 @@ const creatorLabel = computed(() => {
 <style scoped>
 .course-card {
   border-radius: 24px;
-  background: #242424;
+  background: var(--bg-card);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -72,7 +72,7 @@ const creatorLabel = computed(() => {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #1a1a1a;
+  background: var(--bg-card);
   overflow: hidden;
 }
 
@@ -97,7 +97,7 @@ const creatorLabel = computed(() => {
 .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin-bottom: 4px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -107,7 +107,7 @@ const creatorLabel = computed(() => {
 
 .card-desc {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -117,7 +117,7 @@ const creatorLabel = computed(() => {
 
 .card-creator {
   font-size: 12px;
-  color: #c9c9ce;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 
@@ -143,13 +143,13 @@ const creatorLabel = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8E8E93;
+  color: var(--text-muted);
   transition: background 0.2s, color 0.2s;
 }
 
 .info-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
 }
 
 .category-badge {
@@ -158,7 +158,7 @@ const creatorLabel = computed(() => {
   font-size: 11px;
   font-weight: 600;
   background: rgba(10, 132, 255, 0.15);
-  color: #0A84FF;
+  color: var(--color-info);
 }
 
 .footer-right {
@@ -173,11 +173,11 @@ const creatorLabel = computed(() => {
 }
 
 .price-tag.premium {
-  color: #FFD700;
+  color: var(--gold-accent);
 }
 
 .price-tag.free {
-  color: #30D158;
+  color: var(--color-success);
 }
 
 .options-btn {
@@ -188,12 +188,12 @@ const creatorLabel = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8E8E93;
+  color: var(--text-muted);
   transition: background 0.2s, color 0.2s;
 }
 
 .options-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
 }
 </style>

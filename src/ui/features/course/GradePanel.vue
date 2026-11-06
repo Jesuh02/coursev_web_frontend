@@ -4,11 +4,11 @@
       <div class="panel-header">
         <div class="header-left">
           <button class="expand-btn" @click="isExpanded = !isExpanded" :title="isExpanded ? 'Colapsar' : 'Expandir'">
-            <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+            <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2.5">
               <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
               <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
             </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2.5">
               <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
               <line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
             </svg>
@@ -16,7 +16,7 @@
           <h2 class="panel-title">📊 Planilla de Calificaciones</h2>
         </div>
         <button class="close-btn" @click="$emit('close')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
@@ -24,7 +24,7 @@
 
       <!-- Search filter -->
       <div class="search-bar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         <input
@@ -192,7 +192,7 @@
       <div v-if="!loading" class="periods-section" style="flex-shrink:0">
         <div class="periods-header" @click="showPeriodsSection = !showPeriodsSection">
           <div class="periods-header-left">
-            <svg :class="{ rotated: showPeriodsSection }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.5">
+            <svg :class="{ rotated: showPeriodsSection }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
             <h3 class="periods-title">📅 Periodos</h3>
@@ -228,7 +228,7 @@
             <div v-for="p in periods" :key="p.id" class="period-item">
               <div class="period-card" :class="{ active: expandedPeriodId === p.id }" @click="togglePeriod(p)">
                 <div class="period-card-left">
-                  <svg :class="{ rotated: expandedPeriodId === p.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5">
+                  <svg :class="{ rotated: expandedPeriodId === p.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                   <div class="period-card-info">
@@ -364,7 +364,7 @@
               <p class="glass-desc">Se guardará una copia de las notas actuales y la planilla se vaciará para el nuevo periodo.</p>
               <div class="glass-actions">
                 <button class="glass-btn cancel" @click="closePeriodConfirm = false">Cancelar</button>
-                <button class="glass-btn confirm" @click="executeClosePeriod" style="background: rgba(191,90,242,0.25); color: #BF5AF2; border-color: rgba(191,90,242,0.3);">Cerrar Periodo</button>
+                <button class="glass-btn confirm" @click="executeClosePeriod" style="background: rgba(191,90,242,0.25); color:var(--purple-light); border-color: rgba(191,90,242,0.3);">Cerrar Periodo</button>
               </div>
             </div>
           </div>
@@ -1126,8 +1126,8 @@ onMounted(async () => {
 }
 
 .grade-panel {
-  background: #111528;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   border-radius: 20px;
   width: 95vw;
   max-width: 1100px;
@@ -1180,12 +1180,12 @@ onMounted(async () => {
 .panel-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .close-btn {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   border: none;
   border-radius: 50%;
   width: 36px;
@@ -1202,8 +1202,8 @@ onMounted(async () => {
   gap: 8px;
   margin: 0 20px 12px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.04);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   border-radius: 12px;
   flex-shrink: 0;
 }
@@ -1212,12 +1212,12 @@ onMounted(async () => {
   flex: 1;
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
 }
 
-.search-input::placeholder { color: #8E8E93; }
+.search-input::placeholder { color: var(--text-muted); }
 
 /* ── Between periods state ── */
 .between-periods-state {
@@ -1235,13 +1235,13 @@ onMounted(async () => {
 .between-periods-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .between-periods-desc {
   font-size: 14px;
-  color: #8E8E93;
+  color: var(--text-muted);
   max-width: 340px;
   line-height: 1.5;
   margin: 0;
@@ -1255,7 +1255,7 @@ onMounted(async () => {
   padding: 12px 24px;
   border-radius: 14px;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 15px;
   font-weight: 600;
   border: none;
@@ -1278,7 +1278,7 @@ onMounted(async () => {
 .start-period-error {
   margin-top: 8px;
   font-size: 12px;
-  color: #FF453A;
+  color: var(--color-danger);
   text-align: center;
 }
 
@@ -1299,9 +1299,9 @@ onMounted(async () => {
   min-width: 0;
   padding: 8px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.06);
-  color: #fff;
+  border: 1px solid rgba(var(--border-rgb), 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
 }
@@ -1313,13 +1313,13 @@ onMounted(async () => {
 
 .period-date-range {
   font-size: 10px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   opacity: 0.8;
 }
 
 .period-active-badge {
   font-size: 11px;
-  color: #30d158;
+  color: var(--color-success);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -1327,9 +1327,9 @@ onMounted(async () => {
 .period-live-note {
   padding: 8px 12px;
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-align: center;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .loading-center {
@@ -1341,7 +1341,7 @@ onMounted(async () => {
 .spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid rgba(var(--border-rgb), 0.1);
   border-top-color: #BF5AF2;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -1351,7 +1351,7 @@ onMounted(async () => {
 
 .empty-msg {
   text-align: center;
-  color: #8E8E93;
+  color: var(--text-muted);
   padding: 40px 0;
   font-size: 14px;
 }
@@ -1393,8 +1393,8 @@ onMounted(async () => {
 }
 
 .grade-sheet th {
-  background: #1A1E35;
-  color: #BF5AF2;
+  background: var(--bg-card);
+  color: var(--purple-light);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1407,7 +1407,7 @@ onMounted(async () => {
 
 .grade-sheet td {
   padding: 6px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
   text-align: center;
   vertical-align: middle;
 }
@@ -1421,14 +1421,14 @@ onMounted(async () => {
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #111528 !important;
+  background: var(--bg-card) !important;
   min-width: 180px;
   text-align: left !important;
 }
 
 .grade-sheet thead .sticky-col {
   z-index: 4;
-  background: #1A1E35 !important;
+  background: var(--bg-card) !important;
 }
 
 .col-manual { min-width: 72px; }
@@ -1446,7 +1446,7 @@ onMounted(async () => {
   min-width: 38px;
   max-width: 38px;
   padding: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
 }
 
 .slot-action-btns {
@@ -1462,7 +1462,7 @@ onMounted(async () => {
   border-radius: 6px;
   border: 1px dashed rgba(191, 90, 242, 0.4);
   background: rgba(191, 90, 242, 0.08);
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -1484,7 +1484,7 @@ onMounted(async () => {
   border-radius: 6px;
   border: 1px dashed rgba(255, 55, 95, 0.4);
   background: rgba(255, 55, 95, 0.08);
-  color: #FF375F;
+  color: var(--color-danger);
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -1513,10 +1513,10 @@ onMounted(async () => {
 }
 
 .glass-dialog {
-  background: rgba(30, 30, 50, 0.55);
+  background: rgba(var(--bg-card-rgb), 0.55);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(var(--border-rgb), 0.18);
   border-radius: 24px;
   padding: 32px 28px 24px;
   max-width: 380px;
@@ -1541,20 +1541,20 @@ onMounted(async () => {
 .glass-title {
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 10px;
   line-height: 1.3;
 }
 
 .glass-desc {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(var(--text-primary-rgb), 0.65);
   line-height: 1.5;
   margin: 0 0 22px;
 }
 
 .glass-desc strong {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .glass-actions {
@@ -1574,18 +1574,18 @@ onMounted(async () => {
 }
 
 .glass-btn.cancel {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
 }
 
 .glass-btn.cancel:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(var(--border-rgb), 0.16);
 }
 
 .glass-btn.confirm {
   background: rgba(255, 55, 95, 0.25);
-  color: #FF375F;
+  color: var(--color-danger);
   border: 1px solid rgba(255, 55, 95, 0.3);
 }
 
@@ -1623,7 +1623,7 @@ onMounted(async () => {
 .student-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
 
 .avatar-initials-sm {
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1637,7 +1637,7 @@ onMounted(async () => {
 .cell-name {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1645,17 +1645,17 @@ onMounted(async () => {
 
 .cell-username {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 /* Grade inputs */
 .cell-input {
   width: 56px;
   padding: 6px 4px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
   text-align: center;
@@ -1685,10 +1685,10 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.cell-readonly.pass { color: #30D158; background: rgba(48, 209, 88, 0.1); }
-.cell-readonly.fail { color: #FF375F; background: rgba(255, 55, 95, 0.1); }
-.cell-readonly.pending { color: #FF9500; background: rgba(255, 149, 0, 0.1); }
-.cell-readonly.no-submission { color: #555; }
+.cell-readonly.pass { color: var(--color-success); background: rgba(48, 209, 88, 0.1); }
+.cell-readonly.fail { color: var(--color-danger); background: rgba(255, 55, 95, 0.1); }
+.cell-readonly.pending { color: var(--color-warning); background: rgba(255, 149, 0, 0.1); }
+.cell-readonly.no-submission { color: var(--text-muted); }
 
 /* Average */
 .cell-avg {
@@ -1698,13 +1698,13 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
-.cell-avg.pass { color: #30D158; background: rgba(48, 209, 88, 0.12); }
-.cell-avg.fail { color: #FF375F; background: rgba(255, 55, 95, 0.12); }
+.cell-avg.pass { color: var(--color-success); background: rgba(48, 209, 88, 0.12); }
+.cell-avg.fail { color: var(--color-danger); background: rgba(255, 55, 95, 0.12); }
 
 /* ── Bulk bar ── */
 .bulk-bar {
   padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1717,29 +1717,29 @@ onMounted(async () => {
 
 .bulk-label {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .bulk-select {
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
 }
 
-.bulk-select option { background: #1C1C1E; color: #fff; }
+.bulk-select option { background: var(--bg-input); color: var(--text-primary); }
 
 .bulk-input {
   width: 60px;
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   text-align: center;
   outline: none;
@@ -1757,7 +1757,7 @@ onMounted(async () => {
 
 .bulk-btn.apply {
   background: rgba(191, 90, 242, 0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 .bulk-btn:disabled {
@@ -1771,13 +1771,13 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
 .dirty-count {
   font-size: 13px;
-  color: #FF9500;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
@@ -1786,7 +1786,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #BF5AF2, #9B6BFF);
   border: none;
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -1902,7 +1902,7 @@ onMounted(async () => {
 
 /* ═══ Periods Section ═══ */
 .periods-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1938,13 +1938,13 @@ onMounted(async () => {
 .periods-title {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .periods-badge {
   background: rgba(191, 90, 242, 0.2);
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -1965,7 +1965,7 @@ onMounted(async () => {
 
 .period-hint {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0 0 10px;
 }
 
@@ -1978,9 +1978,9 @@ onMounted(async () => {
   flex: 1;
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  border: 1px solid rgba(var(--border-rgb), 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
 }
@@ -1995,7 +1995,7 @@ onMounted(async () => {
   border: none;
   cursor: pointer;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
-  color: #fff;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
@@ -2025,12 +2025,12 @@ onMounted(async () => {
   padding: 12px 14px;
   border-radius: 12px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--border-rgb), 0.04);
   transition: background 0.15s;
 }
 
 .period-card:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--border-rgb), 0.07);
 }
 
 .period-card.active {
@@ -2061,12 +2061,12 @@ onMounted(async () => {
 .period-name {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .period-date {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -2077,8 +2077,8 @@ onMounted(async () => {
 
 .stat-pill {
   font-size: 11px;
-  color: #8E8E93;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  background: rgba(var(--border-rgb), 0.06);
   padding: 3px 8px;
   border-radius: 8px;
 }
@@ -2103,7 +2103,7 @@ onMounted(async () => {
   border: none;
   cursor: pointer;
   background: linear-gradient(135deg, #BF5AF2, #9B6BFF);
-  color: #fff;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 13px;
   transition: opacity 0.2s;
@@ -2125,7 +2125,7 @@ onMounted(async () => {
   border-radius: 8px;
   border: 1px solid rgba(255, 55, 95, 0.2);
   background: rgba(255, 55, 95, 0.06);
-  color: #FF375F;
+  color: var(--color-danger);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

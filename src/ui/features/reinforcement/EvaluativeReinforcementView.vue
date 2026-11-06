@@ -198,7 +198,7 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   min-height: 100vh;
   background: radial-gradient(ellipse at 30% 0%, rgba(98,0,238,.18) 0%, transparent 60%),
               radial-gradient(ellipse at 80% 80%, rgba(0,212,255,.10) 0%, transparent 55%),
-              #0A0A0F;
+              var(--bg-primary);
   position: relative;
   overflow-x: hidden;
 }
@@ -247,11 +247,11 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   margin-top: 2px;
 }
 .hero-title {
-  font-size: 26px; font-weight: 900; color: #fff;
+  font-size: 26px; font-weight: 900; color: var(--text-primary);
   letter-spacing: -.5px; text-align: center; margin: 0;
 }
 .hero-sub {
-  font-size: 13px; color: #8E8E93; text-align: center; margin: 0; letter-spacing: .2px;
+  font-size: 13px; color: var(--text-muted); text-align: center; margin: 0; letter-spacing: .2px;
 }
 
 /* Metrics */
@@ -261,8 +261,8 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   gap: 10px;
 }
 .metric-card {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(var(--text-primary-rgb), .04);
+  border: 1px solid rgba(var(--border-rgb), .07);
   border-radius: 20px;
   padding: 18px 12px 14px;
   display: flex;
@@ -275,13 +275,13 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 }
 .metric-icon { font-size: 24px; line-height: 1; }
 .metric-value { font-size: 26px; font-weight: 900; line-height: 1.1; }
-.metric-label { font-size: 11px; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.metric-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
 
 .c-purple { color: #8B5CF6; }
-.c-cyan   { color: #00D4FF; }
-.c-green  { color: #30D158; }
-.c-gold   { color: #FFD700; }
-.c-red    { color: #FF453A; }
+.c-cyan   { color: var(--cyan-accent); }
+.c-green  { color: var(--color-success); }
+.c-gold   { color: var(--color-warning); }
+.c-red    { color: var(--color-danger); }
 
 /* CTA */
 .cta-btn {
@@ -294,7 +294,7 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   padding: 18px;
   border-radius: 22px;
   background: linear-gradient(135deg, #6200EE, #8B5CF6);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 17px;
   font-weight: 800;
   border: none;
@@ -310,7 +310,7 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 .cta-glow {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+  background: linear-gradient(135deg, rgba(var(--text-primary-rgb), .15), transparent);
   pointer-events: none;
 }
 .cta-icon { font-size: 22px; }
@@ -319,14 +319,14 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 
 /* History */
 .history-section {
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(var(--text-primary-rgb), .03);
+  border: 1px solid rgba(var(--border-rgb), .06);
   border-radius: 22px;
   padding: 20px;
   backdrop-filter: blur(8px);
 }
 .section-header { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-.section-title { font-size: 15px; font-weight: 700; color: #fff; }
+.section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .section-badge {
   font-size: 11px; font-weight: 700; color: #8B5CF6;
   background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.3);
@@ -337,7 +337,7 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 .sk-list { display: flex; flex-direction: column; gap: 10px; }
 .sk-item {
   height: 82px; border-radius: 16px;
-  background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 75%);
+  background: linear-gradient(90deg, rgba(var(--text-primary-rgb), .04) 25%, rgba(var(--text-primary-rgb), .08) 50%, rgba(var(--text-primary-rgb), .04) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -349,8 +349,8 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 /* Result cards */
 .results-list { display: flex; flex-direction: column; gap: 10px; }
 .result-card {
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(var(--text-primary-rgb), .05);
+  border: 1px solid rgba(var(--border-rgb), .08);
   border-radius: 16px;
   padding: 14px 16px;
   display: flex;
@@ -364,13 +364,13 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   align-items: flex-start;
   gap: 8px;
 }
-.rc-course { font-size: 14px; font-weight: 700; color: #fff; flex: 1; line-height: 1.3; }
-.rc-date   { font-size: 11px; color: #555; white-space: nowrap; padding-top: 1px; }
+.rc-course { font-size: 14px; font-weight: 700; color: var(--text-primary); flex: 1; line-height: 1.3; }
+.rc-date   { font-size: 11px; color: var(--text-muted); white-space: nowrap; padding-top: 1px; }
 
 .rc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .rc-tag  {
-  font-size: 11px; color: #888;
-  background: rgba(255,255,255,.05);
+  font-size: 11px; color: var(--text-muted);
+  background: rgba(var(--text-primary-rgb), .05);
   border-radius: 8px; padding: 2px 8px;
   max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -390,24 +390,24 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
 }
 .rc-duration {
   font-size: 11px;
-  color: #666;
+  color: var(--text-muted);
 }
 .diff-chip {
   font-size: 11px; font-weight: 700; border-radius: 8px;
   padding: 3px 10px; letter-spacing: .3px;
 }
-.diff-easy { background: rgba(48,209,88,.15);  color: #30D158; border: 1px solid rgba(48,209,88,.25); }
-.diff-med  { background: rgba(255,214,10,.12); color: #FFD60A; border: 1px solid rgba(255,214,10,.25); }
-.diff-hard { background: rgba(255,69,58,.12);  color: #FF453A; border: 1px solid rgba(255,69,58,.25); }
-.diff-free { background: rgba(0,212,255,.12);  color: #00D4FF; border: 1px solid rgba(0,212,255,.25); }
+.diff-easy { background: rgba(48,209,88,.15);  color: var(--color-success); border: 1px solid rgba(48,209,88,.25); }
+.diff-med  { background: rgba(255,214,10,.12); color: var(--color-warning); border: 1px solid rgba(255,214,10,.25); }
+.diff-hard { background: rgba(255,69,58,.12);  color: var(--color-danger); border: 1px solid rgba(255,69,58,.25); }
+.diff-free { background: rgba(0,212,255,.12);  color: var(--cyan-accent); border: 1px solid rgba(0,212,255,.25); }
 
 .rc-score  { display: flex; align-items: center; gap: 8px; }
-.score-correct   { font-size: 12px; color: #30D158; font-weight: 600; }
-.score-incorrect { font-size: 12px; color: #FF453A; font-weight: 600; }
-.score-total     { font-size: 12px; color: #555; }
+.score-correct   { font-size: 12px; color: var(--color-success); font-weight: 600; }
+.score-incorrect { font-size: 12px; color: var(--color-danger); font-weight: 600; }
+.score-total     { font-size: 12px; color: var(--text-muted); }
 .score-grade   { font-size: 16px; font-weight: 900; }
-.grade-pass    { color: #30D158; }
-.grade-fail    { color: #FF453A; }
+.grade-pass    { color: var(--color-success); }
+.grade-fail    { color: var(--color-danger); }
 
 .empty-history {
   display: flex;
@@ -418,8 +418,8 @@ const particles = Array.from({ length: 14 }, (_, i) => ({
   text-align: center;
 }
 .empty-icon { font-size: 40px; opacity: .5; animation: pulse 2.4s ease-in-out infinite; }
-.empty-text { font-size: 14px; font-weight: 600; color: #555; margin: 0; }
-.empty-sub  { font-size: 12px; color: #444; margin: 0; }
+.empty-text { font-size: 14px; font-weight: 600; color: var(--text-muted); margin: 0; }
+.empty-sub  { font-size: 12px; color: var(--text-muted); margin: 0; }
 
 /* Keyframes */
 @keyframes floatP {

@@ -12,7 +12,7 @@
           Comentarios{{ totalCount > 0 ? ` (${totalCount})` : '' }}
         </span>
         <button class="close-btn" @click="close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
@@ -28,7 +28,7 @@
 
         <!-- Empty state -->
         <div v-else-if="!loading && topLevelComments.length === 0" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <p class="empty-title">No hay comentarios aún</p>
           <p class="empty-sub">¡Sé el primero en comentar!</p>
         </div>
@@ -59,7 +59,7 @@
         <div v-if="replyingTo" class="replying-banner">
           <span class="replying-text">Respondiendo a <strong>@{{ replyingTo.username ?? 'usuario' }}</strong></span>
           <button class="cancel-reply-btn" @click="cancelReply">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
@@ -71,7 +71,7 @@
         <div v-if="editingComment" class="replying-banner editing-banner">
           <span class="replying-text">Editando comentario</span>
           <button class="cancel-reply-btn" @click="cancelEdit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
@@ -391,7 +391,7 @@ watch(() => props.videoId, () => {
 .comments-sheet {
   width: 100%;
   max-width: 600px;
-  background: #1a1a1a;
+  background: var(--bg-card);
   border-radius: 20px 20px 0 0;
   min-height: 55vh;
   max-height: 88vh;
@@ -413,7 +413,7 @@ watch(() => props.videoId, () => {
   width: 40px;
   height: 4px;
   border-radius: 2px;
-  background: #444;
+  background: var(--bg-card-hover);
   align-self: center;
   margin: 12px auto 14px;
   flex-shrink: 0;
@@ -432,7 +432,7 @@ watch(() => props.videoId, () => {
 .sheet-title {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   text-align: center;
 }
 
@@ -450,12 +450,12 @@ watch(() => props.videoId, () => {
   align-items: center;
   justify-content: center;
 }
-.close-btn:hover { background: rgba(255,255,255,0.08); }
+.close-btn:hover { background: rgba(var(--border-rgb), 0.08); }
 
 /* Divider */
 .divider {
   height: 0.5px;
-  background: #333;
+  background: var(--bg-card-hover);
   flex-shrink: 0;
 }
 
@@ -483,12 +483,12 @@ watch(() => props.videoId, () => {
 .empty-title {
   font-size: 15px;
   font-weight: 600;
-  color: #888;
+  color: var(--text-muted);
   margin: 0;
 }
 .empty-sub {
   font-size: 13px;
-  color: #555;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -497,18 +497,18 @@ watch(() => props.videoId, () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #222;
+  background: var(--bg-card-hover);
   padding: 8px 16px;
   flex-shrink: 0;
 }
 .replying-text {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 .replying-text strong { color: #1d9bf0; }
 
 .editing-banner {
-  background: #2a2215;
+  background: var(--bg-card);
 }
 .editing-banner .replying-text { color: #e0a800; }
 
@@ -526,13 +526,13 @@ watch(() => props.videoId, () => {
   align-items: flex-end;
   gap: 10px;
   padding: 10px 16px 16px;
-  background: #1a1a1a;
+  background: var(--bg-input);
   flex-shrink: 0;
 }
 
 .input-wrapper {
   flex: 1;
-  background: #2c2c2e;
+  background: var(--bg-card-hover);
   border-radius: 20px;
   padding: 10px 14px;
   min-height: 40px;
@@ -545,7 +545,7 @@ watch(() => props.videoId, () => {
   background: none;
   border: none;
   outline: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   resize: none;
   max-height: 80px;
@@ -554,7 +554,7 @@ watch(() => props.videoId, () => {
 }
 
 .comment-input::placeholder {
-  color: #666;
+  color: var(--text-muted);
 }
 
 .send-btn {
@@ -574,7 +574,7 @@ watch(() => props.videoId, () => {
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid #444;
+  border: 2px solid var(--border-color);
   border-top-color: #1d9bf0;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -611,8 +611,8 @@ watch(() => props.videoId, () => {
 }
 
 .delete-modal {
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   border-radius: 20px;
   padding: 28px 24px 22px;
   width: 100%;
@@ -638,14 +638,14 @@ watch(() => props.videoId, () => {
 .delete-modal-title {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
   text-align: center;
 }
 
 .delete-modal-sub {
   font-size: 13px;
-  color: #777;
+  color: var(--text-muted);
   margin: 0 0 8px;
   text-align: center;
 }
@@ -661,15 +661,15 @@ watch(() => props.videoId, () => {
   flex: 1;
   padding: 11px 0;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: #ccc;
+  border: 1px solid rgba(var(--border-rgb), 0.1);
+  background: rgba(var(--border-rgb), 0.05);
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 }
-.delete-modal-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+.delete-modal-cancel:hover { background: rgba(var(--border-rgb), 0.1); }
 
 .delete-modal-confirm {
   flex: 1;
@@ -677,7 +677,7 @@ watch(() => props.videoId, () => {
   border-radius: 12px;
   border: none;
   background: #ff4757;
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;

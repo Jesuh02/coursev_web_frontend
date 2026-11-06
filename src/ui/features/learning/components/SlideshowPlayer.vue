@@ -140,7 +140,7 @@ onUnmounted(() => cancelAnimationFrame(raf))
 }
 .ss-bar-fill {
   height: 100%;
-  background: var(--apple-ink, #0071e3);
+  background: var(--text-on-accent);
   transition: width 0.1s linear;
 }
 

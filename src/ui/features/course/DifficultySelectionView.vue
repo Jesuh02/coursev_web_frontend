@@ -88,7 +88,7 @@ function select(difficulty: string) {
   background:
     radial-gradient(ellipse at 20% 0%, rgba(98, 0, 238, .18), transparent 55%),
     radial-gradient(ellipse at 85% 85%, rgba(0, 212, 255, .10), transparent 50%),
-    #0A0A0F;
+    var(--bg-primary);
   overflow-x: hidden;
   position: relative;
 }
@@ -107,8 +107,8 @@ function select(difficulty: string) {
 
 .diff-header { text-align: center; padding: 28px 0 28px; }
 .diff-emoji { font-size: 52px; display: block; animation: bounce 2.4s ease-in-out infinite; }
-.diff-title { font-size: 22px; font-weight: 700; color: #F2F2F7; letter-spacing: -.02em; margin: 10px 0 6px; }
-.diff-subtitle { font-size: 13px; color: #8E8E93; }
+.diff-title { font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; margin: 10px 0 6px; }
+.diff-subtitle { font-size: 13px; color: var(--text-muted); }
 
 /* ── Cards ── */
 .cards-grid { display: flex; flex-direction: column; gap: 14px; }
@@ -131,7 +131,7 @@ function select(difficulty: string) {
   border: 1.5px solid rgba(48, 209, 88, .22);
 }
 .diff-easy .card-glow { background: radial-gradient(circle at 0% 50%, rgba(48,209,88,.25), transparent 65%); }
-.diff-easy .card-arrow { color: #30D158; }
+.diff-easy .card-arrow { color: var(--color-success); }
 @media (hover: hover) {
   .diff-easy:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(48,209,88,.18); border-color: rgba(48,209,88,.45); }
 }
@@ -142,7 +142,7 @@ function select(difficulty: string) {
   border: 1.5px solid rgba(255, 149, 0, .22);
 }
 .diff-medium .card-glow { background: radial-gradient(circle at 0% 50%, rgba(255,149,0,.25), transparent 65%); }
-.diff-medium .card-arrow { color: #FF9500; }
+.diff-medium .card-arrow { color: var(--color-warning); }
 @media (hover: hover) {
   .diff-medium:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(255,149,0,.18); border-color: rgba(255,149,0,.45); }
 }
@@ -153,7 +153,7 @@ function select(difficulty: string) {
   border: 1.5px solid rgba(255, 69, 58, .22);
 }
 .diff-hard .card-glow { background: radial-gradient(circle at 0% 50%, rgba(255,69,58,.25), transparent 65%); }
-.diff-hard .card-arrow { color: #FF453A; }
+.diff-hard .card-arrow { color: var(--color-danger); }
 @media (hover: hover) {
   .diff-hard:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(255,69,58,.18); border-color: rgba(255,69,58,.45); }
 }
@@ -167,8 +167,8 @@ function select(difficulty: string) {
 .card-emoji { font-size: 36px; flex-shrink: 0; }
 
 .card-text { flex: 1; }
-.card-title { font-size: 18px; font-weight: 700; color: #F2F2F7; letter-spacing: -.02em; margin-bottom: 4px; }
-.card-desc { font-size: 13px; color: #8E8E93; line-height: 1.4; }
+.card-title { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; margin-bottom: 4px; }
+.card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
 .card-arrow { flex-shrink: 0; opacity: .7; }
 

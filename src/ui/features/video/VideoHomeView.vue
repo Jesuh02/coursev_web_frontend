@@ -324,7 +324,7 @@ function logoutAndGoToLogin() {
   position: relative;
   height: 100dvh;
   width: 100%;
-  background: #000;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -365,7 +365,7 @@ function logoutAndGoToLogin() {
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  background: #000;
+  background: var(--bg-primary);
 }
 
 .video-home::-webkit-scrollbar {
@@ -391,8 +391,8 @@ function logoutAndGoToLogin() {
     width: 560px;
     height: calc(100dvh - 40px);
     border-radius: 20px;
-    background: #000;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--bg-primary);
+    border: 1px solid rgba(var(--border-rgb), 0.06);
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
     overflow: hidden;
   }
@@ -429,9 +429,9 @@ function logoutAndGoToLogin() {
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(14, 21, 31, 0.7);
-    color: #fff;
+    border: 1px solid rgba(var(--border-rgb), 0.12);
+    background: rgba(var(--bg-card-rgb), 0.7);
+    color: var(--text-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -443,7 +443,7 @@ function logoutAndGoToLogin() {
   }
 
   .nav-arrow:hover:not(:disabled) {
-    background: rgba(26, 38, 55, 0.88);
+    background: rgba(var(--bg-card-rgb), 0.88);
     transform: scale(1.05);
   }
 
@@ -471,9 +471,9 @@ function logoutAndGoToLogin() {
   right: 0;
   z-index: 60;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(var(--bg-card-rgb), 0.95);
   backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.08);
 }
 
 .skeleton-feed {

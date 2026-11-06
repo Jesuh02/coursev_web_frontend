@@ -5,7 +5,7 @@
     <form class="upload-form" @submit.prevent="submit">
       <div class="upload-area" @click="openFilePicker" @dragover.prevent @drop.prevent="onDrop">
         <div v-if="!file" class="upload-prompt">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
           <p class="upload-text">Arrastra o selecciona un video</p>
           <p class="upload-hint">Formatos: MP4, MOV, AVI</p>
         </div>
@@ -77,8 +77,8 @@ async function submit() {
   width: 100%;
   padding: 40px 20px;
   border-radius: 16px;
-  background: #1C1C1E;
-  border: 2px dashed rgba(255,255,255,0.1);
+  background: var(--bg-card);
+  border: 2px dashed rgba(var(--border-rgb), 0.1);
   cursor: pointer;
   text-align: center;
   transition: border-color 0.2s;
@@ -87,17 +87,17 @@ async function submit() {
 .upload-area:hover { border-color: var(--purple-primary); }
 
 .upload-prompt { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.upload-text { font-size: 15px; color: #fff; font-weight: 500; }
-.upload-hint { font-size: 13px; color: #8E8E93; }
+.upload-text { font-size: 15px; color: var(--text-primary); font-weight: 500; }
+.upload-hint { font-size: 13px; color: var(--text-muted); }
 
 .file-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.file-name { font-size: 14px; color: #fff; font-weight: 500; }
-.file-size { font-size: 12px; color: #8E8E93; }
+.file-name { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+.file-size { font-size: 12px; color: var(--text-muted); }
 
 .progress-bar {
   height: 4px;
   border-radius: 2px;
-  background: #333;
+  background: var(--bg-card-hover);
   overflow: hidden;
 }
 

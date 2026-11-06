@@ -27,7 +27,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -41,7 +41,7 @@
 .line {
   height: 12px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 
 .skeleton-shimmer {

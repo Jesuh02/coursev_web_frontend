@@ -4,7 +4,7 @@
     <template v-if="isEditorMode">
       <div class="bar">
         <button class="bar-back" @click="$router.back()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <span class="bar-title">{{ isCreateMode ? 'Nueva Tarea' : 'Editar Tarea' }}</span>
         <button class="bar-save" :disabled="saving || !formTitle.trim()" @click="handleSave">
@@ -41,19 +41,19 @@
             @keydown.enter.prevent="openPreview(previewFileFromContentItem(ci))"
             @keydown.space.prevent="openPreview(previewFileFromContentItem(ci))"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
             <span class="existing-attachment-name">{{ ci.fileName || ci.content }}</span>
             <button class="file-clear" type="button" @click.stop="deleteContentItem(ci.id)" @keydown.stop>✕</button>
           </div>
         </div>
         <div class="file-upload-editor" @click="formFileInputRef?.click()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
           <span>Agregar nuevo archivo</span>
           <input ref="formFileInputRef" type="file" multiple hidden @change="onFormFileSelected" />
         </div>
         <div v-if="formFiles.length" class="pending-attachments">
           <div v-for="(file, index) in formFiles" :key="`${file.name}-${file.lastModified}-${index}`" class="existing-attachment-row pending-attachment-row">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
             <span class="existing-attachment-name">{{ file.name }}</span>
             <button class="file-clear" @click.stop="removeFormFile(index)">✕</button>
           </div>
@@ -123,17 +123,17 @@
           />
           <div class="task-attach-row">
             <div class="task-attach-btn" @click="fileInputRef?.click()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               <span>Archivo</span>
               <input ref="fileInputRef" type="file" multiple hidden @change="onFileSelected" />
             </div>
             <div class="task-attach-btn" @click="imageInputRef?.click()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <span>Imagen</span>
               <input ref="imageInputRef" type="file" accept="image/*" multiple hidden @change="onFileSelected" />
             </div>
             <div class="task-attach-btn" @click="cameraInputRef?.click()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <span>Cámara</span>
               <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" hidden @change="onFileSelected" />
             </div>
@@ -415,23 +415,23 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.course-task { min-height: 100vh; background: #000; display: flex; flex-direction: column; }
+.course-task { min-height: 100vh; background: var(--bg-primary); display: flex; flex-direction: column; }
 
 /* ── Editor mode bar ── */
 .bar {
   display: flex; align-items: center; padding: 12px 16px; gap: 8px;
-  background: #000; position: sticky; top: 0; z-index: 10;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--bg-card); position: sticky; top: 0; z-index: 10;
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .bar-back {
   width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; cursor: pointer; flex-shrink: 0; border-radius: 8px;
 }
-.bar-back:active { background: rgba(255,255,255,0.08); }
-.bar-title { flex: 1; text-align: center; font-size: 17px; font-weight: 700; color: #fff; }
+.bar-back:active { background: rgba(var(--border-rgb), 0.08); }
+.bar-title { flex: 1; text-align: center; font-size: 17px; font-weight: 700; color: var(--text-primary); }
 .bar-save {
   background: transparent; border: none; font-size: 16px; font-weight: 600;
-  color: #BF5AF2; cursor: pointer; padding: 6px 4px; flex-shrink: 0;
+  color: var(--purple-light); cursor: pointer; padding: 6px 4px; flex-shrink: 0;
   display: flex; align-items: center; min-width: 56px; justify-content: flex-end;
 }
 .bar-save:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -444,16 +444,16 @@ onMounted(async () => {
 .scroll-content { padding: 16px; flex: 1; }
 .mt-16 { margin-top: 16px; }
 
-.field-label { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 8px; }
+.field-label { font-size: 15px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; }
 .field-input {
-  width: 100%; background: #1A1A1A; border: none; border-radius: 8px;
-  padding: 12px; font-size: 15px; color: #fff; outline: none;
+  width: 100%; background: var(--bg-input); border: none; border-radius: 8px;
+  padding: 12px; font-size: 15px; color: var(--text-primary); outline: none;
   box-sizing: border-box; font-family: inherit;
 }
-.field-input::placeholder { color: #666; }
-.field-input:focus { background: #222; }
+.field-input::placeholder { color: var(--text-muted); }
+.field-input:focus { background: var(--bg-input); }
 .field-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
-.error-msg { font-size: 13px; color: #FF453A; }
+.error-msg { font-size: 13px; color: var(--color-danger); }
 
 .existing-attachments {
   display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
@@ -463,7 +463,7 @@ onMounted(async () => {
 }
 .existing-attachment-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-  border-radius: 8px; background: #1A1A1A; color: #ccc; font-size: 14px;
+  border-radius: 8px; background: var(--bg-card); color: var(--text-secondary); font-size: 14px;
 }
 .existing-attachment-row--preview {
   width: 100%;
@@ -474,24 +474,24 @@ onMounted(async () => {
 }
 .existing-attachment-row--preview:hover,
 .existing-attachment-row--preview:focus-visible {
-  background: #222;
+  background: var(--bg-card-hover);
   outline: none;
 }
-.pending-attachment-row { color: #8E8E93; }
+.pending-attachment-row { color: var(--text-muted); }
 .existing-attachment-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .file-upload-editor {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
-  border-radius: 8px; background: #1A1A1A; cursor: pointer; color: #8E8E93;
+  border-radius: 8px; background: var(--bg-card); cursor: pointer; color: var(--text-muted);
   font-size: 14px; font-family: inherit;
 }
-.file-upload-editor:hover { background: #222; }
+.file-upload-editor:hover { background: var(--bg-card-hover); }
 .file-upload-editor span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-clear {
-  background: transparent; border: none; color: #666; cursor: pointer;
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
   font-size: 14px; padding: 0 2px; flex-shrink: 0; line-height: 1;
 }
-.file-clear:hover { color: #FF453A; }
+.file-clear:hover { color: var(--color-danger); }
 
 .task-attach-row {
   display: grid;
@@ -500,26 +500,26 @@ onMounted(async () => {
 }
 .task-attach-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; padding: 12px 6px; border-radius: 10px; background: #1C1C1E;
-  cursor: pointer; font-size: 12px; color: #8E8E93; transition: background 0.15s;
-  border: 1px dashed rgba(255,255,255,0.1);
+  gap: 6px; padding: 12px 6px; border-radius: 10px; background: var(--bg-card);
+  cursor: pointer; font-size: 12px; color: var(--text-muted); transition: background 0.15s;
+  border: 1px dashed rgba(var(--border-rgb), 0.1);
 }
-.task-attach-btn:active { background: #2A2A2A; }
+.task-attach-btn:active { background: var(--bg-card-hover); }
 .selected-files-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .task-file-selected {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
   border-radius: 10px; background: rgba(142,142,147,0.1);
-  font-size: 13px; color: #ccc;
+  font-size: 13px; color: var(--text-secondary);
 }
 .task-file-selected span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-clear { background: transparent; border: none; color: #666; cursor: pointer; font-size: 18px; padding: 0 2px; }
-.file-clear:hover { color: #FF453A; }
+.file-clear { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 0 2px; }
+.file-clear:hover { color: var(--color-danger); }
 
 /* ── Student mode ── */
 .task-content { padding: 16px; }
 .task-header { margin-bottom: 24px; }
-.task-title { font-size: 22px; font-weight: 700; color: #fff; }
-.task-desc { font-size: 14px; color: #8E8E93; margin-top: 6px; line-height: 1.5; }
+.task-title { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.task-desc { font-size: 14px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
 .task-meta-row { display: flex; gap: 8px; margin-top: 12px; }
 .task-materials {
   display: flex;
@@ -529,7 +529,7 @@ onMounted(async () => {
 }
 .task-materials-title {
   margin: 0;
-  color: #f5f5f7;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -542,7 +542,7 @@ onMounted(async () => {
   border: 1px solid rgba(191,90,242,0.22);
   border-radius: 10px;
   background: rgba(191,90,242,0.08);
-  color: #f5f5f7;
+  color: var(--text-primary);
   font: inherit;
   font-size: 13px;
   text-align: left;
@@ -563,42 +563,42 @@ onMounted(async () => {
 }
 .meta-chip {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
-  border-radius: 20px; background: rgba(255,255,255,0.06); color: #8E8E93;
-  font-size: 12px; font-weight: 500; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; background: rgba(var(--border-rgb), 0.06); color: var(--text-muted);
+  font-size: 12px; font-weight: 500; border: 1px solid rgba(var(--border-rgb), 0.07);
 }
 .chip-overdue {
-  background: rgba(255,69,58,0.1); color: #FF453A;
+  background: rgba(255,69,58,0.1); color: var(--color-danger);
   border-color: rgba(255,69,58,0.2);
 }
-.chip-no-date { color: #555; border-color: rgba(255,255,255,0.04); }
+.chip-no-date { color: var(--text-muted); border-color: rgba(var(--border-rgb), 0.04); }
 .chip-badge {
   display: inline-block; padding: 1px 6px; border-radius: 5px;
   background: rgba(255,69,58,0.18); font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.4px; margin-left: 2px;
 }
-.section-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+.section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
 .submission-section { display: flex; flex-direction: column; gap: 12px; }
 .submission-input {
-  width: 100%; padding: 14px; border-radius: 12px; background: #1C1C1E;
-  border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 14px; resize: vertical;
+  width: 100%; padding: 14px; border-radius: 12px; background: var(--bg-input);
+  border: 1px solid rgba(var(--border-rgb), 0.08); color: var(--text-primary); font-size: 14px; resize: vertical;
 }
-.submission-input::placeholder { color: #8E8E93; }
+.submission-input::placeholder { color: var(--text-muted); }
 .submission-input:focus { border-color: var(--purple-primary); outline: none; }
 .file-upload {
   display: flex; align-items: center; gap: 8px; padding: 12px 16px;
-  border-radius: 12px; background: #1C1C1E; cursor: pointer; color: #8E8E93; font-size: 14px;
+  border-radius: 12px; background: var(--bg-card); cursor: pointer; color: var(--text-muted); font-size: 14px;
 }
-.file-upload:hover { background: #242424; }
+.file-upload:hover { background: var(--bg-card-hover); }
 .upload-progress {
-  position: relative; height: 4px; background: rgba(255,255,255,0.08);
+  position: relative; height: 4px; background: rgba(var(--border-rgb), 0.08);
   border-radius: 2px; overflow: hidden;
 }
 .progress-bar {
   position: absolute; left: 0; top: 0; bottom: 0;
   background: var(--purple-primary, #BF5AF2); border-radius: 2px; transition: width 0.2s ease;
 }
-.progress-label { display: block; font-size: 12px; color: #8E8E93; margin-top: 4px; }
-.submit-error { font-size: 13px; color: #FF453A; }
+.progress-label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.submit-error { font-size: 13px; color: var(--color-danger); }
 
 /* ── Submission status banner ── */
 .submission-status {
@@ -608,16 +608,16 @@ onMounted(async () => {
 .status-pending {
   background: rgba(255, 159, 10, 0.12);
   border: 1px solid rgba(255, 159, 10, 0.35);
-  color: #FF9F0A;
+  color: var(--color-warning);
 }
 .status-graded {
   background: rgba(48, 209, 88, 0.12);
   border: 1px solid rgba(48, 209, 88, 0.35);
-  color: #30D158;
+  color: var(--color-success);
 }
 .status-icon { flex-shrink: 0; margin-top: 1px; }
 .status-body { display: flex; flex-direction: column; gap: 4px; }
 .status-title { font-size: 15px; font-weight: 600; margin: 0; }
 .status-date { font-size: 11px; opacity: 0.6; margin: 0; letter-spacing: 0.1px; }
-.status-feedback { font-size: 13px; opacity: 0.85; margin: 0; line-height: 1.4; color: #fff; }
+.status-feedback { font-size: 13px; opacity: 0.85; margin: 0; line-height: 1.4; color: var(--text-primary); }
 </style>

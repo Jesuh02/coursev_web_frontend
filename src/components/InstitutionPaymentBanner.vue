@@ -127,7 +127,7 @@ watch(() => authStore.user?.id, (newId) => {
   -webkit-backdrop-filter: blur(12px);
   font-size: 12px;
   font-weight: 500;
-  color: #FF3B30;
+  color: var(--color-danger);
   letter-spacing: -0.01em;
   pointer-events: none;
 }
@@ -152,7 +152,7 @@ watch(() => authStore.user?.id, (newId) => {
   align-items: center;
   gap: 8px;
   padding: 7px 10px 7px 12px;
-  background: rgba(28, 28, 30, 0.9);
+  background: rgba(var(--bg-card-rgb), 0.9);
   border: 1px solid rgba(255, 59, 48, 0.3);
   border-radius: 20px;
   backdrop-filter: blur(16px);
@@ -198,7 +198,7 @@ watch(() => authStore.user?.id, (newId) => {
   flex: 1;
   font-size: 12px;
   font-weight: 500;
-  color: #FF3B30;
+  color: var(--color-danger);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,7 +209,7 @@ watch(() => authStore.user?.id, (newId) => {
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  color: #FF3B30;
+  color: var(--color-danger);
   background: rgba(255, 59, 48, 0.1);
   border: 1px solid rgba(255, 59, 48, 0.25);
   border-radius: 10px;
@@ -235,7 +235,7 @@ watch(() => authStore.user?.id, (newId) => {
   height: 20px;
   border: none;
   background: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -247,7 +247,7 @@ watch(() => authStore.user?.id, (newId) => {
 }
 
 .payment-notice-close:hover {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(var(--text-primary-rgb), 0.65);
 }
 
 .notice-fade-enter-active,
@@ -265,7 +265,7 @@ watch(() => authStore.user?.id, (newId) => {
 .stripe-price {
   font-weight: 700;
   font-size: 12px;
-  color: #FF3B30;
+  color: var(--color-danger);
   white-space: nowrap;
 }
 
@@ -273,7 +273,7 @@ watch(() => authStore.user?.id, (newId) => {
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-on-accent);
   background: #FF3B30;
   border: none;
   border-radius: 10px;
@@ -301,8 +301,8 @@ watch(() => authStore.user?.id, (newId) => {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: pay-spin 0.6s linear infinite;
 }

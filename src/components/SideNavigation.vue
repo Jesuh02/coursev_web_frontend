@@ -55,7 +55,7 @@ const logoSrc = computed(() => getInstitutionLogoUrl() || '/icon-192.png')
   width: 100px;
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   padding-top: 16px;
   z-index: 100;
@@ -118,11 +118,11 @@ const logoSrc = computed(() => getInstitutionLogoUrl() || '/icon-192.png')
 }
 
 .nav-link.active .nav-text {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .nav-link.active :deep(svg) {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .nav-icon {
@@ -158,7 +158,7 @@ const logoSrc = computed(() => getInstitutionLogoUrl() || '/icon-192.png')
   min-width: 18px;
   height: 18px;
   background: var(--red-netflix);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 9px;
   font-weight: 700;
   border-radius: 9px;
@@ -182,7 +182,7 @@ const logoSrc = computed(() => getInstitutionLogoUrl() || '/icon-192.png')
   justify-content: center;
   font-size: 24px;
   font-weight: 300;
-  color: #fff;
+  color: var(--text-on-accent);
   line-height: 1;
 }
 

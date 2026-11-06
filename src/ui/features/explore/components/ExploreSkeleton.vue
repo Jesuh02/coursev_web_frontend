@@ -27,7 +27,7 @@
 .skeleton-thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 
 .skeleton-body {
@@ -40,7 +40,7 @@
 .skeleton-line {
   height: 14px;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
 }
 
 .skeleton-shimmer {

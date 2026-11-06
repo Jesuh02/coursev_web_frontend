@@ -159,7 +159,7 @@ function select(course: Course) {
   -webkit-overflow-scrolling: touch;
   background: radial-gradient(ellipse at 25% 0%, rgba(98,0,238,.16) 0%, transparent 55%),
               radial-gradient(ellipse at 85% 90%, rgba(0,212,255,.08) 0%, transparent 50%),
-              #0A0A0F;
+              var(--bg-primary);
   position: relative;
 }
 
@@ -181,14 +181,14 @@ function select(course: Course) {
   padding: 12px 0 16px;
 }
 .cs-emoji { font-size: 42px; line-height: 1; flex-shrink: 0; }
-.cs-title { font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 2px; }
-.cs-sub   { font-size: 12px; color: #666; margin: 0; }
+.cs-title { font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
+.cs-sub   { font-size: 12px; color: var(--text-muted); margin: 0; }
 
 /* Search */
 .search-wrap {
   display: flex; align-items: center; gap: 10px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(var(--text-primary-rgb), .06);
+  border: 1px solid rgba(var(--border-rgb), .09);
   border-radius: 16px;
   padding: 0 14px;
   margin-bottom: 12px;
@@ -198,19 +198,19 @@ function select(course: Course) {
 .search-icon { flex-shrink: 0; }
 .search-input {
   flex: 1; background: transparent; border: none; outline: none;
-  font-size: 14px; color: #fff; padding: 13px 0;
+  font-size: 14px; color: var(--text-primary); padding: 13px 0;
   font-family: inherit;
 }
-.search-input::placeholder { color: #555; }
+.search-input::placeholder { color: var(--text-muted); }
 .search-clear {
-  font-size: 13px; color: #555; cursor: pointer;
+  font-size: 13px; color: var(--text-muted); cursor: pointer;
   flex-shrink: 0; transition: color .15s;
 }
-.search-clear:hover { color: #aaa; }
+.search-clear:hover { color: var(--text-muted); }
 
 /* List meta */
 .list-meta { padding: 2px 2px 8px; }
-.list-count { font-size: 11px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: .7px; }
+.list-count { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .7px; }
 
 /* List */
 .list { display: flex; flex-direction: column; gap: 8px; }
@@ -219,8 +219,8 @@ function select(course: Course) {
 .course-card {
   display: flex; align-items: center; gap: 12px;
   width: 100%; padding: 12px 14px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(var(--text-primary-rgb), .04);
+  border: 1px solid rgba(var(--border-rgb), .07);
   border-radius: 18px;
   text-align: left;
   cursor: pointer;
@@ -228,7 +228,7 @@ function select(course: Course) {
   animation: fadeUp .35s cubic-bezier(.22,1,.36,1) both;
 }
 .course-card:hover {
-  background: rgba(255,255,255,.08);
+  background: rgba(var(--text-primary-rgb), .08);
   border-color: rgba(139,92,246,.3);
   transform: translateX(3px);
 }
@@ -238,8 +238,8 @@ function select(course: Course) {
 .course-thumb {
   width: 52px; height: 40px; border-radius: 11px;
   overflow: hidden; flex-shrink: 0;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(var(--text-primary-rgb), .06);
+  border: 1px solid rgba(var(--border-rgb), .07);
 }
 .course-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb-ph {
@@ -251,34 +251,34 @@ function select(course: Course) {
 /* Info */
 .course-info { flex: 1; min-width: 0; }
 .course-name {
-  font-size: 14px; font-weight: 600; color: #F2F2F7;
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin: 0 0 2px;
 }
 .course-desc {
-  font-size: 12px; color: #555;
+  font-size: 12px; color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin: 0;
 }
 
-.chev { font-size: 22px; color: #444; flex-shrink: 0; line-height: 1; transition: color .15s, transform .15s; }
+.chev { font-size: 22px; color: var(--text-muted); flex-shrink: 0; line-height: 1; transition: color .15s, transform .15s; }
 .course-card:hover .chev { color: #8B5CF6; transform: translateX(3px); }
 
 /* Skeleton cards */
 .sk-card {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.05);
+  background: rgba(var(--text-primary-rgb), .03);
+  border: 1px solid rgba(var(--border-rgb), .05);
   border-radius: 18px;
   animation: shimmer 1.5s ease infinite;
 }
-.sk-thumb { width: 52px; height: 40px; border-radius: 11px; background: #222; flex-shrink: 0; }
+.sk-thumb { width: 52px; height: 40px; border-radius: 11px; background: var(--bg-input); flex-shrink: 0; }
 .sk-body  { flex: 1; }
-.sk-line  { border-radius: 6px; background: #1e1e1e; }
+.sk-line  { border-radius: 6px; background: var(--bg-input); }
 .sk-t     { height: 13px; width: 60%; margin-bottom: 8px; }
 .sk-s     { height: 10px; width: 38%; }
-.sk-chev  { width: 16px; height: 16px; border-radius: 50%; background: #1e1e1e; flex-shrink: 0; }
+.sk-chev  { width: 16px; height: 16px; border-radius: 50%; background: var(--bg-input); flex-shrink: 0; }
 
 /* Empty */
 .empty-state {
@@ -286,7 +286,7 @@ function select(course: Course) {
   padding: 60px 0; text-align: center;
 }
 .empty-icon { font-size: 48px; opacity: .4; }
-.empty-text { font-size: 14px; color: #555; margin: 0; font-weight: 600; }
+.empty-text { font-size: 14px; color: var(--text-muted); margin: 0; font-weight: 600; }
 
 /* Transitions */
 .fade-x-enter-active { animation: fadeIn .2s ease both; }

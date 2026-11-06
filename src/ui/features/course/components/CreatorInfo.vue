@@ -22,7 +22,7 @@ defineProps<{ course: Course }>()
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(var(--border-rgb), 0.04);
   border-radius: 16px;
 }
 
@@ -39,17 +39,17 @@ defineProps<{ course: Course }>()
 }
 
 .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-letter { font-size: 18px; font-weight: 600; color: #8E8E93; }
+.avatar-letter { font-size: 18px; font-weight: 600; color: var(--text-muted); }
 
 .creator-details { flex: 1; }
-.creator-name { font-size: 15px; font-weight: 600; color: #fff; }
-.creator-subs { font-size: 12px; color: #8E8E93; }
+.creator-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.creator-subs { font-size: 12px; color: var(--text-muted); }
 
 .subscribe-btn {
   padding: 8px 20px;
   border-radius: 20px;
   background: var(--purple-primary);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 13px;
   font-weight: 600;
   transition: opacity 0.15s;

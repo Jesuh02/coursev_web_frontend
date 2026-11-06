@@ -670,7 +670,7 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   border: none;
   color: var(--text-primary, #fff);
   display: flex;
@@ -681,7 +681,7 @@ onMounted(async () => {
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--text-primary-rgb), 0.15);
   transform: scale(1.05);
 }
 
@@ -708,8 +708,8 @@ onMounted(async () => {
 .course-select {
   width: 100%;
   padding: 14px 44px 14px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 14px;
   color: var(--text-primary, #fff);
   font-size: 16px;
@@ -722,7 +722,7 @@ onMounted(async () => {
 .course-select:focus {
   outline: none;
   border-color: rgba(88, 86, 214, 0.5);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(var(--text-primary-rgb), 0.12);
 }
 
 .select-icon {
@@ -743,8 +743,8 @@ onMounted(async () => {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--text-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   border-radius: 16px;
   padding: 16px;
   animation: fadeInUp 0.5s ease backwards;
@@ -772,10 +772,10 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
-.stat-students .stat-icon { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
-.stat-accuracy .stat-icon { background: rgba(48, 209, 88, 0.2); color: #30D158; }
-.stat-sessions .stat-icon { background: rgba(10, 132, 255, 0.2); color: #0A84FF; }
-.stat-grade .stat-icon { background: rgba(255, 214, 10, 0.2); color: #FFD60A; }
+.stat-students .stat-icon { background: rgba(191, 90, 242, 0.2); color: var(--purple-light); }
+.stat-accuracy .stat-icon { background: rgba(48, 209, 88, 0.2); color: var(--color-success); }
+.stat-sessions .stat-icon { background: rgba(10, 132, 255, 0.2); color: var(--color-info); }
+.stat-grade .stat-icon { background: rgba(255, 214, 10, 0.2); color: var(--color-warning); }
 
 .stat-value {
   font-size: 28px;
@@ -792,7 +792,7 @@ onMounted(async () => {
 
 /* Skill distribution */
 .distribution-section {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--text-primary-rgb), 0.04);
   border-radius: 16px;
   padding: 16px;
 }
@@ -835,7 +835,7 @@ onMounted(async () => {
 
 .bar-track {
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -875,8 +875,8 @@ onMounted(async () => {
 .sort-chip {
   padding: 10px 16px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   font-size: 14px;
   font-weight: 500;
@@ -888,11 +888,11 @@ onMounted(async () => {
 .sort-chip.active {
   background: rgba(88, 86, 214, 0.3);
   border-color: rgba(88, 86, 214, 0.5);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .sort-chip:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(var(--text-primary-rgb), 0.12);
 }
 
 /* Loading */
@@ -936,7 +936,7 @@ onMounted(async () => {
   width: 80px;
   height: 80px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--text-primary-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -968,8 +968,8 @@ onMounted(async () => {
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto auto;
   gap: 12px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(var(--text-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
   border-radius: 20px;
   padding: 16px;
   margin-bottom: 12px;
@@ -980,8 +980,8 @@ onMounted(async () => {
 }
 
 .student-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.08);
+  border-color: rgba(var(--border-rgb), 0.1);
   transform: translateY(-2px);
 }
 
@@ -1018,7 +1018,7 @@ onMounted(async () => {
   justify-content: center;
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .skill-badge {
@@ -1031,7 +1031,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-on-accent);
   border: 2px solid var(--bg-primary, #000);
 }
 
@@ -1069,17 +1069,17 @@ onMounted(async () => {
 
 .trend-indicator.improving {
   background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+  color: var(--color-success);
 }
 
 .trend-indicator.stable {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
 .trend-indicator.declining {
   background: rgba(255, 69, 58, 0.15);
-  color: #FF453A;
+  color: var(--color-danger);
 }
 
 /* Metrics */
@@ -1188,7 +1188,7 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   border: none;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   display: flex;
@@ -1199,8 +1199,8 @@ onMounted(async () => {
 }
 
 .modal-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(var(--text-primary-rgb), 0.15);
+  color: var(--text-primary);
 }
 
 .modal-header {
@@ -1231,7 +1231,7 @@ onMounted(async () => {
   justify-content: center;
   font-size: 24px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .modal-name {
@@ -1253,7 +1253,7 @@ onMounted(async () => {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 /* Insights grid */
@@ -1265,7 +1265,7 @@ onMounted(async () => {
 }
 
 .insight-card {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--text-primary-rgb), 0.04);
   border-radius: 16px;
   padding: 16px;
   text-align: center;
@@ -1281,10 +1281,10 @@ onMounted(async () => {
   margin: 0 auto 12px;
 }
 
-.insight-accuracy { background: rgba(48, 209, 88, 0.2); color: #30D158; }
-.insight-consistency { background: rgba(10, 132, 255, 0.2); color: #0A84FF; }
-.insight-time { background: rgba(255, 159, 10, 0.2); color: #FF9F0A; }
-.insight-improvement { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
+.insight-accuracy { background: rgba(48, 209, 88, 0.2); color: var(--color-success); }
+.insight-consistency { background: rgba(10, 132, 255, 0.2); color: var(--color-info); }
+.insight-time { background: rgba(255, 159, 10, 0.2); color: var(--color-warning); }
+.insight-improvement { background: rgba(191, 90, 242, 0.2); color: var(--purple-light); }
 
 .insight-value {
   font-size: 24px;
@@ -1292,8 +1292,8 @@ onMounted(async () => {
   color: var(--text-primary, #fff);
 }
 
-.insight-value.positive { color: #30D158; }
-.insight-value.negative { color: #FF453A; }
+.insight-value.positive { color: var(--color-success); }
+.insight-value.negative { color: var(--color-danger); }
 
 .insight-label {
   font-size: 12px;
@@ -1303,7 +1303,7 @@ onMounted(async () => {
 
 /* Study pattern */
 .study-pattern {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--text-primary-rgb), 0.04);
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 24px;
@@ -1330,7 +1330,7 @@ onMounted(async () => {
 
 /* Performance chart */
 .performance-chart {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--text-primary-rgb), 0.04);
   border-radius: 16px;
   padding: 16px;
 }

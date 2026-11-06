@@ -35,7 +35,7 @@ const { navItems, isActive, navigate, canCreateContent } = useNavigation()
   left: 0;
   right: 0;
   display: flex;
-  background: #000;
+  background: var(--bg-primary);
   border-top: 1px solid var(--border-color);
   padding: 6px 0 env(safe-area-inset-bottom, 8px);
   z-index: 100;
@@ -56,11 +56,11 @@ const { navItems, isActive, navigate, canCreateContent } = useNavigation()
 }
 
 .nav-item.active .nav-label {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .nav-item.active :deep(svg) {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .nav-icon-wrapper {
@@ -84,7 +84,7 @@ const { navItems, isActive, navigate, canCreateContent } = useNavigation()
   min-width: 18px;
   height: 18px;
   background: var(--red-netflix);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 10px;
   font-weight: 700;
   border-radius: 9px;
@@ -119,7 +119,7 @@ const { navItems, isActive, navigate, canCreateContent } = useNavigation()
   justify-content: center;
   font-size: 28px;
   font-weight: 300;
-  color: #fff;
+  color: var(--text-on-accent);
   line-height: 1;
 }
 

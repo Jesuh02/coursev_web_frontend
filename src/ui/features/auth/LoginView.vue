@@ -710,7 +710,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--border-rgb), 0.07);
   animation: float 8s ease-in-out infinite;
 }
 
@@ -722,7 +722,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--border-rgb), 0.05);
   animation: float 10s ease-in-out infinite reverse;
 }
 
@@ -735,7 +735,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   font-size: 40px;
   font-weight: 800;
   font-style: italic;
-  color: #fff;
+  color: var(--text-on-accent);
   letter-spacing: -0.5px;
   text-shadow: 0 2px 16px rgba(0,0,0,0.3);
   animation: fade-in-down 0.6s ease forwards;
@@ -772,7 +772,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: #0f0f1a;
+  background: var(--bg-card);
   border: 2.5px solid var(--purple-light);
   display: flex;
   align-items: center;
@@ -927,7 +927,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   padding: 13px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, #7C3AED, #5B21B6);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 15px;
   font-weight: 600;
   text-align: center;
@@ -1058,7 +1058,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   border: none;
   border-radius: 12px;
   background: linear-gradient(135deg, #7C3AED, #5B21B6);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -1137,7 +1137,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
     justify-content: flex-start;
     flex: 1;
     position: relative;
-    background: #050510;
+    background: var(--bg-primary);
     padding: 18px 48px 60px;
     overflow: hidden;
     min-height: 0;
@@ -1165,10 +1165,10 @@ function hideSplineWatermark(viewer: HTMLElement) {
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(5, 5, 16, 0.25) 0%,
-      rgba(5, 5, 16, 0.05) 35%,
-      rgba(5, 5, 16, 0.15) 65%,
-      rgba(5, 5, 16, 0.5) 100%
+      rgba(var(--bg-card-rgb), 0.25) 0%,
+      rgba(var(--bg-card-rgb), 0.05) 35%,
+      rgba(var(--bg-card-rgb), 0.15) 65%,
+      rgba(var(--bg-card-rgb), 0.5) 100%
     );
     z-index: 1;
     pointer-events: none;
@@ -1194,12 +1194,12 @@ function hideSplineWatermark(viewer: HTMLElement) {
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--border-rgb), 0.08);
     backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(var(--border-rgb), 0.12);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
@@ -1207,7 +1207,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
     font-size: 32px;
     font-weight: 800;
     font-style: italic;
-    color: #fff;
+    color: var(--text-primary);
     letter-spacing: -0.5px;
     margin: 0;
     text-shadow: 0 2px 24px rgba(0, 0, 0, 0.4);
@@ -1216,7 +1216,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   .hero-title {
     font-size: 42px;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-primary);
     line-height: 1.12;
     margin: 0 0 20px;
     letter-spacing: -0.5px;
@@ -1226,7 +1226,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
 
   .hero-subtitle {
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(var(--text-primary-rgb), 0.7);
     line-height: 1.7;
     margin: 0 0 40px;
     max-width: 460px;
@@ -1246,8 +1246,8 @@ function hideSplineWatermark(viewer: HTMLElement) {
     flex-direction: column;
     gap: 10px;
     padding: 20px 18px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(var(--border-rgb), 0.04);
+    border: 1px solid rgba(var(--border-rgb), 0.08);
     border-radius: 16px;
     backdrop-filter: blur(20px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1255,7 +1255,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
   }
 
   .feature-card:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--border-rgb), 0.08);
     border-color: rgba(139, 92, 246, 0.3);
     transform: translateY(-4px);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.12);
@@ -1270,7 +1270,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #C4B5FD;
+    color: var(--purple-light);
     transition: background 0.3s;
   }
 
@@ -1281,13 +1281,13 @@ function hideSplineWatermark(viewer: HTMLElement) {
   .feature-title {
     font-size: 14px;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0 0 2px;
   }
 
   .feature-desc {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--text-muted);
     margin: 0;
     line-height: 1.45;
   }
@@ -1305,7 +1305,7 @@ function hideSplineWatermark(viewer: HTMLElement) {
 
   .hero-footer-text {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -1316,13 +1316,13 @@ function hideSplineWatermark(viewer: HTMLElement) {
 
   .hero-footer-links a {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-muted);
     text-decoration: none;
     transition: color 0.2s;
   }
 
   .hero-footer-links a:hover {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(var(--text-primary-rgb), 0.7);
   }
 
   /* ── Form Panel ── */
@@ -1536,8 +1536,8 @@ function hideSplineWatermark(viewer: HTMLElement) {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

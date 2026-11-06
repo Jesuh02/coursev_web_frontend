@@ -26,7 +26,7 @@
       <div class="thumb-upload" @click="openFilePicker">
         <img v-if="thumbPreview" :src="thumbPreview" alt="" @error="thumbPreview = ''" />
         <div v-else class="upload-placeholder">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
           <p>Imagen de la materia</p>
         </div>
         <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile" />
@@ -345,8 +345,8 @@ async function save() {
   width: 120px;
   height: 120px;
   border-radius: 20px;
-  background: #1C1C1E;
-  border: 2px dashed rgba(255,255,255,0.1);
+  background: var(--bg-card);
+  border: 2px dashed rgba(var(--border-rgb), 0.1);
   overflow: hidden;
   cursor: pointer;
   margin: 0 auto;
@@ -362,7 +362,7 @@ async function save() {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 12px;
   text-align: center;
   padding: 8px;
@@ -370,14 +370,14 @@ async function save() {
 
 .save-error {
   font-size: 13px;
-  color: #FF453A;
+  color: var(--color-danger);
   text-align: center;
 }
 
 /* ── Collaborators section ── */
 .collaborators-section {
   padding: 0 16px 32px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(var(--border-rgb), 0.08);
   margin-top: 8px;
 }
 
@@ -390,7 +390,7 @@ async function save() {
 
 .collabs-subtitle {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -399,7 +399,7 @@ async function save() {
 
 .available-label {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0 0 8px;
 }
 
@@ -407,10 +407,10 @@ async function save() {
   list-style: none;
   margin: 0 0 12px;
   padding: 0;
-  background: #1C1C1E;
+  background: var(--bg-input);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
 }
 
 .search-result-item {
@@ -422,9 +422,9 @@ async function save() {
   transition: background 0.15s;
 }
 
-.search-result-item:hover { background: rgba(255,255,255,0.05); }
+.search-result-item:hover { background: rgba(var(--border-rgb), 0.05); }
 
-.no-results { font-size: 13px; color: #636366; text-align: center; margin: 4px 0 12px; }
+.no-results { font-size: 13px; color: var(--text-muted); text-align: center; margin: 4px 0 12px; }
 
 .collab-list {
   list-style: none;
@@ -440,9 +440,9 @@ async function save() {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .user-avatar {
@@ -457,8 +457,8 @@ async function save() {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #3A3A3C;
-  color: #fff;
+  background: var(--bg-card);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -486,7 +486,7 @@ async function save() {
 
 .user-email {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -494,7 +494,7 @@ async function save() {
 
 .add-icon {
   font-size: 20px;
-  color: #30D158;
+  color: var(--color-success);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -504,7 +504,7 @@ async function save() {
   border: none;
   padding: 4px;
   cursor: pointer;
-  color: #FF453A;
+  color: var(--color-danger);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -514,16 +514,16 @@ async function save() {
 
 .remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.no-collabs { font-size: 13px; color: #636366; margin: 8px 0 0; }
+.no-collabs { font-size: 13px; color: var(--text-muted); margin: 8px 0 0; }
 
-.collabs-loading { font-size: 13px; color: #8E8E93; padding: 8px 0; }
+.collabs-loading { font-size: 13px; color: var(--text-muted); padding: 8px 0; }
 
 /* ── Three-dot menu ── */
 .more-menu-wrapper { position: relative; }
-.more-menu-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: transparent; transition: background 0.15s; }
-.more-menu-btn:hover { background: rgba(255,255,255,0.08); }
-.more-menu-dropdown { position: absolute; top: 44px; right: 0; min-width: 200px; background: #2C2C2E; border-radius: 14px; padding: 6px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); z-index: 100; overflow: hidden; }
-.more-menu-option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 500; color: #fff; text-align: left; transition: background 0.15s; }
-.more-menu-option:hover { background: rgba(255,255,255,0.06); }
-.more-menu-option svg { flex-shrink: 0; color: #BF5AF2; }
+.more-menu-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); background: transparent; transition: background 0.15s; }
+.more-menu-btn:hover { background: rgba(var(--border-rgb), 0.08); }
+.more-menu-dropdown { position: absolute; top: 44px; right: 0; min-width: 200px; background: var(--bg-card); border-radius: 14px; padding: 6px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid rgba(var(--border-rgb), 0.08); z-index: 100; overflow: hidden; }
+.more-menu-option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--text-primary); text-align: left; transition: background 0.15s; }
+.more-menu-option:hover { background: rgba(var(--border-rgb), 0.06); }
+.more-menu-option svg { flex-shrink: 0; color: var(--purple-light); }
 </style>

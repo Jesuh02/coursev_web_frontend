@@ -78,8 +78,8 @@ onMounted(() => {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f7f8fb;
-  color: #111827;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .session-link-panel {
@@ -105,7 +105,7 @@ h1 {
 
 p {
   margin: 0;
-  color: #4b5563;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -114,7 +114,7 @@ button {
   border: 0;
   border-radius: 8px;
   padding: 12px 18px;
-  color: #ffffff;
+  color: var(--text-on-accent);
   background: #4f46e5;
   font-weight: 700;
   cursor: pointer;

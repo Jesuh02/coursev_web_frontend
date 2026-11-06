@@ -421,13 +421,13 @@ onMounted(generate)
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  background: #050507;
+  background: var(--bg-primary);
 }
 
 .player-wrap {
   width: 100%;
   overflow: hidden;
-  background: #050507;
+  background: var(--bg-primary);
   flex-shrink: 0;
 }
 .player {
@@ -443,7 +443,7 @@ onMounted(generate)
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #111;
+  background: var(--bg-card);
   color: var(--apple-graphite);
   padding: 24px;
   text-align: center;
@@ -451,7 +451,7 @@ onMounted(generate)
 
 .vv-slideshow {
   aspect-ratio: 16 / 9;
-  background: #050507;
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -468,11 +468,11 @@ onMounted(generate)
   flex: 1;
   min-height: 0;
   object-fit: contain;
-  background: #000;
+  background: var(--bg-primary);
 }
 .slide-placeholder {
   flex: 1;
-  background: #111;
+  background: var(--bg-card);
 }
 .slide-nav {
   display: flex;
@@ -481,17 +481,17 @@ onMounted(generate)
   gap: 16px;
   min-height: 48px;
   padding: 8px;
-  background: #111114;
+  background: var(--bg-card);
 }
 .slide-btn {
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--text-primary-rgb), 0.08);
   border: none;
   border-radius: 50%;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 22px;
   cursor: pointer;
   opacity: 0.8;
@@ -501,7 +501,7 @@ onMounted(generate)
 .slide-btn:disabled { opacity: 0.25; cursor: default; }
 .slide-counter {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(var(--text-primary-rgb), 0.72);
   min-width: 48px;
   text-align: center;
   font-weight: 600;
@@ -610,8 +610,8 @@ onMounted(generate)
   margin: 0;
   padding: 14px 16px;
   border-radius: 14px;
-  background: linear-gradient(145deg, #0d1224 0%, #0a0f1a 100%);
-  color: #e8ecf4;
+  background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-card) 100%);
+  color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -638,7 +638,7 @@ onMounted(generate)
 }
 
 .credits-banner {
-  background: #1c1400;
+  background: var(--bg-card);
   border-bottom: 1px solid #7c5a00;
   padding: 12px 16px;
 }
@@ -662,12 +662,12 @@ onMounted(generate)
 .credits-banner__content strong {
   display: block;
   font-size: 14px;
-  color: #f5c518;
+  color: var(--color-warning);
   margin-bottom: 2px;
 }
 .credits-banner__content p {
   font-size: 12px;
-  color: #c9a830;
+  color: var(--color-warning);
   margin: 0;
   line-height: 1.45;
 }

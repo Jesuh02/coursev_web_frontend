@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid #BF5AF2;
+  border: 3px solid var(--purple-glow);
 }
 
 .avatar img {
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
 .avatar-letter {
   font-size: 36px;
   font-weight: 700;
-  color: #BF5AF2;
+  color: var(--purple-glow);
 }
 
 .camera-btn {
@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -246,13 +246,13 @@ onBeforeUnmount(() => {
 }
 
 .error-message {
-  color: #ff8a84;
+  color: var(--color-danger);
   background: rgba(255, 69, 58, 0.1);
   border: 1px solid rgba(255, 69, 58, 0.18);
 }
 
 .success-message {
-  color: #7ee787;
+  color: var(--color-success);
   background: rgba(48, 209, 88, 0.1);
   border: 1px solid rgba(48, 209, 88, 0.16);
 }

@@ -41,7 +41,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
   height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -63,7 +63,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
   width: 80px;
   height: 12px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -72,7 +72,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
   width: 40px;
   height: 10px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -80,7 +80,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
 .skel-line {
   height: 12px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -91,7 +91,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
   width: 56px;
   height: 10px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -102,7 +102,7 @@ withDefaults(defineProps<{ count?: number }>(), { count: 5 })
   border-radius: 50%;
   flex-shrink: 0;
   align-self: center;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--bg-card-hover) 50%, var(--bg-card-hover) 75%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite;
 }

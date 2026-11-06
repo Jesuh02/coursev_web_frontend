@@ -8,19 +8,19 @@
     <div class="card-thumb">
       <img v-if="thumb" :src="thumb" :alt="subject.name" />
       <div v-else class="thumb-placeholder">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="1.5">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
       </div>
       <div v-if="isBlocked" class="blocked-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" />
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
         </svg>
       </div>
       <div v-if="isDragMode" class="drag-handle-badge">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="9" cy="5" r="1.8"/>
           <circle cx="15" cy="5" r="1.8"/>
           <circle cx="9" cy="12" r="1.8"/>
@@ -100,7 +100,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
 <style scoped>
 .subject-card {
   border-radius: 24px;
-  background: #242424;
+  background: var(--bg-card);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -133,7 +133,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #1a1a1a;
+  background: var(--bg-card);
   overflow: hidden;
 }
 
@@ -149,7 +149,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1a1a2e, #2a1a3e);
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-card));
 }
 
 .blocked-badge {
@@ -163,6 +163,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-on-accent);
 }
 
 .drag-handle-badge {
@@ -177,6 +178,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-on-accent);
 }
 
 .card-body {
@@ -193,7 +195,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   flex: 1;
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -202,7 +204,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
 
 .card-desc {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin-top: 4px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -228,7 +230,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   flex: 1;
   max-width: 100px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   border-radius: 2px;
 }
 
@@ -242,7 +244,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
 .stat-progress {
   font-size: 12px;
   font-weight: 600;
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 .task-badge {
@@ -250,7 +252,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   background: rgba(191, 90, 242, 0.12);
   padding: 4px 10px;
   border-radius: 10px;
@@ -262,7 +264,7 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #FFD60A;
+  color: var(--color-warning);
   background: rgba(255, 214, 10, 0.12);
   padding: 4px 10px;
   border-radius: 10px;
@@ -276,12 +278,12 @@ const thumb = computed(() => resolveImageUrl(props.subject.thumbnailUrl))
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  color: #8E8E93;
+  color: var(--text-muted);
   flex-shrink: 0;
   transition: background 0.15s;
 }
 
 .options-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
 }
 </style>

@@ -108,12 +108,12 @@ onMounted(async () => {
 .welcome-title {
   font-size: 34px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .welcome-sub {
   font-size: 17px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .admin-avatar {
@@ -137,7 +137,7 @@ onMounted(async () => {
 .avatar-fallback {
   font-size: 16px;
   font-weight: 600;
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 .stats-row {

@@ -19,7 +19,7 @@ defineProps<{
   position: relative;
   padding: 16px;
   border-radius: 16px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   overflow: hidden;
 }
 
@@ -35,12 +35,12 @@ defineProps<{
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 </style>

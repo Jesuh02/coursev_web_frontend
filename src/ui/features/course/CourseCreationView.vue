@@ -7,7 +7,7 @@
         <div class="thumb-upload" @click="openFilePicker">
           <img v-if="form.thumbnailPreview" :src="form.thumbnailPreview" alt="" @error="form.thumbnailPreview = ''" />
           <div v-else class="upload-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
             <p>Subir miniatura</p>
           </div>
           <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileSelect" />
@@ -573,13 +573,13 @@ async function submitCourse() {
 .form-footer {
   padding: 16px;
   background: var(--bg-primary);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(var(--border-rgb), 0.08);
   flex-shrink: 0;
 }
 
 .save-error {
   font-size: 13px;
-  color: #FF453A;
+  color: var(--color-danger);
   margin-bottom: 10px;
   text-align: center;
 }
@@ -588,8 +588,8 @@ async function submitCourse() {
   width: 100%;
   height: 140px;
   border-radius: 16px;
-  background: #1C1C1E;
-  border: 2px dashed rgba(255,255,255,0.1);
+  background: var(--bg-card);
+  border: 2px dashed rgba(var(--border-rgb), 0.1);
   overflow: hidden;
   cursor: pointer;
   display: flex;
@@ -605,7 +605,7 @@ async function submitCourse() {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -621,18 +621,18 @@ async function submitCourse() {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 12px;
 }
 
-.toggle-label { font-size: 15px; color: #fff; }
+.toggle-label { font-size: 15px; color: var(--text-primary); }
 
 .toggle {
   width: 44px;
   height: 24px;
   appearance: none;
   border-radius: 12px;
-  background: #333;
+  background: var(--bg-card);
   position: relative;
   cursor: pointer;
   transition: background 0.2s;
@@ -669,13 +669,13 @@ async function submitCourse() {
 
 .input-label {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .deadline-hint {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   line-height: 1.4;
 }
 
@@ -707,8 +707,8 @@ async function submitCourse() {
 }
 
 .category-select option {
-  background: #1C1C1E;
-  color: #fff;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 /* Collaborator section */
@@ -729,8 +729,8 @@ async function submitCourse() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #1C1C1E;
-  color: #fff;
+  background: var(--bg-card);
+  color: var(--text-primary);
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 16px;
@@ -739,7 +739,7 @@ async function submitCourse() {
 .chip-remove {
   background: none;
   border: none;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 16px;
   cursor: pointer;
   padding: 0;
@@ -747,11 +747,11 @@ async function submitCourse() {
 }
 
 .collab-search-input {
-  background: #1C1C1E;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--bg-input);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   border-radius: 12px;
   padding: 12px 14px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
   width: 100%;
 }
@@ -762,7 +762,7 @@ async function submitCourse() {
   list-style: none;
   margin: 0;
   padding: 0;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 12px;
   max-height: 200px;
   overflow-y: auto;
@@ -773,7 +773,7 @@ async function submitCourse() {
   align-items: flex-start;
   padding: 12px 14px;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   transition: background 0.15s;
 }
@@ -784,9 +784,9 @@ async function submitCourse() {
   gap: 4px;
 }
 
-.collab-result-item:hover { background: rgba(255,255,255,0.06); }
+.collab-result-item:hover { background: rgba(var(--border-rgb), 0.06); }
 .collab-result-item.selected { opacity: 0.5; }
-.collab-email { color: #8E8E93; font-size: 12px; }
+.collab-email { color: var(--text-muted); font-size: 12px; }
 
 /* Liquid glass dialog  */
 .modal-overlay {
@@ -800,10 +800,10 @@ async function submitCourse() {
 }
 
 .liquid-glass-dialog {
-  background: rgba(28,28,30,0.92);
+  background: rgba(var(--bg-card-rgb), 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   border-radius: 20px;
   padding: 24px;
   max-width: 360px;
@@ -812,14 +812,14 @@ async function submitCourse() {
 }
 
 .dialog-title {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 16px;
 }
 
 .dialog-message {
-  color: rgba(255,255,255,0.8);
+  color: rgba(var(--text-primary-rgb), 0.8);
   font-size: 14px;
   line-height: 1.5;
   margin: 0 0 24px;
@@ -841,8 +841,8 @@ async function submitCourse() {
   background: transparent;
 }
 
-.dialog-btn.cancel { color: #fff; }
-.dialog-btn.accept { color: #FF6B6B; }
+.dialog-btn.cancel { color: var(--text-primary); }
+.dialog-btn.accept { color: var(--color-danger); }
 
 /* Guest chips — teal accent to distinguish from collaborator chips */
 .guest-chip {

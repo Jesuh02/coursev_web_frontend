@@ -290,13 +290,13 @@ async function submitReset() {
 }
 
 .hint-item.ok {
-  color: #4ade80;
+  color: var(--color-success);
 }
 .hint-item.ok .hint-dot {
   background: #4ade80;
 }
 .hint-item.fail {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 .hint-item.fail .hint-dot {
   background: #ef4444;
@@ -334,7 +334,7 @@ async function submitReset() {
 
 .error-text {
   font-size: 13px;
-  color: #ef4444;
+  color: var(--color-danger);
   text-align: center;
   margin: 0;
 }
@@ -375,7 +375,7 @@ async function submitReset() {
   height: 56px;
   border-radius: 50%;
   background: #22c55e22;
-  color: #22c55e;
+  color: var(--color-success);
   font-size: 28px;
   display: flex;
   align-items: center;
@@ -387,8 +387,8 @@ async function submitReset() {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

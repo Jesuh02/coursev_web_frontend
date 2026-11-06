@@ -1,5 +1,5 @@
 <template>
-  <div class="video-card" @click="onCardClick">
+  <div class="video-card" :class="{ 'is-placeholder': videoError || (!loaded && !thumbUrl) }" @click="onCardClick">
     <!-- Video player -->
     <video
       ref="videoEl"
@@ -18,7 +18,7 @@
     <div v-if="!loaded && !videoError" class="video-placeholder">
       <img v-if="thumbUrl" :src="thumbUrl" class="poster-img" alt="" />
       <div v-else class="poster-fallback">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
       </div>
@@ -26,7 +26,7 @@
 
     <!-- Video error state -->
     <div v-if="videoError" class="video-error">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="12" cy="12" r="10"/>
         <line x1="15" y1="9" x2="9" y2="15"/>
         <line x1="9" y1="9" x2="15" y2="15"/>
@@ -61,7 +61,7 @@
 
       <!-- Like button -->
       <button :class="['action-btn', { liked }]" @click.stop="handleLike">
-        <svg width="32" height="32" viewBox="0 0 24 24" :fill="liked ? '#ff2d55' : 'none'" :stroke="liked ? '#ff2d55' : '#fff'" stroke-width="2">
+        <svg width="32" height="32" viewBox="0 0 24 24" :fill="liked ? '#ff2d55' : 'none'" :stroke="liked ? '#ff2d55' : 'currentColor'" stroke-width="2">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
         <span class="action-count">{{ formatCount(likeCount) }}</span>
@@ -69,7 +69,7 @@
 
       <!-- Comment button -->
       <button class="action-btn" @click.stop="$emit('comment')">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
         <span class="action-count">{{ formatCount(commentCount) }}</span>
@@ -77,7 +77,7 @@
 
       <!-- Share button -->
       <button class="action-btn" @click.stop="$emit('share')">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
           <polyline points="16 6 12 2 8 6" />
           <line x1="12" y1="2" x2="12" y2="15" />
@@ -87,11 +87,11 @@
 
       <!-- Mute/Unmute button -->
       <button class="action-btn" @click.stop="muted = !muted">
-        <svg v-if="!muted" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <svg v-if="!muted" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
         </svg>
-        <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
           <line x1="23" y1="9" x2="17" y2="15" />
           <line x1="17" y1="9" x2="23" y2="15" />
@@ -137,7 +137,7 @@
           </svg>
         </button>
         <button class="control-btn" @click="enterFullscreen" title="Pantalla completa">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
           </svg>
         </button>
@@ -473,6 +473,7 @@ defineExpose({ startPreload, videoEl })
 
 <style scoped>
 .video-card {
+  color: var(--text-on-accent);
   position: relative;
   height: 100dvh;
   width: 100%;
@@ -503,7 +504,8 @@ defineExpose({ startPreload, videoEl })
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0a0a1a, #1a0a2e);
+  background: var(--bg-card);
+  color: var(--text-muted);
 }
 
 .poster-img {
@@ -526,9 +528,9 @@ defineExpose({ startPreload, videoEl })
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: linear-gradient(135deg, #0a0a1a, #1a0a2e);
+  background: var(--bg-card);
   z-index: 5;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -536,15 +538,25 @@ defineExpose({ startPreload, videoEl })
   margin-top: 4px;
   padding: 8px 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--surface-tint-hover);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   transition: background 0.2s;
 }
 
 .retry-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-card-hover);
+}
+
+.video-card.is-placeholder :is(.action-btn, .action-count, .action-label, .creator-name, .follow-label, .video-title, .video-desc, .audio-row) {
+  color: var(--text-primary);
+  text-shadow: none;
+  filter: none;
+}
+
+.video-card.is-placeholder :is(.overlay-gradient-top, .overlay-gradient-bottom) {
+  display: none;
 }
 
 .pause-indicator {

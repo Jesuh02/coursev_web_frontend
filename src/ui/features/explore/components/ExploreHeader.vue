@@ -136,9 +136,9 @@ function onSearchInput(event: Event) {
   background:
     radial-gradient(120% 140% at 12% 8%, rgba(92, 163, 255, 0.18), transparent 42%),
     radial-gradient(110% 130% at 90% 18%, rgba(188, 138, 255, 0.17), transparent 45%),
-    rgba(9, 12, 18, 0.82);
+    rgba(var(--bg-card-rgb), 0.82);
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -155,14 +155,14 @@ function onSearchInput(event: Event) {
   font-size: 24px;
   line-height: 1.1;
   font-weight: 800;
-  color: #f8fbff;
+  color: var(--text-primary);
   letter-spacing: 0.01em;
 }
 
 .header-copy p {
   margin: 5px 0 0;
   font-size: 13px;
-  color: #8e95a9;
+  color: var(--text-muted);
 }
 
 .search-bar {
@@ -173,8 +173,8 @@ function onSearchInput(event: Event) {
   gap: 8px;
   width: 100%;
   max-width: 680px;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(var(--border-rgb), 0.09);
+  border: 1px solid rgba(var(--border-rgb), 0.22);
   border-radius: 24px;
   padding: 2px 12px;
   min-height: 42px;
@@ -202,13 +202,13 @@ function onSearchInput(event: Event) {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.16) 4%, rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0.12) 67%, rgba(255, 255, 255, 0.04) 100%),
-    radial-gradient(110px 42px at 22% 14%, rgba(255, 255, 255, 0.17), transparent 75%);
+    linear-gradient(120deg, rgba(var(--border-rgb), 0.16) 4%, rgba(var(--border-rgb), 0.02) 36%, rgba(var(--border-rgb), 0.12) 67%, rgba(var(--border-rgb), 0.04) 100%),
+    radial-gradient(110px 42px at 22% 14%, rgba(var(--border-rgb), 0.17), transparent 75%);
 }
 
 .search-icon {
   flex-shrink: 0;
-  color: #b790ff;
+  color: var(--purple-light);
   z-index: 1;
   width: 18px;
   height: 18px;
@@ -224,7 +224,7 @@ function onSearchInput(event: Event) {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  color: #f7f2ff;
+  color: var(--text-on-accent);
   background: linear-gradient(135deg, rgba(144, 95, 255, 0.92), rgba(95, 160, 255, 0.86));
   box-shadow: 0 8px 18px rgba(83, 62, 132, 0.3);
   cursor: pointer;
@@ -241,7 +241,7 @@ function onSearchInput(event: Event) {
   min-width: 0;
   background: none;
   border: none;
-  color: #f9fbff;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   outline: none;
@@ -250,7 +250,7 @@ function onSearchInput(event: Event) {
   z-index: 1;
 }
 
-.search-input::placeholder { color: #9ca3b8; }
+.search-input::placeholder { color: var(--text-muted); }
 
 .icon-btn {
   flex-shrink: 0;
@@ -260,20 +260,20 @@ function onSearchInput(event: Event) {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  color: #cfd7ea;
+  color: var(--text-secondary);
   z-index: 1;
   transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
 }
 
 .icon-btn:active { transform: scale(0.96); }
 
 .eye-btn {
-  color: #b790ff;
+  color: var(--purple-light);
 }
 
 .stats-row {
@@ -289,22 +289,22 @@ function onSearchInput(event: Event) {
   text-align: left;
   border-radius: 14px;
   padding: 10px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
+  background: rgba(var(--border-rgb), 0.05);
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(var(--border-rgb), 0.28);
+  background: rgba(var(--border-rgb), 0.08);
 }
 
 .stat-card strong {
   display: block;
   font-size: 18px;
   line-height: 1;
-  color: #f9fbff;
+  color: var(--text-primary);
   font-weight: 800;
 }
 
@@ -312,7 +312,7 @@ function onSearchInput(event: Event) {
   margin-top: 3px;
   display: block;
   font-size: 11px;
-  color: #97a1b7;
+  color: var(--text-muted);
 }
 
 .stat-card.is-accent {
@@ -332,7 +332,7 @@ function onSearchInput(event: Event) {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8b95ae;
+  color: var(--text-muted);
 }
 
 .filter-chips-row {
@@ -355,29 +355,29 @@ function onSearchInput(event: Event) {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
-  color: #c8d0e6;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary);
+  background: rgba(var(--border-rgb), 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   white-space: nowrap;
   transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .filter-chip:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.14);
+  color: var(--text-primary);
 }
 
 .filter-chip.active {
-  background: #fff;
-  border-color: #fff;
-  color: #0a0a0a;
+  background: var(--bg-inverse);
+  border-color: var(--bg-inverse);
+  color: var(--text-inverse);
   font-weight: 700;
 }
 
 .filter-chip--category.active {
   background: linear-gradient(135deg, rgba(89, 141, 255, 0.24), rgba(191, 90, 242, 0.24));
   border-color: rgba(191, 90, 242, 0.45);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .header-fade-enter-active,

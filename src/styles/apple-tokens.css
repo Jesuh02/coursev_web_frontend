@@ -45,25 +45,7 @@
   --apple-ring-b: rgba(29, 29, 31, 0.12);
 }
 
-/* ── Dark Mode (system preference, unless overridden) ─────────────── */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --apple-snow:    #1c1c1e;
-    --apple-cloud:   #2c2c2e;
-    --apple-mist:    #000000;
-    --apple-silver:  #48484a;
-    --apple-graphite:#98989d;
-    --apple-steel:   #c7c7cc;
-    --apple-ink:     #f5f5f7;
-    --apple-border:        rgba(255, 255, 255, 0.08);
-    --apple-border-strong: rgba(255, 255, 255, 0.14);
-    --apple-skeleton-shimmer: #3a3a3c;
-    --apple-ring-a:  rgba(255, 255, 255, 0.20);
-    --apple-ring-b:  rgba(255, 255, 255, 0.12);
-  }
-}
-
-/* ── Manual dark override ─────────────────────────────────────────── */
+/* All sections follow the explicit global preference; light is the default. */
 [data-theme="dark"] {
   --apple-snow:    #1c1c1e;
   --apple-cloud:   #2c2c2e;
@@ -72,6 +54,7 @@
   --apple-graphite:#98989d;
   --apple-steel:   #c7c7cc;
   --apple-ink:     #f5f5f7;
+  --apple-glaucus-blue: #64a8ff;
   --apple-border:        rgba(255, 255, 255, 0.08);
   --apple-border-strong: rgba(255, 255, 255, 0.14);
   --apple-skeleton-shimmer: #3a3a3c;
@@ -182,7 +165,7 @@
 }
 .al-cta--accent {
   background: var(--apple-signal-blue);
-  color: var(--apple-snow);
+  color: var(--text-on-accent);
 }
 .al-cta--accent:hover { background: #0077ed; transform: none; opacity: .92; }
 .al-cta--ghost {

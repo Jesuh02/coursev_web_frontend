@@ -87,19 +87,19 @@ function timeAgo(date: string): string {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: #121212;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--bg-card);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
   position: relative;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .notification-item:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
 }
 
 .notification-item:active {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 
 .notification-item.unread {
@@ -122,7 +122,7 @@ function timeAgo(date: string): string {
 
 .notif-icon.icon-default {
   background: rgba(191, 90, 242, 0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 .notif-icon.icon-collaborator {
@@ -137,22 +137,22 @@ function timeAgo(date: string): string {
 
 .notif-icon.icon-approved {
   background: rgba(34, 197, 94, 0.15);
-  color: #22C55E;
+  color: var(--color-success);
 }
 
 .notif-icon.icon-revoked {
   background: rgba(255, 69, 58, 0.15);
-  color: #FF453A;
+  color: var(--color-danger);
 }
 
 .notif-icon.icon-blocked {
   background: rgba(255, 149, 0, 0.15);
-  color: #FF9500;
+  color: var(--color-warning);
 }
 
 .notif-icon.icon-unblocked {
   background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+  color: var(--color-success);
 }
 
 .notif-icon.icon-restored {
@@ -168,13 +168,13 @@ function timeAgo(date: string): string {
 .notif-title {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .notif-message {
   font-size: 14px;
-  color: #ccc;
+  color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -183,7 +183,7 @@ function timeAgo(date: string): string {
 
 .notif-time {
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -191,7 +191,7 @@ function timeAgo(date: string): string {
   width: 72px;
   height: 90px;
   border-radius: 8px;
-  background: #2A2A2A;
+  background: var(--bg-card-hover);
   overflow: hidden;
   flex-shrink: 0;
 }

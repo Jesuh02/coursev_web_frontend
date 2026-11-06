@@ -1,40 +1,57 @@
-/**
- * useTheme — lightweight singleton for the Learning section's dark/light toggle.
- * Reads the stored preference from localStorage, falls back to the OS preference,
- * and syncs to `document.documentElement`'s `data-theme` attribute so that the
- * CSS custom-property overrides in apple-tokens.css take effect everywhere.
- */
-import { ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 
-const STORAGE_KEY = 'apple-learning-theme'
-const isDark = ref(false)
+export type Theme = 'light' | 'dark'
+
+const STORAGE_KEY = 'coursev-theme'
+const theme = ref<Theme>('light')
+const isDark = computed(() => theme.value === 'dark')
 let initialized = false
 
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+function readPreference(): Theme {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
 }
 
-function init() {
-  if (initialized) return
+function applyTheme(value: Theme) {
+  theme.value = value
+  document.documentElement.dataset.theme = value
+  document.documentElement.style.colorScheme = value
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content', value === 'dark' ? '#000000' : '#f7f8fc',
+  )
+  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute(
+    'content', value === 'dark' ? 'black-translucent' : 'default',
+  )
+}
+
+/** Initialize before mounting, including direct visits to any route. */
+export function initTheme() {
+  if (initialized || typeof window === 'undefined') return
   initialized = true
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'dark') {
-    isDark.value = true
-  } else if (stored === 'light') {
-    isDark.value = false
-  } else {
-    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  applyTheme(readPreference())
+  window.addEventListener('storage', (event) => {
+    if (event.key === STORAGE_KEY || event.key === null) applyTheme(readPreference())
+  })
+}
+
+function setTheme(value: Theme) {
+  applyTheme(value)
+  try {
+    localStorage.setItem(STORAGE_KEY, value)
+  } catch {
+    // Still apply the selection for this session if storage is unavailable.
   }
-  applyTheme()
 }
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  localStorage.setItem(STORAGE_KEY, isDark.value ? 'dark' : 'light')
-  applyTheme()
+  setTheme(isDark.value ? 'light' : 'dark')
 }
 
+/** One preference shared by Profile, Learning, and every other interface. */
 export function useTheme() {
-  init()
-  return { isDark, toggleTheme }
+  initTheme()
+  return { theme: readonly(theme), isDark, setTheme, toggleTheme }
 }

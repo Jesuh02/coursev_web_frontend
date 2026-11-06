@@ -15,7 +15,7 @@
 .skeleton-card {
   position: relative;
   height: calc(100dvh - 56px);
-  background: #0a0a1a;
+  background: var(--bg-primary);
   scroll-snap-align: start;
 }
 
@@ -39,7 +39,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.1);
 }
 
 .skeleton-info {
@@ -54,7 +54,7 @@
 .skeleton-line {
   height: 14px;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.1);
   min-width: 100px;
 }
 

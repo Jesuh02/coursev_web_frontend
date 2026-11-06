@@ -262,8 +262,8 @@ const workloadSummary = computed(() => {
      flex-shrink:0 prevents the flex algorithm from compressing the tall card. */
   flex-shrink: 0;
   width: 100%;
-  background: linear-gradient(180deg, #3f3f46 0%, #2f3035 54%, #242529 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, var(--bg-input) 0%, var(--bg-input) 54%, var(--bg-input) 100%);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   border-radius: 22px;
   overflow: hidden;
   display: flex;
@@ -274,7 +274,7 @@ const workloadSummary = computed(() => {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .plan-card--updated {
-  border-color: rgba(255, 255, 255, 0.42);
+  border-color: rgba(var(--border-rgb), 0.42);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08), 0 18px 44px rgba(0, 0, 0, 0.28);
 }
 
@@ -297,12 +297,12 @@ const workloadSummary = computed(() => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(var(--text-primary-rgb), 0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--text-primary);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -321,7 +321,7 @@ const workloadSummary = computed(() => {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 .plan-updated-badge {
@@ -331,9 +331,9 @@ const workloadSummary = computed(() => {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  background: rgba(var(--text-primary-rgb), 0.12);
+  border: 1px solid rgba(var(--border-rgb), 0.18);
   padding: 2px 8px;
   border-radius: 980px;
   text-transform: none;
@@ -343,7 +343,7 @@ const workloadSummary = computed(() => {
   font-family: 'SF Pro Display', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 21px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   line-height: 1.14;
   letter-spacing: 0;
   white-space: nowrap;
@@ -354,7 +354,7 @@ const workloadSummary = computed(() => {
 /* ─── Description ─────────────────────────────────────────────────────────── */
 .plan-desc {
   font-size: 14px;
-  color: #f4f4f5;
+  color: var(--text-primary);
   line-height: 1.47;
   letter-spacing: 0;
   padding: 8px 20px 0;
@@ -374,17 +374,17 @@ const workloadSummary = computed(() => {
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   padding: 4px 12px;
   border-radius: 980px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(var(--text-primary-rgb), 0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   letter-spacing: 0;
 }
 .plan-tag--level {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+  background: rgba(var(--text-primary-rgb), 0.14);
+  border-color: rgba(var(--border-rgb), 0.22);
 }
 
 /* ─── Curriculum focus ────────────────────────────────────────────────────── */
@@ -394,8 +394,8 @@ const workloadSummary = computed(() => {
   gap: 12px;
   margin: 14px 20px 0;
   padding: 14px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--surface-tint);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   border-radius: 16px;
 }
 
@@ -408,7 +408,7 @@ const workloadSummary = computed(() => {
 .curriculum-label {
   font-size: 11px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0;
 }
@@ -423,7 +423,7 @@ const workloadSummary = computed(() => {
 
 .curriculum-list li {
   font-size: 12.5px;
-  color: #f4f4f5;
+  color: var(--text-primary);
   line-height: 1.4;
 }
 
@@ -433,7 +433,7 @@ const workloadSummary = computed(() => {
   flex-wrap: wrap;
   gap: 6px;
   font-size: 12px;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 .workload-chip {
@@ -447,8 +447,8 @@ const workloadSummary = computed(() => {
 .plan-structure span {
   padding: 4px 10px;
   border-radius: 980px;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(var(--text-primary-rgb), 0.09);
+  border: 1px solid rgba(var(--border-rgb), 0.13);
 }
 
 /* ─── Subject tree ────────────────────────────────────────────────────────── */
@@ -461,13 +461,13 @@ const workloadSummary = computed(() => {
 
 .subject-block {
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--text-primary-rgb), 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .subject-block:hover {
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(var(--border-rgb), 0.28);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
@@ -483,14 +483,14 @@ const workloadSummary = computed(() => {
   text-align: left;
   transition: background 0.15s;
 }
-.subject-row:hover { background: rgba(255, 255, 255, 0.08); }
+.subject-row:hover { background: rgba(var(--text-primary-rgb), 0.08); }
 
 .subject-num {
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: rgba(var(--text-primary-rgb), 0.14);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -503,7 +503,7 @@ const workloadSummary = computed(() => {
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -513,13 +513,13 @@ const workloadSummary = computed(() => {
 
 .subject-topic-count {
   font-size: 12px;
-  color: #e4e4e7;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
 .subject-chevron {
   flex-shrink: 0;
-  color: #e4e4e7;
+  color: var(--text-primary);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .subject-chevron--open { transform: rotate(180deg); }
@@ -529,28 +529,28 @@ const workloadSummary = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(var(--border-rgb), 0.12);
 }
 
 .subject-desc {
   font-size: 13px;
-  color: #e4e4e7;
+  color: var(--text-primary);
   line-height: 1.45;
 }
 
 .subject-competency,
 .subject-integration {
   font-size: 12px;
-  color: #f4f4f5;
+  color: var(--text-primary);
   line-height: 1.45;
   padding: 7px 9px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(var(--text-primary-rgb), 0.07);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
 }
 
 .subject-integration {
-  color: #d4d4d8;
+  color: var(--text-secondary);
 }
 
 .topic-item { display: flex; flex-direction: column; gap: 5px; }
@@ -560,7 +560,7 @@ const workloadSummary = computed(() => {
 .topic-idx {
   font-size: 11px;
   font-weight: 600;
-  color: #d4d4d8;
+  color: var(--text-secondary);
   width: 16px;
   text-align: right;
   flex-shrink: 0;
@@ -569,7 +569,7 @@ const workloadSummary = computed(() => {
 .topic-name {
   flex: 1;
   font-size: 13px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -579,12 +579,12 @@ const workloadSummary = computed(() => {
   align-items: flex-start;
   gap: 5px;
   font-size: 12px;
-  color: #f4f4f5;
+  color: var(--text-primary);
   line-height: 1.45;
   padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--text-primary-rgb), 0.08);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   margin-top: 2px;
 }
 .topic-content-desc svg { flex-shrink: 0; margin-top: 1px; }
@@ -594,38 +594,38 @@ const workloadSummary = computed(() => {
   gap: 3px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
 }
 
 .topic-learning-meta p {
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 .topic-learning-meta strong {
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
 .topic-task-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-primary);
+  background: var(--surface-tint);
   padding: 1px 7px;
   border-radius: 980px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   flex-shrink: 0;
 }
 
 .topic-hour-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #f4f4f5;
-  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  background: rgba(var(--text-primary-rgb), 0.12);
   padding: 1px 7px;
   border-radius: 999px;
   flex-shrink: 0;
@@ -634,11 +634,11 @@ const workloadSummary = computed(() => {
 .topic-week-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #e4e4e7;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  background: rgba(var(--text-primary-rgb), 0.08);
   padding: 1px 7px;
   border-radius: 980px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   flex-shrink: 0;
 }
 
@@ -659,31 +659,31 @@ const workloadSummary = computed(() => {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--text-primary);
   opacity: 0.5;
   flex-shrink: 0;
 }
 
 .task-type {
   font-size: 10px;
-  color: #ffffff;
+  color: var(--text-primary);
   text-transform: uppercase;
   padding: 1px 6px;
   border-radius: 980px;
-  background: rgba(255, 255, 255, 0.11);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(var(--text-primary-rgb), 0.11);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
   flex-shrink: 0;
 }
 
-.task-name { flex: 1; font-size: 12px; color: #f4f4f5; }
+.task-name { flex: 1; font-size: 12px; color: var(--text-primary); }
 
 .task-week {
   font-size: 11px;
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-primary);
+  background: var(--surface-tint);
   padding: 1px 6px;
   border-radius: 980px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(var(--border-rgb), 0.14);
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
@@ -692,14 +692,14 @@ const workloadSummary = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 14px 20px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(var(--border-rgb), 0.14);
   margin-top: 14px;
 }
 
 .plan-footer-note {
   flex: 1;
   font-size: 12px;
-  color: #e4e4e7;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -713,11 +713,11 @@ const workloadSummary = computed(() => {
   gap: 5px;
   padding: 8px 15px;
   border-radius: 980px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(var(--text-primary-rgb), 0.1);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   cursor: pointer;
   flex-shrink: 0;
   font-family: inherit;
@@ -725,8 +725,8 @@ const workloadSummary = computed(() => {
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 .plan-reject:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(var(--text-primary-rgb), 0.16);
+  border-color: rgba(var(--border-rgb), 0.28);
 }
 .plan-reject:active:not(:disabled) {
   background: rgba(0, 0, 0, 0.28);
@@ -742,7 +742,7 @@ const workloadSummary = computed(() => {
   padding: 9px 20px;
   border-radius: 980px;
   background: #52525b;
-  color: #ffffff;
+  color: var(--text-on-accent);
   font-size: 13px;
   font-weight: 600;
   border: none;
@@ -764,7 +764,7 @@ const workloadSummary = computed(() => {
   height: 13px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border-top-color: var(--text-on-accent);
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -772,7 +772,7 @@ const workloadSummary = computed(() => {
 /* ─── Error ───────────────────────────────────────────────────────────────── */
 .plan-error {
   font-size: 13px;
-  color: #fecaca;
+  color: var(--color-danger);
   background: rgba(239, 68, 68, 0.12);
   padding: 10px 14px;
   margin: 0 20px;
@@ -786,8 +786,8 @@ const workloadSummary = computed(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 20px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(var(--border-rgb), 0.14);
+  background: rgba(var(--text-primary-rgb), 0.08);
   margin-top: 14px;
 }
 
@@ -796,7 +796,7 @@ const workloadSummary = computed(() => {
   height: 36px;
   border-radius: 50%;
   background: #71717a;
-  color: #ffffff;
+  color: var(--text-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -807,12 +807,12 @@ const workloadSummary = computed(() => {
 .done-title {
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: 0;
 }
 .done-sub {
   font-size: 12px;
-  color: #d4d4d8;
+  color: var(--text-secondary);
   margin-top: 1px;
 }
 
@@ -820,7 +820,7 @@ const workloadSummary = computed(() => {
   padding: 9px 18px;
   border-radius: 980px;
   background: #52525b;
-  color: #ffffff;
+  color: var(--text-on-accent);
   font-size: 13px;
   font-weight: 600;
   border: none;
