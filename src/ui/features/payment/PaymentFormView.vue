@@ -62,7 +62,7 @@ async function processPayment() {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 16px;
 }
 
@@ -77,8 +77,8 @@ async function processPayment() {
   flex-shrink: 0;
 }
 
-.summary-title { font-size: 16px; font-weight: 600; color: #fff; }
-.summary-price { font-size: 20px; font-weight: 700; color: #FFD700; margin-top: 2px; }
+.summary-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.summary-price { font-size: 20px; font-weight: 700; color: var(--color-warning); margin-top: 2px; }
 
 .card-form { display: flex; flex-direction: column; gap: 14px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -88,7 +88,7 @@ async function processPayment() {
   align-items: center;
   gap: 6px;
   justify-content: center;
-  color: #30D158;
+  color: var(--color-success);
   font-size: 12px;
 }
 </style>

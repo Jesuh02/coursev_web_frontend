@@ -392,11 +392,11 @@ const displayText = computed(() => {
   padding: 0 2px;
   line-height: 1;
 }
-.trigger-clear:hover { color: #FF453A; }
+.trigger-clear:hover { color: var(--color-danger); }
 
 .calendar-error {
   font-size: 12px;
-  color: #FF453A;
+  color: var(--color-danger);
 }
 
 .has-error .calendar-trigger {
@@ -416,8 +416,8 @@ const displayText = computed(() => {
 }
 
 .calendar-dropdown {
-  background: #1C1C1E;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 20px;
   padding: 20px;
   width: 100%;
@@ -443,7 +443,7 @@ const displayText = computed(() => {
 .cal-month-label {
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .cal-nav {
@@ -459,7 +459,7 @@ const displayText = computed(() => {
   cursor: pointer;
   transition: background 0.15s;
 }
-.cal-nav:active { background: rgba(255, 255, 255, 0.08); }
+.cal-nav:active { background: rgba(var(--border-rgb), 0.08); }
 
 /* ── Weekdays ── */
 .cal-weekdays {
@@ -493,7 +493,7 @@ const displayText = computed(() => {
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -502,11 +502,11 @@ const displayText = computed(() => {
 }
 
 .cal-day:hover:not(.disabled):not(.selected) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 
 .cal-day.other-month {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--text-muted);
 }
 
 .cal-day.today {
@@ -528,7 +528,7 @@ const displayText = computed(() => {
 
 .cal-day.selected {
   background: var(--purple-primary, #6200EE);
-  color: #fff;
+  color: var(--text-on-accent);
   font-weight: 700;
 }
 
@@ -558,7 +558,7 @@ const displayText = computed(() => {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(var(--border-rgb), 0.08);
 }
 
 .cal-time-label {
@@ -576,11 +576,11 @@ const displayText = computed(() => {
 }
 
 .cal-time-select {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 8px;
   padding: 8px 6px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
   text-align: center;
@@ -606,7 +606,7 @@ const displayText = computed(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(var(--border-rgb), 0.08);
 }
 
 .cal-btn {
@@ -621,14 +621,14 @@ const displayText = computed(() => {
 }
 
 .cal-btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--text-primary);
 }
-.cal-btn-secondary:active { background: rgba(255, 255, 255, 0.1); }
+.cal-btn-secondary:active { background: rgba(var(--border-rgb), 0.1); }
 
 .cal-btn-primary {
   background: var(--purple-primary, #6200EE);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 .cal-btn-primary:active { background: var(--purple-dark, #4A148C); }
 </style>

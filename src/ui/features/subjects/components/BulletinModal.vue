@@ -6,18 +6,18 @@
           <!-- Header -->
           <div class="bulletin-header">
             <div class="bulletin-header-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
             </div>
             <h2 class="bulletin-title">Generar Boletín</h2>
             <button class="bulletin-expand-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
-              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
             </button>
             <button class="bulletin-close" @click="$emit('update:modelValue', false)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
@@ -50,7 +50,7 @@
                 Generar boletín de toda la plataforma
               </button>
               <div class="student-search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <input v-model="studentSearch" type="text" placeholder="Buscar por nombre, usuario o identificación…" />
               </div>
               <p class="student-hint">Selecciona un estudiante para generar su boletín</p>
@@ -62,7 +62,7 @@
                     <span v-if="st.username" class="student-username">@{{ st.username }}</span>
                     <span v-if="st.cedula" class="student-cedula">ID: {{ st.cedula }}</span>
                   </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
                 </li>
               </ul>
               <p v-else class="no-students">No se encontraron estudiantes</p>
@@ -105,7 +105,7 @@
                   </div>
                   <div class="boletin-institution">
                     <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                     <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                   </div>
                 </div>
@@ -133,7 +133,7 @@
                   <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
                 </div>
                 </template>
-                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                   📅 Sin periodo activo — no hay datos de notas disponibles.
                 </div>
                 <div class="boletin-divider" />
@@ -194,7 +194,7 @@
                   </div>
                   <div class="boletin-institution">
                     <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                     <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                   </div>
                 </div>
@@ -222,7 +222,7 @@
                     <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
                   </div>
                 </template>
-                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                   📅 Sin periodo activo — no hay datos de notas disponibles.
                 </div>
                 <div class="boletin-divider" />
@@ -285,7 +285,7 @@
                   </div>
                   <div class="boletin-institution">
                     <span class="boletin-inst-name">{{ institutionName || 'CourseV' }}</span>
-                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                    <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                     <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                   </div>
                 </div>
@@ -341,7 +341,7 @@
                   <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ promedioGeneral.toFixed(1) }}</span>
                 </div>
                 </template>
-                <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                   📅 Sin periodo activo — no hay datos de notas disponibles.
                 </div>
 
@@ -1118,7 +1118,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   width: 100%;
   max-width: 560px;
   max-height: 88vh;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -1151,7 +1151,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   align-items: center;
   gap: 12px;
   padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .bulletin-header-icon {
@@ -1169,7 +1169,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   flex: 1;
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -1177,7 +1177,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1191,21 +1191,21 @@ ${buildInstitutionSignatureAndFooterHTML()}
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
 }
-.bulletin-close:hover { background: rgba(255, 255, 255, 0.12); }
+.bulletin-close:hover { background: rgba(var(--border-rgb), 0.12); }
 
 .period-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
+  background: rgba(var(--border-rgb), 0.02);
 }
 
 .period-chip {
@@ -1213,19 +1213,19 @@ ${buildInstitutionSignatureAndFooterHTML()}
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  color: #8E8E93;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  background: rgba(var(--border-rgb), 0.06);
   border: 1px solid transparent;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 .period-chip:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
 }
 .period-chip--selected {
   background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+  color: var(--color-success);
   border-color: rgba(48, 209, 88, 0.4);
 }
 
@@ -1241,7 +1241,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   align-items: center;
   gap: 12px;
   padding: 60px 20px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -1260,7 +1260,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   border-radius: 12px;
   padding: 10px 14px;
   margin-bottom: 12px;
@@ -1269,11 +1269,11 @@ ${buildInstitutionSignatureAndFooterHTML()}
   flex: 1;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
 }
-.student-search input::placeholder { color: #8E8E93; }
+.student-search input::placeholder { color: var(--text-muted); }
 
 .view-all-btn {
   display: flex;
@@ -1285,7 +1285,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(48, 209, 88, 0.15), rgba(48, 209, 88, 0.08));
   border: 1px solid rgba(48, 209, 88, 0.3);
-  color: #30D158;
+  color: var(--color-success);
   font-size: 15px;
   font-weight: 600;
   transition: background 0.2s, transform 0.15s;
@@ -1299,7 +1299,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .view-all-btn--platform {
   background: linear-gradient(135deg, rgba(191, 90, 242, 0.15), rgba(106, 27, 154, 0.12));
   border-color: rgba(191, 90, 242, 0.35);
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 .view-all-btn--platform:hover {
   background: linear-gradient(135deg, rgba(191, 90, 242, 0.25), rgba(106, 27, 154, 0.2));
@@ -1307,12 +1307,12 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 .bulletin-card--all {
   margin-bottom: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
 }
 
 .student-hint {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin-bottom: 12px;
 }
 
@@ -1334,14 +1334,14 @@ ${buildInstitutionSignatureAndFooterHTML()}
   cursor: pointer;
   transition: background 0.15s;
 }
-.student-item:hover { background: rgba(255, 255, 255, 0.06); }
+.student-item:hover { background: rgba(var(--border-rgb), 0.06); }
 
 .student-avatar-placeholder {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
-  color: #fff;
+  color: var(--text-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1361,7 +1361,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .student-name {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1369,17 +1369,17 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 .student-username {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .student-cedula {
   font-size: 11px;
-  color: #636366;
+  color: var(--text-muted);
 }
 
 .no-students {
   text-align: center;
-  color: #636366;
+  color: var(--text-muted);
   font-size: 14px;
   padding: 24px 0;
 }
@@ -1390,7 +1390,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #0A84FF;
+  color: var(--color-info);
   margin-bottom: 16px;
   padding: 0;
   background: none;
@@ -1401,10 +1401,10 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 /* Bulletin card */
 .bulletin-card {
-  background: #2C2C2E;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
 }
 
 .boletin-header-top {
@@ -1434,20 +1434,20 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .boletin-inst-name {
   font-size: 17px;
   font-weight: 800;
-  color: #BF5AF2;
+  color: var(--purple-light);
   letter-spacing: 0.3px;
 }
 
 .boletin-inst-subtitle {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .boletin-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   margin: 16px 0;
 }
 
@@ -1466,7 +1466,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .boletin-label {
   font-size: 11px;
   font-weight: 700;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
@@ -1476,7 +1476,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .boletin-value {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* Grades table */
@@ -1498,7 +1498,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 .th-modulo { text-align: left; }
@@ -1506,13 +1506,13 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 .boletin-table td {
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
 }
 
 .td-modulo {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   text-transform: uppercase;
 }
 
@@ -1520,11 +1520,11 @@ ${buildInstitutionSignatureAndFooterHTML()}
   text-align: center;
   font-size: 16px;
   font-weight: 800;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .boletin-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--border-rgb), 0.02);
 }
 
 .boletin-table tbody tr:last-child td { border-bottom: none; }
@@ -1543,7 +1543,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .promedio-label {
   font-size: 12px;
   font-weight: 700;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1551,13 +1551,13 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .promedio-value {
   font-size: 22px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* Grade colors */
-.nota-good { color: #30D158 !important; }
-.nota-ok { color: #FF9F0A !important; }
-.nota-low { color: #FF453A !important; }
+.nota-good { color: var(--color-success) !important; }
+.nota-ok { color: var(--color-warning) !important; }
+.nota-low { color: var(--color-danger) !important; }
 
 /* Footer */
 .boletin-footer {
@@ -1566,7 +1566,7 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 .boletin-generated {
   font-size: 11px;
-  color: #636366;
+  color: var(--text-muted);
 }
 
 /* ── INCAT in-app signature + footer ── */
@@ -1582,12 +1582,12 @@ ${buildInstitutionSignatureAndFooterHTML()}
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 .incat-sig-title {
   font-size: 10px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 2px 0 0;
 }
 .incat-footer-info {
@@ -1599,19 +1599,19 @@ ${buildInstitutionSignatureAndFooterHTML()}
 .incat-footer-slogan {
   font-size: 10px;
   font-style: italic;
-  color: #BF5AF2;
+  color: var(--purple-light);
   margin: 0 0 3px;
 }
 .incat-footer-addr,
 .incat-footer-city {
   font-size: 9px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 2px 0;
 }
 .incat-footer-email {
   font-size: 9px;
-  color: #FF453A;
+  color: var(--color-danger);
   margin: 2px 0;
 }
 
@@ -1643,17 +1643,17 @@ ${buildInstitutionSignatureAndFooterHTML()}
 
 .export-pdf {
   background: rgba(255, 69, 58, 0.12);
-  color: #FF453A;
+  color: var(--color-danger);
 }
 .export-pdf:hover { background: rgba(255, 69, 58, 0.2); }
 
-.export-excel { background: rgba(48,209,88,0.12); color: #30D158; }
+.export-excel { background: rgba(48,209,88,0.12); color: var(--color-success); }
 .export-excel:hover { background: rgba(48,209,88,0.2); }
-.export-word { background: rgba(90,200,250,0.12); color: #5AC8FA; }
+.export-word { background: rgba(90,200,250,0.12); color: var(--color-info); }
 .export-word:hover { background: rgba(90,200,250,0.2); }
 .export-share {
   background: rgba(10, 132, 255, 0.12);
-  color: #0A84FF;
+  color: var(--color-info);
 }
 .export-share:hover { background: rgba(10, 132, 255, 0.2); }
 </style>

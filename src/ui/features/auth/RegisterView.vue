@@ -414,7 +414,7 @@ async function handleRegister() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-on-accent);
   z-index: 2;
   border: 2px solid var(--bg-card-hover);
 }
@@ -560,7 +560,7 @@ async function handleRegister() {
 }
 
 .hint-item.ok {
-  color: #4ade80;
+  color: var(--color-success);
 }
 .hint-item.ok .hint-dot {
   background: #4ade80;

@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="consolidado-header">
             <div class="consolidado-header-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                 <line x1="3" y1="9" x2="21" y2="9"/>
                 <line x1="3" y1="15" x2="21" y2="15"/>
@@ -19,12 +19,12 @@
             </div>
             <button class="consolidado-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
               <Transition name="fs-icon" mode="out-in">
-                <svg v-if="!isFullscreen" key="expand" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-                <svg v-else key="collapse" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+                <svg v-if="!isFullscreen" key="expand" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                <svg v-else key="collapse" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
               </Transition>
             </button>
             <button class="consolidado-close" @click="$emit('update:modelValue', false)" aria-label="Cerrar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
@@ -39,7 +39,7 @@
 
           <!-- Error -->
           <div v-else-if="errorMsg" class="consolidado-error">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <p>{{ errorMsg }}</p>
             <button class="retry-btn" @click="fetchConsolidado">Reintentar</button>
           </div>
@@ -62,7 +62,7 @@
                       @input="showCourseDropdown = true"
                       @blur="hideCourseDropdownDelayed"
                     />
-                    <svg v-if="!selectedCourseId" class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg v-if="!selectedCourseId" class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <button v-else class="search-clear-btn" @mousedown.prevent="clearCourseSearch">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -80,7 +80,7 @@
               <!-- Student search -->
               <div class="student-search-row">
                 <div class="student-search-wrapper">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input v-model="studentSearch" type="text" class="student-search-input" placeholder="Buscar estudiante..." />
                 </div>
                 <span class="student-count">{{ totalStudentCount }} estudiantes</span>
@@ -119,7 +119,7 @@
                 </div>
               </template>
               <div v-else class="consolidado-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                 <p>No hay datos disponibles</p>
               </div>
             </div>
@@ -513,7 +513,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   width: 100%;
   max-width: 960px;
   max-height: 92vh;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
@@ -537,7 +537,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   align-items: center;
   gap: 12px;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 .consolidado-header-icon {
@@ -550,14 +550,14 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   justify-content: center;
 }
 .consolidado-header-info { flex: 1; min-width: 0; }
-.consolidado-title { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
-.consolidado-subtitle { font-size: 12px; color: #8E8E93; margin: 2px 0 0; }
+.consolidado-title { font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.consolidado-subtitle { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
 .consolidado-action-btn,
 .consolidado-close {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -565,7 +565,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   flex-shrink: 0;
 }
 .consolidado-action-btn:hover,
-.consolidado-close:hover { background: rgba(255, 255, 255, 0.1); }
+.consolidado-close:hover { background: rgba(var(--border-rgb), 0.1); }
 
 /* ── Loading / Error ── */
 .consolidado-loading {
@@ -584,15 +584,15 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 13px; color: #8E8E93; }
-.loading-progress { font-size: 12px; color: #636366; }
+.loading-text { font-size: 13px; color: var(--text-muted); }
+.loading-progress { font-size: 12px; color: var(--text-muted); }
 .consolidado-error {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 60px 20px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 13px;
   text-align: center;
 }
@@ -600,7 +600,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   padding: 8px 20px;
   border-radius: 10px;
   background: rgba(191, 90, 242, 0.12);
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 13px;
   font-weight: 600;
   transition: opacity 0.15s;
@@ -626,7 +626,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   display: block;
   font-size: 11px;
   font-weight: 700;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
@@ -638,9 +638,9 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   width: 100%;
   padding: 10px 34px 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
+  color: var(--text-primary);
   font-size: 13px;
   transition: border-color 0.15s;
 }
@@ -666,10 +666,10 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8E8E93;
+  color: var(--text-muted);
   transition: color 0.15s;
 }
-.search-clear-btn:hover { color: #fff; }
+.search-clear-btn:hover { color: var(--text-primary); }
 .course-dropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -677,25 +677,25 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: #2C2C2E;
+  background: var(--bg-card);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   z-index: 10;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 .course-option {
   padding: 10px 14px;
   font-size: 13px;
-  color: #fff;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background 0.12s;
 }
-.course-option:hover { background: rgba(255, 255, 255, 0.06); }
-.course-option.active { color: #BF5AF2; font-weight: 600; }
+.course-option:hover { background: rgba(var(--border-rgb), 0.06); }
+.course-option.active { color: var(--purple-light); font-weight: 600; }
 .course-option-empty {
   padding: 10px 14px;
   font-size: 12px;
-  color: #636366;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -713,8 +713,8 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   gap: 8px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.04);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
   transition: border-color 0.15s;
 }
 .student-search-wrapper:focus-within {
@@ -724,13 +724,13 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   flex: 1;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
 }
 .student-count {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -738,7 +738,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 .table-scroll-wrapper {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .consolidado-table {
   width: 100%;
@@ -757,7 +757,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   background: rgba(191, 90, 242, 0.08);
   border-bottom: 2px solid rgba(191, 90, 242, 0.2);
   text-align: center;
@@ -781,14 +781,14 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   transition: background 0.12s;
 }
 .consolidado-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
 }
 .consolidado-row:nth-child(even) {
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(var(--border-rgb), 0.015);
 }
 .cell-num {
   text-align: center;
-  color: #636366;
+  color: var(--text-muted);
   font-size: 11px;
   padding: 8px 4px;
 }
@@ -797,7 +797,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   padding: 8px 8px;
   font-size: 12px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 .cell-grade {
@@ -805,14 +805,14 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   padding: 8px 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #ccc;
-  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-left: 1px solid rgba(var(--border-rgb), 0.04);
 }
 
 /* Grade colors */
-.grade-good { color: #34C759 !important; }
-.grade-ok   { color: #FFD60A !important; }
-.grade-low  { color: #FF453A !important; }
+.grade-good { color: var(--color-success) !important; }
+.grade-ok   { color: var(--color-warning) !important; }
+.grade-low  { color: var(--color-danger) !important; }
 
 /* ── Empty state ── */
 .consolidado-empty {
@@ -821,7 +821,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   align-items: center;
   gap: 12px;
   padding: 60px 20px;
-  color: #636366;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -834,18 +834,18 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   padding: 6px 0 10px;
   margin-bottom: 8px;
   border-bottom: 1px solid rgba(191, 90, 242, 0.2);
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 .course-section-name {
   flex: 1;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 .course-section-count {
   font-size: 11px;
-  color: #8E8E93;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  background: rgba(var(--border-rgb), 0.06);
   padding: 2px 8px;
   border-radius: 8px;
 }
@@ -855,7 +855,7 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   display: flex;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 .export-btn {
@@ -871,8 +871,8 @@ function esc(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
   transition: transform 0.15s, opacity 0.15s;
 }
 .export-btn:active { transform: scale(0.96); }
-.export-pdf   { background: rgba(255, 69, 58, 0.12); color: #FF6961; }
-.export-excel { background: rgba(52, 199, 89, 0.12); color: #34C759; }
+.export-pdf   { background: rgba(255, 69, 58, 0.12); color: var(--color-danger); }
+.export-excel { background: rgba(52, 199, 89, 0.12); color: var(--color-success); }
 
 /* ── Fullscreen mode ── */
 .consolidado-overlay--fs {

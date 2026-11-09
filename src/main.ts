@@ -6,6 +6,9 @@ import './styles/fonts.css'
 import './styles/global.css'
 import './styles/apple-tokens.css'
 import { restoreSelectedTenant } from '@/config/tenants'
+import { initTheme } from '@/composables/useTheme'
+
+initTheme()
 
 // Restore the previously selected tenant server URL before any API calls
 restoreSelectedTenant()

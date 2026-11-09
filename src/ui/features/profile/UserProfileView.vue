@@ -2,7 +2,7 @@
   <div class="upv-root">
     <!-- Back button -->
     <button class="upv-back" @click="$router.back()" aria-label="Volver">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="15 18 9 12 15 6"/>
       </svg>
     </button>
@@ -46,7 +46,7 @@
       <div class="upv-sticky-bar">
         <!-- Search bar -->
         <div class="upv-search-bar">
-          <svg class="upv-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="upv-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
@@ -56,7 +56,7 @@
             autocomplete="off"
           />
           <button v-if="searchQuery" class="upv-clear-btn" @click="searchQuery = ''" aria-label="Limpiar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.5" stroke-linecap="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
@@ -69,7 +69,7 @@
             :class="['upv-filter-tab', { 'active': currentFilter === 'courses' }]"
             @click="setFilter('courses')"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="currentFilter === 'courses' ? '#1A1A1A' : '#fff'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             </svg>
             <span>Cursos</span>
@@ -80,7 +80,7 @@
             :class="['upv-filter-tab', { 'active': currentFilter === 'subjects' }]"
             @click="setFilter('subjects')"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="currentFilter === 'subjects' ? '#1A1A1A' : '#fff'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
             <span>Materias</span>
@@ -91,7 +91,7 @@
             :class="['upv-filter-tab', { 'active': currentFilter === 'videos' }]"
             @click="setFilter('videos')"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="currentFilter === 'videos' ? '#1A1A1A' : '#fff'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
             <span>Videos</span>
@@ -119,7 +119,7 @@
               <div class="upv-course-thumb">
                 <img v-if="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri)" :src="resolveImageUrl(course.thumbnailUri ?? course.thumbnail_uri) ?? ''" alt="" />
                 <div v-else class="upv-thumb-placeholder">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
                 </div>
                 <span v-if="course.price > 0" class="upv-premium-badge">Premium</span>
                 <span v-else class="upv-free-badge">Gratis</span>
@@ -128,7 +128,7 @@
                 <h3 class="upv-course-title">{{ course.title }}</h3>
                 <p v-if="course.description" class="upv-course-desc">{{ course.description }}</p>
                 <div class="upv-course-meta">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                   <span>{{ course.studentCount ?? 0 }} estudiante{{ (course.studentCount ?? 0) !== 1 ? 's' : '' }}</span>
                   <span class="upv-dot">·</span>
                   <span class="upv-category">{{ course.category ?? 'General' }}</span>
@@ -137,7 +137,7 @@
             </div>
           </template>
           <div v-else class="upv-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <p>No hay cursos disponibles</p>
           </div>
         </template>
@@ -154,7 +154,7 @@
               <div class="upv-course-thumb">
                 <img v-if="resolveImageUrl(subject.thumbnailUrl)" :src="resolveImageUrl(subject.thumbnailUrl) ?? ''" alt="" />
                 <div v-else class="upv-thumb-placeholder">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                 </div>
               </div>
               <div class="upv-course-info">
@@ -167,7 +167,7 @@
             </div>
           </template>
           <div v-else class="upv-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             <p>No hay materias disponibles</p>
           </div>
         </template>
@@ -186,7 +186,7 @@
                      :src="resolveImageUrl(video.thumbnail_uri ?? video.thumbnailUri) ?? videoFrameThumbnails.get(video.id) ?? ''"
                      alt="" />
                 <div v-else class="upv-thumb-placeholder">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                 </div>
                 <div class="upv-play-overlay">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -203,7 +203,7 @@
             </div>
           </template>
           <div v-else class="upv-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
             <p>No hay videos disponibles</p>
           </div>
         </template>
@@ -419,8 +419,8 @@ onMounted(async () => {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: #000;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -433,7 +433,7 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--bg-card);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -443,7 +443,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: background 0.2s;
 }
-.upv-back:hover { background: rgba(255,255,255,0.12); }
+.upv-back:hover { background: rgba(var(--text-primary-rgb), 0.12); }
 
 /* ── Scroll container ── */
 .upv-scroll {
@@ -458,14 +458,14 @@ onMounted(async () => {
 }
 
 .upv-profile-card {
-  background: #111;
+  background: var(--bg-card);
   border-radius: 24px;
   padding: 32px 20px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-card);
 }
 
 /* Avatar */
@@ -473,12 +473,12 @@ onMounted(async () => {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #A259FF;
+  border: 4px solid var(--purple-glow);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #222;
+  background: var(--bg-input);
   margin-bottom: 16px;
   flex-shrink: 0;
 }
@@ -492,7 +492,7 @@ onMounted(async () => {
 .upv-avatar-letter {
   font-size: 42px;
   font-weight: 700;
-  color: #A259FF;
+  color: var(--purple-glow);
   line-height: 1;
 }
 
@@ -500,7 +500,7 @@ onMounted(async () => {
 .upv-username {
   font-size: 26px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 20px;
   text-align: center;
   letter-spacing: -0.3px;
@@ -522,7 +522,7 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   padding: 12px 8px;
-  background: #1C1C1E;
+  background: var(--apple-snow);
   border-radius: 16px;
   margin: 0 4px;
 }
@@ -534,13 +534,13 @@ onMounted(async () => {
 .upv-stat-count {
   font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .upv-stat-label {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
@@ -551,7 +551,7 @@ onMounted(async () => {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #000;
+  background: var(--bg-primary);
   padding: 12px 12px 8px;
   display: flex;
   flex-direction: column;
@@ -562,8 +562,8 @@ onMounted(async () => {
 .upv-search-bar {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.09);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.1);
   border-radius: 14px;
   height: 48px;
   padding: 0 12px;
@@ -579,13 +579,13 @@ onMounted(async () => {
   background: transparent;
   border: none;
   outline: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 500;
 }
 
 .upv-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--text-hint);
 }
 
 .upv-clear-btn {
@@ -618,13 +618,13 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 600;
   transition: background 0.2s, color 0.2s;
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.75);
+  background: rgba(var(--text-primary-rgb), 0.07);
+  color: rgba(var(--text-primary-rgb), 0.75);
 }
 
 .upv-filter-tab.active {
-  background: #fff;
-  color: #1A1A1A;
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
 }
 
 .upv-tab-badge {
@@ -633,14 +633,14 @@ onMounted(async () => {
   border-radius: 10px;
   font-size: 11px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--text-primary-rgb), 0.15);
+  color: rgba(var(--text-primary-rgb), 0.85);
   text-align: center;
 }
 
 .upv-tab-badge.active {
-  background: #1A1A1A;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* ── Content list ── */
@@ -661,8 +661,8 @@ onMounted(async () => {
 .upv-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #A259FF;
+  border: 3px solid rgba(var(--text-primary-rgb), 0.1);
+  border-top-color: var(--purple-glow);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -676,7 +676,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 48px 0;
-  color: #555;
+  color: var(--text-muted);
   font-size: 15px;
 }
 
@@ -684,7 +684,7 @@ onMounted(async () => {
 .upv-course-card {
   display: flex;
   gap: 14px;
-  background: #111;
+  background: var(--bg-card);
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
@@ -692,14 +692,14 @@ onMounted(async () => {
   padding: 0;
 }
 
-.upv-course-card:hover { background: #181818; }
+.upv-course-card:hover { background: var(--bg-card-hover); }
 
 .upv-course-thumb {
   position: relative;
   width: 118px;
   min-width: 118px;
   aspect-ratio: 16 / 9;
-  background: #1a1a1a;
+  background: var(--bg-input);
   border-radius: 16px;
   overflow: hidden;
   align-self: center;
@@ -734,12 +734,12 @@ onMounted(async () => {
 
 .upv-premium-badge {
   background: rgba(162, 89, 255, 0.9);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .upv-free-badge {
   background: rgba(48, 209, 88, 0.85);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .upv-course-info {
@@ -755,7 +755,7 @@ onMounted(async () => {
 .upv-course-title {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -765,7 +765,7 @@ onMounted(async () => {
 
 .upv-course-desc {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -778,38 +778,38 @@ onMounted(async () => {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
-.upv-dot { color: #555; }
+.upv-dot { color: var(--text-muted); }
 
 .upv-category {
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--text-primary-rgb), 0.08);
   padding: 2px 8px;
   border-radius: 8px;
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 /* ── Video card ── */
 .upv-video-card {
   display: flex;
   gap: 14px;
-  background: #111;
+  background: var(--bg-card);
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
   transition: background 0.18s;
 }
 
-.upv-video-card:hover { background: #181818; }
+.upv-video-card:hover { background: var(--bg-card-hover); }
 
 .upv-video-thumb {
   position: relative;
   width: 118px;
   min-width: 118px;
   aspect-ratio: 16 / 9;
-  background: #1a1a1a;
+  background: var(--bg-input);
   border-radius: 16px;
   overflow: hidden;
   align-self: center;
@@ -849,7 +849,7 @@ onMounted(async () => {
 .upv-video-title {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -859,7 +859,7 @@ onMounted(async () => {
 
 .upv-video-desc {
   font-size: 12px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -876,7 +876,7 @@ onMounted(async () => {
 .upv-premium-tag {
   font-size: 11px;
   font-weight: 700;
-  color: #A259FF;
+  color: var(--purple-glow);
   background: rgba(162, 89, 255, 0.12);
   padding: 2px 8px;
   border-radius: 8px;
@@ -885,7 +885,7 @@ onMounted(async () => {
 .upv-free-tag {
   font-size: 11px;
   font-weight: 700;
-  color: #30D158;
+  color: var(--color-success);
   background: rgba(48, 209, 88, 0.1);
   padding: 2px 8px;
   border-radius: 8px;

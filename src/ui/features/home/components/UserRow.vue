@@ -8,7 +8,7 @@
       <p class="user-name">{{ user.username }}</p>
       <p class="user-email">{{ user.email }}</p>
     </div>
-    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
   </div>
 </template>
 
@@ -25,13 +25,13 @@ defineEmits<{ click: [] }>()
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .user-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
   border-radius: 12px;
   padding: 12px;
   margin: 0 -12px;
@@ -42,7 +42,7 @@ defineEmits<{ click: [] }>()
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--bg-tertiary);
+  background: var(--bg-card-hover);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -59,7 +59,7 @@ defineEmits<{ click: [] }>()
 .avatar-letter {
   font-size: 18px;
   font-weight: 600;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .status-dot {
@@ -69,7 +69,7 @@ defineEmits<{ click: [] }>()
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #666;
+  background: var(--text-muted);
   border: 2px solid var(--bg-primary);
 }
 
@@ -85,12 +85,12 @@ defineEmits<{ click: [] }>()
 .user-name {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .user-email {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

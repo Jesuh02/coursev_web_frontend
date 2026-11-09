@@ -23,7 +23,7 @@
           <span class="option-title">Video</span>
           <span class="option-subtitle">Sube un video desde tu galería</span>
         </div>
-        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
       </button>
 
       <button class="option-row" @click="router.push('/course/create')" v-if="!authStore.isDocente">
@@ -38,7 +38,7 @@
           <span class="option-title">Material educativo</span>
           <span class="option-subtitle">Crear cursos y materias</span>
         </div>
-        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6" /></svg>
       </button>
     </div>
   </div>
@@ -54,7 +54,7 @@ const authStore = useAuthStore()
 <style scoped>
 .create-screen {
   min-height: 100vh;
-  background: #000;
+  background: var(--bg-primary);
   padding: 16px 16px 32px;
   display: flex;
   flex-direction: column;
@@ -65,9 +65,9 @@ const authStore = useAuthStore()
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,13 +82,13 @@ const authStore = useAuthStore()
 .title {
   font-size: 32px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 6px;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -102,7 +102,7 @@ const authStore = useAuthStore()
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border: none;
   border-radius: 14px;
   padding: 16px 14px;
@@ -113,7 +113,7 @@ const authStore = useAuthStore()
 }
 
 .option-row:active {
-  background: #2C2C2E;
+  background: var(--bg-card-hover);
 }
 
 .option-icon-wrap {
@@ -137,12 +137,12 @@ const authStore = useAuthStore()
 .option-title {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .option-subtitle {
   font-size: 13px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .chevron {

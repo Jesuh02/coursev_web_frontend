@@ -4,7 +4,7 @@
       <div class="panel-header">
         <h2 class="panel-title">📅 Periodos de Calificación</h2>
         <button class="close-btn" @click="$emit('close')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
@@ -48,7 +48,7 @@
               <span class="stat">{{ p.snapshot?.students?.length ?? 0 }} estudiantes</span>
               <span class="stat">{{ p.snapshot?.tasks?.length ?? 0 }} tareas</span>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </div>
@@ -258,84 +258,84 @@ function avgClass(avg: number) {
   background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
 }
 .period-panel {
-  width: 95vw; max-width: 800px; max-height: 85vh; background: #1C1C1E;
+  width: 95vw; max-width: 800px; max-height: 85vh; background: var(--bg-card);
   border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
 }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 16px 20px; border-bottom: 1px solid rgba(var(--border-rgb), 0.08);
 }
-.panel-title { font-size: 18px; font-weight: 700; color: #fff; }
+.panel-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .close-btn { background: none; border: none; cursor: pointer; padding: 4px; }
 .loading-center { display: flex; justify-content: center; padding: 40px; }
-.spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner { width: 28px; height: 28px; border: 3px solid rgba(var(--border-rgb), 0.1); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .close-period-section {
-  padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 16px 20px; border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
-.period-hint { font-size: 13px; color: #8E8E93; margin-bottom: 10px; }
+.period-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
 .close-period-row { display: flex; gap: 10px; }
 .period-name-input {
-  flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.06); color: #fff; font-size: 14px; outline: none;
+  flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(var(--border-rgb), 0.1);
+  background: rgba(var(--border-rgb), 0.06); color: var(--text-primary); font-size: 14px; outline: none;
 }
 .period-name-input:focus { border-color: #BF5AF2; }
 .btn-close-period {
   padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
-  background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: #fff; font-weight: 600; font-size: 14px;
+  background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: var(--text-on-accent); font-weight: 600; font-size: 14px;
   white-space: nowrap; transition: opacity 0.2s;
 }
 .btn-close-period:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.empty-msg { padding: 32px; text-align: center; color: #8E8E93; font-size: 14px; }
+.empty-msg { padding: 32px; text-align: center; color: var(--text-muted); font-size: 14px; }
 
 .period-list { overflow-y: auto; flex: 1; padding: 8px 12px; }
 .period-card {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px; border-radius: 12px; cursor: pointer;
-  background: rgba(255,255,255,0.04); margin-bottom: 6px; transition: background 0.15s;
+  background: rgba(var(--border-rgb), 0.04); margin-bottom: 6px; transition: background 0.15s;
 }
-.period-card:hover { background: rgba(255,255,255,0.08); }
+.period-card:hover { background: rgba(var(--border-rgb), 0.08); }
 .period-card.active { background: rgba(191,90,242,0.15); border: 1px solid rgba(191,90,242,0.3); }
 .period-card-info { flex: 1; }
-.period-name { display: block; font-size: 15px; font-weight: 600; color: #fff; }
-.period-date { display: block; font-size: 12px; color: #8E8E93; margin-top: 2px; }
+.period-name { display: block; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.period-date { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .period-card-stats { display: flex; gap: 12px; }
-.stat { font-size: 12px; color: #8E8E93; }
+.stat { font-size: 12px; color: var(--text-muted); }
 
 .period-detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px; }
 .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.back-link { background: none; border: none; color: #BF5AF2; font-size: 14px; cursor: pointer; }
-.detail-header h3 { font-size: 16px; font-weight: 600; color: #fff; }
+.back-link { background: none; border: none; color: var(--purple-light); font-size: 14px; cursor: pointer; }
+.detail-header h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 
 .sheet-scroll { flex: 1; overflow: auto; }
 .grade-sheet { width: 100%; border-collapse: collapse; font-size: 13px; }
 .grade-sheet th, .grade-sheet td {
-  padding: 8px 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); color: #ccc; white-space: nowrap;
+  padding: 8px 10px; text-align: center; border-bottom: 1px solid rgba(var(--border-rgb), 0.06); color: var(--text-secondary); white-space: nowrap;
 }
-.grade-sheet th { color: #8E8E93; font-weight: 600; position: sticky; top: 0; background: #1C1C1E; z-index: 2; }
+.grade-sheet th { color: var(--text-muted); font-weight: 600; position: sticky; top: 0; background: var(--bg-card); z-index: 2; }
 .col-student { text-align: left; min-width: 140px; }
-.sticky-col { position: sticky; left: 0; background: #1C1C1E; z-index: 3; }
+.sticky-col { position: sticky; left: 0; background: var(--bg-card); z-index: 3; }
 .col-manual { min-width: 70px; }
 .col-task { min-width: 90px; }
 .col-avg { min-width: 60px; font-weight: 700; }
-.avg-high { color: #30D158; }
-.avg-mid { color: #FFD60A; }
-.avg-low { color: #FF453A; }
+.avg-high { color: var(--color-success); }
+.avg-mid { color: var(--color-warning); }
+.avg-low { color: var(--color-danger); }
 .grade-input {
-  width: 56px; padding: 4px 6px; border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px; background: rgba(255,255,255,0.06); color: #fff; font-size: 13px;
+  width: 56px; padding: 4px 6px; border: 1px solid rgba(var(--border-rgb), 0.1);
+  border-radius: 6px; background: rgba(var(--border-rgb), 0.06); color: var(--text-primary); font-size: 13px;
   text-align: center; outline: none;
 }
 .grade-input:focus { border-color: #BF5AF2; }
 
-.save-bar { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); text-align: right; }
+.save-bar { padding: 12px; border-top: 1px solid rgba(var(--border-rgb), 0.08); text-align: right; }
 .btn-save {
   padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
-  background: linear-gradient(135deg, #30D158, #34C759); color: #fff; font-weight: 600; font-size: 14px;
+  background: linear-gradient(135deg, #30D158, #34C759); color: var(--text-on-accent); font-weight: 600; font-size: 14px;
 }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.cell-name { font-size: 13px; color: #fff; }
+.cell-name { font-size: 13px; color: var(--text-primary); }
 </style>

@@ -16,7 +16,7 @@
       
       <div class="menu-wrapper">
         <button class="menu-dots-btn" @click="showMenu = !showMenu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="5" r="2"/>
             <circle cx="12" cy="12" r="2"/>
             <circle cx="12" cy="19" r="2"/>
@@ -129,7 +129,7 @@ function goToMyProfile() {
   align-items: center;
   justify-content: space-between;
   padding: 26px 12px 8px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(var(--bg-card-rgb), 0.96) 0%, rgba(var(--bg-card-rgb), 0.7) 100%);
   pointer-events: none;
 }
 
@@ -145,6 +145,7 @@ function goToMyProfile() {
   justify-content: center;
   color: #fff;
   transition: opacity 0.2s;
+  color: var(--text-primary);
 }
 
 .search-btn:active {
@@ -245,6 +246,7 @@ function goToMyProfile() {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--text-primary);
 }
 
 .menu-dots-btn:hover {
@@ -267,18 +269,12 @@ function goToMyProfile() {
   right: 0;
   z-index: 200;
   /* Liquid Glass */
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(180, 140, 255, 0.14) 35%,
-    rgba(255, 190, 140, 0.10) 65%,
-    rgba(255, 255, 255, 0.18) 100%
-  );
+  background: rgba(var(--bg-card-rgb), 0.96);
   backdrop-filter: blur(48px) saturate(190%) brightness(1.12);
   -webkit-backdrop-filter: blur(48px) saturate(190%) brightness(1.12);
-  border: 1.5px solid rgba(255, 255, 255, 0.48);
-  border-bottom-color: rgba(255, 255, 255, 0.18);
-  border-right-color: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid var(--border-color);
+  border-bottom-color: var(--border-color);
+  border-right-color: var(--border-color);
   border-radius: 24px;
   padding: 10px 8px;
   min-width: 208px;
@@ -329,19 +325,19 @@ function goToMyProfile() {
   width: 100%;
   padding: 10px 12px;
   border-radius: 16px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.3px;
   text-align: left;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  text-shadow: none;
   transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
 }
 
 .menu-item:hover,
 .menu-item:active {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--surface-tint-hover);
   transform: translateX(4px) scale(1.02);
 }
 

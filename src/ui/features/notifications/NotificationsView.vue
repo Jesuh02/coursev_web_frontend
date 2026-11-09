@@ -228,13 +228,13 @@ async function handleTaskGraded(
 
 .notifications-header {
   padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .header-title {
   font-size: 28px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .notification-list {
@@ -259,13 +259,13 @@ async function handleTaskGraded(
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .empty-desc {
   font-size: 14px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .block-alert-overlay {
@@ -292,19 +292,19 @@ async function handleTaskGraded(
 .block-alert-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .block-alert-msg {
   font-size: 14px;
-  color: #aeaeb2;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .block-alert-btn {
   align-self: flex-end;
   background: #0a84ff;
-  color: #fff;
+  color: var(--text-on-accent);
   border: none;
   border-radius: 8px;
   padding: 8px 20px;

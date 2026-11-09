@@ -73,7 +73,7 @@ function onTouchEnd() {}
   left: 0;
   right: 0;
   z-index: 101;
-  background: #1c1c1e;
+  background: var(--bg-card);
   border-radius: 24px 24px 0 0;
   padding: 12px 20px 32px;
   max-height: 85vh;
@@ -84,14 +84,14 @@ function onTouchEnd() {}
   width: 40px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(var(--border-rgb), 0.3);
   margin: 0 auto 20px;
 }
 
 .sheet-title {
   font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   text-align: center;
   margin-bottom: 20px;
 }
@@ -108,8 +108,8 @@ function onTouchEnd() {}
   gap: 14px;
   padding: 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   transition: background 0.25s, border-color 0.25s, transform 0.15s;
 }
 
@@ -126,7 +126,7 @@ function onTouchEnd() {}
   flex: 1;
   font-size: 16px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   text-align: left;
 }
 

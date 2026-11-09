@@ -169,20 +169,21 @@ onBeforeUnmount(() => {
 }
 
 .vp-loading {
-  color: #d1d1d6;
+  color: var(--text-secondary);
+  background: var(--bg-card);
   pointer-events: none;
 }
 
 .vp-error {
-  color: #ffb4ad;
-  background: #07090d;
+  color: var(--color-danger);
+  background: var(--bg-card);
 }
 
 .vp-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.16);
-  border-top-color: #00d4ff;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--cyan-accent);
   border-radius: 50%;
   animation: vp-spin 0.8s linear infinite;
 }

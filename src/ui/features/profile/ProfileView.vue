@@ -1,8 +1,8 @@
 <template>
   <div class="profile-view">
     <div class="profile-header">
-      <button class="edit-btn" @click="$router.push('/profile/edit')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+      <button class="edit-btn" aria-label="Editar perfil" @click="$router.push('/profile/edit')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
       </button>
 
       <div class="avatar-container">
@@ -18,6 +18,28 @@
         <span class="subscribers">{{ subscriberCountLabel }}</span>
       </div>
     </div>
+
+    <section class="appearance-section" aria-labelledby="appearance-title">
+      <h3 id="appearance-title" class="appearance-title">Apariencia</h3>
+      <p id="appearance-description" class="appearance-description">Elige el modo para todas las pantallas. Tu preferencia se guarda en este dispositivo.</p>
+      <fieldset class="appearance-options" aria-describedby="appearance-description">
+        <legend class="appearance-legend">Modo de apariencia</legend>
+        <label class="appearance-option" :class="{ selected: !isDark }">
+          <input type="radio" name="appearance" value="light" :checked="!isDark" @change="setTheme('light')" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+          </svg>
+          <span>Modo claro</span>
+        </label>
+        <label class="appearance-option" :class="{ selected: isDark }">
+          <input type="radio" name="appearance" value="dark" :checked="isDark" @change="setTheme('dark')" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.9 13.2A9 9 0 0 1 10.8 3.1 9 9 0 1 0 20.9 13.2Z" />
+          </svg>
+          <span>Modo oscuro</span>
+        </label>
+      </fieldset>
+    </section>
 
     <!-- Recommendations Section -->
     <section
@@ -177,8 +199,8 @@
 
     <div class="menu-section">
       <ProfileMenuCard>
-        <ProfileMenuItem icon="book" label="Mis cursos" color="#007AFF" @click="$router.push('/explore')" />
-        <ProfileMenuItem icon="bar-chart" label="Panel de creador" color="#FF9500" @click="$router.push('/admin')" />
+        <ProfileMenuItem icon="book" label="Mis cursos" color="var(--color-info)" @click="$router.push('/explore')" />
+        <ProfileMenuItem icon="bar-chart" label="Panel de creador" color="var(--color-warning)" @click="$router.push('/admin')" />
       </ProfileMenuCard>
 
       <ProfileMenuCard>
@@ -186,7 +208,7 @@
         <ProfileMenuItem
           icon="message-circle"
           label="Quejas y dudas"
-          color="#25D366"
+          color="var(--color-success)"
           subtitle="WhatsApp 3053048316"
           @click="handleSupportWhatsApp"
         />
@@ -202,7 +224,7 @@
       </ProfileMenuCard>
 
       <ProfileMenuCard>
-        <ProfileMenuItem icon="log-out" label="Cerrar sesión" color="#FF453A" @click="logout" />
+        <ProfileMenuItem icon="log-out" label="Cerrar sesión" color="var(--color-danger)" @click="logout" />
       </ProfileMenuCard>
     </div>
 
@@ -215,7 +237,7 @@
         <div class="wa-card">
           <div class="wa-icon-circle wa-green">
             <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#fff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
+              <path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
             </svg>
           </div>
           <h3 class="wa-dialog-title">Vincular WhatsApp</h3>
@@ -246,7 +268,7 @@
         <div class="wa-card">
           <div class="wa-icon-circle wa-orange">
             <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#fff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
+              <path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
             </svg>
           </div>
           <h3 class="wa-dialog-title">Verificar código</h3>
@@ -279,7 +301,7 @@
             <div class="unlink-icon-bg" />
             <div class="unlink-icon-inner">
               <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#fff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
+                <path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42 1.55 1.56 2.41 3.63 2.41 5.83 0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32C4.24 15 3.8 13.47 3.8 11.91c.01-4.54 3.7-8.24 8.24-8.24zm-3.51 5.66c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07s.89 2.27 1.02 2.44c.14.17 1.76 2.67 4.25 3.73.59.27 1.05.42 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.16-.48-.29-.25-.12-1.47-.72-1.69-.8-.23-.08-.37-.12-.56.13-.09.12-.41.55-.58.74-.15.19-.29.21-.54.09-.24-.12-1-.36-1.92-1.19-.72-.64-1.19-1.45-1.34-1.7-.15-.25-.02-.39.1-.51.12-.12.25-.31.38-.46.12-.15.16-.26.24-.43.08-.16.04-.31-.02-.44-.06-.12-.53-1.35-.74-1.82-.2-.47-.41-.4-.58-.41-.15-.01-.31-.01-.5-.01z"/>
               </svg>
             </div>
           </div>
@@ -306,6 +328,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import { useTheme } from '@/composables/useTheme'
 import { whatsappAdapter, HttpError } from '@/infrastructure/api'
 import { reinforcementAdapter } from '@/infrastructure/api/reinforcementAdapter'
 import type { Recommendation } from '@/domain/ports'
@@ -316,6 +339,7 @@ import ProfileMenuItem from './components/ProfileMenuItem.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
+const { isDark, setTheme } = useTheme()
 const user = computed(() => authStore.user)
 const subscriberCount = ref(0)
 
@@ -384,10 +408,10 @@ const waLabel = computed(() => {
 
 const waIconColor = computed(() => {
   switch (waState.value) {
-    case 'linked': return '#FF3B30'
-    case 'pending': return '#FF9500'
-    case 'unavailable': return '#555555'
-    default: return '#25D366'
+    case 'linked': return 'var(--color-danger)'
+    case 'pending': return 'var(--color-warning)'
+    case 'unavailable': return 'var(--text-muted)'
+    default: return 'var(--color-success)'
   }
 })
 
@@ -403,9 +427,9 @@ const waBadge = computed<string | undefined>(() => {
 
 const waBadgeColor = computed(() => {
   switch (waState.value) {
-    case 'linked': return '#25D366'
-    case 'pending': return '#FF9500'
-    default: return '#AAAAAA'
+    case 'linked': return 'var(--color-success)'
+    case 'pending': return 'var(--color-warning)'
+    default: return 'var(--text-muted)'
   }
 })
 
@@ -755,6 +779,43 @@ onMounted(() => {
   position: relative;
 }
 
+.appearance-section {
+  margin: 0 16px 22px;
+  padding: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+
+.appearance-title { color: var(--text-primary); font-size: 18px; font-weight: 700; }
+.appearance-description { margin: 6px 0 16px; color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
+.appearance-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border: 0; min-width: 0; }
+.appearance-legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.appearance-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.appearance-option:hover { background: var(--bg-card-hover); }
+.appearance-option.selected { border-color: var(--purple-light); color: var(--purple-light); background: var(--bg-card); }
+.appearance-option:focus-within { outline: 2px solid var(--purple-light); outline-offset: 3px; }
+.appearance-option input { width: 18px; height: 18px; padding: 0; margin: 0; flex-shrink: 0; accent-color: var(--purple-light); cursor: pointer; }
+.appearance-option svg { flex-shrink: 0; }
+@media (max-width: 380px) {
+  .appearance-options { gap: 8px; }
+  .appearance-option { padding: 12px 8px; gap: 6px; flex-wrap: wrap; }
+}
+
 .edit-btn {
   position: absolute;
   top: 16px;
@@ -762,7 +823,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -791,7 +852,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid #BF5AF2;
+  border: 3px solid var(--purple-glow);
 }
 
 .avatar img {
@@ -803,13 +864,13 @@ onMounted(() => {
 .avatar-letter {
   font-size: 36px;
   font-weight: 700;
-  color: #BF5AF2;
+  color: var(--purple-glow);
 }
 
 .username {
   font-size: 26px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .status-row {
@@ -823,7 +884,7 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #666;
+  background: var(--text-muted);
 }
 
 .status-indicator.online {
@@ -833,11 +894,11 @@ onMounted(() => {
 .status-text,
 .subscribers {
   font-size: 14px;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 .separator {
-  color: #666;
+  color: var(--text-muted);
 }
 
 .menu-section {
@@ -865,7 +926,7 @@ onMounted(() => {
 }
 
 .wa-card {
-  background: #1c1c1e;
+  background: var(--apple-snow);
   border-radius: 20px;
   padding: 28px 24px;
   width: 100%;
@@ -874,7 +935,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
 }
 
 .wa-icon-circle {
@@ -887,31 +948,31 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.wa-green { background: rgba(37, 211, 102, 0.2); }
-.wa-orange { background: rgba(255, 149, 0, 0.2); }
+.wa-green { color: var(--color-success); background: rgba(37, 211, 102, 0.2); }
+.wa-orange { color: var(--color-warning); background: rgba(255, 149, 0, 0.2); }
 
 .wa-dialog-title {
   font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   text-align: center;
   margin: 0 0 8px;
 }
 
 .wa-dialog-sub {
   font-size: 14px;
-  color: #aaa;
+  color: var(--text-secondary);
   text-align: center;
   margin: 0 0 20px;
 }
 
 .wa-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(var(--text-primary-rgb), 0.07);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.12);
   border-radius: 12px;
   padding: 12px 14px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 16px;
   outline: none;
   box-sizing: border-box;
@@ -930,14 +991,14 @@ onMounted(() => {
 
 .wa-hint {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   text-align: center;
   margin: 0 0 16px;
 }
 
 .wa-error {
   font-size: 13px;
-  color: #FF453A;
+  color: var(--color-danger);
   text-align: center;
   margin: 0 0 12px;
 }
@@ -971,20 +1032,20 @@ onMounted(() => {
 
 .wa-btn-outline {
   background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  color: #ccc;
+  border: 1.5px solid rgba(var(--text-primary-rgb), 0.25);
+  color: var(--text-secondary);
 }
 
 .wa-btn-green {
   background: #25D366;
   border: none;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .wa-btn-red {
   background: #FF3B30;
   border: none;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 /* Unlink card specifics */
@@ -1005,6 +1066,7 @@ onMounted(() => {
 }
 
 .unlink-icon-inner {
+  color: var(--text-on-accent);
   position: absolute;
   inset: 0;
   border-radius: 50%;
@@ -1018,7 +1080,7 @@ onMounted(() => {
 .phone-chip {
   font-size: 14px;
   font-weight: 700;
-  color: #25D366;
+  color: var(--color-success);
   background: rgba(37, 211, 102, 0.1);
   border-radius: 20px;
   padding: 6px 14px;
@@ -1027,7 +1089,7 @@ onMounted(() => {
 
 .unlink-message {
   font-size: 13px;
-  color: #aaa;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin: 0 0 24px;
   text-align: center;
@@ -1036,7 +1098,7 @@ onMounted(() => {
 .unlink-divider {
   width: 100%;
   border: none;
-  border-top: 0.5px solid #333;
+  border-top: 0.5px solid var(--border-color);
   margin: 0 0 16px;
 }
 
@@ -1066,16 +1128,16 @@ onMounted(() => {
   color: inherit;
   font: inherit;
   text-align: left;
-  background: rgba(28, 28, 30, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--bg-card-rgb), 0.82);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
 
 .rec-header:hover {
-  background: rgba(34, 34, 38, 0.9);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--bg-card-rgb), 0.9);
+  border-color: rgba(var(--text-primary-rgb), 0.14);
 }
 
 .rec-header:focus-visible {
@@ -1099,14 +1161,14 @@ onMounted(() => {
 }
 
 .rec-toggle-label {
-  color: #f5f5f7;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .rec-chevron {
-  color: #d1d1d6;
+  color: var(--text-secondary);
   transition: transform 0.18s ease;
 }
 
@@ -1120,14 +1182,14 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0;
-  color: #f5f5f7;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .rec-eyebrow {
   display: block;
   margin-bottom: 3px;
-  color: #8e8e93;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
@@ -1141,9 +1203,9 @@ onMounted(() => {
   min-height: 28px;
   padding: 0 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #d1d1d6;
+  background: rgba(var(--text-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -1157,8 +1219,8 @@ onMounted(() => {
 
 .rec-card {
   position: relative;
-  background: rgba(28, 28, 30, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--bg-card-rgb), 0.82);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
   border-radius: 8px;
   padding: 16px;
   overflow: hidden;
@@ -1166,8 +1228,8 @@ onMounted(() => {
 }
 
 .rec-card:hover {
-  background: rgba(34, 34, 38, 0.9);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--bg-card-rgb), 0.9);
+  border-color: rgba(var(--text-primary-rgb), 0.14);
   transform: translateY(-1px);
 }
 
@@ -1195,7 +1257,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  color: #b8b8bf;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
@@ -1211,26 +1273,26 @@ onMounted(() => {
   height: 7px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 4px rgba(var(--text-primary-rgb), 0.04);
 }
 
 .priority-high .rec-priority {
-  color: #ff6961;
+  color: var(--color-danger);
 }
 
 .priority-medium .rec-priority {
-  color: #ffb340;
+  color: var(--color-warning);
 }
 
 .priority-low .rec-priority {
-  color: #32d583;
+  color: var(--color-success);
 }
 
 .rec-status {
   padding: 0 8px;
   border-radius: 8px;
   background: rgba(48, 209, 88, 0.1);
-  color: #32d583;
+  color: var(--color-success);
 }
 
 .rec-problem-content {
@@ -1243,7 +1305,7 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: #7d7d85;
+  color: var(--text-muted);
   margin-bottom: 7px;
 }
 
@@ -1251,7 +1313,7 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
-  color: #f5f5f7;
+  color: var(--text-primary);
   margin: 0 0 12px;
   overflow-wrap: anywhere;
 }
@@ -1278,18 +1340,18 @@ onMounted(() => {
 }
 
 .rec-tag.course {
-  background: rgba(255, 255, 255, 0.06);
-  color: #d7d7dc;
+  background: rgba(var(--text-primary-rgb), 0.06);
+  color: var(--text-secondary);
 }
 
 .rec-tag.topic {
-  background: rgba(255, 255, 255, 0.04);
-  color: #a9a9b1;
+  background: rgba(var(--text-primary-rgb), 0.04);
+  color: var(--text-secondary);
 }
 
 .rec-tag.task {
   background: rgba(48, 209, 88, 0.12);
-  color: #30d158;
+  color: var(--color-success);
 }
 
 .rec-metrics {
@@ -1297,9 +1359,9 @@ onMounted(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 0;
   margin-bottom: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.07);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--text-primary-rgb), 0.03);
 }
 
 .rec-metric {
@@ -1313,7 +1375,7 @@ onMounted(() => {
 }
 
 .rec-metric:not(:last-child) {
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  border-right: 1px solid rgba(var(--text-primary-rgb), 0.07);
 }
 
 .metric-value {
@@ -1321,21 +1383,21 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0;
-  color: #f5f5f7;
+  color: var(--text-primary);
   line-height: 1;
   text-align: center;
 }
 
-.metric-value.accuracy-low { color: #ff6961; }
-.metric-value.accuracy-medium { color: #ffb340; }
-.metric-value.accuracy-good { color: #32d583; }
+.metric-value.accuracy-low { color: var(--color-danger); }
+.metric-value.accuracy-medium { color: var(--color-warning); }
+.metric-value.accuracy-good { color: var(--color-success); }
 
 .metric-value.trend {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 20px;
-  color: #a9a9b1;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1345,14 +1407,14 @@ onMounted(() => {
   height: 17px;
 }
 
-.metric-value.trend-improving { color: #32d583; }
-.metric-value.trend-declining { color: #ff6961; }
-.metric-value.trend-stable { color: #a9a9b1; }
+.metric-value.trend-improving { color: var(--color-success); }
+.metric-value.trend-declining { color: var(--color-danger); }
+.metric-value.trend-stable { color: var(--text-secondary); }
 
 .metric-label {
   font-size: 11px;
   font-weight: 600;
-  color: #8e8e93;
+  color: var(--text-muted);
   text-align: center;
   line-height: 1.15;
 }
@@ -1364,7 +1426,7 @@ onMounted(() => {
 .rec-intervention-text {
   font-size: 14px;
   line-height: 1.45;
-  color: #c7c7cc;
+  color: var(--text-secondary);
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -1397,7 +1459,7 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0;
-  color: #8e8e93;
+  color: var(--text-muted);
 }
 
 .result-value {
@@ -1407,11 +1469,11 @@ onMounted(() => {
   letter-spacing: 0;
 }
 
-.result-value.low { color: #ff6961; }
-.result-value.high { color: #32d583; }
+.result-value.low { color: var(--color-danger); }
+.result-value.high { color: var(--color-success); }
 
 .result-arrow {
-  color: #32d583;
+  color: var(--color-success);
 }
 
 .improvement-badge {
@@ -1423,7 +1485,7 @@ onMounted(() => {
   padding: 0 10px;
   border-radius: 8px;
   background: rgba(48, 209, 88, 0.1);
-  color: #32d583;
+  color: var(--color-success);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1457,24 +1519,24 @@ onMounted(() => {
 }
 
 .rec-btn-primary {
-  background: #f5f5f7;
+  background: var(--bg-inverse);
   border: none;
-  color: #111114;
+  color: var(--text-inverse);
 }
 
 .rec-btn-primary:hover {
-  background: #ffffff;
+  background: var(--bg-inverse);
 }
 
 .rec-btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
-  color: #e5e5ea;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--text-primary-rgb), 0.04);
+  color: var(--text-secondary);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.1);
 }
 
 .rec-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(var(--text-primary-rgb), 0.07);
+  border-color: rgba(var(--text-primary-rgb), 0.16);
 }
 
 /* Loading skeleton */
@@ -1485,8 +1547,8 @@ onMounted(() => {
 }
 
 .rec-skeleton {
-  background: rgba(28, 28, 30, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--bg-card-rgb), 0.82);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -1498,9 +1560,9 @@ onMounted(() => {
   height: 14px;
   border-radius: 7px;
   background: linear-gradient(90deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 100%);
+    rgba(var(--text-primary-rgb), 0.04) 0%,
+    rgba(var(--text-primary-rgb), 0.08) 50%,
+    rgba(var(--text-primary-rgb), 0.04) 100%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
@@ -1522,8 +1584,8 @@ onMounted(() => {
   margin: 0 16px 22px;
   padding: 24px 18px;
   text-align: center;
-  background: rgba(28, 28, 30, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--bg-card-rgb), 0.82);
+  border: 1px solid rgba(var(--text-primary-rgb), 0.08);
   border-radius: 8px;
 }
 
@@ -1535,7 +1597,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #32d583;
+  color: var(--color-success);
   margin-bottom: 14px;
 }
 
@@ -1548,13 +1610,13 @@ onMounted(() => {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 18px;
   font-weight: 700;
-  color: #f5f5f7;
+  color: var(--text-primary);
   margin: 0 0 6px;
 }
 
 .empty-sub {
   font-size: 14px;
-  color: #a1a1a6;
+  color: var(--text-secondary);
   line-height: 1.45;
   margin: 0;
   max-width: 300px;

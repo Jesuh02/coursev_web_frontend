@@ -424,7 +424,7 @@ onMounted(generate)
   height: 64px;
   border-radius: 50%;
   background: rgba(255, 59, 48, 0.12);
-  color: #ff3b30;
+  color: var(--color-danger);
   font-size: 26px;
   font-weight: 700;
   display: grid;
@@ -549,7 +549,7 @@ onMounted(generate)
   overflow: hidden;
   min-height: 0;
   cursor: grab;
-  background: #08090b;
+  background: var(--bg-primary);
   user-select: none;
 }
 .slide-viewport:active { cursor: grabbing; }
@@ -568,7 +568,7 @@ onMounted(generate)
   justify-content: center;
   overflow: hidden;
   padding: clamp(16px, 4vw, 24px);
-  background: #08090b;
+  background: var(--bg-primary);
 }
 .slide-image img {
   max-width: 100%;
@@ -593,7 +593,7 @@ onMounted(generate)
 .slide-ph-icon { font-size: 56px; opacity: 0.35; }
 .slide-ph-label {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   margin: 0;
 }
 .slide-text {
@@ -619,8 +619,8 @@ onMounted(generate)
   margin: 0 0 8px 10px;
   padding: 12px 15px;
   border-radius: 16px 16px 16px 5px;
-  background: #fffdf8;
-  border: 2px solid rgba(24, 24, 27, 0.18);
+  background: var(--bg-card);
+  border: 2px solid rgba(var(--border-rgb), 0.18);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   line-height: 1.4;
 }
@@ -631,9 +631,9 @@ onMounted(generate)
   bottom: 9px;
   width: 18px;
   height: 18px;
-  background: #fffdf8;
-  border-left: 2px solid rgba(24, 24, 27, 0.18);
-  border-bottom: 2px solid rgba(24, 24, 27, 0.18);
+  background: var(--bg-card);
+  border-left: 2px solid rgba(var(--border-rgb), 0.18);
+  border-bottom: 2px solid rgba(var(--border-rgb), 0.18);
   transform: rotate(45deg);
 }
 .slide-dialogue p {
@@ -672,8 +672,8 @@ onMounted(generate)
   margin: 0;
   padding: 0;
   border-radius: 12px;
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: var(--bg-input);
+  color: var(--text-secondary);
   border: 1px solid rgba(137, 180, 250, 0.15);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
@@ -688,7 +688,7 @@ onMounted(generate)
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
-  background: #181825;
+  background: var(--bg-card);
   border-bottom: 1px solid rgba(137, 180, 250, 0.1);
 }
 .slide-technical__dot {
@@ -708,7 +708,7 @@ onMounted(generate)
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: #89b4fa;
+  color: var(--color-info);
   text-transform: uppercase;
 }
 .slide-technical__code {
@@ -723,7 +723,7 @@ onMounted(generate)
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.6;
-  color: #cdd6f4;
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
   tab-size: 2;

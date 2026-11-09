@@ -300,9 +300,9 @@ onBeforeUnmount(clearObjectUrl)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   border-radius: 8px;
-  background: #0b0d12;
+  background: var(--bg-primary);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
 
@@ -312,8 +312,8 @@ onBeforeUnmount(clearObjectUrl)
   gap: 12px;
   min-height: 58px;
   padding: 10px 12px 10px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: #11151d;
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
+  background: var(--bg-card);
 }
 
 .fp-title-wrap {
@@ -323,7 +323,7 @@ onBeforeUnmount(clearObjectUrl)
 
 .fp-title {
   margin: 0;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
   overflow: hidden;
@@ -333,7 +333,7 @@ onBeforeUnmount(clearObjectUrl)
 
 .fp-meta {
   margin: 2px 0 0;
-  color: #8e8e93;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -348,10 +348,10 @@ onBeforeUnmount(clearObjectUrl)
   height: 36px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #f5f5f7;
+  background: rgba(var(--border-rgb), 0.05);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -364,7 +364,7 @@ onBeforeUnmount(clearObjectUrl)
   min-height: 0;
   flex: 1;
   display: flex;
-  background: #07090d;
+  background: var(--bg-primary);
 }
 
 .fp-frame,
@@ -386,7 +386,7 @@ onBeforeUnmount(clearObjectUrl)
   margin: 0;
   padding: 20px;
   overflow: auto;
-  color: #f5f5f7;
+  color: var(--text-primary);
   font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
@@ -397,7 +397,7 @@ onBeforeUnmount(clearObjectUrl)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: #f5f5f7;
+  color: var(--text-primary);
 }
 
 .fp-sheet-tabs {
@@ -405,18 +405,18 @@ onBeforeUnmount(clearObjectUrl)
   gap: 6px;
   padding: 10px 12px;
   overflow-x: auto;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: #11151d;
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
+  background: var(--bg-card);
 }
 
 .fp-sheet-tab {
   max-width: 220px;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #d1d1d6;
+  background: rgba(var(--border-rgb), 0.05);
+  color: var(--text-secondary);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -428,7 +428,7 @@ onBeforeUnmount(clearObjectUrl)
 .fp-sheet-tab.active {
   border-color: rgba(0, 212, 255, 0.5);
   background: rgba(0, 212, 255, 0.15);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .fp-sheet-grid-wrap {
@@ -516,18 +516,18 @@ onBeforeUnmount(clearObjectUrl)
   justify-content: center;
   gap: 14px;
   padding: 24px;
-  color: #d1d1d6;
+  color: var(--text-secondary);
   text-align: center;
 }
 
 .fp-error {
-  color: #ffb4ad;
+  color: var(--color-danger);
 }
 
 .fp-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.16);
+  border: 3px solid rgba(var(--border-rgb), 0.16);
   border-top-color: #00d4ff;
   border-radius: 50%;
   animation: fp-spin 0.8s linear infinite;

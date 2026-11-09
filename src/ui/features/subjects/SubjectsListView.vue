@@ -3,7 +3,7 @@
     <div class="header-section">
       <div class="header-top-row">
         <button class="back-btn" @click="$router.back()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <h1 class="header-title">Mis Materias</h1>
         <div v-if="allSubjects.length && (authStore.isAdmin || authStore.isDocente)" class="more-menu-wrapper">
@@ -61,13 +61,13 @@
 
     <div class="search-bar-container">
       <div class="search-field">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
         <input v-model="search" type="text" placeholder="Buscar materia..." />
       </div>
     </div>
 
     <div v-if="courseExpired && !authStore.isAdmin" class="expired-banner">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF453A" /></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="var(--color-danger)" /></svg>
       <p>{{ errorMessage }}</p>
     </div>
 
@@ -107,17 +107,17 @@
     </div>
 
     <div v-else class="empty-state">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
       <p class="empty-text">{{ errorMessage || 'Sin materias creadas' }}</p>
       <button v-if="canCreate" class="empty-add-btn" @click="navigateToCreate">Crear materia</button>
     </div>
 
     <button v-if="canCreate && filtered.length && !isDragMode" class="fab" @click="navigateToCreate">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
     </button>
 
     <button v-if="isDragMode && canReorderSubjects" class="drag-done-fab" @click="toggleDragMode">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
       <span>Listo</span>
     </button>
 
@@ -148,7 +148,7 @@
     <Teleport to="body">
       <div v-if="blockAlert.show" class="bottom-sheet-overlay" @click="blockAlert.show = false">
         <div class="confirm-dialog block-alert-dialog" @click.stop>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
           <h3>Acceso bloqueado</h3>
           <p class="block-reason-text">Has sido bloqueado debido a: {{ blockAlert.reason }}</p>
           <div class="confirm-actions">
@@ -803,7 +803,7 @@ useSubjectSocket(courseId.value, {
   background: rgba(255,69,58,0.1);
   border: 1px solid rgba(255,69,58,0.3);
   border-radius: 12px;
-  color: #FF453A;
+  color: var(--color-danger);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -811,19 +811,19 @@ useSubjectSocket(courseId.value, {
 
 .header-section { padding: 16px; }
 .header-top-row { display: flex; align-items: center; gap: 12px; }
-.back-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; }
-.header-title { flex: 1; font-size: 22px; font-weight: 700; color: #fff; }
-.add-btn { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+.back-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(var(--border-rgb), 0.08); display: flex; align-items: center; justify-content: center; }
+.header-title { flex: 1; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.add-btn { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; color: var(--text-on-accent); }
 .add-btn:hover { transform: scale(1.1); }
 .report-btn {
   height: 40px;
   min-width: 40px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #BF5AF2;
+  color: var(--purple-light);
   padding: 0 10px;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
   flex-shrink: 0;
@@ -854,16 +854,16 @@ useSubjectSocket(courseId.value, {
   height: 40px;
   min-width: 40px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   padding: 0 10px;
   transition: background 0.2s, transform 0.15s;
   flex-shrink: 0;
 }
-.sort-btn:hover { background: rgba(255,255,255,0.14); }
+.sort-btn:hover { background: rgba(var(--border-rgb), 0.14); }
 .sort-btn--active {
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   padding: 0 14px;
@@ -872,10 +872,10 @@ useSubjectSocket(courseId.value, {
 
 /* El botón del header solo se muestra en pantallas grandes */
 @media (max-width: 768px) {
-  .sort-btn--active { display: none; }
+  .sort-btn--active { display: none; color: var(--text-on-accent); }
 }
 
-.header-subtitle { font-size: 13px; color: #8E8E93; margin-top: 4px; padding-left: 52px; }
+.header-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; padding-left: 52px; }
 
 .drag-item {
   transition: opacity 0.15s, transform 0.15s;
@@ -901,9 +901,9 @@ useSubjectSocket(courseId.value, {
 }
 
 .search-bar-container { padding: 0 16px 8px; }
-.search-field { display: flex; align-items: center; gap: 10px; background: #1C1C1E; border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.06); }
-.search-field input { flex: 1; background: transparent; border: none; color: #fff; font-size: 15px; outline: none; }
-.search-field input::placeholder { color: #8E8E93; }
+.search-field { display: flex; align-items: center; gap: 10px; background: var(--bg-input); border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(var(--border-rgb), 0.06); }
+.search-field input { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; }
+.search-field input::placeholder { color: var(--text-muted); }
 
 .loading-center { display: flex; justify-content: center; padding: 60px 0; }
 .spinner-lg { width: 32px; height: 32px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -925,8 +925,8 @@ useSubjectSocket(courseId.value, {
 }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 40px; text-align: center; }
-.empty-text { font-size: 15px; color: #8E8E93; }
-.empty-add-btn { padding: 10px 24px; border-radius: 12px; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: #fff; font-size: 15px; font-weight: 600; }
+.empty-text { font-size: 15px; color: var(--text-muted); }
+.empty-add-btn { padding: 10px 24px; border-radius: 12px; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: var(--text-on-accent); font-size: 15px; font-weight: 600; }
 
 .fab {
   position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px;
@@ -935,6 +935,7 @@ useSubjectSocket(courseId.value, {
   box-shadow: 0 4px 16px rgba(191,90,242,0.4);
   transition: transform 0.2s;
   z-index: 10;
+  color: var(--text-on-accent);
 }
 .fab:hover { transform: scale(1.1); }
 
@@ -948,7 +949,7 @@ useSubjectSocket(courseId.value, {
   padding: 12px 20px;
   border-radius: 28px;
   background: linear-gradient(135deg, #1DB954, #0fa343);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 15px;
   font-weight: 700;
   box-shadow: 0 4px 20px rgba(29, 185, 84, 0.5);
@@ -964,27 +965,27 @@ useSubjectSocket(courseId.value, {
 }
 
 .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px; }
-.bottom-sheet { width: 100%; max-width: 480px; background: #1C1C1E; border-radius: 20px; padding: 24px 0; }
-.sheet-title { font-size: 18px; font-weight: 600; color: #fff; padding: 0 24px 16px; }
+.bottom-sheet { width: 100%; max-width: 480px; background: var(--bg-card); border-radius: 20px; padding: 24px 0; }
+.sheet-title { font-size: 18px; font-weight: 600; color: var(--text-primary); padding: 0 24px 16px; }
 .sheet-option { display: block; width: 100%; text-align: left; padding: 14px 24px; font-size: 16px; transition: background 0.15s; }
-.sheet-option:hover { background: rgba(255,255,255,0.05); }
-.sheet-option.edit { color: #0A84FF; }
-.sheet-option.delete { color: #FF453A; }
-.sheet-option.cancel { color: #8E8E93; text-align: center; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+.sheet-option:hover { background: rgba(var(--border-rgb), 0.05); }
+.sheet-option.edit { color: var(--color-info); }
+.sheet-option.delete { color: var(--color-danger); }
+.sheet-option.cancel { color: var(--text-muted); text-align: center; margin-top: 8px; border-top: 1px solid rgba(var(--border-rgb), 0.08); padding-top: 16px; }
 
-.confirm-dialog { background: #1C1C1E; border-radius: 16px; padding: 24px; margin: auto 16px; max-width: 400px; width: 100%; }
-.confirm-dialog h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
-.confirm-dialog p { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 20px; }
+.confirm-dialog { background: var(--bg-card); border-radius: 16px; padding: 24px; margin: auto 16px; max-width: 400px; width: 100%; }
+.confirm-dialog h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+.confirm-dialog p { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
 .confirm-actions { display: flex; gap: 12px; justify-content: flex-end; }
-.cancel-btn { padding: 10px 20px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 15px; }
-.delete-btn { padding: 10px 20px; border-radius: 10px; background: #FF453A; color: #fff; font-size: 15px; font-weight: 600; }
+.cancel-btn { padding: 10px 20px; border-radius: 10px; background: rgba(var(--border-rgb), 0.08); color: var(--text-primary); font-size: 15px; }
+.delete-btn { padding: 10px 20px; border-radius: 10px; background: #FF453A; color: var(--text-on-accent); font-size: 15px; font-weight: 600; }
 
 
 
 .block-alert-dialog { text-align: center; }
 .block-alert-dialog svg { margin: 0 auto 12px; }
-.block-alert-dialog h3 { color: #FF453A; }
-.block-reason-text { font-size: 15px; color: #ccc; margin-bottom: 20px; }
+.block-alert-dialog h3 { color: var(--color-danger); }
+.block-reason-text { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; }
 .block-alert-dialog .confirm-actions { justify-content: center; }
 
 /* ── Three-dot more menu ── */
@@ -997,11 +998,11 @@ useSubjectSocket(courseId.value, {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #BF5AF2;
+  color: var(--purple-light);
   transition: background 0.2s, transform 0.2s;
 }
 .more-menu-btn:hover { background: rgba(191, 90, 242, 0.15); transform: scale(1.08); }
@@ -1021,11 +1022,11 @@ useSubjectSocket(courseId.value, {
   top: 46px;
   right: 0;
   min-width: 200px;
-  background: #2C2C2E;
+  background: var(--bg-card);
   border-radius: 14px;
   padding: 6px 0;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   z-index: 60;
   overflow: hidden;
 }
@@ -1038,10 +1039,10 @@ useSubjectSocket(courseId.value, {
   padding: 12px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   text-align: left;
   transition: background 0.15s;
 }
-.more-menu-option:hover { background: rgba(255, 255, 255, 0.06); }
-.more-menu-option svg { flex-shrink: 0; color: #BF5AF2; }
+.more-menu-option:hover { background: rgba(var(--border-rgb), 0.06); }
+.more-menu-option svg { flex-shrink: 0; color: var(--purple-light); }
 </style>

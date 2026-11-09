@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="report-header">
             <div class="report-header-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
@@ -18,11 +18,11 @@
               <p class="report-subtitle">Registro completo de todos los cursos de la plataforma</p>
             </div>
             <button class="report-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
-              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
             </button>
             <button class="report-close" @click="$emit('update:modelValue', false)" aria-label="Cerrar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5" stroke-linecap="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
@@ -37,7 +37,7 @@
 
           <!-- Error -->
           <div v-else-if="errorMsg" class="report-error">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <p>{{ errorMsg }}</p>
             <button class="retry-btn" @click="fetchReport">Reintentar</button>
           </div>
@@ -76,7 +76,7 @@
                       @input="showCourseDropdown = true"
                       @blur="hideCourseDropdownDelayed"
                     />
-                    <svg v-if="!selectedCourseId" class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg v-if="!selectedCourseId" class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <button v-else class="search-clear-btn" @mousedown.prevent="clearCourseSearch">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -1283,7 +1283,7 @@ function esc_html(s: string): string {
   max-width: 940px;
   max-height: 92vh;
   height: 92vh;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -1318,7 +1318,7 @@ function esc_html(s: string): string {
   align-items: center;
   gap: 12px;
   padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1334,26 +1334,26 @@ function esc_html(s: string): string {
 }
 
 .report-header-info { flex: 1; min-width: 0; }
-.report-title { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
-.report-subtitle { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+.report-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.report-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 .report-close {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
 }
-.report-close:hover { background: rgba(255, 255, 255, 0.12); }
+.report-close:hover { background: rgba(var(--border-rgb), 0.12); }
 
 .report-action-btn {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1361,7 +1361,7 @@ function esc_html(s: string): string {
   margin-right: 4px;
   flex-shrink: 0;
 }
-.report-action-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.report-action-btn:hover { background: rgba(var(--border-rgb), 0.12); }
 
 /* ── Loading / Error ── */
 .report-loading, .report-error {
@@ -1372,19 +1372,19 @@ function esc_html(s: string): string {
   padding: 60px 20px;
   gap: 12px;
   flex: 1;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 14px;
 }
-.loading-text { color: #8E8E93; font-size: 14px; }
-.loading-progress { color: #636366; font-size: 12px; }
+.loading-text { color: var(--text-muted); font-size: 14px; }
+.loading-progress { color: var(--text-muted); font-size: 12px; }
 
-.report-error p { color: #FF453A; font-size: 14px; text-align: center; }
+.report-error p { color: var(--color-danger); font-size: 14px; text-align: center; }
 .retry-btn {
   margin-top: 8px;
   padding: 8px 20px;
   border-radius: 8px;
   background: rgba(191, 90, 242, 0.18);
-  color: #BF5AF2;
+  color: var(--purple-light);
   font-size: 14px;
 }
 
@@ -1403,16 +1403,16 @@ function esc_html(s: string): string {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--border-rgb), 0.04);
   border-radius: 16px;
   padding: 16px 8px;
   margin: 16px 20px 0;
   flex-shrink: 0;
 }
 .summary-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.summary-value { font-size: 22px; font-weight: 800; color: #fff; }
-.summary-label { font-size: 11px; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; }
-.summary-divider { width: 1px; height: 32px; background: rgba(255, 255, 255, 0.08); }
+.summary-value { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+.summary-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-divider { width: 1px; height: 32px; background: rgba(var(--border-rgb), 0.08); }
 
 /* ── Body ── */
 .report-body {
@@ -1446,16 +1446,16 @@ function esc_html(s: string): string {
 .course-name {
   font-size: 14px;
   font-weight: 700;
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 
 /* Subject groups (same as GradeReportModal) */
 .report-subject-group {
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
   overflow: hidden;
   margin-bottom: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .subject-row-header {
@@ -1478,7 +1478,7 @@ function esc_html(s: string): string {
 .subject-name {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1488,7 +1488,7 @@ function esc_html(s: string): string {
 .subject-avg {
   font-size: 15px;
   font-weight: 800;
-  color: #8E8E93;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -1504,7 +1504,7 @@ function esc_html(s: string): string {
 }
 
 .grade-table thead tr {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--border-rgb), 0.04);
 }
 
 .grade-table th {
@@ -1514,8 +1514,8 @@ function esc_html(s: string): string {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #8E8E93;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.08);
   white-space: nowrap;
 }
 .th-student { min-width: 90px; }
@@ -1524,36 +1524,36 @@ function esc_html(s: string): string {
 
 .grade-table td {
   padding: 8px 10px;
-  color: #ccc;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
   vertical-align: top;
 }
 
 .grade-row:last-child td { border-bottom: none; }
-.grade-row:hover { background: rgba(255, 255, 255, 0.02); }
+.grade-row:hover { background: rgba(var(--border-rgb), 0.02); }
 
-.cell-student { font-weight: 700; color: #fff; white-space: nowrap; min-width: 80px; }
-.cell-task { min-width: 100px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #C7C7CC; font-size: 11.5px; }
+.cell-student { font-weight: 700; color: var(--text-primary); white-space: nowrap; min-width: 80px; }
+.cell-task { min-width: 100px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 11.5px; }
 .cell-grade { font-weight: 700; text-align: center; white-space: nowrap; min-width: 44px; }
 .cell-ponderada { font-weight: 700; text-align: center; white-space: nowrap; min-width: 80px; }
-.cell-date { white-space: nowrap; font-size: 11px; color: #636366; min-width: 80px; }
-.cell-grader { font-size: 11.5px; color: #9E9EA3; white-space: nowrap; }
-.cell-feedback { color: #8E8E93; font-size: 11px; min-width: 100px; max-width: 220px; line-height: 1.4; }
-.no-feedback { color: #3a3a3c; }
+.cell-date { white-space: nowrap; font-size: 11px; color: var(--text-muted); min-width: 80px; }
+.cell-grader { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.cell-feedback { color: var(--text-muted); font-size: 11px; min-width: 100px; max-width: 220px; line-height: 1.4; }
+.no-feedback { color: var(--text-muted); }
 
-.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: #FF453A; border-radius: 4px; padding: 1px 5px; }
+.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: var(--color-danger); border-radius: 4px; padding: 1px 5px; }
 .row-not-submitted { opacity: 0.75; }
 
 .no-tasks {
   padding: 10px 16px;
   font-size: 13px;
-  color: #636366;
+  color: var(--text-muted);
 }
 
 .no-active-period-msg {
   padding: 10px 16px;
   font-size: 13px;
-  color: #FF9500;
+  color: var(--color-warning);
   background: rgba(255, 149, 0, 0.08);
   border-radius: 8px;
   margin: 6px 0;
@@ -1562,13 +1562,13 @@ function esc_html(s: string): string {
 .period-label {
   font-size: 12px;
   font-weight: 600;
-  color: #BF5AF2;
+  color: var(--purple-light);
   padding: 4px 0 6px;
 }
 
-.grade-good { color: #34C759 !important; font-weight: 700; }
-.grade-ok   { color: #FF9500 !important; font-weight: 700; }
-.grade-low  { color: #FF453A !important; font-weight: 700; }
+.grade-good { color: var(--color-success) !important; font-weight: 700; }
+.grade-ok   { color: var(--color-warning) !important; font-weight: 700; }
+.grade-low  { color: var(--color-danger) !important; font-weight: 700; }
 
 /* ── Filters ── */
 .filters-row {
@@ -1591,14 +1591,14 @@ function esc_html(s: string): string {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 .filter-select {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 10px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   padding: 8px 12px;
   outline: none;
@@ -1607,7 +1607,7 @@ function esc_html(s: string): string {
   width: 100%;
 }
 .filter-select:hover, .filter-select:focus { border-color: rgba(191, 90, 242, 0.5); }
-.filter-select option { background: #2C2C2E; color: #fff; }
+.filter-select option { background: var(--bg-input); color: var(--text-primary); }
 
 /* ── Course search combobox ── */
 .course-search-wrapper {
@@ -1615,10 +1615,10 @@ function esc_html(s: string): string {
 }
 
 .course-search-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 10px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   padding: 8px 32px 8px 12px;
   outline: none;
@@ -1629,7 +1629,7 @@ function esc_html(s: string): string {
 }
 .course-search-input:hover,
 .course-search-input:focus { border-color: rgba(191, 90, 242, 0.5); }
-.course-search-input::placeholder { color: #636366; }
+.course-search-input::placeholder { color: var(--text-muted); }
 
 .search-icon {
   position: absolute;
@@ -1644,25 +1644,25 @@ function esc_html(s: string): string {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8E8E93;
+  color: var(--text-muted);
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   transition: background 0.15s, color 0.15s;
 }
-.search-clear-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.search-clear-btn:hover { background: rgba(var(--border-rgb), 0.16); color: var(--text-primary); }
 
 .course-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #2C2C2E;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   border-radius: 10px;
   overflow: hidden;
   z-index: 50;
@@ -1674,17 +1674,17 @@ function esc_html(s: string): string {
 .course-option {
   padding: 9px 13px;
   font-size: 13px;
-  color: #fff;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background 0.12s;
 }
-.course-option:hover { background: rgba(255, 255, 255, 0.07); }
-.course-option.active { color: #BF5AF2; background: rgba(191, 90, 242, 0.1); }
+.course-option:hover { background: rgba(var(--border-rgb), 0.07); }
+.course-option.active { color: var(--purple-light); background: rgba(191, 90, 242, 0.1); }
 
 .course-option-empty {
   padding: 9px 13px;
   font-size: 13px;
-  color: #636366;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1699,7 +1699,7 @@ function esc_html(s: string): string {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   opacity: 0.85;
 }
 
@@ -1708,7 +1708,7 @@ function esc_html(s: string): string {
   display: flex;
   gap: 10px;
   padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   flex-shrink: 0;
 }
 
@@ -1725,9 +1725,9 @@ function esc_html(s: string): string {
   transition: transform 0.15s, opacity 0.15s;
 }
 .export-btn:active { transform: scale(0.96); }
-.export-pdf   { background: rgba(255, 69, 58, 0.12); color: #FF6961; }
-.export-excel { background: rgba(52, 199, 89, 0.12); color: #34C759; }
-.export-word  { background: rgba(10, 132, 255, 0.12); color: #0A84FF; }
+.export-pdf   { background: rgba(255, 69, 58, 0.12); color: var(--color-danger); }
+.export-excel { background: rgba(52, 199, 89, 0.12); color: var(--color-success); }
+.export-word  { background: rgba(10, 132, 255, 0.12); color: var(--color-info); }
 
 /* ── Fullscreen ── */
 .report-overlay--fs { padding: 0; }
@@ -1810,12 +1810,12 @@ function esc_html(s: string): string {
 }
 .inst-header-line {
   font-size: 9px;
-  color: #8E8E93;
+  color: var(--text-muted);
   line-height: 1.3;
 }
 .inst-header-bold {
   font-weight: 600;
-  color: #777;
+  color: var(--text-muted);
 }
 .inst-header-nit {
   font-size: 10px;
@@ -1843,12 +1843,12 @@ function esc_html(s: string): string {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 .incat-sig-title {
   font-size: 10px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 2px 0 0;
 }
 .incat-footer-info {
@@ -1860,24 +1860,24 @@ function esc_html(s: string): string {
 .incat-footer-slogan {
   font-size: 11px;
   font-style: italic;
-  color: #BF5AF2;
+  color: var(--purple-light);
   margin: 0 0 3px;
 }
 .incat-footer-addr,
 .incat-footer-city {
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 2px 0;
 }
 .incat-footer-email {
   font-size: 10px;
-  color: #FF453A;
+  color: var(--color-danger);
   margin: 2px 0;
 }
 
 /* ── Periods section ── */
-.periods-section { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.periods-section { border-top: 1px solid rgba(var(--border-rgb), 0.06); }
 
 .periods-header {
   display: flex;
@@ -1886,9 +1886,9 @@ function esc_html(s: string): string {
   padding: 10px 14px;
   cursor: pointer;
   transition: background 0.15s;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
-.periods-header:hover { background: rgba(255, 255, 255, 0.03); }
+.periods-header:hover { background: rgba(var(--border-rgb), 0.03); }
 
 .periods-title {
   font-size: 12px;
@@ -1901,7 +1901,7 @@ function esc_html(s: string): string {
 .periods-badge {
   font-size: 11px;
   font-weight: 700;
-  color: #BF5AF2;
+  color: var(--purple-light);
   background: rgba(191, 90, 242, 0.15);
   padding: 2px 8px;
   border-radius: 10px;
@@ -1914,7 +1914,7 @@ function esc_html(s: string): string {
   padding: 5px 12px;
   border-radius: 8px;
   background: rgba(10, 132, 255, 0.12);
-  color: #0A84FF;
+  color: var(--color-info);
   font-size: 11px;
   font-weight: 600;
   transition: opacity 0.15s;
@@ -1926,17 +1926,17 @@ function esc_html(s: string): string {
 
 .no-periods {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-muted);
   padding: 8px 0;
   font-style: italic;
 }
 
 .period-item {
   margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .period-item-header {
@@ -1947,22 +1947,22 @@ function esc_html(s: string): string {
   cursor: pointer;
   transition: background 0.15s;
 }
-.period-item-header:hover { background: rgba(255, 255, 255, 0.04); }
+.period-item-header:hover { background: rgba(var(--border-rgb), 0.04); }
 
 .period-name {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .period-date {
   font-size: 11px;
-  color: #636366;
+  color: var(--text-muted);
 }
 
 .period-snapshot {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .period-edit-btn {
@@ -1972,7 +1972,7 @@ function esc_html(s: string): string {
   padding: 4px 10px;
   border-radius: 6px;
   background: rgba(52, 199, 89, 0.12);
-  color: #34C759;
+  color: var(--color-success);
   font-size: 11px;
   font-weight: 600;
   transition: opacity 0.15s;
@@ -1984,7 +1984,7 @@ function esc_html(s: string): string {
   padding: 4px 10px;
   border-radius: 6px;
   background: rgba(142, 142, 147, 0.15);
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   margin-left: auto;
@@ -1994,9 +1994,9 @@ function esc_html(s: string): string {
   width: 56px;
   padding: 4px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
   border: 1px solid rgba(191, 90, 242, 0.3);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -2010,14 +2010,14 @@ function esc_html(s: string): string {
   display: flex;
   justify-content: flex-end;
   padding: 8px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .period-save-btn {
   padding: 8px 20px;
   border-radius: 10px;
   background: rgba(52, 199, 89, 0.18);
-  color: #34C759;
+  color: var(--color-success);
   font-size: 13px;
   font-weight: 700;
   transition: opacity 0.15s;

@@ -44,7 +44,7 @@ defineProps<{
 
 .primary {
   background: linear-gradient(135deg, var(--purple-primary), var(--purple-light));
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .primary:hover:not(:disabled) {
@@ -69,19 +69,19 @@ defineProps<{
 }
 
 .ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--border-rgb), 0.05);
 }
 
 .danger {
   background: var(--red-netflix);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

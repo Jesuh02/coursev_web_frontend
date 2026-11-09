@@ -57,18 +57,21 @@ function formatGrade(val?: number | null) {
 }
 
 .user .bubble-content {
+  --text-primary: var(--text-on-accent);
+  --text-primary-rgb: 255, 255, 255;
+  --text-muted: rgba(255, 255, 255, 0.78);
   background: var(--purple-primary);
   border-bottom-right-radius: 4px;
 }
 
 .assistant .bubble-content {
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-bottom-left-radius: 4px;
 }
 
 .bubble-text {
   font-size: 14px;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1.4;
   white-space: pre-wrap;
 }
@@ -76,7 +79,7 @@ function formatGrade(val?: number | null) {
 .bubble-time {
   display: block;
   font-size: 10px;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
   margin-top: 4px;
   text-align: right;
 }
@@ -87,7 +90,7 @@ function formatGrade(val?: number | null) {
   padding: 8px 16px;
   border-radius: 20px;
   background: #10A37F;
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

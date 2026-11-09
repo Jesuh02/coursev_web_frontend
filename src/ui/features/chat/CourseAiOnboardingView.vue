@@ -20,7 +20,7 @@ import LottieAnimation from '@/ui/shared/components/LottieAnimation.vue'
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: #03050b;
+  background: var(--bg-primary);
 }
 
 .onboarding-animation {

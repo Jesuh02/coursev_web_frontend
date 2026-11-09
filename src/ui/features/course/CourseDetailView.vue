@@ -3,10 +3,10 @@
     <div class="hero-section">
       <div class="hero-toolbar">
         <button class="toolbar-btn" @click="$router.back()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <button v-if="canEditCourseSettings" class="toolbar-btn" @click="$router.push(`/course/${courseId}/edit`)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
         </button>
       </div>
       <div class="hero-image">
@@ -43,7 +43,7 @@
       <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="pending-alert-card">
         <div class="pending-alert-header">
           <div class="pending-alert-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div class="pending-alert-text">
             <p class="pending-alert-title">{{ totalPendingCount }} entrega{{ totalPendingCount !== 1 ? 's' : '' }} por revisar</p>
@@ -92,28 +92,28 @@
       <!-- Enrollment Banner (visible cuando la matricula aprobada es requerida) -->
       <div v-if="showEnrollmentBanner" class="enrollment-banner">
         <div v-if="enrollmentStatus === 'pending'" class="enrollment-pending">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="#FF9500" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" fill="var(--color-warning)" /></svg>
           <div>
             <p class="enroll-title">Solicitud pendiente</p>
             <p class="enroll-desc">Tu solicitud de acceso está esperando aprobación del administrador.</p>
           </div>
         </div>
         <div v-else-if="enrollmentStatus === 'rejected'" class="enrollment-rejected">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
           <div>
             <p class="enroll-title">Acceso rechazado</p>
             <p class="enroll-desc">Tu solicitud fue rechazada. Contacta al administrador para más información.</p>
           </div>
         </div>
         <div v-else-if="enrollmentStatus === 'inactivo'" class="enrollment-rejected">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
           <div>
             <p class="enroll-title">Acceso desactivado</p>
             <p class="enroll-desc">Tu acceso a este curso fue desactivado por el administrador.</p>
           </div>
         </div>
         <div v-else-if="enrollmentStatus === 'revoked'" class="enrollment-rejected">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
           <div>
             <p class="enroll-title">Acceso revocado</p>
             <p class="enroll-desc">Tu acceso a este curso fue revocado por el administrador.</p>
@@ -204,19 +204,19 @@
               </svg>
             </div>
             <div class="topic-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
             <div class="topic-info">
               <span class="topic-name">{{ topic.title }}</span>
               <p v-if="topic.description" class="topic-subtitle" :class="{ 'topic-subtitle--expanded': expandedTopicDescriptions.has(topic.id) }" @click.stop="toggleTopicDescription(topic.id)">{{ topic.description }}</p>
             </div>
             <button v-if="hasSubjectContentAccess && !isDragMode" class="topic-action edit" @click.stop="router.push({ path: `/course/${courseId}/topic/${topic.id}`, query: { subjectId: String(subjectId ?? '') } })">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             </button>
             <button v-if="hasSubjectContentAccess && !isDragMode" class="topic-action delete" @click.stop="deleteTopic(topic.id)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
-            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
             <div v-if="!topicContent[topic.id]?.length" class="empty-inline">Sin archivos</div>
@@ -235,16 +235,16 @@
                 <p class="ci-name">{{ item.fileName || item.content }}</p>
                 <p class="ci-type">{{ item.contentType === 'video' ? 'Video' : 'Documento' }}</p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
             <div class="files-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               ARCHIVOS DEL TEMA
             </div>
           </div>
         </div>
         <div v-if="!topics.length" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
           <p>Sin temas aún</p>
         </div>
       </template>
@@ -254,7 +254,7 @@
         <div v-if="hasSubjectContentAccess && totalPendingCount > 0" class="tasks-pending-bar">
           <div class="tasks-pending-bar-left">
             <span class="tasks-pending-bar-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </span>
             <span class="tasks-pending-bar-text">
               <strong>{{ totalPendingCount }}</strong> entrega{{ totalPendingCount !== 1 ? 's' : '' }} pendiente{{ totalPendingCount !== 1 ? 's' : '' }} de revisión
@@ -266,7 +266,7 @@
         <div v-for="topic in topicsWithTasks" :key="topic.id" class="topic-block">
           <div class="topic-row">
             <div class="topic-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
             <div class="topic-info">
               <span class="topic-name">{{ topic.title }}</span>
@@ -274,7 +274,7 @@
             </div>
             <span class="task-count-badge">{{ topicTasks[topic.id]?.length ?? 0 }} tareas</span>
             <span v-if="hasSubjectContentAccess && (pendingByTopic[topic.id] ?? 0) > 0" class="topic-pending-pill">⏳ {{ pendingByTopic[topic.id] }} sin revisar</span>
-            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+            <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
           <div class="topic-expanded">
             <div class="tasks-label">TAREAS DEL TEMA</div>
@@ -312,7 +312,7 @@
                   </svg>
                 </div>
                 <div class="task-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-accent)" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                 </div>
                 <div class="task-info">
                   <p class="task-title">{{ task.title }}</p>
@@ -354,7 +354,7 @@
           </div>
         </div>
         <div v-if="!topicsWithTasks.length" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
           <p>Sin tareas aún</p>
         </div>
       </template>
@@ -366,7 +366,7 @@
           <!-- Docentes -->
           <div class="members-section">
             <div class="members-section-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               <h3 class="members-section-title">Docentes</h3>
               <span class="members-count">{{ memberTeachers.length }}</span>
             </div>
@@ -380,14 +380,14 @@
                 <p class="member-name">{{ teacher.username }}</p>
                 <p class="member-meta">Docente</p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           </div>
 
           <!-- Administrador del curso -->
           <div v-if="memberAdmin" class="members-section">
             <div class="members-section-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9F0A" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
               <h3 class="members-section-title">Administrador</h3>
               <span class="members-count">1</span>
             </div>
@@ -400,14 +400,14 @@
                 <p class="member-name">{{ memberAdmin.username }}</p>
                 <p class="member-meta">Administrador</p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           </div>
 
           <!-- Estudiantes -->
           <div class="members-section">
             <div class="members-section-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-accent)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
               <h3 class="members-section-title">Estudiantes</h3>
               <span class="members-count">{{ memberStudents.length }}</span>
             </div>
@@ -421,7 +421,7 @@
                 <p class="member-name">{{ student.username ?? 'Estudiante' }}</p>
                 <p class="member-meta">Estudiante</p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           </div>
         </template>
@@ -429,15 +429,15 @@
 
       <div v-if="hasSubjectContentAccess && !loading && activeTab !== 'members' && !isDragMode" class="bottom-actions">
         <button class="action-btn theme" @click="$router.push({ path: `/course/${courseId}/topic`, query: { subjectId: String(subjectId ?? '') } })">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nuevo Tema
         </button>
         <button class="action-btn task" @click="$router.push({ path: `/course/${courseId}/select-topic`, query: { subjectId: String(subjectId ?? ''), isCreatingTask: 'true' } })">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
           Nueva Tarea
         </button>
         <button v-if="subjectId" class="action-btn grade" @click="showGradePanel = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           Calificar
         </button>
       </div>
@@ -459,7 +459,7 @@
       <div v-if="taskToDelete" class="confirm-modal-overlay" @click.self="taskToDelete = null">
         <div class="confirm-modal">
           <div class="confirm-modal-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
           </div>
           <h3 class="confirm-modal-title">¿Eliminar tarea?</h3>
           <p class="confirm-modal-text">Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar esta tarea?</p>
@@ -476,7 +476,7 @@
       <div v-if="topicToDelete !== null" class="confirm-modal-overlay" @click.self="topicToDelete = null">
         <div class="confirm-modal">
           <div class="confirm-modal-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
           </div>
           <h3 class="confirm-modal-title">¿Deseas eliminar este tema?</h3>
           <p class="confirm-modal-text">Esta acción no se puede deshacer y eliminará también su contenido y tareas asociadas.</p>
@@ -1662,7 +1662,7 @@ watch(activeTab, (tab) => {
 </script>
 
 <style scoped>
-.course-detail { height: 100%; background: #080C1A; padding-bottom: 100px; overflow-y: auto; }
+.course-detail { height: 100%; background: var(--bg-primary); padding-bottom: 100px; overflow-y: auto; }
 
 /* ══════════════════════════════════════════════════════════
    DESKTOP — 769px+
@@ -1728,7 +1728,7 @@ watch(activeTab, (tab) => {
     font-size: 15px;
     line-height: 1.65;
     margin-bottom: 22px;
-    color: #9CA3B8;
+    color: var(--text-muted);
   }
 
   /* ── Tags ─────────────────────────────────────────────── */
@@ -1739,7 +1739,7 @@ watch(activeTab, (tab) => {
     border-radius: 22px;
     transition: background 0.2s, border-color 0.2s;
   }
-  .tag:hover { background: rgba(255,255,255,0.1); }
+  .tag:hover { background: rgba(var(--border-rgb), 0.1); }
   .tag.purple:hover { background: rgba(191,90,242,0.18); }
   .tag.subject-tag:hover { background: rgba(0,212,255,0.18); }
 
@@ -1751,10 +1751,10 @@ watch(activeTab, (tab) => {
     max-width: 560px;
     gap: 10px;
     margin-bottom: 30px;
-    background: rgba(255,255,255,0.03);
+    background: rgba(var(--border-rgb), 0.03);
     padding: 5px;
     border-radius: 32px;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(var(--border-rgb), 0.06);
   }
   .tab-btn {
     padding: 12px 24px;
@@ -1764,8 +1764,8 @@ watch(activeTab, (tab) => {
     transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
   }
   .tab-btn:not(.active):hover {
-    color: #ccc;
-    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    background: rgba(var(--border-rgb), 0.06);
   }
   .tab-btn.active {
     box-shadow: 0 4px 16px rgba(0,212,255,0.2);
@@ -1785,7 +1785,7 @@ watch(activeTab, (tab) => {
   .topic-block {
     margin-bottom: 12px;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid rgba(var(--border-rgb), 0.05);
     transition: border-color 0.25s, box-shadow 0.25s;
   }
   .topic-block:hover {
@@ -1801,12 +1801,12 @@ watch(activeTab, (tab) => {
   .content-row {
     padding: 12px 18px;
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.04);
+    border: 1px solid rgba(var(--border-rgb), 0.04);
     transition: border-color 0.2s, background 0.2s;
   }
   .content-row:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.1);
+    background: rgba(var(--border-rgb), 0.06);
+    border-color: rgba(var(--border-rgb), 0.1);
   }
   .ci-icon { width: 38px; height: 38px; border-radius: 10px; }
   .ci-name { font-size: 14px; }
@@ -1815,7 +1815,7 @@ watch(activeTab, (tab) => {
   .progress-card {
     padding: 28px;
     border-radius: 20px;
-    background: linear-gradient(145deg, rgba(17,20,40,0.98), rgba(12,15,28,0.94));
+    background: linear-gradient(145deg, rgba(var(--bg-card-rgb), 0.98), rgba(var(--bg-card-rgb), 0.94));
     border: 1px solid rgba(0,212,255,0.12);
     box-shadow: 0 20px 48px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04);
     backdrop-filter: blur(12px);
@@ -1827,7 +1827,7 @@ watch(activeTab, (tab) => {
     height: 10px;
     margin-top: 20px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(var(--border-rgb), 0.06);
   }
   .progress-fill {
     background: linear-gradient(90deg, #00D4FF, #00E5C5);
@@ -1839,14 +1839,14 @@ watch(activeTab, (tab) => {
   .task-card {
     padding: 20px;
     border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.05);
-    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(var(--border-rgb), 0.05);
+    background: rgba(var(--border-rgb), 0.025);
     transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
   }
   .task-card:hover {
     border-color: rgba(0,212,255,0.15);
     box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-    background: rgba(255,255,255,0.04);
+    background: rgba(var(--border-rgb), 0.04);
   }
   .task-title { font-size: 15px; }
   .task-description { font-size: 14px; line-height: 1.5; }
@@ -1896,12 +1896,12 @@ watch(activeTab, (tab) => {
     padding: 14px 18px;
     border-radius: 14px;
     margin-bottom: 8px;
-    border: 1px solid rgba(255,255,255,0.04);
+    border: 1px solid rgba(var(--border-rgb), 0.04);
     transition: all 0.2s;
   }
   .member-row:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.1);
+    background: rgba(var(--border-rgb), 0.06);
+    border-color: rgba(var(--border-rgb), 0.1);
     transform: translateX(4px);
   }
   .member-avatar { width: 46px; height: 46px; }
@@ -2007,25 +2007,25 @@ watch(activeTab, (tab) => {
 
 .hero-section { position: relative; height: 240px; overflow: hidden; }
 .hero-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; padding: 12px 16px; }
-.toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
-.hero-image { position: relative; width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; }
+.toolbar-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; color: var(--text-on-accent); }
+.hero-image { position: relative; width: 100%; height: 100%; background: var(--bg-card); overflow: hidden; }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
 .hero-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00D4FF, #9C27B0); }
 .hero-info { padding: 14px 16px 0; }
 
 .course-body { padding: 0 16px; margin-top: 16px; position: relative; }
 
-.featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.15); color: #FFD700; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.featured-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 10px; background: rgba(255,215,0,0.15); color: var(--gold-accent); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
-.course-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0; line-height: 1.15; }
-.course-desc { font-size: 14px; color: #8E8E93; line-height: 1.5; margin-bottom: 14px; }
+.course-title { font-size: 28px; font-weight: 800; color: var(--text-primary); margin: 0; line-height: 1.15; }
+.course-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: #ccc; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
-.tag.purple { color: #BF5AF2; border-color: rgba(191,90,242,0.3); background: rgba(191,90,242,0.1); }
-.tag.subject-tag { color: #00D4FF; border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
-.tag.config { cursor: pointer; border-color: rgba(255,255,255,0.15); }
-.tag.config:hover { background: rgba(255,255,255,0.1); }
+.tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--text-secondary); background: rgba(var(--border-rgb), 0.06); border: 1px solid rgba(var(--border-rgb), 0.08); }
+.tag.purple { color: var(--purple-light); border-color: rgba(191,90,242,0.3); background: rgba(191,90,242,0.1); }
+.tag.subject-tag { color: var(--cyan-accent); border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.1); }
+.tag.config { cursor: pointer; border-color: rgba(var(--border-rgb), 0.15); }
+.tag.config:hover { background: rgba(var(--border-rgb), 0.1); }
 
 /* ── Role switcher ─────────────────────────────────────── */
 .role-switcher {
@@ -2034,21 +2034,21 @@ watch(activeTab, (tab) => {
   background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(191,90,242,0.08));
   border: 1px solid rgba(0,212,255,0.2);
 }
-.role-switcher-label { font-size: 13px; font-weight: 600; color: #8E8E93; white-space: nowrap; }
+.role-switcher-label { font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
 .role-switcher-select {
   flex: 1; padding: 8px 12px; border-radius: 10px;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-  color: #fff; font-size: 13px; font-weight: 600;
+  background: rgba(var(--border-rgb), 0.06); border: 1px solid rgba(var(--border-rgb), 0.12);
+  color: var(--text-primary); font-size: 13px; font-weight: 600;
   cursor: pointer; outline: none; appearance: auto;
 }
 .role-switcher-select:focus { border-color: rgba(0,212,255,0.4); }
-.role-switcher-select option { background: #1C1C1E; color: #fff; }
+.role-switcher-select option { background: var(--bg-input); color: var(--text-primary); }
 
 .progress-card {
   margin-bottom: 20px;
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(17,20,40,0.96), rgba(12,15,28,0.92));
+  background: linear-gradient(180deg, rgba(var(--bg-card-rgb), 0.96), rgba(var(--bg-card-rgb), 0.92));
   border: 1px solid rgba(0,212,255,0.16);
   box-shadow: 0 18px 40px rgba(0,0,0,0.22);
 }
@@ -2065,14 +2065,14 @@ watch(activeTab, (tab) => {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #00D4FF;
+  color: var(--cyan-accent);
   margin-bottom: 4px;
 }
 
 .progress-title-card {
   font-size: 18px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .progress-header-side {
@@ -2093,14 +2093,14 @@ watch(activeTab, (tab) => {
 .progress-percent {
   font-size: 24px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .progress-track {
   margin-top: 16px;
   height: 10px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   overflow: hidden;
 }
 
@@ -2119,7 +2119,7 @@ watch(activeTab, (tab) => {
   gap: 12px;
   margin-top: 14px;
   font-size: 13px;
-  color: #A7AEC7;
+  color: var(--text-secondary);
 }
 
 .progress-status {
@@ -2132,33 +2132,33 @@ watch(activeTab, (tab) => {
 }
 
 .progress-status.won {
-  color: #30D158;
+  color: var(--color-success);
   background: rgba(48,209,88,0.12);
 }
 
 .progress-status.lost {
-  color: #FF9500;
+  color: var(--color-warning);
   background: rgba(255,149,0,0.12);
 }
 
 .progress-loading-text {
-  color: #00D4FF;
+  color: var(--cyan-accent);
 }
 
 .tabs { display: flex; gap: 12px; margin-bottom: 20px; }
 .tab-btn {
   flex: 1; padding: 12px; text-align: center; font-size: 15px; font-weight: 700;
-  border-radius: 28px; color: #8E8E93; background: transparent;
-  border: 2px solid rgba(255,255,255,0.08); transition: all 0.25s;
+  border-radius: 28px; color: var(--text-muted); background: transparent;
+  border: 2px solid rgba(var(--border-rgb), 0.08); transition: all 0.25s;
 }
 .tab-btn.active { color: #000; background: linear-gradient(135deg, #00D4FF, #00E5C5); border-color: transparent; }
-.tab-btn--members.active { color: #fff; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
+.tab-btn--members.active { color: var(--text-on-accent); background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
 .tab-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
   background: rgba(0,0,0,0.2); font-size: 12px; font-weight: 700; margin-left: 6px;
 }
-.tab-btn:not(.active) .tab-count { background: rgba(255,255,255,0.08); }
+.tab-btn:not(.active) .tab-count { background: rgba(var(--border-rgb), 0.08); }
 
 .sort-toolbar {
   display: flex;
@@ -2170,18 +2170,19 @@ watch(activeTab, (tab) => {
   height: 40px;
   min-width: 40px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   padding: 0 10px;
   transition: background 0.2s, transform 0.15s;
 }
-.sort-btn:hover { background: rgba(255,255,255,0.14); }
+.sort-btn:hover { background: rgba(var(--border-rgb), 0.14); }
 .sort-btn--active {
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   padding: 0 14px;
+  color: var(--text-on-accent);
 }
 .sort-btn__done { font-size: 13px; font-weight: 700; }
 
@@ -2190,7 +2191,7 @@ watch(activeTab, (tab) => {
   height: 32px;
   border-radius: 10px;
   background: rgba(191,90,242,0.13);
-  color: #BF5AF2;
+  color: var(--purple-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2226,67 +2227,67 @@ watch(activeTab, (tab) => {
 .spinner { width: 28px; height: 28px; border: 3px solid rgba(191,90,242,0.2); border-top-color: #BF5AF2; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.section-heading { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 14px; }
+.section-heading { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; }
 
-.topic-block { background: #111428; border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
+.topic-block { background: var(--bg-card); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
 .topic-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; }
-.topic-row:hover { background: rgba(255,255,255,0.03); }
+.topic-row:hover { background: rgba(var(--border-rgb), 0.03); }
 .topic-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(191,90,242,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .topic-info { flex: 1; min-width: 0; }
-.topic-name { font-size: 15px; font-weight: 600; color: #fff; }
-.topic-subtitle { font-size: 12px; color: #8E8E93; margin-top: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.topic-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.topic-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .topic-subtitle--expanded { -webkit-line-clamp: unset; overflow: visible; display: block; }
 .topic-action { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
-.topic-action:hover { background: rgba(255,255,255,0.08); }
+.topic-action:hover { background: rgba(var(--border-rgb), 0.08); }
 .chevron { transition: transform 0.25s; flex-shrink: 0; }
 .chevron.open { transform: rotate(180deg); }
 
-.task-count-badge { font-size: 12px; font-weight: 600; color: #00D4FF; white-space: nowrap; }
+.task-count-badge { font-size: 12px; font-weight: 600; color: var(--cyan-accent); white-space: nowrap; }
 
 .topic-expanded { padding: 0 16px 14px; }
 
-.empty-inline { font-size: 13px; color: #666; padding: 8px 0; }
+.empty-inline { font-size: 13px; color: var(--text-muted); padding: 8px 0; }
 
 .content-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-  border-radius: 10px; background: rgba(255,255,255,0.03); margin-bottom: 6px;
+  border-radius: 10px; background: rgba(var(--border-rgb), 0.03); margin-bottom: 6px;
   width: 100%; border: none; text-decoration: none; color: inherit; transition: background 0.15s;
   cursor: pointer; text-align: left;
 }
-.content-row:hover { background: rgba(255,255,255,0.06); }
+.content-row:hover { background: rgba(var(--border-rgb), 0.06); }
 .ci-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.ci-icon.document, .ci-icon.pdf, .ci-icon.text { background: rgba(106,27,154,0.2); color: #BF5AF2; }
-.ci-icon.video { background: rgba(255,55,95,0.15); color: #FF375F; }
+.ci-icon.document, .ci-icon.pdf, .ci-icon.text { background: rgba(106,27,154,0.2); color: var(--purple-light); }
+.ci-icon.video { background: rgba(255,55,95,0.15); color: var(--color-danger); }
 .ci-info { flex: 1; min-width: 0; }
-.ci-name { font-size: 13px; font-weight: 500; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ci-type { font-size: 11px; color: #BF5AF2; margin-top: 1px; }
+.ci-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-type { font-size: 11px; color: var(--purple-light); margin-top: 1px; }
 
-.files-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #BF5AF2; letter-spacing: 0.5px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+.files-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--purple-light); letter-spacing: 0.5px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(var(--border-rgb), 0.05); }
 
-.tasks-label { font-size: 11px; font-weight: 700; color: #FF375F; letter-spacing: 0.5px; margin-bottom: 10px; }
+.tasks-label { font-size: 11px; font-weight: 700; color: var(--color-danger); letter-spacing: 0.5px; margin-bottom: 10px; }
 
 /* ── Task card v2 (matches Android item_course_task_detail) ── */
-.task-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; margin-bottom: 8px; }
+.task-card { background: rgba(var(--border-rgb), 0.03); border-radius: 12px; padding: 14px; margin-bottom: 8px; }
 .task-row { display: flex; align-items: center; gap: 10px; }
 .task-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(0,212,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .task-info { flex: 1; }
-.task-title { font-size: 14px; font-weight: 600; color: #fff; }
+.task-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
 .status-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 8px; margin-top: 4px; }
-.status-badge.pending, .status-badge.not-submitted { color: #FF9500; background: rgba(255,149,0,0.12); }
-.status-badge.graded { color: #30D158; background: rgba(48,209,88,0.12); }
-.task-description { font-size: 13px; color: #8E8E93; margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.status-badge.pending, .status-badge.not-submitted { color: var(--color-warning); background: rgba(255,149,0,0.12); }
+.status-badge.graded { color: var(--color-success); background: rgba(48,209,88,0.12); }
+.task-description { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .task-description--expanded { -webkit-line-clamp: unset; overflow: visible; display: block; }
 .task-attachments { margin-top: 8px; }
-.no-attachments { font-size: 12px; color: #555; }
+.no-attachments { font-size: 12px; color: var(--text-muted); }
 .attachment-link {
   display: block; margin-top: 4px; padding: 0; border: none; background: transparent;
-  font-size: 12px; color: #00D4FF; text-decoration: none; cursor: pointer;
+  font-size: 12px; color: var(--cyan-accent); text-decoration: none; cursor: pointer;
 }
 .attachment-link:hover { text-decoration: underline; }
 
 .submissions-btn {
   display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; padding: 10px;
-  text-align: center; font-size: 14px; font-weight: 600; color: #00D4FF;
+  text-align: center; font-size: 14px; font-weight: 600; color: var(--cyan-accent);
   border: 1.5px solid rgba(0,212,255,0.3); border-radius: 12px;
   background: transparent; transition: all 0.2s; cursor: pointer;
 }
@@ -2295,7 +2296,7 @@ watch(activeTab, (tab) => {
 .submissions-btn-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
-  background: rgba(245,158,11,0.25); color: #F59E0B;
+  background: rgba(245,158,11,0.25); color: var(--color-warning);
   font-size: 11px; font-weight: 700; margin-left: 8px;
 }
 
@@ -2311,22 +2312,22 @@ watch(activeTab, (tab) => {
   background: rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center;
 }
 .pending-alert-text { flex: 1; }
-.pending-alert-title { font-size: 15px; font-weight: 700; color: #F59E0B; margin-bottom: 2px; }
-.pending-alert-sub { font-size: 12px; color: #8E8E93; }
+.pending-alert-title { font-size: 15px; font-weight: 700; color: var(--color-warning); margin-bottom: 2px; }
+.pending-alert-sub { font-size: 12px; color: var(--text-muted); }
 .pending-alert-btn {
   padding: 6px 14px; border-radius: 10px; flex-shrink: 0;
   background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.28);
-  color: #F59E0B; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  color: var(--color-warning); font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s;
 }
 .pending-alert-btn:hover { background: rgba(245,158,11,0.22); }
 .pending-topic-list { display: flex; flex-direction: column; gap: 5px; }
 .pending-topic-row {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-  border-radius: 10px; background: rgba(255,255,255,0.03);
+  border-radius: 10px; background: rgba(var(--border-rgb), 0.03);
 }
 .pending-topic-dot { width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
-.pending-topic-name { font-size: 13px; color: #ccc; flex: 1; }
-.pending-topic-count { font-size: 12px; font-weight: 600; color: #F59E0B; }
+.pending-topic-name { font-size: 13px; color: var(--text-secondary); flex: 1; }
+.pending-topic-count { font-size: 12px; font-weight: 600; color: var(--color-warning); }
 
 /* ── Tareas tab pending badge ─────────────────────────── */
 .tab-btn--tasks { position: relative; }
@@ -2338,7 +2339,7 @@ watch(activeTab, (tab) => {
   box-shadow: 0 0 0 2px rgba(245,158,11,0.25);
   animation: pulse-badge 2s ease-in-out infinite;
 }
-.tab-btn.active .tab-pending-badge { background: rgba(0,0,0,0.3); color: #fff; box-shadow: none; animation: none; }
+.tab-btn.active .tab-pending-badge { background: rgba(0,0,0,0.3); color: var(--text-on-accent); box-shadow: none; animation: none; }
 @keyframes pulse-badge {
   0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,0.25); }
   50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.0); }
@@ -2353,21 +2354,21 @@ watch(activeTab, (tab) => {
 }
 .tasks-pending-bar-left { display: flex; align-items: center; gap: 9px; }
 .tasks-pending-bar-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(245,158,11,0.15); flex-shrink: 0; }
-.tasks-pending-bar-text { font-size: 13px; color: #ccc; }
-.tasks-pending-bar-text strong { color: #F59E0B; font-weight: 700; }
-.tasks-pending-bar-topics { font-size: 12px; font-weight: 600; color: #F59E0B; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.22); padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+.tasks-pending-bar-text { font-size: 13px; color: var(--text-secondary); }
+.tasks-pending-bar-text strong { color: var(--color-warning); font-weight: 700; }
+.tasks-pending-bar-topics { font-size: 12px; font-weight: 600; color: var(--color-warning); background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.22); padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
 
 /* per-topic pending pill in tasks tab */
 .topic-pending-pill {
   padding: 3px 9px; border-radius: 9px; font-size: 11px; font-weight: 600;
   background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.28);
-  color: #F59E0B; white-space: nowrap;
+  color: var(--color-warning); white-space: nowrap;
 }
 
 /* per-task pending inline label */
 .task-pending-inline {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 600; color: #F59E0B;
+  font-size: 11px; font-weight: 600; color: var(--color-warning);
   background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.22);
   padding: 2px 8px; border-radius: 7px; margin-top: 4px;
 }
@@ -2377,23 +2378,23 @@ watch(activeTab, (tab) => {
   width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; cursor: pointer; transition: background 0.15s;
 }
-.task-mgmt-btn.edit { color: #00D4FF; }
+.task-mgmt-btn.edit { color: var(--cyan-accent); }
 .task-mgmt-btn.edit:hover { background: rgba(0,212,255,0.12); }
-.task-mgmt-btn.delete { color: #FF453A; }
+.task-mgmt-btn.delete { color: var(--color-danger); }
 .task-mgmt-btn.delete:hover { background: rgba(255,69,58,0.12); }
 
-.empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: var(--text-muted); font-size: 14px; }
 
 .bottom-actions { display: flex; gap: 12px; margin-top: 24px; }
 .action-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700;
-  color: #fff; cursor: pointer; transition: transform 0.15s;
+  color: var(--text-primary); cursor: pointer; transition: transform 0.15s;
 }
 .action-btn:hover { transform: scale(1.02); }
-.action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); }
-.action-btn.task { background: transparent; border: 2px solid #00D4FF; color: #00D4FF; }
-.action-btn.grade { background: transparent; border: 2px solid #30D158; color: #30D158; }
+.action-btn.theme { background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: var(--text-on-accent); }
+.action-btn.task { background: transparent; border: 2px solid #00D4FF; color: var(--cyan-accent); }
+.action-btn.grade { background: transparent; border: 2px solid #30D158; color: var(--color-success); }
 
 /* Enrollment banner */
 .enrollment-banner {
@@ -2420,8 +2421,8 @@ watch(activeTab, (tab) => {
 .enrollment-pending  svg { flex-shrink: 0; }
 .enrollment-rejected svg { flex-shrink: 0; }
 
-.enroll-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-.enroll-desc  { font-size: 13px; color: #8E8E93; line-height: 1.4; }
+.enroll-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.enroll-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
 .enroll-btn {
   margin-left: auto;
@@ -2429,7 +2430,7 @@ watch(activeTab, (tab) => {
   padding: 10px 18px;
   border-radius: 12px;
   background: linear-gradient(135deg, #6C63FF, #8B7FFF);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 13px;
   font-weight: 700;
   transition: opacity 0.2s;
@@ -2444,47 +2445,47 @@ watch(activeTab, (tab) => {
 .members-section-header {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 12px; padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.07);
 }
 
 .members-section-title {
-  font-size: 15px; font-weight: 700; color: #fff; margin: 0; flex: 1;
+  font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; flex: 1;
 }
 
 .members-count {
   min-width: 24px; height: 24px; padding: 0 7px;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 12px; background: rgba(255,255,255,0.08);
-  font-size: 12px; font-weight: 700; color: #8E8E93;
+  border-radius: 12px; background: rgba(var(--border-rgb), 0.08);
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
 }
 
 .members-empty {
-  font-size: 13px; color: #555; padding: 10px 0;
+  font-size: 13px; color: var(--text-muted); padding: 10px 0;
 }
 
 .member-row {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 12px;
   margin-bottom: 6px; cursor: pointer;
-  background: rgba(255,255,255,0.03);
+  background: rgba(var(--border-rgb), 0.03);
   transition: background 0.15s;
 }
-.member-row:hover { background: rgba(255,255,255,0.06); }
+.member-row:hover { background: rgba(var(--border-rgb), 0.06); }
 
 .member-avatar {
   width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
 .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .member-avatar-initials {
-  font-size: 16px; font-weight: 700; color: #BF5AF2;
+  font-size: 16px; font-weight: 700; color: var(--purple-light);
 }
 
 .member-info { flex: 1; min-width: 0; }
-.member-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.member-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+.member-name { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* ── Confirm delete modal ───────────────────────────────────────── */
 .confirm-modal-overlay {
@@ -2494,8 +2495,8 @@ watch(activeTab, (tab) => {
   padding: 24px;
 }
 .confirm-modal {
-  background: #1C1C1E;
-  border: 1px solid #3A3A3C;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 28px 24px 24px;
   width: 100%; max-width: 320px;
@@ -2503,8 +2504,8 @@ watch(activeTab, (tab) => {
   text-align: center;
 }
 .confirm-modal-icon { margin-bottom: 4px; }
-.confirm-modal-title { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
-.confirm-modal-text { font-size: 14px; color: #8E8E93; margin: 0; line-height: 1.5; }
+.confirm-modal-title { font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.confirm-modal-text { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.5; }
 .confirm-modal-actions {
   display: flex; gap: 10px; width: 100%; margin-top: 8px;
 }
@@ -2514,6 +2515,6 @@ watch(activeTab, (tab) => {
   transition: opacity 0.15s;
 }
 .confirm-modal-btn:active { opacity: 0.7; }
-.confirm-modal-btn.cancel { background: #2C2C2E; color: #fff; }
-.confirm-modal-btn.danger { background: #FF453A; color: #fff; }
+.confirm-modal-btn.cancel { background: var(--bg-card); color: var(--text-primary); }
+.confirm-modal-btn.danger { background: #FF453A; color: var(--text-on-accent); }
 </style>

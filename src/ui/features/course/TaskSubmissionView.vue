@@ -11,7 +11,7 @@
           <h2 class="task-name">{{ task.title }}</h2>
           <p v-if="task.description" class="task-desc">{{ task.description }}</p>
           <div v-if="task.dueDate || task.due_date" class="due-row">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             <span>{{ task.dueDate ?? task.due_date }}</span>
           </div>
         </div>
@@ -42,7 +42,7 @@
                 transform="rotate(-90 60 60)"
                 class="donut-arc"
                 cx="60" cy="60" r="45"
-                stroke="#FF9500"
+                stroke="var(--color-warning)"
                 :style="pendingArcStyle"
               />
               <!-- Graded arc -->
@@ -50,7 +50,7 @@
                 transform="rotate(-90 60 60)"
                 class="donut-arc"
                 cx="60" cy="60" r="45"
-                stroke="#30D158"
+                stroke="var(--color-success)"
                 filter="url(#glow)"
                 :style="gradedArcStyle"
               />
@@ -112,18 +112,18 @@
         </div>
 
         <div class="search-bar card-enter" style="animation-delay: 0.15s">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
         </div>
 
         <div v-if="filteredSubmissions.length === 0 && searchQuery" class="empty-state card-enter" style="animation-delay: 0.2s">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
           <p>No se encontraron entregas</p>
         </div>
         </template>
 
         <div v-if="allSubmissions.length === 0" class="empty-state card-enter" style="animation-delay: 0.1s">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.5">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
             <line x1="9" y1="15" x2="15" y2="15" />
@@ -190,7 +190,7 @@
             <div class="grade-form-label-row">
               <p class="form-label">Calificar</p>
               <button class="sl-icon-btn" @click="openSignLangFor({ subId: sub.id })" title="Dictado por señas">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
               </button>
             </div>
             <div class="grade-row">
@@ -226,7 +226,7 @@
       <div v-else class="submission-content">
         <!-- Admin viewing as student: role indicator -->
         <div v-if="isAdminViewingAsStudent" class="role-indicator-banner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-accent)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Vista de Estudiante — Puedes enviar tareas como estudiante</span>
         </div>
 
@@ -250,7 +250,7 @@
               type="button"
               @click="openPreview(previewFileFromContentItem(item))"
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-accent)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
               <span>{{ getContentItemLabel(item) }}</span>
             </button>
           </div>
@@ -259,7 +259,7 @@
         <!-- Banner fuera de plazo -->
         <div v-if="isOverdue && status === 'not-submitted'" class="overdue-banner card-enter" style="animation-delay: 0.04s">
           <div class="overdue-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           </div>
           <div>
             <p class="overdue-title">Plazo de entrega vencido</p>
@@ -269,9 +269,9 @@
 
         <div class="status-card card-enter" :class="status" style="animation-delay: 0.05s">
           <div class="status-icon">
-            <svg v-if="status === 'graded'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>
-            <svg v-else-if="status === 'pending'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            <svg v-if="status === 'graded'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>
+            <svg v-else-if="status === 'pending'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           </div>
           <div>
             <p class="status-title">{{ statusLabel }}</p>
@@ -330,17 +330,17 @@
           <div v-if="canResubmit && isEditingSubmission" class="resubmit-section">
             <div class="attach-options-row">
               <div class="file-upload attach-option" @click="openResubmitFilePicker">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
                 <span class="file-upload-label">Archivo</span>
                 <input ref="resubmitFileInput" type="file" multiple hidden @change="onResubmitFileSelect" />
               </div>
               <div class="file-upload attach-option" @click="openResubmitImagePicker">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 <span class="file-upload-label">Imagen</span>
                 <input ref="resubmitImageInput" type="file" accept="image/*" multiple hidden @change="onResubmitFileSelect" />
               </div>
               <div class="file-upload attach-option" @click="openResubmitCamera">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 <span class="file-upload-label">Cámara</span>
                 <input ref="resubmitCameraInput" type="file" accept="image/*" capture="environment" hidden @change="onResubmitFileSelect" />
               </div>
@@ -349,7 +349,7 @@
               <div v-for="(f, i) in resubmitFiles" :key="i" class="selected-file-row">
                 <span class="selected-file-name">📎 {{ f.name }}</span>
                 <button class="file-clear-btn" @click="removeResubmitFile(i)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>
@@ -368,22 +368,22 @@
           <h3 class="section-title">Enviar Tarea</h3>
           <div class="attach-options-row">
             <div class="file-upload attach-option" @click="openFilePicker">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               <span class="file-upload-label">Archivo</span>
               <input ref="fileInput" type="file" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openImagePicker">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <span class="file-upload-label">Imagen</span>
               <input ref="imageInput" type="file" accept="image/*" multiple hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openCameraCapture">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <span class="file-upload-label">Cámara</span>
               <input ref="cameraInput" type="file" accept="image/*" capture="environment" hidden @change="onFileSelect" />
             </div>
             <div class="file-upload attach-option" @click="openSignLangFor('textAnswer')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
               <span class="file-upload-label">Señas</span>
             </div>
           </div>
@@ -391,7 +391,7 @@
             <div v-for="(file, index) in selectedFiles" :key="index" class="selected-file-row">
               <span class="selected-file-name">📎 {{ file.name }}</span>
               <button class="file-clear-btn" @click="removeSelectedFile(index)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           </div>
@@ -412,7 +412,7 @@
             <span class="stats-chip pending">{{ allSubmissions.length - gradedCount }} pendientes</span>
           </div>
           <div class="search-bar card-enter">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
             <input v-model="searchQuery" class="search-input" placeholder="Buscar por nombre, usuario o ID..." />
           </div>
           <div
@@ -450,7 +450,7 @@
               <div class="grade-form-label-row">
                 <p class="form-label">Calificar</p>
                 <button class="sl-icon-btn" @click="openSignLangFor({ subId: sub.id })" title="Dictado por señas">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
                 </button>
               </div>
               <div class="grade-row">
@@ -472,11 +472,11 @@
       <div class="sl-modal">
         <div class="sl-modal-header">
           <div class="sl-modal-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
             Lenguaje de Señas
           </div>
           <button class="sl-close-btn" @click="closeSignLang">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <video ref="slVideo" class="sl-video" autoplay muted playsinline />
@@ -1035,12 +1035,12 @@ onMounted(async () => {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  scrollbar-color: rgba(var(--border-rgb), 0.1) transparent;
 }
 
 .scroll-content::-webkit-scrollbar { width: 4px; }
 .scroll-content::-webkit-scrollbar-track { background: transparent; }
-.scroll-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+.scroll-content::-webkit-scrollbar-thumb { background: rgba(var(--border-rgb), 0.12); border-radius: 4px; }
 
 /* ── Loading ── */
 .loading-center { display: flex; justify-content: center; padding: 60px 0; }
@@ -1051,7 +1051,7 @@ onMounted(async () => {
   padding: 10px 14px; border-radius: 12px; margin-bottom: 12px;
   background: linear-gradient(135deg, rgba(0,212,255,0.10), rgba(191,90,242,0.08));
   border: 1px solid rgba(0,212,255,0.25);
-  font-size: 13px; font-weight: 500; color: #00D4FF;
+  font-size: 13px; font-weight: 500; color: var(--cyan-accent);
 }
 
 .spinner {
@@ -1078,29 +1078,29 @@ onMounted(async () => {
 .submission-content { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
 /* ── Task header ── */
-.task-header-card { padding: 16px; background: #1C1C1E; border-radius: 16px; }
-.task-name { font-size: 18px; font-weight: 700; color: #fff; }
-.task-desc { font-size: 13px; color: #8E8E93; margin-top: 4px; line-height: 1.4; }
-.due-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #FF9500; margin-top: 8px; }
+.task-header-card { padding: 16px; background: var(--bg-card); border-radius: 16px; }
+.task-name { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.task-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+.due-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-warning); margin-top: 8px; }
 
 /* ── Teacher stats chips ── */
 .teacher-stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .stats-chip {
   padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-  background: rgba(255,255,255,0.06); color: #ccc; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.06); color: var(--text-secondary); border: 1px solid rgba(var(--border-rgb), 0.08);
 }
-.stats-chip.graded { color: #30D158; background: rgba(48,209,88,0.1); border-color: rgba(48,209,88,0.25); }
-.stats-chip.pending { color: #FF9500; background: rgba(255,149,0,0.1); border-color: rgba(255,149,0,0.25); }
+.stats-chip.graded { color: var(--color-success); background: rgba(48,209,88,0.1); border-color: rgba(48,209,88,0.25); }
+.stats-chip.pending { color: var(--color-warning); background: rgba(255,149,0,0.1); border-color: rgba(255,149,0,0.25); }
 
 /* ── Chart section ── */
 .chart-section {
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .chart-body {
@@ -1118,7 +1118,7 @@ onMounted(async () => {
 
 .donut-track {
   fill: none;
-  stroke: rgba(255,255,255,0.06);
+  stroke: rgba(var(--text-primary-rgb), 0.06);
   stroke-width: 14;
 }
 
@@ -1131,12 +1131,12 @@ onMounted(async () => {
 .donut-num {
   font-size: 22px;
   font-weight: 800;
-  fill: #fff;
+  fill: var(--text-primary);
 }
 
 .donut-label-text {
   font-size: 10px;
-  fill: #8E8E93;
+  fill: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1171,13 +1171,13 @@ onMounted(async () => {
 .legend-val {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .legend-name {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 
 /* Progress bars */
@@ -1195,14 +1195,14 @@ onMounted(async () => {
   align-items: center;
 }
 
-.pb-label { font-size: 12px; color: #8E8E93; }
+.pb-label { font-size: 12px; color: var(--text-muted); }
 .pb-pct { font-size: 12px; font-weight: 700; }
-.pb-graded { color: #30D158; }
-.pb-total { color: #00D4FF; }
+.pb-graded { color: var(--color-success); }
+.pb-total { color: var(--cyan-accent); }
 
 .pb-track {
   height: 6px;
-  background: rgba(255,255,255,0.07);
+  background: rgba(var(--border-rgb), 0.07);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -1226,42 +1226,42 @@ onMounted(async () => {
 /* ── Search bar ── */
 .search-bar {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
-  background: #1C1C1E; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+  background: var(--bg-input); border-radius: 12px; border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .search-input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: #fff; font-size: 14px;
+  color: var(--text-primary); font-size: 14px;
 }
-.search-input::placeholder { color: #555; }
+.search-input::placeholder { color: var(--text-muted); }
 
 /* ── Student submission card ── */
 .student-submission-card {
-  background: #111428; border-radius: 16px; padding: 16px;
-  border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 12px;
+  background: var(--bg-card); border-radius: 16px; padding: 16px;
+  border: 1px solid rgba(var(--border-rgb), 0.06); display: flex; flex-direction: column; gap: 12px;
 }
 .student-header { display: flex; align-items: center; gap: 12px; }
 .student-avatar {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
   background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700; color: #fff;
+  font-size: 16px; font-weight: 700; color: var(--text-on-accent);
 }
 .student-info { flex: 1; min-width: 0; }
-.student-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.persona-name { font-size: 11px; color: #BF5AF2; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.submission-date { font-size: 11px; color: #8E8E93; margin-top: 2px; }
+.student-name { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.persona-name { font-size: 11px; color: var(--purple-light); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.submission-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .grade-badge {
   flex-shrink: 0; padding: 4px 10px; border-radius: 10px;
   font-size: 12px; font-weight: 700;
 }
-.grade-badge.graded { color: #30D158; background: rgba(48,209,88,0.12); }
-.grade-badge.pending { color: #FF9500; background: rgba(255,149,0,0.12); }
+.grade-badge.graded { color: var(--color-success); background: rgba(48,209,88,0.12); }
+.grade-badge.pending { color: var(--color-warning); background: rgba(255,149,0,0.12); }
 
-.file-row-teacher { font-size: 13px; color: #ccc; }
+.file-row-teacher { font-size: 13px; color: var(--text-secondary); }
 .file-link {
   border: 0;
   background: transparent;
-  color: #00D4FF;
+  color: var(--cyan-accent);
   cursor: pointer;
   font: inherit;
   padding: 0;
@@ -1286,7 +1286,7 @@ onMounted(async () => {
 .feedback-label {
   font-size: 11px;
   font-weight: 700;
-  color: #93a0ae;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0;
@@ -1305,20 +1305,20 @@ onMounted(async () => {
   right: 0;
   bottom: 0;
   height: 28px;
-  background: linear-gradient(180deg, rgba(17,20,40,0), rgba(17,20,40,0.9));
+  background: linear-gradient(180deg, rgba(var(--bg-card-rgb), 0), rgba(var(--bg-card-rgb), 0.9));
   pointer-events: none;
 }
 .feedback-text {
   font-size: 13px;
-  color: #d7dde7;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
   white-space: pre-line;
 }
 .feedback-toggle-btn {
   border: none;
-  background: rgba(255,255,255,0.06);
-  color: #9adfff;
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--cyan-accent);
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 11px;
@@ -1329,47 +1329,47 @@ onMounted(async () => {
 }
 .feedback-toggle-btn:hover {
   background: rgba(0,212,255,0.12);
-  color: #c9f2ff;
+  color: var(--cyan-accent);
 }
 .feedback-toggle-btn--card {
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
 }
 
-.grade-form { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); }
-.form-label { font-size: 12px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.4px; }
+.grade-form { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid rgba(var(--border-rgb), 0.05); }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .grade-row { display: flex; gap: 8px; align-items: center; }
 .grade-input {
   width: 130px; padding: 10px 12px; border-radius: 10px;
-  background: #0D0F1E; border: 1px solid rgba(255,255,255,0.08);
-  color: #fff; font-size: 14px; outline: none;
+  background: var(--bg-input); border: 1px solid rgba(var(--border-rgb), 0.08);
+  color: var(--text-primary); font-size: 14px; outline: none;
 }
 .grade-input:focus { border-color: rgba(0,212,255,0.35); }
 .feedback-input {
   width: 100%; padding: 10px 12px; border-radius: 10px;
-  background: #0D0F1E; border: 1px solid rgba(255,255,255,0.08);
-  color: #fff; font-size: 14px; resize: vertical; outline: none; font-family: inherit;
+  background: var(--bg-input); border: 1px solid rgba(var(--border-rgb), 0.08);
+  color: var(--text-primary); font-size: 14px; resize: vertical; outline: none; font-family: inherit;
   box-sizing: border-box;
 }
 .feedback-input:focus { border-color: rgba(0,212,255,0.35); }
 .grade-btn {
   padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700;
-  color: #fff; background: linear-gradient(135deg, #00A8BE, #00D4FF);
+  color: var(--text-on-accent); background: linear-gradient(135deg, #00A8BE, #00D4FF);
   cursor: pointer; transition: opacity 0.15s; align-self: flex-start;
   border: none;
 }
 .grade-btn:disabled { opacity: 0.5; cursor: default; }
-.saved-msg { font-size: 12px; color: #30D158; font-weight: 600; }
+.saved-msg { font-size: 12px; color: var(--color-success); font-weight: 600; }
 
 /* ── Student view ── */
-.status-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; background: #1C1C1E; }
+.status-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; background: var(--bg-card); }
 .status-card.graded { border-left: 4px solid #30D158; }
 .status-card.pending { border-left: 4px solid #FF9500; }
 .status-card.not-submitted { border-left: 4px solid #8E8E93; }
 .status-icon { flex-shrink: 0; }
-.status-title { font-size: 16px; font-weight: 600; color: #fff; }
-.status-grade { font-size: 14px; color: #30D158; margin-top: 2px; }
+.status-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.status-grade { font-size: 14px; color: var(--color-success); margin-top: 2px; }
 
-.section-title { font-size: 13px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 
 .task-guides-section { display: flex; flex-direction: column; gap: 8px; }
 .task-guides-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1380,9 +1380,9 @@ onMounted(async () => {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border: 1px solid rgba(0,212,255,0.16);
-  color: #E5F8FF;
+  color: var(--text-primary);
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
@@ -1403,9 +1403,9 @@ onMounted(async () => {
   border-radius: 16px;
   background:
     radial-gradient(circle at top right, rgba(48,209,88,0.13), transparent 36%),
-    linear-gradient(180deg, rgba(48,209,88,0.1), rgba(255,255,255,0.03));
+    linear-gradient(180deg, rgba(48,209,88,0.1), rgba(var(--border-rgb), 0.03));
   border: 1px solid rgba(48,209,88,0.18);
-  color: #ccc;
+  color: var(--text-secondary);
 }
 .feedback-card.expanded {
   box-shadow: 0 10px 24px rgba(0,0,0,0.18);
@@ -1423,28 +1423,28 @@ onMounted(async () => {
   gap: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #dfffea;
+  color: var(--text-primary);
   padding: 7px 10px;
   border-radius: 999px;
   background: rgba(48,209,88,0.12);
 }
 .feedback-body--card.feedback-body--collapsed::after {
-  background: linear-gradient(180deg, rgba(17,20,40,0), rgba(25,31,34,0.96));
+  background: linear-gradient(180deg, rgba(var(--bg-card-rgb), 0), rgba(var(--bg-card-rgb), 0.96));
 }
 .feedback-card-text {
   margin: 0;
   font-size: 14px;
   line-height: 1.7;
-  color: #eef6f1;
+  color: var(--text-primary);
   white-space: pre-line;
 }
 
 .submission-detail { display: flex; flex-direction: column; gap: 8px; }
-.detail-card { padding: 14px; border-radius: 12px; background: #1C1C1E; }
+.detail-card { padding: 14px; border-radius: 12px; background: var(--bg-card); }
 .submission-files-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.detail-text { font-size: 14px; color: #ccc; }
-.file-row { font-size: 14px; color: #ccc; }
-.file-row a { color: #00D4FF; text-decoration: none; }
+.detail-text { font-size: 14px; color: var(--text-secondary); }
+.file-row { font-size: 14px; color: var(--text-secondary); }
+.file-row a { color: var(--cyan-accent); text-decoration: none; }
 .file-row a:hover { text-decoration: underline; }
 
 .submit-section { display: flex; flex-direction: column; gap: 12px; }
@@ -1457,9 +1457,9 @@ onMounted(async () => {
 
 .file-upload {
   display: flex; align-items: center; gap: 10px; padding: 14px;
-  border-radius: 12px; background: #1C1C1E; cursor: pointer;
+  border-radius: 12px; background: var(--bg-card); cursor: pointer;
   border: 1.5px dashed rgba(191,90,242,0.3); transition: background 0.15s;
-  font-size: 14px; color: #8E8E93;
+  font-size: 14px; color: var(--text-muted);
 }
 .file-upload:hover { background: rgba(191,90,242,0.05); }
 .file-upload.attach-option {
@@ -1474,33 +1474,33 @@ onMounted(async () => {
 .selected-file-row {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
   border-radius: 10px; background: rgba(191,90,242,0.08);
-  border: 1px solid rgba(191,90,242,0.2); font-size: 13px; color: #ccc;
+  border: 1px solid rgba(191,90,242,0.2); font-size: 13px; color: var(--text-secondary);
 }
 .selected-file-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .text-input {
-  width: 100%; padding: 14px; border-radius: 12px; background: #1C1C1E;
-  border: 1px solid rgba(255,255,255,0.06); color: #fff; font-size: 14px;
+  width: 100%; padding: 14px; border-radius: 12px; background: var(--bg-input);
+  border: 1px solid rgba(var(--border-rgb), 0.06); color: var(--text-primary); font-size: 14px;
   resize: vertical; outline: none; font-family: inherit;
   box-sizing: border-box;
 }
-.text-input::placeholder { color: #555; }
+.text-input::placeholder { color: var(--text-muted); }
 .text-input:focus { border-color: rgba(191,90,242,0.3); }
 
 .submit-btn {
   padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700;
-  color: #fff; background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
+  color: var(--text-on-accent); background: linear-gradient(135deg, #6A1B9A, #BF5AF2);
   cursor: pointer; transition: opacity 0.15s; border: none;
 }
 .submit-btn:hover { opacity: 0.9; }
 .submit-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Overdue banner ── */
-.due-overdue { color: #FF453A !important; }
-.due-overdue svg { stroke: #FF453A !important; }
+.due-overdue { color: var(--color-danger) !important; }
+.due-overdue svg { stroke: var(--color-danger) !important; }
 .overdue-chip {
   display: inline-block; padding: 1px 7px; border-radius: 6px;
-  background: rgba(255,69,58,0.15); color: #FF453A;
+  background: rgba(255,69,58,0.15); color: var(--color-danger);
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
   margin-left: 4px;
 }
@@ -1516,8 +1516,8 @@ onMounted(async () => {
   background: rgba(255,69,58,0.12);
   display: flex; align-items: center; justify-content: center;
 }
-.overdue-title { font-size: 14px; font-weight: 700; color: #FF453A; margin: 0; }
-.overdue-sub  { font-size: 12px; color: rgba(255,69,58,0.7); margin: 2px 0 0; }
+.overdue-title { font-size: 14px; font-weight: 700; color: var(--color-danger); margin: 0; }
+.overdue-sub  { font-size: 12px; color: var(--color-danger); margin: 2px 0 0; }
 
 /* ── Submit section improvements ── */
 .file-upload-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1525,8 +1525,8 @@ onMounted(async () => {
   background: transparent; border: none; cursor: pointer; padding: 2px;
   display: flex; align-items: center; flex-shrink: 0;
 }
-.file-clear-btn:hover svg { stroke: #FF453A; }
-.submit-error-msg { font-size: 13px; color: #FF453A; padding: 0 2px; }
+.file-clear-btn:hover svg { stroke: var(--color-danger); }
+.submit-error-msg { font-size: 13px; color: var(--color-danger); padding: 0 2px; }
 .submit-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-spinner {
   width: 14px; height: 14px; flex-shrink: 0;
@@ -1534,15 +1534,15 @@ onMounted(async () => {
   border-radius: 50%; animation: spin 0.7s linear infinite;
 }
 
-.empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: #8E8E93; font-size: 14px; }
-.empty-title-msg { font-size: 16px; font-weight: 600; color: #ccc; margin: 0; }
-.empty-sub-msg { font-size: 13px; color: #636366; margin: 0; }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 0; color: var(--text-muted); font-size: 14px; }
+.empty-title-msg { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin: 0; }
+.empty-sub-msg { font-size: 13px; color: var(--text-muted); margin: 0; }
 
 /* ── Resubmit section ── */
 .resubmit-toggle-btn {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
   padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
-  color: #BF5AF2; background: rgba(191,90,242,0.1); border: 1px solid rgba(191,90,242,0.25);
+  color: var(--purple-light); background: rgba(191,90,242,0.1); border: 1px solid rgba(191,90,242,0.25);
   cursor: pointer; transition: background 0.15s, border-color 0.15s;
 }
 .resubmit-toggle-btn:hover { background: rgba(191,90,242,0.18); border-color: rgba(191,90,242,0.4); }
@@ -1550,10 +1550,10 @@ onMounted(async () => {
 .resubmit-actions { display: flex; gap: 10px; }
 .resubmit-cancel-btn {
   flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600;
-  color: #8E8E93; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted); background: rgba(var(--border-rgb), 0.06); border: 1px solid rgba(var(--border-rgb), 0.08);
   cursor: pointer; transition: background 0.15s;
 }
-.resubmit-cancel-btn:hover { background: rgba(255,255,255,0.1); }
+.resubmit-cancel-btn:hover { background: rgba(var(--border-rgb), 0.1); }
 .resubmit-cancel-btn:disabled { opacity: 0.5; cursor: default; }
 .resubmit-btn { flex: 2; }
 
@@ -1569,7 +1569,7 @@ onMounted(async () => {
 }
 
 .sl-modal {
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 480px;
@@ -1591,14 +1591,14 @@ onMounted(async () => {
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .sl-close-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1623,7 +1623,7 @@ onMounted(async () => {
 .sl-letter-badge {
   font-size: 28px;
   font-weight: 900;
-  color: #BF5AF2;
+  color: var(--purple-light);
   width: 44px;
   height: 44px;
   border-radius: 12px;
@@ -1633,19 +1633,19 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.sl-conf-label { font-size: 13px; color: #8E8E93; }
-.sl-hint { font-size: 13px; color: #636366; font-style: italic; }
+.sl-conf-label { font-size: 13px; color: var(--text-muted); }
+.sl-hint { font-size: 13px; color: var(--text-muted); font-style: italic; }
 
 .sl-accumulated {
   min-height: 40px;
   padding: 10px 14px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(var(--border-rgb), 0.05);
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(var(--border-rgb), 0.07);
 }
 
-.sl-accumulated-text { font-size: 18px; color: #fff; font-weight: 600; letter-spacing: 3px; }
-.sl-accumulated-empty { font-size: 14px; color: #555; }
+.sl-accumulated-text { font-size: 18px; color: var(--text-primary); font-weight: 600; letter-spacing: 3px; }
+.sl-accumulated-empty { font-size: 14px; color: var(--text-muted); }
 
 .sl-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -1654,8 +1654,8 @@ onMounted(async () => {
   min-width: 70px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.07);
-  color: #ccc;
+  background: rgba(var(--border-rgb), 0.07);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   display: flex;
@@ -1664,19 +1664,19 @@ onMounted(async () => {
   gap: 6px;
   transition: background 0.15s;
 }
-.sl-ctrl-btn:hover:not(:disabled) { background: rgba(255,255,255,0.13); }
+.sl-ctrl-btn:hover:not(:disabled) { background: rgba(var(--border-rgb), 0.13); }
 .sl-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
 
 .sl-ctrl-capture {
   background: rgba(191,90,242,0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
   border: 1px solid rgba(191,90,242,0.3);
 }
 .sl-ctrl-capture:hover:not(:disabled) { background: rgba(191,90,242,0.25); }
 
 .sl-ctrl-insert {
   background: rgba(48,209,88,0.12);
-  color: #30D158;
+  color: var(--color-success);
   border: 1px solid rgba(48,209,88,0.25);
 }
 .sl-ctrl-insert:hover:not(:disabled) { background: rgba(48,209,88,0.2); }

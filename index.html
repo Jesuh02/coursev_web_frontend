@@ -1,14 +1,25 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/descarga.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#f7f8fc" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      // Restore the global preference before styles render to avoid a theme flash.
+      ;(() => {
+        let theme = 'light'
+        try { if (localStorage.getItem('coursev-theme') === 'dark') theme = 'dark' } catch {}
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#000000' : '#f7f8fc'
+        document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = theme === 'dark' ? 'black-translucent' : 'default'
+      })()
+    </script>
     <meta name="description" content="CourseV - Plataforma educativa" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>CourseV</title>

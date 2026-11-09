@@ -6,7 +6,7 @@
     <!-- Header: back + title + save -->
     <div class="bar">
       <button class="bar-back" @click="$router.back()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
       <span class="bar-title">{{ isCreateMode ? 'Nuevo Tema' : 'Editar Tema' }}</span>
       <button class="bar-save" :disabled="saving || !formTitle.trim()" @click="handleSave">
@@ -70,7 +70,7 @@
           @click.stop="removeContentItem(item.id)"
           @keydown.stop
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -89,7 +89,7 @@
           <p class="row-meta pending-label">{{ pf.type === 'video' ? 'Video · Pendiente' : 'Documento · Pendiente' }}</p>
         </div>
         <button class="row-action remove-btn" @click="removePending(i)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -145,7 +145,7 @@
           <p class="row-title">{{ task.title }}</p>
           <p v-if="task.description" class="row-meta">{{ task.description }}</p>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
 
       <!-- Create task button -->
@@ -389,7 +389,7 @@ onMounted(async () => {
   background:
     radial-gradient(ellipse at 25% 0%, rgba(0, 212, 255, .12), transparent 55%),
     radial-gradient(ellipse at 85% 90%, rgba(98, 0, 238, .10), transparent 50%),
-    #0A0A0F;
+    var(--bg-primary);
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -413,13 +413,13 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 16px;
   gap: 8px;
-  background: rgba(10, 10, 15, 0.85);
+  background: rgba(var(--bg-card-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 10;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .bar-back {
@@ -434,14 +434,14 @@ onMounted(async () => {
   flex-shrink: 0;
   border-radius: 8px;
 }
-.bar-back:active { background: rgba(255,255,255,0.08); }
+.bar-back:active { background: rgba(var(--border-rgb), 0.08); }
 
 .bar-title {
   flex: 1;
   text-align: center;
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .bar-save {
@@ -449,7 +449,7 @@ onMounted(async () => {
   border: none;
   font-size: 16px;
   font-weight: 600;
-  color: #06B6D4;
+  color: var(--cyan-accent);
   cursor: pointer;
   padding: 6px 4px;
   flex-shrink: 0;
@@ -483,13 +483,13 @@ onMounted(async () => {
 .field-label {
   font-size: 15px;
   font-weight: 500;
-  color: #4FD4FF;
+  color: var(--cyan-accent);
   margin-bottom: 8px;
 }
 
 /* ── Section container ── */
 .section-container {
-  background: #0F172A;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -499,7 +499,7 @@ onMounted(async () => {
 .section-heading {
   font-size: 15px;
   font-weight: 700;
-  color: #70E8FB;
+  color: var(--cyan-accent);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -509,20 +509,20 @@ onMounted(async () => {
 /* ── Inputs ── */
 .field-input {
   width: 100%;
-  background: rgba(15,23,42,0.8);
+  background: rgba(var(--bg-card-rgb), 0.8);
   border: 1px solid rgba(6,182,212,0.2);
   border-radius: 10px;
   padding: 12px;
   font-size: 15px;
-  color: #fff;
+  color: var(--text-primary);
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
   transition: all 0.2s;
 }
-.field-input::placeholder { color: #666; }
+.field-input::placeholder { color: var(--text-muted); }
 .field-input:focus { 
-  background: rgba(15,23,42,0.95);
+  background: rgba(var(--bg-card-rgb), 0.95);
   border-color: rgba(6,182,212,0.4);
   box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
 }
@@ -534,20 +534,20 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: rgba(15,23,42,0.8);
+  background: rgba(var(--bg-card-rgb), 0.8);
   border: 1px solid rgba(6,182,212,0.08);
   border-radius: 10px;
   margin-bottom: 8px;
 }
 
 .list-row.clickable { cursor: pointer; }
-.list-row.clickable:active { background: #222; }
+.list-row.clickable:active { background: var(--bg-card-hover); }
 .list-row.content-preview-row {
   cursor: pointer;
 }
 .list-row.content-preview-row:hover,
 .list-row.content-preview-row:focus-visible {
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--border-rgb), 0.08);
   outline: none;
 }
 
@@ -563,15 +563,15 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.row-icon.video { background: rgba(255,55,95,0.15); color: #FF375F; }
-.row-icon.document { background: rgba(0,122,255,0.15); color: #007AFF; }
-.row-icon.image { background: rgba(52,199,89,0.15); color: #34C759; }
-.task-icon { background: rgba(6,182,212,0.15); color: #06B6D4; }
+.row-icon.video { background: rgba(255,55,95,0.15); color: var(--color-danger); }
+.row-icon.document { background: rgba(0,122,255,0.15); color: var(--color-info); }
+.row-icon.image { background: rgba(52,199,89,0.15); color: var(--color-success); }
+.task-icon { background: rgba(6,182,212,0.15); color: var(--cyan-accent); }
 
 .row-info { flex: 1; min-width: 0; }
-.row-title { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
-.pending-label { color: #06B6D4; }
+.row-title { font-size: 14px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.pending-label { color: var(--cyan-accent); }
 
 .row-action { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 a.row-action { text-decoration: none; }
@@ -613,17 +613,17 @@ a.row-action { text-decoration: none; }
   flex-shrink: 0;
 }
 
-.video-icon { background: rgba(233, 30, 99, 0.18); color: #FF375F; }
-.doc-icon { background: rgba(33, 150, 243, 0.18); color: #60AFFF; }
-.img-icon { background: rgba(76, 175, 80, 0.18); color: #4FD97A; }
-.camera-icon { background: rgba(255, 152, 0, 0.18); color: #FFB347; }
-.task-add-icon { background: rgba(0, 212, 255, 0.18); color: #00D4FF; }
+.video-icon { background: rgba(233, 30, 99, 0.18); color: var(--color-danger); }
+.doc-icon { background: rgba(33, 150, 243, 0.18); color: var(--color-info); }
+.img-icon { background: rgba(76, 175, 80, 0.18); color: var(--color-success); }
+.camera-icon { background: rgba(255, 152, 0, 0.18); color: var(--color-warning); }
+.task-add-icon { background: rgba(0, 212, 255, 0.18); color: var(--cyan-accent); }
 
-.add-label { font-size: 14px; color: #fff; font-weight: 500; }
+.add-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
 
 /* ── Hidden file input ── */
 .hidden-input { display: none; }
 
 /* ── Error ── */
-.error-msg { font-size: 13px; color: #FF453A; }
+.error-msg { font-size: 13px; color: var(--color-danger); }
 </style>

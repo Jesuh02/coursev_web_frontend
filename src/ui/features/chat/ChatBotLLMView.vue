@@ -10,7 +10,7 @@
       </button>
 
       <div class="hdr-avatar">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         </svg>
@@ -125,7 +125,7 @@
 
           <!-- Bot avatar dot -->
           <div v-if="msg.role === 'assistant'" class="msg-bot-avatar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="8" r="4"/>
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
@@ -137,8 +137,8 @@
             <!-- Read tick for user -->
             <span v-if="msg.role === 'user'" class="bubble-ticks">
               <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-                <path d="M1 5l3 3 5-6" stroke="#7DD3FC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M5 5l3 3 5-6" stroke="#7DD3FC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 5l3 3 5-6" stroke="var(--color-info)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 5l3 3 5-6" stroke="var(--color-info)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
           </div>
@@ -197,7 +197,7 @@
           </button>
         </div>
         <div v-if="msg.role === 'assistant' && (msg.esCalificacion || msg.nota != null) && msg.calificationAdded" class="grade-done">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Calificación aplicada
         </div>
         </template><!-- end regular message -->
@@ -232,7 +232,7 @@
       <!-- Typing indicator -->
       <div v-if="isTyping" class="msg-row msg-row--bot">
         <div class="msg-bot-avatar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
           </svg>
@@ -363,7 +363,7 @@
           </div>
 
           <div class="sheet-search">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
@@ -3221,7 +3221,7 @@ function renderMarkdown(text: string): string {
   height: 22px;
   border-radius: 7px;
   background: rgba(191, 90, 242, 0.15);
-  color: #BF5AF2;
+  color: var(--purple-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3230,7 +3230,7 @@ function renderMarkdown(text: string): string {
 .cm-text {
   flex: 1;
   font-size: 11.5px;
-  color: #C7A0E8;
+  color: var(--purple-light);
   line-height: 1.3;
   letter-spacing: 0.1px;
 }
@@ -3246,14 +3246,14 @@ function renderMarkdown(text: string): string {
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
-.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
+.cm-close:hover { background: rgba(191, 90, 242, 0.2); color: var(--purple-light); }
 
 /* ─── Root ──────────────────────────────────────── */
 .chat-root {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  background: #0B141A;
+  background: var(--bg-card);
   position: relative;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
@@ -3265,9 +3265,9 @@ function renderMarkdown(text: string): string {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #1F2C34;
+  background: var(--bg-input);
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
 }
 
 .hdr-btn {
@@ -3277,18 +3277,18 @@ function renderMarkdown(text: string): string {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: rgba(255,255,255,0.65);
+  color: rgba(var(--text-primary-rgb), 0.65);
   flex-shrink: 0;
   transition: background 0.15s;
 }
-.hdr-btn:hover { background: rgba(255,255,255,0.07); }
+.hdr-btn:hover { background: rgba(var(--text-primary-rgb), 0.07); }
 
 .hdr-avatar {
   position: relative;
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #2A3942;
+  background: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3302,7 +3302,7 @@ function renderMarkdown(text: string): string {
   height: 10px;
   border-radius: 50%;
   background: #25D366;
-  border: 2px solid #1F2C34;
+  border: 2px solid var(--border-color);
 }
 
 .hdr-info {
@@ -3315,7 +3315,7 @@ function renderMarkdown(text: string): string {
 .hdr-name {
   font-size: 15px;
   font-weight: 600;
-  color: #E9EDEF;
+  color: var(--text-primary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -3323,7 +3323,7 @@ function renderMarkdown(text: string): string {
 }
 .hdr-sub {
   font-size: 12px;
-  color: #8696A0;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -3338,19 +3338,19 @@ function renderMarkdown(text: string): string {
   align-items: center;
   gap: 10px;
   padding: 6px 14px;
-  background: #0d1117;
+  background: var(--bg-card);
   border-bottom: 1px solid rgba(37,211,102,0.15);
   flex-shrink: 0;
 }
 .tenant-bar-label {
   font-size: 12px;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 .tenant-select {
   flex: 1;
-  background: #1a2733;
-  color: #e9edef;
+  background: var(--bg-input);
+  color: var(--text-primary);
   border: 1px solid rgba(37,211,102,0.25);
   border-radius: 6px;
   padding: 4px 8px;
@@ -3367,8 +3367,8 @@ function renderMarkdown(text: string): string {
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  background: #182229;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: var(--bg-input);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
   gap: 10px;
   flex-shrink: 0;
 }
@@ -3388,7 +3388,7 @@ function renderMarkdown(text: string): string {
 .ctx-task {
   font-size: 13px;
   font-weight: 600;
-  color: #25D366;
+  color: var(--color-success);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -3396,11 +3396,11 @@ function renderMarkdown(text: string): string {
 }
 .ctx-student {
   font-size: 12px;
-  color: #8696A0;
+  color: var(--text-muted);
   margin: 0;
 }
 .ctx-remove {
-  color: #8696A0;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -3408,7 +3408,7 @@ function renderMarkdown(text: string): string {
   border-radius: 50%;
   transition: color 0.15s, background 0.15s;
 }
-.ctx-remove:hover { color: #E9EDEF; background: rgba(255,255,255,0.07); }
+.ctx-remove:hover { color: var(--text-primary); background: rgba(var(--text-primary-rgb), 0.07); }
 
 .ctx-slide-enter-active,
 .ctx-slide-leave-active { transition: all 0.2s ease; }
@@ -3426,7 +3426,7 @@ function renderMarkdown(text: string): string {
 }
 .messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-track { background: transparent; }
-.messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.messages-area::-webkit-scrollbar-thumb { background: rgba(var(--text-primary-rgb), 0.1); border-radius: 2px; }
 
 /* ─── Empty state ───────────────────────────────── */
 .empty-state {
@@ -3443,7 +3443,7 @@ function renderMarkdown(text: string): string {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: #1F2C34;
+  background: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3452,12 +3452,12 @@ function renderMarkdown(text: string): string {
 .empty-title {
   font-size: 16px;
   font-weight: 600;
-  color: #E9EDEF;
+  color: var(--text-primary);
   margin: 0;
 }
 .empty-hint {
   font-size: 13px;
-  color: #8696A0;
+  color: var(--text-muted);
   line-height: 1.5;
   max-width: 260px;
   margin: 0;
@@ -3465,12 +3465,12 @@ function renderMarkdown(text: string): string {
 .empty-hint kbd {
   display: inline-block;
   padding: 1px 6px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(var(--text-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   border-radius: 5px;
   font-family: monospace;
   font-size: 13px;
-  color: #E9EDEF;
+  color: var(--text-primary);
 }
 
 /* ─── Quick suggestion chips ────────────────────── */
@@ -3485,22 +3485,22 @@ function renderMarkdown(text: string): string {
   font-size: 12px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #8696A0;
+  background: rgba(var(--text-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.quick-chip:hover { background: rgba(255,255,255,0.12); color: #E9EDEF; }
+.quick-chip:hover { background: rgba(var(--text-primary-rgb), 0.12); color: var(--text-primary); }
 
 /* ─── Progress context bar variant ─────────────── */
-.ctx-bar--progress { background: #1a2234; }
+.ctx-bar--progress { background: var(--bg-input); }
 .ctx-bar-accent--progress { background: #38bdf8; }
 
 /* ─── Progress overlay hint ─────────────────────── */
 .sheet-progress-hint {
   font-size: 12px;
-  color: #8696A0;
+  color: var(--text-muted);
   padding: 4px 16px 8px;
   margin: 0;
   line-height: 1.4;
@@ -3525,7 +3525,7 @@ function renderMarkdown(text: string): string {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #2A3942;
+  background: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3541,39 +3541,42 @@ function renderMarkdown(text: string): string {
   word-break: break-word;
 }
 
-/* User bubble — WhatsApp dark green */
+/* Keep the user's messages distinct in either appearance. */
 .bubble--user {
   max-width: min(72%, 480px);
-  background: #005C4B;
+  background: #dcf7e7;
   border-radius: 8px 0 8px 8px;
+}
+[data-theme="dark"] .bubble--user {
+  background: #005C4B;
 }
 /* Bot bubble — full width like ChatGPT */
 .bubble--bot {
   max-width: 92%;
-  background: #1F2C34;
+  background: var(--bg-input);
   border-radius: 0 8px 8px 8px;
 }
 
 .bubble-text {
   font-size: 14px;
   line-height: 1.45;
-  color: #E9EDEF;
+  color: var(--text-primary);
 }
-.bubble-text :deep(strong) { color: #fff; }
-.bubble-text :deep(em)     { color: #d0d0d0; font-style: italic; }
+.bubble-text :deep(strong) { color: var(--text-primary); }
+.bubble-text :deep(em)     { color: var(--text-secondary); font-style: italic; }
 .bubble-text :deep(code)   {
-  background: rgba(255,255,255,0.1);
+  background: rgba(var(--text-primary-rgb), 0.1);
   padding: 1px 5px;
   border-radius: 4px;
   font-family: 'SF Mono', monospace;
   font-size: 12px;
-  color: #7DD3FC;
+  color: var(--color-info);
 }
 
 .bubble-time {
   display: inline-block;
   font-size: 10px;
-  color: rgba(255,255,255,0.45);
+  color: var(--text-muted);
   margin-top: 2px;
   float: right;
   margin-left: 8px;
@@ -3632,19 +3635,19 @@ function renderMarkdown(text: string): string {
 .grade-btn:active { transform: scale(0.96); }
 .grade-btn--accept {
   background: rgba(37, 211, 102, 0.15);
-  color: #25D366;
+  color: var(--color-success);
   border: 1px solid rgba(37, 211, 102, 0.3);
 }
 .grade-btn--accept:hover { background: rgba(37, 211, 102, 0.22); }
 .grade-btn--reject {
-  background: rgba(255,255,255,0.06);
-  color: #8696A0;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(var(--text-primary-rgb), 0.06);
+  color: var(--text-muted);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
 }
-.grade-btn--reject:hover { background: rgba(255,255,255,0.1); }
+.grade-btn--reject:hover { background: rgba(var(--text-primary-rgb), 0.1); }
 .grade-btn--excel {
   background: rgba(33, 150, 243, 0.15);
-  color: #64B5F6;
+  color: var(--color-info);
   border: 1px solid rgba(33, 150, 243, 0.3);
   text-decoration: none;
   display: inline-flex;
@@ -3669,7 +3672,7 @@ function renderMarkdown(text: string): string {
   border-radius: 8px;
   font-size: 12px;
   background: rgba(33, 150, 243, 0.15);
-  color: #64B5F6;
+  color: var(--color-info);
   border: 1px solid rgba(33, 150, 243, 0.3);
   cursor: pointer;
   white-space: nowrap;
@@ -3695,7 +3698,7 @@ function renderMarkdown(text: string): string {
   justify-content: center;
   border-radius: 8px;
   background: rgba(33, 150, 243, 0.12);
-  color: #64B5F6;
+  color: var(--color-info);
   border: 1px solid rgba(33, 150, 243, 0.25);
   cursor: pointer;
   transition: background 0.15s;
@@ -3709,7 +3712,7 @@ function renderMarkdown(text: string): string {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #30D158;
+  color: var(--color-success);
   padding: 4px 34px;
 }
 
@@ -3724,17 +3727,17 @@ function renderMarkdown(text: string): string {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #182229;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg-input);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8696A0;
+  color: var(--text-muted);
   box-shadow: 0 2px 12px rgba(0,0,0,0.5);
   z-index: 10;
   transition: background 0.15s;
 }
-.fab-scroll:hover { background: #1F2C34; }
+.fab-scroll:hover { background: var(--bg-input); }
 
 .fab-pop-enter-active,
 .fab-pop-leave-active { transition: all 0.18s ease; }
@@ -3747,14 +3750,14 @@ function renderMarkdown(text: string): string {
   align-items: flex-end;
   gap: 8px;
   padding: 8px 10px;
-  background: #1F2C34;
+  background: var(--bg-input);
   flex-shrink: 0;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(var(--border-rgb), 0.04);
 }
 
 .input-wrap {
   flex: 1;
-  background: #2A3942;
+  background: var(--bg-input);
   border-radius: 24px;
   padding: 8px 14px;
   display: flex;
@@ -3768,20 +3771,20 @@ function renderMarkdown(text: string): string {
   outline: none;
   resize: none;
   font-size: 15px;
-  color: #E9EDEF;
+  color: var(--text-primary);
   line-height: 1.45;
   max-height: 120px;
   overflow-y: auto;
 }
-.msg-input::placeholder { color: #8696A0; }
+.msg-input::placeholder { color: var(--text-muted); }
 .msg-input::-webkit-scrollbar { width: 0; }
 
 .send-btn {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #2A3942;
-  color: #8696A0;
+  background: var(--bg-input);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3790,22 +3793,22 @@ function renderMarkdown(text: string): string {
 }
 .send-btn--active {
   background: #00A884;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 .send-btn--active:hover  { background: #02C78C; }
 .send-btn--active:active { transform: scale(0.93); }
 
 .send-btn--mic {
-  background: #2A3942;
-  color: rgba(255,255,255,0.72);
+  background: var(--bg-input);
+  color: rgba(var(--text-primary-rgb), 0.72);
 }
 .send-btn--mic:hover {
-  background: #354752;
+  background: var(--bg-input);
 }
 
 .send-btn--recording {
   background: rgba(255, 69, 58, 0.16);
-  color: #FF6B62;
+  color: var(--color-danger);
   box-shadow: 0 0 0 6px rgba(255, 69, 58, 0.08);
   animation: micPulse 1.2s ease-in-out infinite;
 }
@@ -3832,7 +3835,7 @@ function renderMarkdown(text: string): string {
 .img-preview-name {
   flex: 1;
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3840,7 +3843,7 @@ function renderMarkdown(text: string): string {
 .img-preview-remove {
   background: none;
   border: none;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
@@ -3850,15 +3853,15 @@ function renderMarkdown(text: string): string {
 }
 .img-preview-remove:hover {
   background: rgba(0, 0, 0, 0.08);
-  color: #ff4444;
+  color: var(--color-danger);
 }
 
 /* Image attach button */
 .send-btn--attach {
-  color: #888;
+  color: var(--text-muted);
 }
 .send-btn--attach:hover {
-  color: #00D68F;
+  color: var(--color-success);
   background: rgba(0, 214, 143, 0.08);
 }
 
@@ -3884,19 +3887,19 @@ function renderMarkdown(text: string): string {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: rgba(233,237,239,0.35);
+  color: var(--text-muted);
   border: none;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 .msg-action-btn:hover {
-  background: rgba(255,255,255,0.07);
-  color: rgba(233,237,239,0.8);
+  background: rgba(var(--text-primary-rgb), 0.07);
+  color: rgba(var(--text-primary-rgb), 0.8);
 }
 .msg-action-btn:active { transform: scale(0.88); }
 .msg-action-btn--active { color: #00A884 !important; }
-.msg-action-btn--liked { color: #34C759 !important; }
-.msg-action-btn--disliked { color: #FF453A !important; }
+.msg-action-btn--liked { color: var(--color-success) !important; }
+.msg-action-btn--disliked { color: var(--color-danger) !important; }
 
 /* ─── Bottom sheet overlays ─────────────────────── */
 .sheet-backdrop {
@@ -3912,7 +3915,7 @@ function renderMarkdown(text: string): string {
 .sheet-panel {
   width: 100%;
   max-height: 75dvh;
-  background: #1F2C34;
+  background: var(--bg-input);
   border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
@@ -3934,11 +3937,11 @@ function renderMarkdown(text: string): string {
   max-height: 88dvh;
   margin: 0 auto 10px;
   border-radius: 28px 28px 0 0;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   border-bottom: 0;
   background:
-    linear-gradient(145deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.92)),
-    rgba(15, 23, 42, 0.78);
+    linear-gradient(145deg, rgba(var(--bg-card-rgb), 0.84), rgba(var(--bg-card-rgb), 0.92)),
+    rgba(var(--bg-card-rgb), 0.78);
   box-shadow:
     0 -28px 90px rgba(0, 0, 0, 0.52),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
@@ -3960,7 +3963,7 @@ function renderMarkdown(text: string): string {
   background:
     linear-gradient(115deg, rgba(125, 211, 252, 0.16), transparent 34%),
     linear-gradient(235deg, rgba(52, 211, 153, 0.12), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 24%);
+    linear-gradient(180deg, rgba(var(--text-primary-rgb), 0.07), transparent 24%);
   opacity: 0.9;
   animation: radarGlassFlow 10s ease-in-out infinite alternate;
 }
@@ -3970,7 +3973,7 @@ function renderMarkdown(text: string): string {
   left: 7%;
   right: 7%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--text-primary-rgb), 0.62), transparent);
 }
 
 .class-radar-panel > * {
@@ -3979,7 +3982,7 @@ function renderMarkdown(text: string): string {
 }
 
 .class-radar-panel .sheet-handle {
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0.22), rgba(255, 255, 255, 0.56), rgba(52, 211, 153, 0.22));
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.22), rgba(var(--text-primary-rgb), 0.56), rgba(52, 211, 153, 0.22));
   box-shadow: 0 0 18px rgba(125, 211, 252, 0.32);
 }
 
@@ -3987,7 +3990,7 @@ function renderMarkdown(text: string): string {
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(var(--text-primary-rgb), 0.15);
   margin: 10px auto 0;
   flex-shrink: 0;
 }
@@ -3998,44 +4001,44 @@ function renderMarkdown(text: string): string {
   justify-content: space-between;
   padding: 14px 18px 10px;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .sheet-title {
   font-size: 15px;
   font-weight: 600;
-  color: #E9EDEF;
+  color: var(--text-primary);
 }
 .sheet-close {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.07);
+  background: rgba(var(--text-primary-rgb), 0.07);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8696A0;
+  color: var(--text-muted);
   transition: background 0.15s;
 }
-.sheet-close:hover { background: rgba(255,255,255,0.12); }
+.sheet-close:hover { background: rgba(var(--text-primary-rgb), 0.12); }
 
 .class-radar-header {
   align-items: flex-start;
   gap: 12px;
   padding: 18px 22px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.11);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.22));
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.11);
+  background: linear-gradient(180deg, rgba(var(--bg-card-rgb), 0.58), rgba(15, 23, 42, 0.22));
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 .class-radar-header .sheet-title {
-  color: #F8FAFC;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 760;
   letter-spacing: 0;
 }
 .class-radar-subtitle {
   margin: 4px 0 0;
-  color: rgba(226, 232, 240, 0.68);
+  color: rgba(var(--text-primary-rgb), 0.68);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -4049,9 +4052,9 @@ function renderMarkdown(text: string): string {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  color: #BAE6FD;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(var(--text-primary-rgb), 0.08);
+  color: var(--color-info);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4063,7 +4066,7 @@ function renderMarkdown(text: string): string {
   transform: translateY(-1px) rotate(18deg);
   background: rgba(125, 211, 252, 0.16);
   border-color: rgba(125, 211, 252, 0.28);
-  color: #F0F9FF;
+  color: var(--text-primary);
 }
 .class-radar-loading,
 .class-radar-empty {
@@ -4079,8 +4082,8 @@ function renderMarkdown(text: string): string {
 .class-radar-courses {
   overflow-y: auto;
   padding: 14px;
-  border-right: 1px solid rgba(255,255,255,0.1);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.34), rgba(2, 6, 23, 0.22));
+  border-right: 1px solid rgba(var(--border-rgb), 0.1);
+  background: var(--surface-tint);
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
 }
@@ -4103,9 +4106,9 @@ function renderMarkdown(text: string): string {
   padding: 13px 14px;
   border-radius: 16px;
   text-align: left;
-  color: #F8FAFC;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--text-primary);
+  background: rgba(var(--text-primary-rgb), 0.045);
+  border: 1px solid rgba(var(--border-rgb), 0.07);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   animation: radarItemIn 0.4s ease both;
   transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -4123,8 +4126,8 @@ function renderMarkdown(text: string): string {
 }
 .class-radar-course:hover {
   transform: translateY(-1px);
-  background: rgba(255,255,255,0.075);
-  border-color: rgba(255,255,255,0.14);
+  background: rgba(var(--text-primary-rgb), 0.075);
+  border-color: rgba(var(--border-rgb), 0.14);
 }
 .class-radar-course:hover::before,
 .class-radar-course--active::before {
@@ -4148,7 +4151,7 @@ function renderMarkdown(text: string): string {
   position: relative;
   z-index: 1;
   font-size: 11.5px;
-  color: rgba(226, 232, 240, 0.62);
+  color: rgba(var(--text-primary-rgb), 0.62);
 }
 .class-radar-detail {
   min-width: 0;
@@ -4164,13 +4167,13 @@ function renderMarkdown(text: string): string {
   gap: 14px;
   padding: 14px;
   border-radius: 14px;
-  background: #17222A;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--bg-input);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .radar-kicker {
   display: block;
   margin-bottom: 4px;
-  color: #7DD3FC;
+  color: var(--color-info);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -4179,11 +4182,11 @@ function renderMarkdown(text: string): string {
 .radar-brief h3 {
   margin: 0;
   font-size: 17px;
-  color: #F5F7F8;
+  color: var(--text-primary);
 }
 .radar-brief p {
   margin: 7px 0 0;
-  color: #B7C2C8;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -4193,9 +4196,9 @@ function renderMarkdown(text: string): string {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045)),
+    linear-gradient(145deg, rgba(var(--text-primary-rgb), 0.12), rgba(var(--text-primary-rgb), 0.045)),
     linear-gradient(115deg, rgba(14, 165, 233, 0.16), rgba(16, 185, 129, 0.1) 54%, rgba(245, 158, 11, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(var(--border-rgb), 0.16);
   border-radius: 22px;
   overflow: hidden;
   margin-bottom: 14px;
@@ -4209,7 +4212,7 @@ function renderMarkdown(text: string): string {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.16) 46%, transparent 58%);
+  background: linear-gradient(105deg, transparent 0%, rgba(var(--text-primary-rgb), 0.16) 46%, transparent 58%);
   transform: translateX(-120%);
   animation: radarSheen 6s ease-in-out infinite;
 }
@@ -4220,8 +4223,8 @@ function renderMarkdown(text: string): string {
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(2, 6, 23, 0.18);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.12);
+  background: var(--surface-tint);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -4234,7 +4237,7 @@ function renderMarkdown(text: string): string {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #04111E;
+  color: #04111e;
   box-shadow: 0 0 28px rgba(34, 211, 238, 0.24);
   animation: radarAvatarPulse 3.8s ease-in-out infinite;
 }
@@ -4246,31 +4249,31 @@ function renderMarkdown(text: string): string {
   display: block;
   font-size: 13px;
   font-weight: 740;
-  color: #F8FAFC;
+  color: var(--text-primary);
 }
 .radar-ai-label {
   display: block;
   font-size: 11px;
-  color: rgba(226, 232, 240, 0.64);
+  color: rgba(var(--text-primary-rgb), 0.64);
   margin-top: 1px;
 }
 .radar-ai-refresh {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  color: #BAE6FD;
+  background: rgba(var(--text-primary-rgb), 0.1);
+  color: var(--color-info);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 .radar-ai-refresh:hover:not(:disabled) {
   transform: translateY(-1px);
   background: rgba(125, 211, 252, 0.18);
-  color: #F0F9FF;
+  color: var(--text-primary);
 }
 .radar-ai-refresh:disabled {
   opacity: 0.5;
@@ -4347,14 +4350,14 @@ function renderMarkdown(text: string): string {
 .radar-ai-placeholder {
   margin: 0;
   font-size: 12px;
-  color: rgba(226, 232, 240, 0.66);
+  color: rgba(var(--text-primary-rgb), 0.66);
   font-style: italic;
 }
 .radar-ai-text {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #E2E8F0;
+  color: var(--text-primary);
 }
 .radar-ai-actions {
   position: relative;
@@ -4362,8 +4365,8 @@ function renderMarkdown(text: string): string {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(2, 6, 23, 0.22);
+  border-top: 1px solid rgba(var(--border-rgb), 0.1);
+  background: var(--surface-tint);
 }
 .radar-ai-action {
   display: flex;
@@ -4371,18 +4374,18 @@ function renderMarkdown(text: string): string {
   gap: 6px;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  color: #DDFBFF;
+  background: rgba(var(--text-primary-rgb), 0.08);
+  color: var(--color-info);
   font-size: 12px;
   font-weight: 680;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(var(--border-rgb), 0.12);
   transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 .radar-ai-action:hover {
   transform: translateY(-1px);
   background: rgba(125, 211, 252, 0.16);
   border-color: rgba(125, 211, 252, 0.28);
-  color: #FFFFFF;
+  color: var(--text-primary);
 }
 
 .radar-context-btn {
@@ -4390,7 +4393,7 @@ function renderMarkdown(text: string): string {
   padding: 8px 12px;
   border-radius: 9px;
   background: rgba(37, 211, 102, 0.12);
-  color: #34D399;
+  color: var(--color-success);
   border: 1px solid rgba(52, 211, 153, 0.22);
   font-size: 12px;
   font-weight: 700;
@@ -4403,8 +4406,8 @@ function renderMarkdown(text: string): string {
   margin: 14px 0 0;
   padding: 18px;
   border-radius: 12px;
-  color: #9FB0BB;
-  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  background: rgba(var(--text-primary-rgb), 0.04);
   font-size: 13px;
 }
 .radar-metrics {
@@ -4417,8 +4420,8 @@ function renderMarkdown(text: string): string {
   min-width: 0;
   padding: 14px;
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(145deg, rgba(var(--text-primary-rgb), 0.1), rgba(var(--text-primary-rgb), 0.04));
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
   animation: radarMetricIn 0.42s ease both;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
@@ -4429,11 +4432,11 @@ function renderMarkdown(text: string): string {
 .radar-metric:hover {
   transform: translateY(-2px);
   border-color: rgba(125, 211, 252, 0.22);
-  background: linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055));
+  background: linear-gradient(145deg, rgba(var(--text-primary-rgb), 0.13), rgba(var(--text-primary-rgb), 0.055));
 }
 .radar-metric-value {
   display: block;
-  color: #F5F7F8;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 750;
   line-height: 1;
@@ -4441,11 +4444,11 @@ function renderMarkdown(text: string): string {
 .radar-metric-label {
   display: block;
   margin-top: 5px;
-  color: #8FA1AB;
+  color: var(--text-muted);
   font-size: 11.5px;
 }
-.radar-metric--risk .radar-metric-value { color: #FBBF24; }
-.radar-metric--ok .radar-metric-value { color: #34D399; }
+.radar-metric--risk .radar-metric-value { color: var(--color-warning); }
+.radar-metric--ok .radar-metric-value { color: var(--color-success); }
 .radar-insights {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4458,8 +4461,8 @@ function renderMarkdown(text: string): string {
   min-width: 0;
   padding: 14px;
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
-  border: 1px solid rgba(255,255,255,0.09);
+  background: linear-gradient(145deg, rgba(var(--text-primary-rgb), 0.09), rgba(var(--text-primary-rgb), 0.035));
+  border: 1px solid rgba(var(--border-rgb), 0.09);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   animation: radarItemIn 0.42s ease both;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
@@ -4469,13 +4472,13 @@ function renderMarkdown(text: string): string {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 42%);
+  background: linear-gradient(120deg, rgba(var(--text-primary-rgb), 0.08), transparent 42%);
   opacity: 0;
   transition: opacity 0.18s ease;
 }
 .radar-insight:hover {
   transform: translateY(-2px);
-  background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045));
+  background: linear-gradient(145deg, rgba(var(--text-primary-rgb), 0.12), rgba(var(--text-primary-rgb), 0.045));
 }
 .radar-insight:hover::before {
   opacity: 1;
@@ -4498,12 +4501,12 @@ function renderMarkdown(text: string): string {
   gap: 10px;
 }
 .radar-insight-title {
-  color: #E9EDEF;
+  color: var(--text-primary);
   font-size: 12.5px;
   font-weight: 700;
 }
 .radar-insight-value {
-  color: #F8FAFC;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
   text-align: right;
@@ -4514,13 +4517,13 @@ function renderMarkdown(text: string): string {
 }
 .radar-insight p {
   margin: 7px 0;
-  color: rgba(226, 232, 240, 0.66);
+  color: rgba(var(--text-primary-rgb), 0.66);
   font-size: 12px;
   line-height: 1.4;
 }
 .radar-insight-action {
   display: block;
-  color: #7DD3FC;
+  color: var(--color-info);
   font-size: 11.5px;
   line-height: 1.35;
 }
@@ -4533,12 +4536,12 @@ function renderMarkdown(text: string): string {
 .radar-students > div {
   padding: 13px 14px;
   border-radius: 18px;
-  background: rgba(2, 6, 23, 0.24);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface-tint);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .radar-students-label {
-  color: #93A4AE;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -4546,7 +4549,7 @@ function renderMarkdown(text: string): string {
 }
 .radar-students p {
   margin: 6px 0 0;
-  color: #DDE6EA;
+  color: var(--text-primary);
   font-size: 12.5px;
   line-height: 1.4;
 }
@@ -4556,7 +4559,7 @@ function renderMarkdown(text: string): string {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: #2A3942;
+  background: var(--bg-input);
   margin: 10px 14px;
   border-radius: 10px;
   flex-shrink: 0;
@@ -4567,9 +4570,9 @@ function renderMarkdown(text: string): string {
   border: none;
   outline: none;
   font-size: 14px;
-  color: #E9EDEF;
+  color: var(--text-primary);
 }
-.sheet-search-input::placeholder { color: rgba(255,255,255,0.3); }
+.sheet-search-input::placeholder { color: var(--text-hint); }
 
 .sheet-back {
   display: flex;
@@ -4577,11 +4580,11 @@ function renderMarkdown(text: string): string {
   gap: 6px;
   padding: 6px 16px 4px;
   font-size: 13px;
-  color: #8696A0;
+  color: var(--text-muted);
   flex-shrink: 0;
   transition: color 0.15s;
 }
-.sheet-back:hover { color: #E9EDEF; }
+.sheet-back:hover { color: var(--text-primary); }
 
 .sheet-list {
   flex: 1;
@@ -4599,18 +4602,18 @@ function renderMarkdown(text: string): string {
   text-align: left;
   transition: background 0.13s;
 }
-.sheet-item:hover { background: rgba(255,255,255,0.04); }
-.sheet-item:active { background: rgba(255,255,255,0.07); }
+.sheet-item:hover { background: rgba(var(--text-primary-rgb), 0.04); }
+.sheet-item:active { background: rgba(var(--text-primary-rgb), 0.07); }
 
 .sheet-item-icon {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #2A3942;
+  background: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8696A0;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 .sheet-item-info {
@@ -4623,14 +4626,14 @@ function renderMarkdown(text: string): string {
 .sheet-item-title {
   font-size: 14px;
   font-weight: 500;
-  color: #E9EDEF;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .sheet-item-sub {
   font-size: 12px;
-  color: #8696A0;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4638,18 +4641,18 @@ function renderMarkdown(text: string): string {
 .sheet-item-grade {
   font-size: 13px;
   font-weight: 700;
-  color: #25D366;
+  color: var(--color-success);
   flex-shrink: 0;
   background: rgba(37, 211, 102, 0.1);
   padding: 3px 8px;
   border-radius: 10px;
 }
-.sheet-item-chevron { color: rgba(255,255,255,0.2); flex-shrink: 0; }
+.sheet-item-chevron { color: var(--text-muted); flex-shrink: 0; }
 
 .sheet-empty {
   text-align: center;
   font-size: 13px;
-  color: #8696A0;
+  color: var(--text-muted);
   padding: 16px;
 }
 
@@ -4664,14 +4667,14 @@ function renderMarkdown(text: string): string {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--text-primary-rgb), 0.06);
   flex-shrink: 0;
   animation: pulse 1.4s ease-in-out infinite;
 }
 .skel-text { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .skel-line {
   border-radius: 4px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--text-primary-rgb), 0.06);
   animation: pulse 1.4s ease-in-out infinite;
 }
 .skel-title { height: 13px; width: 65%; }
@@ -4705,28 +4708,28 @@ function renderMarkdown(text: string): string {
 }
 
 .bubble-text :deep(.md-table th) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #E9EDEF;
+  background: rgba(var(--text-primary-rgb), 0.1);
+  color: var(--text-primary);
   font-weight: 600;
   text-align: left;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(var(--border-rgb), 0.15);
   white-space: nowrap;
 }
 
 .bubble-text :deep(.md-table td) {
   padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #d1d5db;
+  border: 1px solid rgba(var(--border-rgb), 0.1);
+  color: var(--text-secondary);
   vertical-align: top;
 }
 
 .bubble-text :deep(.md-table tbody tr:nth-child(even)) {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--text-primary-rgb), 0.03);
 }
 
 .bubble-text :deep(.md-table tbody tr:hover) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--text-primary-rgb), 0.06);
 }
 
 .bubble--user :deep(.md-table th) {
@@ -4736,7 +4739,7 @@ function renderMarkdown(text: string): string {
 
 .bubble--user :deep(.md-table td) {
   border-color: rgba(0, 0, 0, 0.15);
-  color: #E9EDEF;
+  color: var(--text-primary);
 }
 
 .bubble--user :deep(.md-table tbody tr:nth-child(even)) {
@@ -4763,8 +4766,9 @@ function renderMarkdown(text: string): string {
     overflow-x: auto;
     overflow-y: hidden;
     border-right: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
     padding: 10px 12px;
+    background: var(--surface-tint);
   }
   .class-radar-course {
     min-width: 190px;
@@ -4778,6 +4782,7 @@ function renderMarkdown(text: string): string {
   }
   .radar-ai-actions {
     flex-wrap: wrap;
+    background: var(--surface-tint);
   }
   .radar-ai-action {
     flex: 1 1 130px;

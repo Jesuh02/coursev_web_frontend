@@ -6,18 +6,18 @@
           <!-- Header -->
           <div class="bulletin-header">
             <div class="bulletin-header-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
             </div>
             <h2 class="bulletin-title">Generar Boletín</h2>
             <button class="bulletin-expand-btn" @click="isExpanded = !isExpanded" :title="isExpanded ? 'Reducir' : 'Ampliar'">
-              <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+              <svg v-if="!isExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
             </button>
             <button class="bulletin-close" @click="$emit('update:modelValue', false)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
@@ -60,7 +60,7 @@
                     </div>
                     <div class="boletin-institution">
                       <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
-                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                       <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                     </div>
                   </div>
@@ -91,7 +91,7 @@
                       <div v-if="pIdx < entry.periods.length - 1" class="boletin-divider" style="margin:12px 0" />
                     </template>
                   </template>
-                  <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                  <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                     📅 Sin periodos — no hay datos de notas disponibles.
                   </div>
                   <div class="boletin-divider" />
@@ -126,18 +126,18 @@
                   Generar boletín de toda la plataforma
                 </button>
                 <div class="course-search">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                   <input v-model="courseSearch" type="text" placeholder="Buscar curso..." />
                 </div>
                 <ul v-if="filteredCourses.length" class="course-pick-list">
                   <li v-for="c in filteredCourses" :key="c.id" class="course-pick-item" @click="pickCourse(c)">
                     <div class="course-pick-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     </div>
                     <div class="course-pick-info">
                       <span class="course-pick-name">{{ c.title }}</span>
                     </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
                   </li>
                 </ul>
                 <p v-else class="no-courses">No se encontraron cursos</p>
@@ -182,7 +182,7 @@
                     Generar boletín de todos ({{ allStudents.length }})
                   </button>
                   <div class="course-search">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                     <input v-model="studentSearch" type="text" placeholder="Buscar estudiante..." />
                   </div>
                   <p class="step-hint">Selecciona un estudiante</p>
@@ -193,7 +193,7 @@
                         <span class="course-pick-name">{{ st.fullName || st.username || `#${st.userId}` }}</span>
                         <span v-if="st.username" class="course-pick-sub">@{{ st.username }}</span>
                       </div>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
                     </li>
                   </ul>
                   <p v-else class="no-courses">No se encontraron estudiantes</p>
@@ -236,7 +236,7 @@
                         </div>
                         <div class="boletin-institution">
                           <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
-                          <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                          <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                           <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                         </div>
                       </div>
@@ -267,7 +267,7 @@
                           <div v-if="pIdx < entry.periods.length - 1" class="boletin-divider" style="margin:12px 0" />
                         </template>
                       </template>
-                      <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                      <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                         📅 Sin periodos — no hay datos de notas disponibles.
                       </div>
                       <div class="boletin-divider" />
@@ -297,7 +297,7 @@
                       </div>
                       <div class="boletin-institution">
                         <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
-                        <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                        <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                         <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                       </div>
                     </div>
@@ -325,7 +325,7 @@
                       <span class="promedio-value" :class="notaClass(computePromedio(entry.rows))">{{ computePromedio(entry.rows).toFixed(1) }}</span>
                     </div>
                     </template>
-                    <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                    <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                       📅 Sin periodo activo — no hay datos de notas disponibles.
                     </div>
                     <div class="boletin-divider" />
@@ -383,7 +383,7 @@
                     </div>
                     <div class="boletin-institution">
                       <span class="boletin-inst-name">{{ getInstitutionDisplayName() }}</span>
-                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:#666;display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
+                      <span v-if="isIncatInstitution()" class="boletin-inst-subtitle" style="font-size:9px;line-height:1.3;color:var(--text-muted);display:block">Licencia de funcionamiento Resolución No 439 del 26 /10/ 2010. Emanada de S. E. M<br/>Licencia de funcionamiento resolución Nº1952 del 17/12/2010. Emanada de S. E. D.<br/>Institución Educativa De Formación para el trabajo y el desarrollo humano<br/>NIT: 900391687-0</span>
                       <span v-else class="boletin-inst-subtitle">Plataforma Educativa</span>
                     </div>
                   </div>
@@ -430,7 +430,7 @@
                     <span class="promedio-value" :class="notaClass(promedioGeneral)">{{ (promedioGeneral ?? 0).toFixed(1) }}</span>
                   </div>
                   </template>
-                  <div v-else style="padding:24px;text-align:center;color:#8E8E93;font-size:14px">
+                  <div v-else style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">
                     📅 Sin periodo activo — no hay datos de notas disponibles.
                   </div>
                   <div class="boletin-divider" />
@@ -1392,7 +1392,7 @@ function exportPlatformBulletinWord() {
 
 <style scoped>
 .bulletin-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: #1C1C1E; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; will-change: transform, opacity; transition: max-width 0.45s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.45s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+.bulletin-modal { width: 100%; max-width: 560px; max-height: 88vh; background: var(--bg-card); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; will-change: transform, opacity; transition: max-width 0.45s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.45s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
 .bulletin-modal--expanded { max-width: 95vw; max-height: 95vh; border-radius: 16px; }
 .bulletin-fade-enter-active { transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
 .bulletin-fade-leave-active { transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
@@ -1408,98 +1408,98 @@ function exportPlatformBulletinWord() {
   0% { opacity: 1; transform: scale(1) translateY(0); }
   100% { opacity: 0; transform: scale(0.88) translateY(16px); }
 }
-.bulletin-header { display: flex; align-items: center; gap: 12px; padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.bulletin-header { display: flex; align-items: center; gap: 12px; padding: 20px 20px 16px; border-bottom: 1px solid rgba(var(--border-rgb), 0.06); }
 .bulletin-header-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(48,209,88,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.bulletin-title { flex: 1; font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
-.bulletin-expand-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1); }
-.bulletin-expand-btn:hover { background: rgba(255,255,255,0.12); }
+.bulletin-title { flex: 1; font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.bulletin-expand-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(var(--border-rgb), 0.06); display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1); }
+.bulletin-expand-btn:hover { background: rgba(var(--border-rgb), 0.12); }
 .bulletin-expand-btn:active { transform: scale(0.9); }
-.bulletin-close { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; }
-.bulletin-close:hover { background: rgba(255,255,255,0.12); }
+.bulletin-close { width: 36px; height: 36px; border-radius: 50%; background: rgba(var(--border-rgb), 0.06); display: flex; align-items: center; justify-content: center; }
+.bulletin-close:hover { background: rgba(var(--border-rgb), 0.12); }
 .bulletin-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
-.bulletin-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: #8E8E93; font-size: 14px; }
+.bulletin-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: var(--text-muted); font-size: 14px; }
 .spinner-bulletin { width: 28px; height: 28px; border: 3px solid rgba(48,209,88,0.2); border-top-color: #30D158; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.step-hint { font-size: 12px; color: #8E8E93; margin-bottom: 12px; }
-.step-course-name { font-size: 16px; font-weight: 700; color: #BF5AF2; margin-bottom: 12px; }
+.step-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.step-course-name { font-size: 16px; font-weight: 700; color: var(--purple-light); margin-bottom: 12px; }
 
-.course-search { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
-.course-search input { flex: 1; background: transparent; border: none; color: #fff; font-size: 14px; outline: none; }
-.course-search input::placeholder { color: #8E8E93; }
+.course-search { display: flex; align-items: center; gap: 10px; background: rgba(var(--border-rgb), 0.06); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+.course-search input { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 14px; outline: none; }
+.course-search input::placeholder { color: var(--text-muted); }
 
 .course-pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .course-pick-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; cursor: pointer; transition: background 0.15s; }
-.course-pick-item:hover { background: rgba(255,255,255,0.06); }
+.course-pick-item:hover { background: rgba(var(--border-rgb), 0.06); }
 .course-pick-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(191,90,242,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .course-pick-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.course-pick-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.course-pick-sub { font-size: 12px; color: #8E8E93; }
-.no-courses { text-align: center; color: #636366; font-size: 14px; padding: 24px 0; }
+.course-pick-name { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.course-pick-sub { font-size: 12px; color: var(--text-muted); }
+.no-courses { text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0; }
 
-.student-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
-.view-all-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(48,209,88,0.12); border: 1px solid rgba(48,209,88,0.28); color: #30D158; font-size: 14px; font-weight: 700; }
+.student-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6A1B9A, #BF5AF2); color: var(--text-on-accent); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.view-all-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(48,209,88,0.12); border: 1px solid rgba(48,209,88,0.28); color: var(--color-success); font-size: 14px; font-weight: 700; }
 .view-all-btn:hover { background: rgba(48,209,88,0.18); }
-.view-all-btn--platform { background: rgba(10,132,255,0.12); border-color: rgba(10,132,255,0.28); color: #0A84FF; }
+.view-all-btn--platform { background: rgba(10,132,255,0.12); border-color: rgba(10,132,255,0.28); color: var(--color-info); }
 .view-all-btn--platform:hover { background: rgba(10,132,255,0.2); }
 .bulletin-export-bar--top { margin-bottom: 12px; }
 
-.back-to-list { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #0A84FF; margin-bottom: 12px; padding: 0; background: none; border: none; cursor: pointer; }
+.back-to-list { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-info); margin-bottom: 12px; padding: 0; background: none; border: none; cursor: pointer; }
 .back-to-list:hover { text-decoration: underline; }
 
 /* Bulletin card */
-.bulletin-card { background: #2C2C2E; border-radius: 16px; padding: 24px 20px; border: 1px solid rgba(255,255,255,0.08); }
+.bulletin-card { background: var(--bg-card); border-radius: 16px; padding: 24px 20px; border: 1px solid rgba(var(--border-rgb), 0.08); }
 .bulletin-card--all { margin-bottom: 14px; }
 .boletin-header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
 .boletin-logo-placeholder { width: 52px; height: 52px; border-radius: 12px; background: rgba(106,27,154,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .boletin-institution { display: flex; flex-direction: column; gap: 2px; }
-.boletin-inst-name { font-size: 17px; font-weight: 800; color: #BF5AF2; letter-spacing: 0.3px; }
-.boletin-inst-subtitle { font-size: 11px; color: #8E8E93; text-transform: uppercase; letter-spacing: 1px; }
-.boletin-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
-.boletin-period-header { font-size: 13px; font-weight: 700; color: #BF5AF2; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 6px; border-bottom: 1px solid rgba(191,90,242,0.2); margin-bottom: 4px; }
+.boletin-inst-name { font-size: 17px; font-weight: 800; color: var(--purple-light); letter-spacing: 0.3px; }
+.boletin-inst-subtitle { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.boletin-divider { height: 1px; background: rgba(var(--border-rgb), 0.08); margin: 16px 0; }
+.boletin-period-header { font-size: 13px; font-weight: 700; color: var(--purple-light); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 6px; border-bottom: 1px solid rgba(191,90,242,0.2); margin-bottom: 4px; }
 .boletin-info-grid { display: flex; flex-direction: column; gap: 8px; }
 .boletin-info-row { display: flex; gap: 10px; align-items: baseline; }
-.boletin-label { font-size: 11px; font-weight: 700; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; min-width: 110px; }
-.boletin-value { font-size: 14px; font-weight: 600; color: #fff; }
+.boletin-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; min-width: 110px; }
+.boletin-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
 
 .boletin-table { width: 100%; border-collapse: collapse; margin-top: 4px; border-radius: 8px; overflow: hidden; }
 .boletin-table thead tr { background: rgba(106,27,154,0.3); }
-.boletin-table th { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #BF5AF2; }
+.boletin-table th { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple-light); }
 .th-modulo { text-align: left; }
 .th-nota { text-align: center; }
-.boletin-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-.td-modulo { font-size: 13px; font-weight: 600; color: #fff; text-transform: uppercase; }
-.td-nota { text-align: center; font-size: 16px; font-weight: 800; color: #ccc; }
-.boletin-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.boletin-table td { padding: 10px 14px; border-bottom: 1px solid rgba(var(--border-rgb), 0.04); }
+.td-modulo { font-size: 13px; font-weight: 600; color: var(--text-primary); text-transform: uppercase; }
+.td-nota { text-align: center; font-size: 16px; font-weight: 800; color: var(--text-secondary); }
+.boletin-table tbody tr:hover { background: rgba(var(--border-rgb), 0.02); }
 .boletin-table tbody tr:last-child td { border-bottom: none; }
 
 .boletin-promedio { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: rgba(106,27,154,0.12); border-radius: 12px; margin-top: 16px; }
-.promedio-label { font-size: 12px; font-weight: 700; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; }
-.promedio-value { font-size: 22px; font-weight: 800; color: #fff; }
-.nota-good { color: #30D158 !important; }
-.nota-ok { color: #FF9F0A !important; }
-.nota-low { color: #FF453A !important; }
+.promedio-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.promedio-value { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+.nota-good { color: var(--color-success) !important; }
+.nota-ok { color: var(--color-warning) !important; }
+.nota-low { color: var(--color-danger) !important; }
 .boletin-footer { text-align: center; }
-.boletin-generated { font-size: 11px; color: #636366; }
+.boletin-generated { font-size: 11px; color: var(--text-muted); }
 .incat-sig-block { display: inline-block; min-width: 180px; margin-top: 16px; }
 .incat-sig-line { border-top: 1px solid #8E8E93; margin-bottom: 4px; }
-.incat-sig-name { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #fff; margin: 0; }
-.incat-sig-title { font-size: 10px; color: #8E8E93; margin: 2px 0 0; }
+.incat-sig-name { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-primary); margin: 0; }
+.incat-sig-title { font-size: 10px; color: var(--text-muted); margin: 2px 0 0; }
 .incat-footer-info { margin-top: 10px; border-top: 1px solid rgba(139,0,0,0.3); padding-top: 8px; text-align: center; }
-.incat-footer-slogan { font-size: 10px; font-style: italic; color: #BF5AF2; margin: 0 0 3px; }
-.incat-footer-addr, .incat-footer-city { font-size: 9px; font-weight: 700; color: #fff; margin: 2px 0; }
-.incat-footer-email { font-size: 9px; color: #FF453A; margin: 2px 0; }
+.incat-footer-slogan { font-size: 10px; font-style: italic; color: var(--purple-light); margin: 0 0 3px; }
+.incat-footer-addr, .incat-footer-city { font-size: 9px; font-weight: 700; color: var(--text-primary); margin: 2px 0; }
+.incat-footer-email { font-size: 9px; color: var(--color-danger); margin: 2px 0; }
 
 .bulletin-export-bar { display: flex; gap: 10px; padding: 16px 0 4px; }
 .export-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.1s; }
 .export-btn:active { transform: scale(0.97); }
-.export-pdf { background: rgba(255,69,58,0.12); color: #FF453A; }
+.export-pdf { background: rgba(255,69,58,0.12); color: var(--color-danger); }
 .export-pdf:hover { background: rgba(255,69,58,0.2); }
-.export-excel { background: rgba(48,209,88,0.12); color: #30D158; }
+.export-excel { background: rgba(48,209,88,0.12); color: var(--color-success); }
 .export-excel:hover { background: rgba(48,209,88,0.2); }
-.export-word { background: rgba(90,200,250,0.12); color: #5AC8FA; }
+.export-word { background: rgba(90,200,250,0.12); color: var(--color-info); }
 .export-word:hover { background: rgba(90,200,250,0.2); }
-.export-share { background: rgba(10,132,255,0.12); color: #0A84FF; }
+.export-share { background: rgba(10,132,255,0.12); color: var(--color-info); }
 .export-share:hover { background: rgba(10,132,255,0.2); }
 
 .period-bar {
@@ -1513,20 +1513,20 @@ function exportPlatformBulletinWord() {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  color: #8E8E93;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  background: rgba(var(--border-rgb), 0.06);
   border: 1px solid transparent;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
   cursor: pointer;
 }
 .period-chip:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.1);
+  color: var(--text-primary);
 }
 .period-chip--selected {
   background: rgba(48, 209, 88, 0.15);
-  color: #30D158;
+  color: var(--color-success);
   border-color: rgba(48, 209, 88, 0.4);
 }
 </style>

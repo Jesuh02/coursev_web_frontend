@@ -24,7 +24,7 @@
           <button class="reply-btn" @click="$emit('reply', comment)">Responder</button>
           <div v-if="currentUserId && comment.usuario_id === currentUserId" class="more-menu-wrap">
             <button class="more-btn" @click.stop="toggleMenu(comment.id)" aria-label="Opciones">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#666"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-muted)"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
             </button>
             <transition name="menu-pop">
               <div v-if="openMenuId === comment.id" class="action-menu" @click.stop>
@@ -66,7 +66,7 @@
                   <button class="reply-btn" @click="$emit('reply', reply)">Responder</button>
                   <div v-if="currentUserId && reply.usuario_id === currentUserId" class="more-menu-wrap">
                     <button class="more-btn" @click.stop="toggleMenu(reply.id)" aria-label="Opciones">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#666"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-muted)"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                     </button>
                     <transition name="menu-pop">
                       <div v-if="openMenuId === reply.id" class="action-menu" @click.stop>
@@ -91,7 +91,7 @@
                   @click="$emit('like', reply)"
                 >
                   <svg v-if="reply._liked" width="16" height="16" viewBox="0 0 24 24" fill="#ff2d55"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   <span v-if="(reply._likeCount ?? 0) > 0" class="like-count">{{ reply._likeCount }}</span>
                 </button>
               </div>
@@ -108,7 +108,7 @@
           @click="$emit('like', comment)"
         >
           <svg v-if="comment._liked" width="18" height="18" viewBox="0 0 24 24" fill="#ff2d55"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           <span v-if="(comment._likeCount ?? 0) > 0" class="like-count">{{ comment._likeCount }}</span>
         </button>
       </div>
@@ -205,7 +205,7 @@ function timeAgo(dateStr?: string | null): string {
 <style scoped>
 .comment-item {
   padding: 12px 16px;
-  border-bottom: 0.5px solid #2a2a2a;
+  border-bottom: 0.5px solid var(--border-color);
   transition: background 0.3s;
 }
 
@@ -234,17 +234,17 @@ function timeAgo(dateStr?: string | null): string {
 .comment-username {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .comment-time {
   font-size: 11px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .comment-text {
   font-size: 14px;
-  color: #e0e0e0;
+  color: var(--text-secondary);
   line-height: 1.4;
   margin: 0 0 6px;
   word-break: break-word;
@@ -259,13 +259,13 @@ function timeAgo(dateStr?: string | null): string {
 .reply-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
 }
-.reply-btn:hover { color: #bbb; }
+.reply-btn:hover { color: var(--text-secondary); }
 
 /* ── More (⋯) menu ── */
 .more-menu-wrap {
@@ -285,15 +285,15 @@ function timeAgo(dateStr?: string | null): string {
 }
 .more-btn:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 
 .action-menu {
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  background: #232323;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-card-hover);
+  border: 1px solid rgba(var(--border-rgb), 0.1);
   border-radius: 12px;
   overflow: hidden;
   min-width: 130px;
@@ -309,7 +309,7 @@ function timeAgo(dateStr?: string | null): string {
   padding: 11px 14px;
   background: none;
   border: none;
-  color: #e0e0e0;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -317,15 +317,15 @@ function timeAgo(dateStr?: string | null): string {
   transition: background 0.12s;
 }
 .action-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
 }
 .action-menu-item + .action-menu-item {
-  border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+  border-top: 0.5px solid rgba(var(--border-rgb), 0.06);
 }
 .action-menu-item--danger {
-  color: #ff4757;
+  color: var(--color-danger);
 }
-.action-menu-item--danger svg { stroke: #ff4757; }
+.action-menu-item--danger svg { stroke: var(--color-danger); }
 
 /* menu-pop transition */
 .menu-pop-enter-active { transition: opacity 0.13s ease, transform 0.13s ease; }
@@ -406,6 +406,6 @@ function timeAgo(dateStr?: string | null): string {
 
 .like-count {
   font-size: 10px;
-  color: #666;
+  color: var(--text-muted);
 }
 </style>

@@ -6,7 +6,7 @@
 
 <style scoped>
 .menu-card {
-  background: #1C1C1E;
+  background: var(--apple-snow);
   border-radius: 16px;
   overflow: hidden;
 }

@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="report-header">
             <div class="report-header-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
@@ -16,11 +16,11 @@
             </div>
             <h2 class="report-title">Reporte de Notas</h2>
             <button class="report-action-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
-              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
+              <svg v-if="!isFullscreen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--purple-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>
             </button>
             <button class="report-close" @click="$emit('update:modelValue', false)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
@@ -64,10 +64,10 @@
 
             <!-- Student search -->
             <div class="student-search-bar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               <input v-model="studentSearch" type="text" placeholder="Filtrar por nombre, usuario o identificación…" />
               <button v-if="studentSearch" class="search-clear-btn" @click="studentSearch = ''">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
 
@@ -94,7 +94,7 @@
                   <div class="subject-info">
                     <span class="subject-name">{{ group.subjectName }}</span>
                     <span class="subject-teacher">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       {{ group.teacherName }}
                     </span>
                   </div>
@@ -200,11 +200,11 @@
       <div v-if="deletePeriodConfirm.show" class="report-overlay" style="z-index:1010" @click.self="deletePeriodConfirm.show = false">
         <div class="delete-period-dialog">
           <div style="font-size:32px;text-align:center">📅</div>
-          <h3 style="color:#fff;font-size:16px;font-weight:700;margin:8px 0 4px;text-align:center">¿Eliminar este periodo?</h3>
-          <p style="color:#8E8E93;font-size:13px;text-align:center;line-height:1.5;margin:0 0 16px">Se eliminará permanentemente el periodo <strong style="color:#FF453A">{{ deletePeriodConfirm.name }}</strong> y todas sus notas guardadas.</p>
+          <h3 style="color:var(--text-primary);font-size:16px;font-weight:700;margin:8px 0 4px;text-align:center">¿Eliminar este periodo?</h3>
+          <p style="color:var(--text-muted);font-size:13px;text-align:center;line-height:1.5;margin:0 0 16px">Se eliminará permanentemente el periodo <strong style="color:var(--color-danger)">{{ deletePeriodConfirm.name }}</strong> y todas sus notas guardadas.</p>
           <div style="display:flex;gap:10px;justify-content:center">
             <button class="period-cancel-btn" @click="deletePeriodConfirm.show = false" style="padding:8px 18px">Cancelar</button>
-            <button class="period-delete-btn" @click="executeDeletePeriod" style="padding:8px 18px;font-size:13px;background:rgba(255,69,58,0.15);color:#FF453A;border:1px solid rgba(255,69,58,0.3);border-radius:10px">Eliminar</button>
+            <button class="period-delete-btn" @click="executeDeletePeriod" style="padding:8px 18px;font-size:13px;background:rgba(255,69,58,0.15);color:var(--color-danger);border:1px solid rgba(255,69,58,0.3);border-radius:10px">Eliminar</button>
           </div>
         </div>
       </div>
@@ -1224,7 +1224,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   max-width: 820px;
   max-height: 85vh;
   height: 85vh;
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -1256,7 +1256,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   align-items: center;
   gap: 12px;
   padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .report-header-icon {
@@ -1274,7 +1274,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   flex: 1;
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -1282,19 +1282,19 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
 }
-.report-close:hover { background: rgba(255, 255, 255, 0.12); }
+.report-close:hover { background: rgba(var(--border-rgb), 0.12); }
 
 .report-action-btn {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1302,7 +1302,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   margin-right: 4px;
   flex-shrink: 0;
 }
-.report-action-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.report-action-btn:hover { background: rgba(var(--border-rgb), 0.12); }
 
 .report-loading {
   display: flex;
@@ -1310,7 +1310,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   align-items: center;
   gap: 12px;
   padding: 60px 20px;
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -1333,7 +1333,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--border-rgb), 0.04);
   border-radius: 16px;
   padding: 16px 8px;
   margin-bottom: 20px;
@@ -1349,12 +1349,12 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .summary-value {
   font-size: 22px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .summary-label {
   font-size: 11px;
-  color: #8E8E93;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1362,7 +1362,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .summary-divider {
   width: 1px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.08);
 }
 
 .report-table {
@@ -1373,10 +1373,10 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 
 .report-subject-group {
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--border-rgb), 0.03);
   overflow: hidden;
   margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .subject-row-header {
@@ -1399,7 +1399,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .subject-name {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1411,14 +1411,14 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   opacity: 0.8;
 }
 
 .subject-avg {
   font-size: 15px;
   font-weight: 800;
-  color: #8E8E93;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -1434,7 +1434,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
 
 .grade-table thead tr {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--border-rgb), 0.04);
 }
 
 .grade-table th {
@@ -1444,8 +1444,8 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #8E8E93;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.08);
   white-space: nowrap;
 }
 .th-student { min-width: 90px; }
@@ -1453,18 +1453,18 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 
 .grade-table td {
   padding: 8px 10px;
-  color: #ccc;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.04);
   vertical-align: top;
 }
 
 .grade-row:last-child td { border-bottom: none; }
-.grade-row:hover { background: rgba(255, 255, 255, 0.02); }
+.grade-row:hover { background: rgba(var(--border-rgb), 0.02); }
 
 /* Estudiante: identificador primario de cada fila — blanco+negrita */
 .cell-student {
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   min-width: 80px;
 }
@@ -1475,7 +1475,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #C7C7CC;
+  color: var(--text-secondary);
   font-size: 11.5px;
 }
 .cell-grade {
@@ -1487,38 +1487,38 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .cell-date {
   white-space: nowrap;
   font-size: 11px;
-  color: #636366;
+  color: var(--text-muted);
   min-width: 80px;
 }
 .cell-grader {
   font-size: 11.5px;
-  color: #9E9EA3;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 .cell-feedback {
-  color: #8E8E93;
+  color: var(--text-muted);
   font-size: 11px;
   min-width: 100px;
   max-width: 220px;
   line-height: 1.4;
 }
-.no-feedback { color: #3a3a3c; }
+.no-feedback { color: var(--text-muted); }
 
 .th-ponderada { min-width: 80px; text-align: center; }
 .cell-ponderada { font-weight: 700; text-align: center; white-space: nowrap; min-width: 80px; }
-.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: #FF453A; border-radius: 4px; padding: 1px 5px; }
+.badge-no-entrega { display: inline-block; margin-left: 5px; font-size: 10px; background: rgba(255,69,58,0.15); color: var(--color-danger); border-radius: 4px; padding: 1px 5px; }
 .row-not-submitted { opacity: 0.75; }
 
 .no-tasks {
   padding: 10px 16px;
   font-size: 13px;
-  color: #636366;
+  color: var(--text-muted);
 }
 
 .no-active-period-msg {
   padding: 10px 16px;
   font-size: 13px;
-  color: #FF9500;
+  color: var(--color-warning);
   background: rgba(255, 149, 0, 0.08);
   border-radius: 8px;
   margin: 6px 0;
@@ -1527,7 +1527,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .period-label {
   font-size: 12px;
   font-weight: 600;
-  color: #BF5AF2;
+  color: var(--purple-light);
   padding: 4px 0 6px;
 }
 
@@ -1543,17 +1543,17 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.06);
-  color: #8E8E93;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--text-muted);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
   cursor: pointer;
 }
-.filter-pill:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.filter-pill:hover { background: rgba(var(--border-rgb), 0.1); color: var(--text-primary); }
 .filter-pill--active {
   background: rgba(191, 90, 242, 0.2);
-  color: #BF5AF2;
+  color: var(--purple-light);
   border-color: rgba(191, 90, 242, 0.45);
 }
 
@@ -1561,21 +1561,21 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1C1C1E;
+  background: var(--bg-input);
   border-radius: 10px;
   padding: 8px 12px;
   margin: 8px 16px 4px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .student-search-bar input {
   flex: 1;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
 }
-.student-search-bar input::placeholder { color: #8E8E93; }
+.student-search-bar input::placeholder { color: var(--text-muted); }
 .search-clear-btn {
   display: flex;
   align-items: center;
@@ -1583,7 +1583,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--border-rgb), 0.1);
 }
 
 .breakdown-section {
@@ -1596,19 +1596,19 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   opacity: 0.85;
 }
 
-.grade-good { color: #34C759 !important; }
-.grade-ok { color: #FF9500 !important; }
-.grade-low { color: #FF453A !important; }
+.grade-good { color: var(--color-success) !important; }
+.grade-ok { color: var(--color-warning) !important; }
+.grade-low { color: var(--color-danger) !important; }
 
 .report-export-bar {
   display: flex;
   gap: 10px;
   padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
 }
 
 .export-btn {
@@ -1627,17 +1627,17 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 
 .export-pdf {
   background: rgba(255, 69, 58, 0.12);
-  color: #FF6961;
+  color: var(--color-danger);
 }
 
 .export-excel {
   background: rgba(52, 199, 89, 0.12);
-  color: #34C759;
+  color: var(--color-success);
 }
 
 .export-share {
   background: rgba(0, 122, 255, 0.12);
-  color: #0A84FF;
+  color: var(--color-info);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1693,12 +1693,12 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
 .inst-header-line {
   font-size: 9px;
-  color: #8E8E93;
+  color: var(--text-muted);
   line-height: 1.3;
 }
 .inst-header-bold {
   font-weight: 600;
-  color: #777;
+  color: var(--text-muted);
 }
 .inst-header-nit {
   font-size: 10px;
@@ -1726,12 +1726,12 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 .incat-sig-title {
   font-size: 10px;
-  color: #8E8E93;
+  color: var(--text-muted);
   margin: 2px 0 0;
 }
 .incat-footer-info {
@@ -1743,25 +1743,25 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 .incat-footer-slogan {
   font-size: 11px;
   font-style: italic;
-  color: #BF5AF2;
+  color: var(--purple-light);
   margin: 0 0 3px;
 }
 .incat-footer-addr,
 .incat-footer-city {
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 2px 0;
 }
 .incat-footer-email {
   font-size: 10px;
-  color: #FF453A;
+  color: var(--color-danger);
   margin: 2px 0;
 }
 
 /* ── Periods ── */
 .periods-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
   padding: 8px 12px 4px;
 }
 .periods-header {
@@ -1770,20 +1770,20 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   gap: 8px;
   cursor: pointer;
   padding: 6px 0;
-  color: #8E8E93;
+  color: var(--text-muted);
 }
 .periods-title {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #BF5AF2;
+  color: var(--purple-light);
 }
 .periods-badge {
   font-size: 10px;
   font-weight: 700;
   background: rgba(191, 90, 242, 0.2);
-  color: #BF5AF2;
+  color: var(--purple-light);
   padding: 1px 7px;
   border-radius: 10px;
 }
@@ -1794,7 +1794,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #34C759;
+  color: var(--color-success);
   background: rgba(52, 199, 89, 0.12);
   padding: 4px 10px;
   border-radius: 8px;
@@ -1807,14 +1807,14 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
 .no-periods {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-muted);
   padding: 6px 0;
 }
 .period-item {
   margin-bottom: 6px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(var(--border-rgb), 0.03);
+  border: 1px solid rgba(var(--border-rgb), 0.06);
   overflow: hidden;
 }
 .period-item-header {
@@ -1823,20 +1823,20 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 .period-name {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 .period-date {
   font-size: 11px;
-  color: #636366;
+  color: var(--text-muted);
 }
 .period-date-range {
   font-size: 10px;
-  color: #BF5AF2;
+  color: var(--purple-light);
   opacity: 0.8;
 }
 .period-edit-btn {
@@ -1846,7 +1846,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #34C759;
+  color: var(--color-success);
   background: rgba(52, 199, 89, 0.12);
   padding: 3px 8px;
   border-radius: 6px;
@@ -1860,7 +1860,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   width: 26px;
   height: 26px;
   font-size: 11px;
-  color: #FF453A;
+  color: var(--color-danger);
   background: rgba(255, 69, 58, 0.1);
   border-radius: 6px;
   transition: background 0.15s;
@@ -1868,33 +1868,33 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
 }
 .period-delete-btn:hover { background: rgba(255, 69, 58, 0.22); }
 .delete-period-dialog {
-  background: #1C1C1E;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
   margin: auto;
   max-width: 380px;
   width: 90%;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(var(--border-rgb), 0.08);
 }
 .period-cancel-btn {
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
-  color: #8E8E93;
+  color: var(--text-muted);
   background: rgba(142, 142, 147, 0.12);
   padding: 3px 8px;
   border-radius: 6px;
 }
 .period-snapshot {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--border-rgb), 0.06);
 }
 .period-grade-input {
   width: 56px;
   padding: 3px 4px;
   border-radius: 6px;
   border: 1px solid rgba(191, 90, 242, 0.3);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(var(--border-rgb), 0.06);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -1914,7 +1914,7 @@ ${buildInstitutionSignatureAndFooterHTML()}</body></html>`
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #34C759;
+  color: var(--color-success);
   background: rgba(52, 199, 89, 0.15);
   transition: background 0.15s;
 }
