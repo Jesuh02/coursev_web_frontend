@@ -1,8 +1,8 @@
 <template>
   <div class="login-page">
     <!-- ═══ PANEL IZQUIERDO: Branding + Features (solo desktop) ═══ -->
-    <div class="hero-panel">
-      <div ref="splineContainer" class="spline-bg"></div>
+    <div class="hero-panel" :style="{ '--hero-bg-image': `url(${heroBackground})` }">
+      <div class="spline-bg"></div>
       <div class="hero-overlay"></div>
 
       <div class="hero-content">
@@ -178,6 +178,7 @@ import { institucionAdapter } from '@/infrastructure/api/institucionAdapter'
 import LoginForm from './components/LoginForm.vue'
 import ForgotPasswordDialog from './components/ForgotPasswordDialog.vue'
 import TenantSelectionDialog from './components/TenantSelectionDialog.vue'
+import heroBackground from '@/assets/hero.png'
 
 declare global {
   interface GoogleCredentialResponse {
@@ -227,7 +228,6 @@ const error = ref('')
 const showForgotPassword = ref(false)
 const googleButtonHost = ref<HTMLElement | null>(null)
 const googleButtonEnabled = ref(false)
-const splineContainer = ref<HTMLDivElement | null>(null)
 
 // Estado para desambiguación por cédula y selección de institución
 const showCedula = ref(false)
@@ -352,8 +352,6 @@ function handleResize() {
 }
 
 onMounted(async () => {
-  loadSplineViewer()
-
   // Si ya hay una sesión activa, redirigir sin mostrar el login (igual que LoginFragment.kt)
   if (authStore.isAuthenticated) {
     await authStore.fetchProfile()
@@ -595,36 +593,6 @@ function particleStyle(i: number) {
     height: `${p.size}px`,
     animationDelay: `${p.delay}s`,
   }
-}
-
-function loadSplineViewer() {
-  if (!splineContainer.value) return
-  if (!document.getElementById('spline-viewer-script')) {
-    const script = document.createElement('script')
-    script.id = 'spline-viewer-script'
-    script.type = 'module'
-    script.src = 'https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js'
-    document.head.appendChild(script)
-  }
-  const viewer = document.createElement('spline-viewer')
-  viewer.setAttribute('url', 'https://prod.spline.design/LYtfWvYoz53XLa0D/scene.splinecode')
-  splineContainer.value.appendChild(viewer)
-  hideSplineWatermark(viewer)
-}
-
-function hideSplineWatermark(viewer: HTMLElement) {
-  function inject() {
-    const shadow = viewer.shadowRoot
-    if (!shadow || shadow.querySelector('[data-hide-logo]')) return
-    const style = document.createElement('style')
-    style.setAttribute('data-hide-logo', '')
-    style.textContent = '#logo { display: none !important; }'
-    shadow.appendChild(style)
-  }
-  inject()
-  const observer = new MutationObserver(() => inject())
-  observer.observe(viewer, { childList: true, subtree: true })
-  setTimeout(() => observer.disconnect(), 10000)
 }
 
 </script>
@@ -1148,16 +1116,10 @@ function hideSplineWatermark(viewer: HTMLElement) {
     inset: 0;
     z-index: 0;
     overflow: hidden;
-  }
-
-  .spline-bg :deep(spline-viewer) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  .spline-bg :deep(spline-viewer #logo) {
-    display: none !important;
+    background-image: var(--hero-bg-image);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
   }
 
   .hero-overlay {
