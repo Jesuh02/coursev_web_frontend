@@ -113,6 +113,22 @@
           </div>
         </button>
 
+        <!-- Botón minimalista: enviar respuesta de inmediato (sin esperar los 3s) -->
+        <Transition name="audio-viz">
+          <button
+            v-if="canFlushVoiceNow"
+            type="button"
+            class="voice-send-now-button"
+            aria-label="Enviar respuesta ahora"
+            title="Enviar ahora"
+            @click.stop="flushVoiceNow"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </Transition>
+
         <!-- Visualizador de audio del micrófono -->
         <Transition name="audio-viz">
           <div v-if="coachListening" class="mic-visualizer">
@@ -616,7 +632,7 @@ let coachVoiceListeningWanted = false
 let coachVoiceDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let coachAccumulatedTranscript = ''
 let coachTranscriptFlushed = false // Prevent double-sending
-const COACH_VOICE_SILENCE_DELAY_MS = 4000 // 4 seconds of silence before sending
+const COACH_VOICE_SILENCE_DELAY_MS = 3000 // 3s of silence before sending — pausa natural de conversacion
 let coachSplineViewer: HTMLElement | null = null
 let coachSplineLogoObserver: MutationObserver | null = null
 let coachSplineFrame: number | null = null
@@ -1033,6 +1049,22 @@ function toggleCoachDictation() {
   startCoachDictation(false)
 }
 
+// Envío inmediato: corta la espera de silencio y manda lo dicho hasta ahora.
+// Lo dispara el botón "enviar ya" de la pantalla de voz.
+function flushVoiceNow() {
+  if (!coachListening.value || coachLoading.value || isCoachSpeaking.value) return
+  // Evitar que onend reinicie el reconocimiento tras el stop manual.
+  coachVoiceListeningWanted = false
+  clearCoachVoiceDebounce()
+  coachRecognition?.stop()
+  flushCoachAccumulatedTranscript(true)
+}
+
+// true cuando hay voz acumulada lista para enviar de inmediato.
+const canFlushVoiceNow = computed(
+  () => coachListening.value && !coachLoading.value && !isCoachSpeaking.value,
+)
+
 function clearCoachVoiceDebounce() {
   if (coachVoiceDebounceTimer) {
     clearTimeout(coachVoiceDebounceTimer)
@@ -1231,6 +1263,26 @@ function finishCoachSpeech(token: number, resumeListening: boolean) {
   }
 }
 
+// Divide la respuesta en segmentos hablables (por oracion/pausa) para poder
+// reproducir el primero apenas llega, sin esperar a sintetizar todo el texto.
+// Agrupa oraciones muy cortas para evitar microcortes poco naturales.
+function splitIntoSpeechSegments(text: string, minLen = 60): string[] {
+  const pieces = text.match(/[^.!?¿¡…]+[.!?¿¡…]*/g) || [text]
+  const segments: string[] = []
+  let buffer = ''
+  for (const raw of pieces) {
+    const piece = raw.trim()
+    if (!piece) continue
+    buffer = buffer ? `${buffer} ${piece}` : piece
+    if (buffer.length >= minLen) {
+      segments.push(buffer)
+      buffer = ''
+    }
+  }
+  if (buffer.trim()) segments.push(buffer.trim())
+  return segments.length ? segments : [text]
+}
+
 function speakCoachText(text: string, resumeListening = false) {
   const cleanText = text.replace(/\s+/g, ' ').trim()
   console.log('[Coach TTS] Iniciando speech, texto:', cleanText.substring(0, 80) + '...')
@@ -1250,11 +1302,23 @@ function speakCoachText(text: string, resumeListening = false) {
     coachAudioElement = null
   }
 
-  console.log('[Coach TTS] Intentando TTS remoto...')
+  console.log('[Coach TTS] Intentando TTS remoto por segmentos...')
   void speakCoachWithRemoteTts(cleanText, token, resumeListening).catch((err) => {
     console.log('[Coach TTS] TTS remoto fallo:', err?.message || err, '- usando navegador')
     if (token === coachSpeechToken) speakCoachWithBrowserVoice(cleanText, token, resumeListening)
   })
+}
+
+// Sintetiza un único segmento y devuelve un Audio listo para reproducir.
+async function synthesizeCoachSegment(segment: string): Promise<HTMLAudioElement> {
+  const data = await api.post<TTSResponse>('/tts/synthesize', {
+    text: segment,
+    voice: 'nova',
+    model: 'tts-1-hd',
+    format: 'mp3',
+    speed: 1.03,
+  })
+  return new Audio(`data:${data.contentType || 'audio/mpeg'};base64,${data.audio}`)
 }
 
 async function speakCoachWithRemoteTts(text: string, token: number, resumeListening: boolean) {
@@ -1275,37 +1339,80 @@ async function speakCoachWithRemoteTts(text: string, token: number, resumeListen
   }
   if (!remoteTtsAvailable) throw new Error('Remote TTS unavailable')
 
-  let data: TTSResponse
+  const segments = splitIntoSpeechSegments(text)
+
+  // Sintetiza el primer segmento ya mismo; si este falla, propagamos el error
+  // para caer al TTS del navegador con el texto completo.
+  let currentAudio: HTMLAudioElement
   try {
-    data = await api.post<TTSResponse>('/tts/synthesize', {
-      text,
-      voice: 'nova',
-      model: 'tts-1-hd',
-      format: 'mp3',
-      speed: 1.03,
-    })
+    currentAudio = await synthesizeCoachSegment(segments[0])
   } catch (error) {
     remoteTtsAvailable = false
     throw error
   }
   if (token !== coachSpeechToken) return
 
-  const audio = new Audio(`data:${data.contentType || 'audio/mpeg'};base64,${data.audio}`)
-  coachAudioElement = audio
-  audio.onplay = () => {
+  // Reproduce segmento por segmento, pre-sintetizando el siguiente mientras suena
+  // el actual, de modo que el encadenamiento sea continuo.
+  for (let i = 0; i < segments.length; i++) {
     if (token !== coachSpeechToken) return
-    isCoachSpeaking.value = true
-    boostCoachSpeechVolume(0.82)
+    const isLast = i === segments.length - 1
+
+    // Prefetch del siguiente segmento en paralelo (no bloquea la reproduccion).
+    const nextPromise = isLast
+      ? null
+      : synthesizeCoachSegment(segments[i + 1]).catch(() => null)
+
+    try {
+      await playCoachSegmentAudio(currentAudio, token, isLast ? resumeListening : false, isLast)
+    } catch {
+      // Error reproduciendo este segmento: continuar con el navegador desde aqui
+      // (incluye este segmento y los restantes) para no perder respuesta.
+      if (token !== coachSpeechToken) return
+      speakCoachWithBrowserVoice(segments.slice(i).join(' '), token, resumeListening)
+      return
+    }
+    if (token !== coachSpeechToken) return
+
+    if (!isLast) {
+      const nextAudio = await nextPromise
+      if (token !== coachSpeechToken) return
+      if (!nextAudio) {
+        // Si falla la sintesis de un segmento intermedio, leemos el resto con el
+        // navegador para no cortar la respuesta a la mitad.
+        speakCoachWithBrowserVoice(segments.slice(i + 1).join(' '), token, resumeListening)
+        return
+      }
+      currentAudio = nextAudio
+    }
   }
-  audio.ontimeupdate = () => {
-    if (token === coachSpeechToken) boostCoachSpeechVolume(0.54 + Math.random() * 0.24)
-  }
-  audio.onended = () => finishCoachSpeech(token, resumeListening)
-  audio.onerror = () => {
-    finishCoachSpeech(token, false)
-    speakCoachWithBrowserVoice(text, ++coachSpeechToken, resumeListening)
-  }
-  await audio.play()
+}
+
+// Reproduce un segmento de audio y resuelve cuando termina. Solo llama a
+// finishCoachSpeech en el ultimo segmento (para reanudar la escucha una sola vez).
+function playCoachSegmentAudio(
+  audio: HTMLAudioElement,
+  token: number,
+  resumeListening: boolean,
+  isLast: boolean,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    coachAudioElement = audio
+    audio.onplay = () => {
+      if (token !== coachSpeechToken) return
+      isCoachSpeaking.value = true
+      boostCoachSpeechVolume(0.82)
+    }
+    audio.ontimeupdate = () => {
+      if (token === coachSpeechToken) boostCoachSpeechVolume(0.54 + Math.random() * 0.24)
+    }
+    audio.onended = () => {
+      if (isLast) finishCoachSpeech(token, resumeListening)
+      resolve()
+    }
+    audio.onerror = () => reject(new Error('segment audio error'))
+    audio.play().catch(reject)
+  })
 }
 
 function speakCoachWithBrowserVoice(text: string, token: number, resumeListening: boolean) {
@@ -3879,6 +3986,44 @@ onUnmounted(() => {
 .voice-hangup-button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+/* Botón minimalista "enviar ya": pequeño, a la derecha del de colgar. */
+.voice-send-now-button {
+  position: absolute;
+  left: 50%;
+  bottom: max(38px, env(safe-area-inset-bottom, 0px) + 32px);
+  z-index: 12;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-on-accent, #fff);
+  background: linear-gradient(180deg, #6a5cff 0%, #4a37e0 100%);
+  box-shadow:
+    0 12px 32px rgba(98, 0, 238, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  /* Desplazado a la derecha del botón de colgar (centro) */
+  transform: translateX(56px);
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.2s ease;
+}
+
+.voice-send-now-button:hover {
+  box-shadow:
+    0 16px 40px rgba(98, 0, 238, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.voice-send-now-button:active {
+  transform: translateX(56px) scale(0.92);
+}
+
+.voice-send-now-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.86);
+  outline-offset: 4px;
 }
 
 @keyframes statusPulse {
