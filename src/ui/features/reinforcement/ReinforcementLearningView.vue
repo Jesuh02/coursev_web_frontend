@@ -110,6 +110,12 @@
             aria-hidden="true"
           >
             <div ref="coachSplineMount" class="coach-spline-mount" />
+            <!-- Spinner mientras el modelo piensa la respuesta -->
+            <Transition name="audio-viz">
+              <div v-if="coachLoading" class="coach-thinking-overlay">
+                <span class="coach-thinking-spinner" />
+              </div>
+            </Transition>
           </div>
         </button>
 
@@ -631,6 +637,9 @@ let coachVoiceRestartTimer: ReturnType<typeof setTimeout> | null = null
 let coachVoiceListeningWanted = false
 let coachVoiceDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let coachAccumulatedTranscript = ''
+// Espejo reactivo de coachAccumulatedTranscript (que es un `let` no reactivo) para
+// que `canFlushVoiceNow` sepa si hay texto listo para enviar.
+const coachHasPendingTranscript = ref(false)
 let coachTranscriptFlushed = false // Prevent double-sending
 const COACH_VOICE_SILENCE_DELAY_MS = 3000 // 3s of silence before sending — pausa natural de conversacion
 let coachSplineViewer: HTMLElement | null = null
@@ -1016,6 +1025,7 @@ function stopCoachListening() {
     coachVoiceDebounceTimer = null
   }
   coachAccumulatedTranscript = ''
+  coachHasPendingTranscript.value = false
   coachTranscriptFlushed = false
   coachRecognition?.stop()
   coachListening.value = false
@@ -1053,8 +1063,12 @@ function toggleCoachDictation() {
 // Lo dispara el botón "enviar ya" de la pantalla de voz.
 function flushVoiceNow() {
   if (!coachListening.value || coachLoading.value || isCoachSpeaking.value) return
+  // Si aun no hay texto final acumulado, no cortamos la escucha: seguir oyendo
+  // en vez de matar el microfono sin enviar nada (causaba silencio).
+  if (!coachAccumulatedTranscript.trim()) return
   // Evitar que onend reinicie el reconocimiento tras el stop manual.
   coachVoiceListeningWanted = false
+  coachListening.value = false // ocultar el boton de inmediato y evitar doble tap
   clearCoachVoiceDebounce()
   coachRecognition?.stop()
   flushCoachAccumulatedTranscript(true)
@@ -1062,7 +1076,8 @@ function flushVoiceNow() {
 
 // true cuando hay voz acumulada lista para enviar de inmediato.
 const canFlushVoiceNow = computed(
-  () => coachListening.value && !coachLoading.value && !isCoachSpeaking.value,
+  () => coachListening.value && !coachLoading.value && !isCoachSpeaking.value
+    && coachHasPendingTranscript.value,
 )
 
 function clearCoachVoiceDebounce() {
@@ -1081,6 +1096,7 @@ function flushCoachAccumulatedTranscript(autoSubmit: boolean) {
 
   const finalTranscript = coachAccumulatedTranscript.trim()
   coachAccumulatedTranscript = ''
+  coachHasPendingTranscript.value = false
   clearCoachVoiceDebounce()
 
   if (!finalTranscript) return
@@ -1113,6 +1129,7 @@ function startCoachDictation(autoSubmit = false) {
 
   // Reset accumulated transcript and flags
   coachAccumulatedTranscript = ''
+  coachHasPendingTranscript.value = false
   coachTranscriptFlushed = false
   clearCoachVoiceDebounce()
 
@@ -1150,6 +1167,7 @@ function startCoachDictation(autoSubmit = false) {
       // Update accumulated transcript with final results only
       if (hasNewFinal) {
         coachAccumulatedTranscript = fullTranscript
+        coachHasPendingTranscript.value = true
       }
       // Show current transcript in input for visual feedback
       if (!autoSubmit && !voiceConversationMode.value) {
@@ -3300,7 +3318,14 @@ async function sendCoachMessage(seed?: string, options: CoachSendOptions = {}) {
     console.log('[Coach] Enviando peticion al backend...')
     const response = await reinforcementAdapter.coachConversation(payload) as CoachResponse
     console.log('[Coach] Respuesta del backend:', response)
-    if (options.voiceMode && !voiceConversationMode.value) return
+    // Solo descartamos la respuesta si la sesion de voz fue realmente cerrada
+    // (el usuario colgó → la vista salió de la fase 'voice'). NUNCA la descartamos
+    // por cambios transitorios de voiceConversationMode mientras seguimos en la
+    // pantalla de voz, porque eso dejaba al modelo en silencio tras enviar.
+    if (options.voiceMode && !options.starter && phase.value !== 'voice' && !voiceConversationMode.value) {
+      console.warn('[Coach] Sesion de voz finalizada antes de responder; descarto respuesta.')
+      return
+    }
     const stance: CoachStance = response.stance || 'incorrect'
     const question = openCoachQuestion(response.question || '')
     coachLastQuestion.value = question
@@ -4326,6 +4351,27 @@ onUnmounted(() => {
   box-shadow: none;
   border: none;
   clip-path: none;
+}
+
+/* Overlay con spinner mientras el modelo piensa (fase de voz) */
+.coach-thinking-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(10, 8, 30, 0.38), rgba(10, 8, 30, 0.14));
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.coach-thinking-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #a78bfa;
+  animation: analysisSpin 0.8s linear infinite;
 }
 
 .coach-spline-stage {
