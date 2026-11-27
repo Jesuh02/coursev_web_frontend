@@ -139,12 +139,6 @@ const features = [
     bg: '#EDE9FE', fg: '#7C3AED',
   },
   {
-    title: 'Video',
-    body: 'Genera un video corto narrado a partir del contenido del curso.',
-    icon: '🎬',
-    bg: '#E0F7FB', fg: '#00838F',
-  },
-  {
     title: 'Profesional',
     body: 'Modelos de imagen y texto de primera línea vía OpenRouter.',
     icon: '✨',
@@ -154,7 +148,7 @@ const features = [
 
 const steps = [
   { title: 'Elige curso, tema y tarea', body: 'Selecciona el contenido a partir del cual se construirá tu historia.' },
-  { title: 'Escoge el formato', body: 'Cómic ilustrado o video corto narrado, según prefieras aprender.' },
+  { title: 'Escoge el formato', body: 'Cómic ilustrado según prefieras aprender.' },
   { title: 'Disfruta', body: 'La IA usa los documentos del tema para componer la pieza final.' },
 ]
 
