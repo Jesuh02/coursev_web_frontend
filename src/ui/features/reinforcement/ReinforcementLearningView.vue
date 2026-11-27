@@ -2414,57 +2414,109 @@ function feDerivativeExtrema(text: string): { value: Decimal; steps: string[] } 
 }
 
 function normalizeQuestionForDisplay(question: QuizQuestion): QuizQuestion {
-  // Math verification and conversion only apply when the topic is math-related.
-  // For non-math topics, skip to avoid incorrectly rejecting or converting questions
-  // that happen to contain numbers or numerically-phrased answers.
-  if (!isMathTopic.value) {
-    if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
-      return shuffleMultipleChoiceQuestion(question)
+  // If already multiple choice with valid options, shuffle and return
+  if (question.type === 'multiple_choice' && Array.isArray(question.options) && question.options.length >= 2) {
+    if (isMathTopic.value) {
+      const verified = verifyMathConsistency(question)
+      if (!verified) return { ...question, _rejected: true } as QuizQuestion & { _rejected?: boolean }
+
+      const uniqueOpts = new Set(verified.options.map(o => o.toLowerCase().trim()))
+      if (uniqueOpts.size < verified.options.length) {
+        const correctOpt = verified.options[verified.correctIndex]
+        const correctNum = Number(correctOpt?.replace(/[^0-9.\-]/g, '') ?? '')
+        if (Number.isFinite(correctNum)) {
+          const distractors = generatePlausibleDistractors(correctNum)
+          return shuffleMultipleChoiceQuestion({
+            ...verified,
+            options: [formatMathOption(correctNum), ...distractors.map(formatMathOption)],
+            correctIndex: 0,
+          })
+        }
+      }
+      return shuffleMultipleChoiceQuestion(verified)
     }
+    return shuffleMultipleChoiceQuestion(question)
+  }
+
+  // For ordering type, keep as-is
+  if (question.type === 'ordering') {
     return question
   }
 
-  // First: verify math consistency — fix or reject wrong math answers
-  const verified = verifyMathConsistency(question)
-  if (!verified) return { ...question, _rejected: true } as QuizQuestion & { _rejected?: boolean }
+  // Convert fill_in_blank to multiple_choice
+  if (question.type === 'fill_in_blank') {
+    const correctAnswer = String(question.correctAnswer ?? '').trim()
 
-  if (verified.type === 'multiple_choice' && Array.isArray(verified.options) && verified.options.length >= 2) {
-    // Validate that all options are distinct; if not, keep the question but log
-    const uniqueOpts = new Set(verified.options.map(o => o.toLowerCase().trim()))
-    if (uniqueOpts.size < verified.options.length) {
-      // Deduplicate options by removing duplicates and regenerating distractors
-      const correctOpt = verified.options[verified.correctIndex]
-      const correctNum = Number(correctOpt?.replace(/[^0-9.\-]/g, '') ?? '')
-      if (Number.isFinite(correctNum)) {
-        // Generate new unique distractors based on plausible errors
-        const distractors = generatePlausibleDistractors(correctNum)
-        return shuffleMultipleChoiceQuestion({
-          ...verified,
-          options: [formatMathOption(correctNum), ...distractors.map(formatMathOption)],
-          correctIndex: 0,
-        })
-      }
+    if (!correctAnswer) {
+      return { ...question, _rejected: true } as QuizQuestion & { _rejected?: boolean }
     }
-    return shuffleMultipleChoiceQuestion(verified)
+
+    // Try numeric conversion
+    const numericAnswer = Number(correctAnswer.replace(/,/g, ''))
+    if (Number.isFinite(numericAnswer)) {
+      const distractors = generatePlausibleDistractors(numericAnswer)
+      return shuffleMultipleChoiceQuestion({
+        ...question,
+        type: 'multiple_choice',
+        options: [
+          formatMathOption(numericAnswer),
+          ...distractors.map(formatMathOption),
+        ],
+        correctIndex: 0,
+      })
+    }
+
+    // For non-numeric answers, generate plausible variations as options
+    const variations = generateTextVariations(correctAnswer)
+    return shuffleMultipleChoiceQuestion({
+      ...question,
+      type: 'multiple_choice',
+      options: variations,
+      correctIndex: 0,
+    })
   }
 
-  if (verified.type !== 'fill_in_blank' || !shouldConvertMathFillQuestion(verified.question, verified.correctAnswer)) {
-    return verified
+  return question
+}
+
+function generateTextVariations(correct: string): string[] {
+  const correctLower = correct.toLowerCase().trim()
+  const variations = [correct]
+
+  if (correct.length > 2) {
+    // Partial answer (first part)
+    const parts = correct.split(/\s+/)
+    if (parts.length > 1) {
+      variations.push(parts[0])
+      variations.push(parts.slice(0, -1).join(' '))
+    }
+
+    // Singular/plural variations
+    if (correct.endsWith('s') && correct.length > 2) {
+      variations.push(correct.slice(0, -1))
+    } else if (!correct.endsWith('s')) {
+      variations.push(correct + 's')
+    }
+
+    // Common synonyms or related terms (basic heuristic)
+    const synonymMap: Record<string, string> = {
+      'yes': 'correct', 'no': 'incorrect', 'true': 'verdadero', 'false': 'falso',
+      'positivo': 'positiva', 'negativo': 'negativa', 'mayor': 'más grande',
+      'menor': 'más pequeño', 'igual': 'lo mismo', 'diferente': 'distinto',
+    }
+
+    if (synonymMap[correctLower]) {
+      variations.push(synonymMap[correctLower])
+    }
   }
 
-  const numericAnswer = Number(String(verified.correctAnswer ?? '').trim().replace(/,/g, ''))
-  if (!Number.isFinite(numericAnswer)) return verified
+  // Ensure at least 4 unique options
+  const unique = Array.from(new Set(variations.map(v => v.trim())))
+  while (unique.length < 4) {
+    unique.push(`Opción ${unique.length}`)
+  }
 
-  const distractors = generatePlausibleDistractors(numericAnswer)
-  return shuffleMultipleChoiceQuestion({
-    ...verified,
-    type: 'multiple_choice',
-    options: [
-      formatMathOption(numericAnswer),
-      ...distractors.map(formatMathOption),
-    ],
-    correctIndex: 0,
-  })
+  return unique.slice(0, 4)
 }
 
 /**
@@ -3399,7 +3451,6 @@ async function startQuiz(voiceModeOrEvent: boolean | Event = false) {
             .filter(q => q.question)
             .map(normalizeQuestionForDisplay)
             .filter(q => !(q as QuizQuestion & { _rejected?: boolean })._rejected)
-            .filter(q => !voiceQuizMode.value || !requiresWrittenAnswer(q))
 
           // Backend returned empty questions (insufficient count) — retry generation
           if (!qs.length) {
